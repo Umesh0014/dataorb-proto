@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ================================================================
+   DataOrb Design System — Design Tokens
+   ================================================================ */
+
+@font-face {
+  font-family: "Mulish";
+  src: url("/fonts/Mulish-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Mulish";
+  src: url("/fonts/Mulish-Italic-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight: 200 1000;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  /* BRAND */
+  --do-brand-blue:        #004BEF;
+  --do-brand-blue-hover:  #0039BC;
+  --do-ink:               #1F232A;
+  --do-ink-2:             #2C2F42;
+
+  /* MUI Primary */
+  --color-primary-50:     #E3F2FD;
+  --color-primary-100:    #BBDEFB;
+  --color-primary-200:    #90CAF9;
+  --color-primary-300:    #64B5F6;
+  --color-primary-400:    #42A5F5;
+  --color-primary-500:    #1976D2;
+  --color-primary-600:    #1565C0;
+  --color-primary-700:    #0D47A1;
+  --color-primary-alpha-50: rgba(25, 118, 210, 0.50);
+  --color-primary-alpha-12: rgba(25, 118, 210, 0.12);
+  --color-primary-alpha-08: rgba(25, 118, 210, 0.08);
+  --color-primary-alpha-04: rgba(25, 118, 210, 0.04);
+
+  /* Secondary */
+  --color-secondary-400:  #BA68C8;
+  --color-secondary-500:  #9C27B0;
+  --color-secondary-600:  #7B1FA2;
+
+  /* Severity */
+  --color-error:          #D32F2F;
+  --color-error-dark:     #BA1A1A;
+  --color-error-bg:       #FDEDED;
+  --color-error-text:     #5F2120;
+  --color-warning:        #EF6C00;
+  --color-warning-dark:   #E65100;
+  --color-warning-bg:     #FFF4E5;
+  --color-warning-text:   #663C00;
+  --color-info:           #0288D1;
+  --color-info-bg:        #E5F6FD;
+  --color-info-text:      #014361;
+  --color-success:        #2E7D32;
+  --color-success-bg:     #EDF7ED;
+  --color-success-text:   #1E4620;
+
+  /* Neutrals */
+  --grey-50:              #F1F3F9;
+  --grey-100:             #F2F0F4;
+  --grey-200:             #E0E0E0;
+  --grey-300:             #D6DCE8;
+  --grey-400:             #BDBDBD;
+  --grey-500:             #AAB2C5;
+  --grey-600:             #8C90A6;
+  --grey-700:             #5A5D72;
+  --grey-800:             #2C2F42;
+  --grey-900:             #1B1B1F;
+
+  /* Text */
+  --text-primary:         rgba(0, 0, 0, 0.87);
+  --text-secondary:       rgba(0, 0, 0, 0.60);
+  --text-disabled:        rgba(0, 0, 0, 0.38);
+  --text-hint:            rgba(0, 0, 0, 0.38);
+
+  --divider:              rgba(0, 0, 0, 0.12);
+  --overlay-hover:        rgba(0, 0, 0, 0.04);
+  --overlay-selected:     rgba(0, 0, 0, 0.08);
+  --overlay-focus:        rgba(25, 118, 210, 0.50);
+
+  /* Surfaces */
+  --surface-white:        #FFFFFF;
+  --surface-canvas:       #F0F2FA;
+  --surface-alt:          #F1F3F9;
+  --surface-dim:          #FAFAFA;
+  --surface-dark:         #121212;
+
+  /* Nav */
+  --nav-rail-bg:          #E8ECFF;
+  --nav-rail-icon:        #5A5D72;
+  --nav-rail-active:      #245BFF;
+  --nav-rail-active-bg:   rgba(36, 91, 255, 0.12);
+
+  --page-header-bg:       #FFFDF5;
+  --page-header-border:   #E8ECFF;
+
+  /* Charts */
+  --chart-blue:           #245BFF;
+  --chart-teal:           #2AC5A0;
+  --chart-orange:         #F5A623;
+  --chart-coral:          #FF6B6B;
+  --chart-lavender:       #A78BFA;
+  --chart-sky:            #38BDF8;
+  --chart-pink:           #F472B6;
+  --chart-green:          #34D399;
+  --chart-amber:          #FBBF24;
+  --chart-grey:           #9CA3AF;
+  --chart-area-opacity:   0.15;
+
+  --heatmap-good:         #E8F5E9;
+  --heatmap-good-fg:      #2E7D32;
+  --heatmap-mid:          #FFF3E0;
+  --heatmap-mid-fg:       #E65100;
+  --heatmap-bad:          #FFEBEE;
+  --heatmap-bad-fg:       #C62828;
+
+  --badge-amber:          #EAA907;
+  --badge-amber-bg:       #FFF8E1;
+  --pill-bg:              #F5F6FA;
+
+  --table-header-bg:      transparent;
+  --table-header-border:  #E8ECFF;
+  --table-row-border:     #F0F2FA;
+  --table-row-hover:      rgba(0, 0, 0, 0.04);
+
+  --chip-border:          #D6DCE8;
+  --chip-bg:              #FFFFFF;
+  --chip-label:           #5A5D72;
+  --chip-value:           #1F232A;
+  --chip-chevron:         #AAB2C5;
+
+  /* Shadows */
+  --shadow-1: 0px 2px 1px -1px rgba(0,0,0,0.20),
+              0px 1px 1px  0px rgba(0,0,0,0.14),
+              0px 1px 3px  0px rgba(0,0,0,0.12);
+  --shadow-2: 0px 3px 1px -2px rgba(0,0,0,0.20),
+              0px 2px 2px  0px rgba(0,0,0,0.14),
+              0px 1px 5px  0px rgba(0,0,0,0.12);
+  --shadow-4: 0px 2px 4px -1px rgba(0,0,0,0.20),
+              0px 4px 5px  0px rgba(0,0,0,0.14),
+              0px 1px 10px 0px rgba(0,0,0,0.12);
+  --shadow-8: 0px 5px 5px -3px rgba(0,0,0,0.20),
+              0px 8px 10px 1px rgba(0,0,0,0.14),
+              0px 3px 14px 2px rgba(0,0,0,0.12);
+  --shadow-16: 0px 8px 10px -5px rgba(0,0,0,0.20),
+               0px 16px 24px  2px rgba(0,0,0,0.14),
+               0px 6px 30px   5px rgba(0,0,0,0.12);
+  --shadow-24: 0px 11px 15px -7px rgba(0,0,0,0.20),
+               0px 24px 38px  3px rgba(0,0,0,0.14),
+               0px 9px 46px   8px rgba(0,0,0,0.12);
+
+  --radius-xs:            2px;
+  --radius-sm:            4px;
+  --radius-md:            8px;
+  --radius-card:          12px;
+  --radius-lg:            16px;
+  --radius-xl:            20px;
+  --radius-pill:          999px;
+
+  --font-sans:  "Mulish", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:  "Roboto Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* ==============================================================
+     LEARNING HUB — added tokens
+     ============================================================== */
+  --color-icon-tertiary-bg: #F5EEFF;
+  --color-icon-tertiary-fg: #6650A5;
+  --color-surface-header-tinted: #FCFBFF;
+  --color-border-tab: #DDE1FF;
+  --color-text-tab-inactive: #5B5E6F;
+  --color-text-tab-active: #004BEF;
+  --color-card-emoji-bg: #F9F9FF;
+  --color-divider-card: #E2E8F0;
+  --color-chip-bg: #F5F5F5;
+  --color-chip-text: #2C2F42;
+  --color-button-primary-bg: #004BEF;
+  --color-button-primary-fg: #FFFFFF;
+  --color-text-deep: #171B2C;
+  --color-text-medium: #2C2F42;
+  --color-text-tertiary: #5B5E6F;
+  --color-text-placeholder: #8C90A6;
+
+  /* ==============================================================
+     Page layout — owned by <PageLayout>
+     Min supported viewport: 1260px.
+     Content has fixed max-width (1068px) and is centered inside the
+     main area (right of the rail). Gutters grow above 1260; minimum
+     gutter = 64px, achieved at exactly 1260 viewport.
+     Right panel: docks alongside content at viewport ≥ 1644 when
+     open; below that floor, panel overlays content's right edge.
+     Element sizes are fixed (token-based); only the layout responds.
+     ============================================================== */
+  --sidenav-width:               64px;
+  --page-gutter:                 64px;
+  --page-content-max-width:      1068px;
+  --page-right-panel-width:      320px;
+  --page-right-panel-gap:        40px;
+  --page-right-panel-dock-min:   1620px;
+  --page-min-width:              1260px;
+
+  /* Vertical rhythm — see <PageLayout> */
+  --page-padding-top:        24px;
+  --page-header-gap:         24px;
+  --page-card-gap:           24px;
+  --page-padding-bottom:     24px;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  min-width: var(--page-min-width);
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
