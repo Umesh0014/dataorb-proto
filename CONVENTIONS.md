@@ -136,7 +136,7 @@ Import order (within each file):
 | `DashboardShell` | [components/DashboardShell.jsx](components/DashboardShell.jsx) | Composes `<SideNav>` + `<PageLayout>`. Used by Insights Hub. |
 | `SideNav` | [components/SideNav/SideNav.jsx](components/SideNav/SideNav.jsx) | Config-driven navigation rail. Per-module configs in `SideNav/configs/`. |
 | `RoleplayBreadcrumb` | [components/RoleplayBreadcrumb.jsx](components/RoleplayBreadcrumb.jsx) | Two-step breadcrumb for the New Roleplay wizard. |
-| `DrillHeader` | [components/DrillHeader.jsx](components/DrillHeader.jsx) | Drill page header card (title + chevron). |
+| `PageHeader` | [components/PageHeader.jsx](components/PageHeader.jsx) | Shared page header surface. Single card with row 1 (identifier + optional primary CTA) and optional row 2 (borderless search + vertical divider + ordered toolbar icon buttons). All sub-objects optional; row 2 + horizontal divider hide when neither `search` nor `toolbar` provided. |
 
 When a deferred composite reaches 3 callsites, promote: `Pagination`, `Chip`, `PillGroup`, `Dropdown`, `IconButton-with-dropdown`.
 
