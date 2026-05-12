@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 
@@ -34,15 +34,18 @@ import Button from "./Button";
 //   primaryAction: { label, icon?, onClick, variant?, disabled? }
 //   search:        { value, onChange, placeholder? }
 //   toolbar:       Array<{ id, icon, label, onClick, active? }>
+//   filters:       Array<{ id, label, value, onClick }>
 export default function PageHeader({
   identifier,
   primaryAction,
   search,
   toolbar,
+  filters,
 }) {
   const hasSearch = Boolean(search);
   const hasToolbar = Array.isArray(toolbar) && toolbar.length > 0;
-  const hasRow2 = hasSearch || hasToolbar;
+  const hasFilters = Array.isArray(filters) && filters.length > 0;
+  const hasRow2 = hasSearch || hasToolbar || hasFilters;
 
   return (
     <Card padX={0} padY={0} style={phStyles.outer}>
@@ -54,8 +57,9 @@ export default function PageHeader({
         <>
           <div style={phStyles.rowDivider} aria-hidden="true" />
           <div style={phStyles.row2}>
+            {hasFilters && <FilterPills items={filters} />}
             {hasSearch && <SearchInput {...search} />}
-            {hasSearch && hasToolbar && (
+            {(hasFilters || hasSearch) && hasToolbar && (
               <div style={phStyles.verticalDivider} aria-hidden="true" />
             )}
             {hasToolbar && <Toolbar items={toolbar} />}
@@ -124,6 +128,25 @@ function SearchInput({ value, onChange, placeholder = "Search" }) {
         aria-label={placeholder}
         style={phStyles.searchInput}
       />
+    </div>
+  );
+}
+
+function FilterPills({ items }) {
+  return (
+    <div style={phStyles.filterPills}>
+      {items.map((f) => (
+        <button
+          key={f.id}
+          type="button"
+          onClick={f.onClick}
+          style={phStyles.filterPill}
+        >
+          <span style={phStyles.filterLabel}>{f.label}</span>
+          <span style={phStyles.filterValue}>{f.value}</span>
+          <ChevronDown size={14} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
+        </button>
+      ))}
     </div>
   );
 }
@@ -237,6 +260,33 @@ const phStyles = {
     alignSelf: "stretch",
     margin: "12px 0",
     background: "var(--color-border-tab)",
+  },
+  filterPills: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    paddingLeft: 20,
+  },
+  filterPill: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    padding: "6px 12px",
+    borderRadius: 999,
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 13,
+    whiteSpace: "nowrap",
+  },
+  filterLabel: {
+    fontWeight: 500,
+    color: "var(--color-text-tertiary)",
+  },
+  filterValue: {
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
   },
   toolbar: {
     display: "flex",
