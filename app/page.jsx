@@ -9,6 +9,10 @@ import DrillDetailPage from "../components/DrillDetailPage";
 import NewRoleplayPage from "../components/NewRoleplayPage";
 import NewRoleplayContextPage from "../components/NewRoleplayContextPage";
 import InteractionsPage from "../components/InteractionsPage";
+import MissionsPage from "../components/MissionsPage";
+import MissionWizardPage, {
+  EMPTY_MISSION_DRAFT,
+} from "../components/MissionWizardPage";
 import ComingSoon from "../components/ComingSoon";
 import AskMiraProPage from "../components/AskMiraProPage";
 import MiraSetupContextPanel from "../components/MiraSetupContextPanel";
@@ -62,6 +66,7 @@ const LEARNING_PAGES = {
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
   "agents":       { Component: ComingSoon,      pageName: "Agents" },
+  "missions":     { Component: MissionsPage,    pageName: "Missions" },
 };
 
 const MIRA_PAGES = {
@@ -144,11 +149,34 @@ export default function Page() {
   const [drillDetailId, setDrillDetailId] = React.useState(null);
   const [roleplayStep, setRoleplayStep] = React.useState(null); // null | 'persona' | 'context' | 'generated'
   const [roleplay, setRoleplay] = React.useState(EMPTY_ROLEPLAY);
+  // Create Mission wizard — null means closed (MissionsPage renders); any
+  // step id ('define' | 'coverage' | 'focus' | 'recruit' | 'preview')
+  // means the wizard is mounted.
+  const [missionWizardStep, setMissionWizardStep] = React.useState(null);
+  const [missionDraft, setMissionDraft] = React.useState(EMPTY_MISSION_DRAFT);
   const appMenuTriggerRef = React.useRef(null);
 
   const cancelRoleplay = () => {
     setRoleplayStep(null);
     setRoleplay(EMPTY_ROLEPLAY);
+  };
+
+  const openMissionWizard = () => {
+    setMissionDraft(EMPTY_MISSION_DRAFT);
+    setMissionWizardStep("define");
+  };
+  const closeMissionWizard = () => {
+    setMissionWizardStep(null);
+    setMissionDraft(EMPTY_MISSION_DRAFT);
+  };
+  const saveMissionDraft = (draft) => {
+    // TODO: persist draft mission server-side; logging for prototype.
+    console.log("save draft", draft);
+  };
+  const publishMission = () => {
+    // TODO: publish flow lands in a later wizard update.
+    console.log("publish mission", missionDraft);
+    closeMissionWizard();
   };
 
   if (currentPage === "mira") {
@@ -227,8 +255,21 @@ export default function Page() {
   if (currentPage === "learning") {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
+    const onMissions = learningNav === "missions";
     let drillContent;
-    if (onDrill && roleplayStep === "generated") {
+    if (onMissions && missionWizardStep) {
+      drillContent = (
+        <MissionWizardPage
+          step={missionWizardStep}
+          draft={missionDraft}
+          onChange={setMissionDraft}
+          onStepChange={setMissionWizardStep}
+          onCancel={closeMissionWizard}
+          onSave={saveMissionDraft}
+          onPublish={publishMission}
+        />
+      );
+    } else if (onDrill && roleplayStep === "generated") {
       drillContent = <ComingSoon pageName="Roleplay Generation" />;
     } else if (onDrill && roleplayStep === "context") {
       drillContent = (
@@ -268,6 +309,7 @@ export default function Page() {
             setRoleplay(EMPTY_ROLEPLAY);
             setRoleplayStep("persona");
           }}
+          onCreateMission={openMissionWizard}
         />
       );
     }
@@ -280,6 +322,7 @@ export default function Page() {
           onSelect={(id) => {
             setDrillDetailId(null);
             cancelRoleplay();
+            closeMissionWizard();
             setLearningNav(id);
           }}
           appSwitcherTriggerRef={appMenuTriggerRef}
@@ -294,6 +337,9 @@ export default function Page() {
           onSelectPage={(page) => {
             setDrillDetailId(null);
             cancelRoleplay();
+            setDrillDetailId(null);
+            cancelRoleplay();
+            closeMissionWizard();
             setCurrentPage(page);
             setAppMenuOpen(false);
           }}

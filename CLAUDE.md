@@ -97,7 +97,7 @@ PageLayout owns this. Don't reimplement.
 | `DashboardShell` | [components/DashboardShell.jsx](components/DashboardShell.jsx) |
 | `SideNav` | [components/SideNav/SideNav.jsx](components/SideNav/SideNav.jsx) |
 | `RoleplayBreadcrumb` | [components/RoleplayBreadcrumb.jsx](components/RoleplayBreadcrumb.jsx) |
-| `DrillHeader` | [components/DrillHeader.jsx](components/DrillHeader.jsx) |
+| `PageHeader` | [components/PageHeader.jsx](components/PageHeader.jsx) |
 
 Promotion candidates (deferred until 3rd callsite): `Pagination`, `Chip`, `PillGroup`, `Dropdown`.
 

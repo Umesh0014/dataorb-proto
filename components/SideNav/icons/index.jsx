@@ -135,6 +135,25 @@ export const AgentsIcon = ({ size = 22, color = "currentColor" }) => (
   />
 );
 
+// Missions (Learning Hub) — bullseye target (two concentric rings + center dot).
+// Own 20×20 viewBox like AgentSquareIcon. Used by both the SideNav rail and
+// the Missions page header avatar so the two stay literally identical.
+export const MissionsIcon = ({ size = 22, color = "currentColor" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 20 20"
+    fill="none"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <circle cx="10" cy="10" r="8.25" stroke={color} strokeWidth="1.5" />
+    <circle cx="10" cy="10" r="4.75" stroke={color} strokeWidth="1.5" />
+    <circle cx="10" cy="10" r="1.75" fill={color} />
+  </svg>
+);
+
 // === Ask Mira Pro module icons ===
 
 // Mira brand mark — multi-stop linear-gradient sparkle. Brand colors are

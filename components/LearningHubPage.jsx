@@ -2,12 +2,25 @@
 
 import React from "react";
 import { Plus } from "lucide-react";
-import DrillHeader from "./DrillHeader";
+import PageHeader from "./PageHeader";
 import TabsRow from "./TabsRow";
 import DrillCard from "./DrillCard";
 import ComingSoon from "./ComingSoon";
 import Button from "./Button";
 import { DRILL_CARDS } from "./mocks/drillCards";
+
+const DrillAvatarIcon = () => (
+  <span
+    className="material-symbols-outlined"
+    style={{
+      fontSize: 18,
+      color: "#245BFF",
+      fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+    }}
+  >
+    co_present
+  </span>
+);
 
 const DRILL_TABS = [
   { id: "active",  label: "Active" },
@@ -34,7 +47,15 @@ export default function LearningHubPage({ onOpenDrill, onCreateRoleplay }) {
 
   return (
     <div style={lhStyles.column}>
-      <DrillHeader title="Drill" />
+      <PageHeader
+        identifier={{
+          icon: <DrillAvatarIcon />,
+          label: "Drill",
+          withDropdown: true,
+          // TODO: identifier dropdown menu — decorative for now.
+          onClick: () => {},
+        }}
+      />
       <TabsRow
         tabs={DRILL_TABS}
         activeTab={activeTab}
