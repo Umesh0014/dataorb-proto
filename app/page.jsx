@@ -256,6 +256,8 @@ export default function Page() {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
     const onMissions = learningNav === "missions";
+    const missionsPopulated = onMissions && !missionWizardStep;
+
     let drillContent;
     if (onMissions && missionWizardStep) {
       drillContent = (
@@ -300,7 +302,7 @@ export default function Page() {
           onBack={() => setDrillDetailId(null)}
         />
       );
-    } else {
+    } else if (!missionsPopulated) {
       drillContent = (
         <LearningPage
           pageName={pageName}
@@ -328,7 +330,11 @@ export default function Page() {
           appSwitcherTriggerRef={appMenuTriggerRef}
           onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
         />
-        <PageLayout>{drillContent}</PageLayout>
+        {missionsPopulated ? (
+          <MissionsPage onCreateMission={openMissionWizard} />
+        ) : (
+          <PageLayout>{drillContent}</PageLayout>
+        )}
         <AppSwitcherPopover
           open={appMenuOpen}
           onClose={() => setAppMenuOpen(false)}
