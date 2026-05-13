@@ -618,7 +618,7 @@ const edStyles = {
     width: DRAWER_WIDTH,
     background: "var(--surface-white)",
     borderLeft: "1px solid var(--color-divider-card)",
-    boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
+    boxShadow: "var(--shadow-drawer)",
     display: "flex",
     flexDirection: "column",
     zIndex: 40,

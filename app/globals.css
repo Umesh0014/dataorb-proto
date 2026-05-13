@@ -138,6 +138,8 @@
   --chip-chevron:         #AAB2C5;
 
   /* Shadows */
+  --shadow-card:   0 2px 4px rgba(69, 70, 79, 0.15);
+  --shadow-drawer: -4px 0 24px rgba(0, 0, 0, 0.10);
   --shadow-1: 0px 2px 1px -1px rgba(0,0,0,0.20),
               0px 1px 1px  0px rgba(0,0,0,0.14),
               0px 1px 3px  0px rgba(0,0,0,0.12);

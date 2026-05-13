@@ -241,7 +241,7 @@ function OverlayPanel({ children }) {
         bottom: 0,
         width: "var(--page-right-panel-width)",
         background: "var(--surface-white)",
-        boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
+        boxShadow: "var(--shadow-drawer)",
         display: "flex",
         flexDirection: "column",
         zIndex: 40,

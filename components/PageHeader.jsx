@@ -59,10 +59,14 @@ export default function PageHeader({
           <div style={phStyles.row2}>
             {hasFilters && <FilterPills items={filters} />}
             {hasSearch && <SearchInput {...search} />}
-            {(hasFilters || hasSearch) && hasToolbar && (
-              <div style={phStyles.verticalDivider} aria-hidden="true" />
+            {hasToolbar && (
+              <>
+                {(hasFilters || hasSearch)
+                  ? <div style={phStyles.verticalDividerEnd} aria-hidden="true" />
+                  : <span style={{ marginLeft: "auto" }} aria-hidden="true" />}
+                <Toolbar items={toolbar} />
+              </>
             )}
-            {hasToolbar && <Toolbar items={toolbar} />}
           </div>
         </>
       )}
@@ -136,17 +140,67 @@ function FilterPills({ items }) {
   return (
     <div style={phStyles.filterPills}>
       {items.map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          onClick={f.onClick}
-          style={phStyles.filterPill}
-        >
-          <span style={phStyles.filterLabel}>{f.label}</span>
-          <span style={phStyles.filterValue}>{f.value}</span>
-          <ChevronDown size={14} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
-        </button>
+        Array.isArray(f.options) && f.options.length > 0
+          ? <FilterDropdown key={f.id} filter={f} />
+          : (
+            <button
+              key={f.id}
+              type="button"
+              onClick={f.onClick}
+              style={phStyles.filterPill}
+            >
+              <span style={phStyles.filterLabel}>{f.label}</span>
+              <span style={phStyles.filterValue}>{f.value}</span>
+              <ChevronDown size={14} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
+            </button>
+          )
       ))}
+    </div>
+  );
+}
+
+function FilterDropdown({ filter }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open ? "true" : "false"}
+        style={phStyles.filterPill}
+      >
+        <span style={phStyles.filterLabel}>{filter.label}</span>
+        <span style={phStyles.filterValue}>{filter.value}</span>
+        <ChevronDown size={14} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
+      </button>
+      {open && (
+        <>
+          <div style={phStyles.menuScrim} onClick={() => setOpen(false)} aria-hidden="true" />
+          <div role="menu" style={phStyles.menu}>
+            {filter.options.map((opt) => {
+              const isSelected = opt.value === filter.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={isSelected}
+                  onClick={() => { filter.onSelect?.(opt.value); setOpen(false); }}
+                  style={{
+                    ...phStyles.menuItem,
+                    background: isSelected ? "var(--pill-bg)" : "transparent",
+                    color: isSelected ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
+                    fontWeight: isSelected ? 700 : 500,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -261,6 +315,15 @@ const phStyles = {
     margin: "12px 0",
     background: "var(--color-border-tab)",
   },
+  // Same as verticalDivider but right-anchored — pushes itself + the
+  // following toolbar to the right edge of row 2.
+  verticalDividerEnd: {
+    width: 1,
+    alignSelf: "stretch",
+    margin: "12px 0",
+    marginLeft: "auto",
+    background: "var(--color-border-tab)",
+  },
   filterPills: {
     display: "flex",
     alignItems: "center",
@@ -297,5 +360,35 @@ const phStyles = {
   toolbarBtnActive: {
     background: "var(--pill-bg)",
     color: "var(--color-text-tab-active)",
+  },
+  menuScrim: {
+    position: "fixed",
+    inset: 0,
+    background: "transparent",
+    zIndex: 39,
+  },
+  menu: {
+    position: "absolute",
+    top: "calc(100% + 4px)",
+    left: 0,
+    minWidth: 180,
+    background: "#FFFFFF",
+    borderRadius: 8,
+    border: "1px solid var(--color-border-tab)",
+    boxShadow: "0 4px 12px rgba(15, 20, 60, 0.10)",
+    padding: "4px 0",
+    zIndex: 40,
+    overflow: "hidden",
+  },
+  menuItem: {
+    display: "block",
+    width: "100%",
+    padding: "8px 16px",
+    background: "transparent",
+    border: "none",
+    textAlign: "left",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 13,
+    cursor: "pointer",
   },
 };

@@ -3,15 +3,20 @@
 import React from "react";
 import {
   Plus, Search, ArrowUpDown, MoreVertical, ChevronLeft, ChevronRight,
-  Info, ExternalLink, ShieldCheck, Sparkles, AlertTriangle, X, Clock, FileClock,
+  Info, ExternalLink, ShieldCheck, Sparkles, Clock, FileClock,
+  PartyPopper, Trash2, CheckCircle2, Circle,
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
-import StatCard from "./StatCard";
 import TabsRow from "./TabsRow";
 import PageHeader from "./PageHeader";
+import InlineStatusAffordance from "./InlineStatusAffordance";
+import Banner, { AlertCircleFilled } from "./Banner";
+import CircularProgress from "./CircularProgress";
+import SelectionAccentBar from "./SelectionAccentBar";
+import Toast from "./Toast";
 import { MissionsIcon } from "./SideNav/icons";
-import { DEMO_MISSIONS, GLOBAL_KPIS } from "./mocks/missionsSeedData";
+import { DEMO_MISSIONS, deriveGlobalKpis, DRAFT_SETUP_STEPS } from "./mocks/missionsSeedData";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,11 +43,11 @@ function getStateTone(state) {
   }
 }
 
-function getTimeChipStyle(daysLeft) {
-  if (daysLeft <= 0)  return { color: "var(--color-error)" };
-  if (daysLeft <= 3)  return { color: "var(--color-warning)" };
-  if (daysLeft <= 14) return { color: "var(--color-text-medium)" };
-  return { color: "var(--color-text-tertiary)" };
+function getTimeAffordanceTone(daysLeft) {
+  if (daysLeft <= 0)  return "danger";
+  if (daysLeft <= 3)  return "warning";
+  if (daysLeft <= 14) return "medium";
+  return "tertiary";
 }
 
 function getTargetMetStyle(pct) {
@@ -77,6 +82,7 @@ export default function MissionsPage({ onCreateMission }) {
   const [selectedId, setSelectedId] = React.useState(DEMO_MISSIONS[0]?.id);
   const [statusFilter, setStatusFilter] = React.useState("Active");
   const [toastVisible, setToastVisible] = React.useState(true);
+  const globalKpis = React.useMemo(() => deriveGlobalKpis(DEMO_MISSIONS), []);
 
   // TODO: wire to publish handoff
   React.useEffect(() => {
@@ -110,11 +116,11 @@ export default function MissionsPage({ onCreateMission }) {
 
   let filtered;
   if (statusFilter === "Active") {
-    filtered = DEMO_MISSIONS.filter((m) => m.state !== "draft");
+    filtered = DEMO_MISSIONS.filter((m) => m.state !== "draft" && m.state !== "completed");
   } else if (statusFilter === "Draft") {
     filtered = DEMO_MISSIONS.filter((m) => m.state === "draft");
   } else {
-    filtered = []; // TODO: completed missions
+    filtered = DEMO_MISSIONS.filter((m) => m.state === "completed");
   }
   const selected = filtered.find((m) => m.id === selectedId) || filtered[0] || DEMO_MISSIONS[0];
 
@@ -127,7 +133,17 @@ export default function MissionsPage({ onCreateMission }) {
           filters={[
             { id: "team", label: "Team", value: "All", onClick: () => console.log("team filter") },
             { id: "created", label: "Created Date", value: "Last 7 days", onClick: () => console.log("created filter") },
-            { id: "status", label: "Status", value: statusFilter, onClick: () => setStatusFilter((s) => (s === "Active" ? "Draft" : s === "Draft" ? "Completed" : "Active")) },
+            {
+              id: "status",
+              label: "Status",
+              value: statusFilter,
+              options: [
+                { label: "Active",    value: "Active" },
+                { label: "Draft",     value: "Draft" },
+                { label: "Completed", value: "Completed" },
+              ],
+              onSelect: (v) => setStatusFilter(v),
+            },
           ]}
           toolbar={[
             { id: "search", icon: <Search size={18} />, label: "Search", onClick: () => console.log("search") },
@@ -135,10 +151,23 @@ export default function MissionsPage({ onCreateMission }) {
           ]}
         />
 
-        <div style={msStyles.kpiRow}>
-          {GLOBAL_KPIS.map((k) => (
-            <StatCard key={k.label} label={k.label} value={k.value} />
-          ))}
+        <div style={msStyles.kpiCard}>
+          {globalKpis.map((k, i) => {
+            const tileStyle = {
+              ...msStyles.kpiTile,
+              paddingLeft:  i === 0                  ? 0 : 24,
+              paddingRight: i === globalKpis.length - 1 ? 0 : 24,
+            };
+            return (
+              <React.Fragment key={k.label}>
+                {i > 0 && <div style={msStyles.kpiDivider} aria-hidden="true" />}
+                <div style={tileStyle}>
+                  <div style={msStyles.kpiLabel}>{k.label}</div>
+                  <div style={msStyles.kpiValue}>{k.value}</div>
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
 
         <div style={msStyles.split}>
@@ -150,29 +179,24 @@ export default function MissionsPage({ onCreateMission }) {
                 </p>
               </Card>
             ) : (
-              filtered.map((m) =>
-                m.state === "draft" ? (
-                  <DraftMissionCard
-                    key={m.id}
-                    mission={m}
-                    selected={m.id === selectedId}
-                    onClick={() => setSelectedId(m.id)}
-                  />
-                ) : (
-                  <MissionCard
-                    key={m.id}
-                    mission={m}
-                    selected={m.id === selectedId}
-                    onClick={() => setSelectedId(m.id)}
-                  />
-                )
-              )
+              filtered.map((m) => {
+                const cardProps = {
+                  mission: m,
+                  selected: m.id === selectedId,
+                  onClick: () => setSelectedId(m.id),
+                };
+                if (m.state === "draft")     return <DraftMissionCard     key={m.id} {...cardProps} />;
+                if (m.state === "completed") return <CompletedMissionCard key={m.id} {...cardProps} />;
+                return                              <MissionCard          key={m.id} {...cardProps} />;
+              })
             )}
           </div>
 
           <div style={msStyles.rightCol}>
             {selected.state === "draft" ? (
               <DraftMissionDetail mission={selected} />
+            ) : selected.state === "completed" ? (
+              <CompletedMissionDetail mission={selected} />
             ) : (
               <MissionDetail mission={selected} />
             )}
@@ -181,7 +205,7 @@ export default function MissionsPage({ onCreateMission }) {
       </div>
 
       {toastVisible && (
-        <SuccessToast
+        <Toast
           message={`The mission '${DEMO_MISSIONS[0].name}' has been successfully Published`}
           onDismiss={() => setToastVisible(false)}
         />
@@ -192,25 +216,8 @@ export default function MissionsPage({ onCreateMission }) {
 
 // ---------------------------------------------------------------------------
 // Selection accent bar — top-edge gradient on the currently selected card.
-// Renders flush with card top edge; follows card's border-radius via outer
-// overflow:hidden. Applies to Active, Draft, and Closed card variants.
+// Library primitive imported from ./SelectionAccentBar.
 // ---------------------------------------------------------------------------
-
-function SelectionAccentBar() {
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 4,
-        background: "linear-gradient(90deg, var(--do-brand-blue) 0%, var(--color-secondary-500) 100%)",
-      }}
-    />
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Mission Card (left column)
@@ -218,7 +225,7 @@ function SelectionAccentBar() {
 
 function MissionCard({ mission, selected, onClick }) {
   const tone = getStateTone(mission.state);
-  const timeStyle = getTimeChipStyle(mission.daysLeft);
+  const timeTone = getTimeAffordanceTone(mission.daysLeft);
   const timeLabel = mission.daysLeft <= 0 ? "Ends Today" : `${mission.daysLeft} days left`;
   const firstTag = mission.tags[0].length > 15 ? mission.tags[0].slice(0, 15) + "…" : mission.tags[0];
   const showStripedTail = mission.state === "ends_today";
@@ -279,12 +286,74 @@ function MissionCard({ mission, selected, onClick }) {
 
       <div style={mcStyles.footer}>
         <span style={mcStyles.dateRange}>{fmtDateRange(mission.startDate, mission.endDate)}</span>
-        <span style={{ ...mcStyles.timeChip, ...timeStyle }}>
-          <Clock size={12} />
+        <InlineStatusAffordance tone={timeTone} icon={<Clock size={12} />}>
           {timeLabel}
-        </span>
+        </InlineStatusAffordance>
       </div>
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Completed Mission Card (left column — completed only)
+// Same composition as MissionCard; 100% solid green progress bar (no
+// striped tail); bottom-right "🎉 Completed" inline affordance replaces
+// the time-remaining chip.
+// ---------------------------------------------------------------------------
+
+function CompletedMissionCard({ mission, selected, onClick }) {
+  const firstTag = mission.tags[0].length > 15 ? mission.tags[0].slice(0, 15) + "…" : mission.tags[0];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ ...mcStyles.card, position: "relative", overflow: "hidden" }}
+    >
+      {selected && <SelectionAccentBar />}
+      <h3 style={mcStyles.title}>{mission.name}</h3>
+      <p style={mcStyles.desc}>{mission.description}</p>
+
+      <div style={mcStyles.divider} />
+
+      <div style={mcStyles.chips}>
+        <span style={mcStyles.countBadge}>{mission.agentCount}</span>
+        <span style={mcStyles.countLabel}>Agents</span>
+        <span style={mcStyles.dot}>·</span>
+        <span style={mcStyles.tagChip}>{firstTag}</span>
+        {mission.tags.length > 1 && (
+          <span style={mcStyles.overflowChip}>+{mission.tags.length - 1}</span>
+        )}
+      </div>
+
+      <div style={mcStyles.progressTrack}>
+        <div
+          style={{
+            height: "100%",
+            width: "100%",
+            background: "var(--color-success)",
+            borderRadius: 2,
+          }}
+        />
+      </div>
+
+      <div style={mcStyles.footer}>
+        <span style={mcStyles.dateRange}>{fmtDateRange(mission.startDate, mission.endDate)}</span>
+        <CompletedAffordance />
+      </div>
+    </button>
+  );
+}
+
+function CompletedAffordance() {
+  return (
+    <InlineStatusAffordance
+      tone="success"
+      size="md"
+      icon={<span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>🎉</span>}
+    >
+      Completed
+    </InlineStatusAffordance>
   );
 }
 
@@ -301,7 +370,6 @@ function DraftMissionCard({ mission, selected, onClick }) {
     ? mission.tags[0].length > 15 ? mission.tags[0].slice(0, 15) + "…" : mission.tags[0]
     : null;
   const setupProgress = mission.progress || 0;
-  const owner = mission.ownerInitials || "?";
 
   return (
     <button
@@ -314,12 +382,7 @@ function DraftMissionCard({ mission, selected, onClick }) {
       }}
     >
       {selected && <SelectionAccentBar />}
-      <div style={dmcStyles.topRow}>
-        <h3 style={dmcStyles.title}>{mission.name}</h3>
-        <span style={{ ...dmcStyles.ownerAvatar, background: avatarColor(owner) }}>
-          {owner}
-        </span>
-      </div>
+      <h3 style={dmcStyles.title}>{mission.name}</h3>
 
       <p style={hasDesc ? dmcStyles.desc : dmcStyles.placeholderText}>
         {hasDesc ? mission.description : "--"}
@@ -374,6 +437,15 @@ function DraftMissionCard({ mission, selected, onClick }) {
 // ---------------------------------------------------------------------------
 
 function DraftMissionDetail({ mission }) {
+  const checklist = mission.setupChecklist || {};
+  const completedCount = DRAFT_SETUP_STEPS.reduce((n, s) => n + (checklist[s.id] ? 1 : 0), 0);
+  const allComplete = completedCount === DRAFT_SETUP_STEPS.length;
+  if (allComplete) return <DraftMissionDetailComplete mission={mission} />;
+  return <DraftMissionDetailIncomplete mission={mission} checklist={checklist} />;
+}
+
+function DraftMissionDetailIncomplete({ mission, checklist }) {
+  const nextIncompleteIdx = DRAFT_SETUP_STEPS.findIndex((s) => !checklist[s.id]);
   return (
     <Card
       padX={24}
@@ -386,37 +458,522 @@ function DraftMissionDetail({ mission }) {
         overflow: "hidden",
       }}
     >
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <h2 style={dhStyles.title}>{mission.name}</h2>
-          <span style={dmcStyles.draftChip}>
-            <FileClock size={12} />
-            Draft
-          </span>
-        </div>
+      <DraftDetailHeader mission={mission} variant="incomplete" />
+      <div style={ddStyles.divider} aria-hidden="true" />
+      <SetupIncompleteBanner />
+      <DraftSetupChecklist
+        checklist={checklist}
+        nextIncompleteIdx={nextIncompleteIdx}
+        onOpenStep={(stepId) => console.log("open wizard step", stepId)}
+      />
+    </Card>
+  );
+}
+
+function DraftMissionDetailComplete({ mission }) {
+  return (
+    <Card
+      padX={24}
+      padY={24}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: 16,
+        overflow: "hidden",
+      }}
+    >
+      <DraftDetailHeader mission={mission} variant="complete" />
+      <div style={ddStyles.divider} aria-hidden="true" />
+      <AlmostThereBanner />
+      <DraftStatTiles mission={mission} />
+      <AdditionalDetailsBlock mission={mission} />
+    </Card>
+  );
+}
+
+function DraftDetailHeader({ mission, variant }) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  return (
+    <div style={dhStyles.row}>
+      <div style={dhStyles.left}>
+        <h2 style={dhStyles.title}>{mission.name}</h2>
         <p style={mission.description ? dhStyles.desc : { ...dhStyles.desc, color: "var(--color-text-placeholder)" }}>
           {mission.description || "--"}
         </p>
       </div>
-
-      <div style={{ display: "flex", gap: 12 }}>
-        <Button variant="primary" uppercase={false} onClick={() => console.log("continue setup")}>
-          Continue Setup
-        </Button>
-        <Button variant="text" uppercase={false} onClick={() => console.log("publish mission")}>
-          Publish Mission
-        </Button>
-        <Button variant="text" uppercase={false} onClick={() => console.log("delete draft")}>
-          Delete
-        </Button>
+      <div style={dhStyles.right}>
+        <InlineStatusAffordance tone="warning" size="md" icon={<FileClock size={14} />}>
+          Draft
+        </InlineStatusAffordance>
+        {variant === "complete" ? (
+          <div style={{ position: "relative" }}>
+            <Button
+              variant="icon"
+              size="sm"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Mission actions"
+            >
+              <MoreVertical size={18} />
+            </Button>
+            {menuOpen && (
+              <>
+                <div style={dhStyles.menuScrim} onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                <div style={dhStyles.menu}>
+                  {[
+                    { label: "Preview & Publish", onClick: () => console.log("preview & publish") },
+                    { label: "Delete",            onClick: () => console.log("delete draft") },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      style={dhStyles.menuItem}
+                      onClick={() => { item.onClick(); setMenuOpen(false); }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <Button
+            variant="icon"
+            size="sm"
+            aria-label="Delete mission"
+            onClick={() => console.log("delete mission")}
+          >
+            <Trash2 size={18} />
+          </Button>
+        )}
       </div>
+    </div>
+  );
+}
 
-      {/* TODO: draft setup checklist (sections complete vs remaining) */}
-      <div style={{ padding: "16px 0", color: "var(--color-text-tertiary)", fontSize: 14 }}>
-        Setup progress: {mission.progress || 0}% complete. Continue in the wizard to publish.
-      </div>
+function SetupIncompleteBanner() {
+  return (
+    <Banner
+      tone="warning"
+      heading="Mission Setup Incomplete"
+      body="Setup the mission to publish"
+      leading={<AlertCircleFilled />}
+    />
+  );
+}
+
+function AlmostThereBanner() {
+  return (
+    <Banner
+      tone="warning"
+      heading="Almost There"
+      body="All required fields are complete. You can preview this mission to continue."
+    />
+  );
+}
+
+function DraftStatTiles({ mission }) {
+  const tiles = [
+    { label: "Agents Recruited", value: String(mission.agentCount ?? "--") },
+    {
+      label: "Timeline",
+      value: mission.startDate && mission.endDate
+        ? `${fmtDateRange(mission.startDate, mission.endDate)}`
+        : "--",
+      sublabel: mission.timelineLabel ? `(${mission.timelineLabel})` : null,
+    },
+    { label: "Minimum Practice Sessions", value: String(mission.minimumPracticeSessions ?? "--") },
+  ];
+  return (
+    <div style={ddcStyles.tilesRow}>
+      {tiles.map((t, i) => (
+        <div
+          key={t.label}
+          style={{
+            ...ddcStyles.tile,
+            borderRight: i === tiles.length - 1 ? "none" : "1px solid var(--color-divider-card)",
+          }}
+        >
+          <span style={ddcStyles.tileLabel}>{t.label}</span>
+          <span style={ddcStyles.tileValue}>
+            {t.value}
+            {t.sublabel && <span style={ddcStyles.tileSublabel}>{" "}{t.sublabel}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdditionalDetailsBlock({ mission }) {
+  return (
+    <div style={ddcStyles.detailsGroup}>
+      <h3 style={ddcStyles.groupHeading}>Additional Details</h3>
+      <div style={ddcStyles.groupDivider} aria-hidden="true" />
+      <DetailsSubSection title="Coverage">
+        <div style={ddcStyles.chipFlow}>
+          {(mission.coverage || []).map((c) => (
+            <DriverChip key={c.id} driver={c.driver} count={c.reasonCount} />
+          ))}
+        </div>
+      </DetailsSubSection>
+      <DetailsSubSection title="Focus Areas">
+        <div style={ddcStyles.chipFlow}>
+          {(mission.focusAreas || []).map((fa) => (
+            <FocusAreaChip key={fa.id} name={fa.name} type={fa.type} targetScore={fa.targetScore} />
+          ))}
+        </div>
+      </DetailsSubSection>
+      <DetailsSubSection title="Recruited Agents">
+        <div style={ddcStyles.chipFlow}>
+          {(mission.recruitedAgents || []).map((a) => (
+            <AgentChip key={a.id} initials={a.initials} name={a.name} title={`${a.name} — ${a.team}`} />
+          ))}
+        </div>
+      </DetailsSubSection>
+    </div>
+  );
+}
+
+function DetailsSubSection({ title, children }) {
+  return (
+    <div style={ddcStyles.subSection}>
+      <h4 style={ddcStyles.subHeader}>{title}</h4>
+      {children}
+    </div>
+  );
+}
+
+function DriverChip({ driver, count }) {
+  return (
+    <span style={ddcStyles.chip}>
+      <span style={ddcStyles.chipLabel}>{driver}</span>
+      <span style={ddcStyles.chipCountBadge}>{count}</span>
+      <Info size={14} color="var(--color-text-tertiary)" />
+    </span>
+  );
+}
+
+function FocusAreaChip({ name, type, targetScore }) {
+  return (
+    <span style={ddcStyles.chip}>
+      <span style={ddcStyles.chipIcon}>
+        {type === "policy"
+          ? <ShieldCheck size={14} color="var(--color-icon-tertiary-fg)" />
+          : <Sparkles    size={14} color="var(--color-icon-tertiary-fg)" />}
+      </span>
+      <span style={ddcStyles.chipLabel}>{name}</span>
+      <span style={ddcStyles.chipPercentBadge}>{targetScore}%</span>
+      <Info size={14} color="var(--color-text-tertiary)" />
+    </span>
+  );
+}
+
+function AgentChip({ initials, name, title }) {
+  return (
+    <span style={ddcStyles.chip} title={title}>
+      <span style={{ ...ddcStyles.chipAvatar, background: avatarColor(name) }}>{initials}</span>
+      <span style={ddcStyles.chipLabel}>{name}</span>
+      <Info size={14} color="var(--color-text-tertiary)" />
+    </span>
+  );
+}
+
+function DraftSetupChecklist({ checklist, nextIncompleteIdx, onOpenStep }) {
+  return (
+    <div style={ddStyles.checklist} role="list">
+      {DRAFT_SETUP_STEPS.map((step, idx) => (
+        <DraftSetupRow
+          key={step.id}
+          step={step}
+          done={Boolean(checklist[step.id])}
+          isNext={idx === nextIncompleteIdx}
+          onClick={() => onOpenStep(step.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DraftSetupRow({ step, done, isNext, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [focused, setFocused] = React.useState(false);
+  const showChevron = hover || focused || isNext;
+  const highlighted = hover || focused || isNext;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={{
+        ...ddStyles.row,
+        background: highlighted ? "var(--color-primary-alpha-08)" : "transparent",
+      }}
+      role="listitem"
+    >
+      <span style={ddStyles.rowIcon} aria-hidden="true">
+        {done ? (
+          <CheckCircle2 size={20} color="var(--color-success)" strokeWidth={2.25} />
+        ) : (
+          <Circle size={20} color="var(--color-text-tertiary)" strokeWidth={1.75} />
+        )}
+      </span>
+      <span style={ddStyles.rowLabel}>{step.label}</span>
+      <span style={{ ...ddStyles.rowChevron, opacity: showChevron ? 1 : 0 }} aria-hidden="true">
+        <ChevronRight size={18} color="var(--color-text-tertiary)" />
+      </span>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Completed Mission Detail (right column — completed only)
+// Header status indicator + success summary banner + 5-tile KPI row +
+// Agent Results table + updated timeline. Same unified-card shell as
+// MissionDetail.
+// ---------------------------------------------------------------------------
+
+function CompletedMissionDetail({ mission }) {
+  return (
+    <Card
+      padX={24}
+      padY={24}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: 16,
+        overflow: "hidden",
+      }}
+    >
+      <CompletedDetailHeader mission={mission} />
+      <SuccessBanner mission={mission} />
+      <CompletedDetailKPIs mission={mission} />
+      <Card tone="outline" padX={24} padY={16} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <AgentResultsSection results={mission.agentResults} total={mission.agentResultsTotal} closedAt={mission.closedAt} />
+      </Card>
+      <Card tone="outline" padX={24} padY={16} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <TimelineSection timeline={mission.timeline} />
+      </Card>
     </Card>
   );
+}
+
+function CompletedDetailHeader({ mission }) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  return (
+    <div>
+      <div style={dhStyles.row}>
+        <div style={dhStyles.left}>
+          <h2 style={dhStyles.title}>{mission.name}</h2>
+          <p style={dhStyles.desc}>{mission.description}</p>
+        </div>
+        <div style={dhStyles.right}>
+          <CompletedAffordance />
+          <div style={{ position: "relative" }}>
+            <Button variant="icon" size="sm" onClick={() => setMenuOpen((o) => !o)} aria-label="Mission actions">
+              <MoreVertical size={18} />
+            </Button>
+            {menuOpen && (
+              <>
+                <div style={dhStyles.menuScrim} onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                <div style={dhStyles.menu}>
+                  {["Duplicate mission", "Delete mission"].map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      style={dhStyles.menuItem}
+                      onClick={() => { console.log(label); setMenuOpen(false); }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Outcome-driven banner. Three variants per spec.
+function SuccessBanner({ mission }) {
+  const { closeOutcome, agentsReachedTarget, agentsTotal, closedAt, missionDurationDays, originalEndDate } = mission;
+  const pct = Math.round((agentsReachedTarget / agentsTotal) * 100);
+
+  let tone, heading, body;
+  if (closeOutcome === "all_met") {
+    tone = "success";
+    heading = `All ${agentsTotal} agents reached their readiness targets`;
+    body = `Mission completed successfully on ${fmtBannerDate(closedAt)}. Mission ran for ${missionDurationDays} days.`;
+  } else if (closeOutcome === "closed_early") {
+    tone = "info";
+    heading = `Mission closed early — ${agentsReachedTarget} of ${agentsTotal} agents reached their readiness target`;
+    body = `Closed on ${fmtBannerDate(closedAt)}. Original end date: ${fmtBannerDate(originalEndDate)}.`;
+  } else {
+    tone = "info";
+    heading = `${agentsReachedTarget} of ${agentsTotal} agents reached their readiness target`;
+    body = `Mission ended on ${fmtBannerDate(closedAt)}. Closed automatically at deadline.`;
+  }
+
+  const ringColor = tone === "success" ? "var(--color-success)" : "var(--color-info)";
+
+  return (
+    <Banner
+      tone={tone}
+      heading={heading}
+      body={body}
+      leading={<CircularProgress pct={pct} ringColor={ringColor} />}
+    />
+  );
+}
+
+function CompletedDetailKPIs({ mission }) {
+  const { kpis } = mission;
+  return (
+    <div style={dkStyles.row}>
+      <div style={dkStyles.tile}>
+        <span style={dkStyles.label}>Agents Below Target</span>
+        <span style={dkStyles.value}>{kpis.agentsBelowTarget.current} out of {kpis.agentsBelowTarget.total}</span>
+      </div>
+      <div style={dkStyles.divider} />
+      <div style={dkStyles.tile}>
+        <span style={dkStyles.label}>Last Roleplay</span>
+        <span style={dkStyles.value}>{kpis.lastRoleplay || "--"}</span>
+        {kpis.lastRoleplaySubLabel && (
+          <span style={dkStyles.subLabel}>{kpis.lastRoleplaySubLabel}</span>
+        )}
+      </div>
+      <div style={dkStyles.divider} />
+      <div style={dkStyles.tile}>
+        <span style={dkStyles.label}>Roleplays</span>
+        <span style={dkStyles.value}>{kpis.roleplays || 0}</span>
+      </div>
+      <div style={dkStyles.divider} />
+      <div style={dkStyles.tile}>
+        <div style={dkStyles.labelRow}>
+          <span style={dkStyles.label}>Contact Reasons</span>
+          <Info size={14} color="var(--color-text-tertiary)" />
+        </div>
+        <span style={dkStyles.value}>{kpis.contactReasons.current}/{kpis.contactReasons.total}</span>
+      </div>
+      <div style={dkStyles.divider} />
+      <div style={dkStyles.tile}>
+        <span style={dkStyles.label}>Mission Duration</span>
+        <span style={dkStyles.value}>{kpis.missionDuration} Days</span>
+        {kpis.missionDurationSubLabel && (
+          <span style={dkStyles.subLabel}>{kpis.missionDurationSubLabel}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Stale-activity threshold for "Last Active" cell — more than this many
+// days before mission close renders the date in danger tone.
+const STALE_ACTIVITY_DAYS = 14;
+
+function AgentResultsSection({ results, total, closedAt }) {
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const closeMs = parseISODateUTC(closedAt);
+
+  return (
+    <div>
+      <h3 style={icStyles.title}>Agent Results</h3>
+      <p style={icStyles.subtitle}>Final readiness status for each agent at mission close</p>
+
+      <div style={{ ...icStyles.table, marginTop: 16 }}>
+        <div style={icStyles.headerRow}>
+          <span style={{ ...icStyles.headerCell, flex: 1.4 }}>Agent</span>
+          <span style={icStyles.headerCell}>Roleplays Completed</span>
+          <span style={icStyles.headerCell}>Last Active</span>
+          <span style={icStyles.headerCell}>Target</span>
+        </div>
+        {results.map((row) => {
+          const lastActiveMs = parseISODateUTC(row.lastActive);
+          const diffDays = (closeMs - lastActiveMs) / (24 * 60 * 60 * 1000);
+          const stale = diffDays > STALE_ACTIVITY_DAYS;
+          return (
+            <AgentResultRow key={row.id} row={row} stale={stale} />
+          );
+        })}
+      </div>
+
+      <div style={icStyles.pagination}>
+        <span style={icStyles.totalLabel}>Total {total} Agents</span>
+        <div style={icStyles.pageControls}>
+          <Button variant="icon" size="sm" disabled aria-label="First page">
+            <ChevronLeft size={14} />
+          </Button>
+          <span style={icStyles.pageInfo}>Page 1 of {totalPages}</span>
+          <Button variant="icon" size="sm" disabled aria-label="Previous page">
+            <ChevronLeft size={14} />
+          </Button>
+          <Button variant="icon" size="sm" onClick={() => console.log("next")} aria-label="Next page">
+            <ChevronRight size={14} />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgentResultRow({ row, stale }) {
+  const [hover, setHover] = React.useState(false);
+  const isMet = row.target === "Met";
+  const badgeStyle = isMet
+    ? { background: "var(--color-success-bg)", color: "var(--color-success-text)" }
+    : { background: "var(--color-error-bg)",   color: "var(--color-error-text)"   };
+
+  return (
+    <div
+      style={{
+        ...icStyles.bodyRow,
+        background: hover ? "rgba(0,0,0,0.02)" : "transparent",
+        cursor: "pointer",
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <span style={{ ...icStyles.bodyCell, flex: 1.4, gap: 8 }}>
+        <span style={{ ...icStyles.avatar, background: avatarColor(row.name) }}>
+          {row.initial}
+        </span>
+        {row.name}
+      </span>
+      <span style={icStyles.bodyCell}>{row.roleplaysCompleted}</span>
+      <span style={{ ...icStyles.bodyCell, color: stale ? "var(--color-error)" : "var(--color-text-medium)" }}>
+        {fmtFullDate(row.lastActive)}
+      </span>
+      <span style={{ ...icStyles.bodyCell, justifyContent: "space-between" }}>
+        <span style={{ ...pcStyles.badge, ...badgeStyle }}>{row.target}</span>
+        {hover && <ExternalLink size={14} color="var(--color-text-tertiary)" />}
+      </span>
+    </div>
+  );
+}
+
+function fmtFullDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${d} ${months[m - 1]} ${y}`;
+}
+
+function fmtBannerDate(iso) {
+  return fmtFullDate(iso);
+}
+
+function parseISODateUTC(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return Date.UTC(y, m - 1, d);
 }
 
 // ---------------------------------------------------------------------------
@@ -439,9 +996,15 @@ function MissionDetail({ mission }) {
       <DetailHeader mission={mission} />
       {mission.alert && <AlertBanner alert={mission.alert} />}
       <DetailKPIs mission={mission} />
-      <PerformanceSection performance={mission.performance} />
-      <InteractionsSection interactions={mission.interactions} total={mission.totalInteractions} />
-      <TimelineSection timeline={mission.timeline} />
+      <Card tone="outline" padX={24} padY={16} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <PerformanceSection performance={mission.performance} />
+      </Card>
+      <Card tone="outline" padX={24} padY={16} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <InteractionsSection interactions={mission.interactions} total={mission.totalInteractions} />
+      </Card>
+      <Card tone="outline" padX={24} padY={16} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <TimelineSection timeline={mission.timeline} />
+      </Card>
     </Card>
   );
 }
@@ -452,7 +1015,7 @@ function MissionDetail({ mission }) {
 
 function DetailHeader({ mission }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const timeStyle = getTimeChipStyle(mission.daysLeft);
+  const timeTone = getTimeAffordanceTone(mission.daysLeft);
   const timeLabel = mission.daysLeft <= 0 ? "Ends Today" : `${mission.daysLeft} days left`;
 
   return (
@@ -463,10 +1026,14 @@ function DetailHeader({ mission }) {
           <p style={dhStyles.desc}>{mission.description}</p>
         </div>
         <div style={dhStyles.right}>
-          <span style={{ ...dhStyles.timeChip, ...timeStyle }}>
-            <Clock size={14} />
+          <InlineStatusAffordance
+            tone={timeTone}
+            size="md"
+            icon={<Clock size={14} />}
+            style={{ padding: "4px 12px", borderRadius: 999 }}
+          >
             {timeLabel}
-          </span>
+          </InlineStatusAffordance>
           <div style={{ position: "relative" }}>
             <Button variant="icon" size="sm" onClick={() => setMenuOpen((o) => !o)} aria-label="Mission actions">
               <MoreVertical size={18} />
@@ -500,38 +1067,17 @@ function DetailHeader({ mission }) {
 // ---------------------------------------------------------------------------
 
 function AlertBanner({ alert }) {
-  const isDanger = alert.tone === "danger";
-  const bg = isDanger ? "var(--color-error-bg)" : "var(--color-warning-bg)";
-  const fg = isDanger ? "var(--color-error)" : "var(--color-warning)";
-  const textColor = isDanger ? "var(--color-error-text)" : "var(--color-warning-text)";
-
   return (
-    <div style={{ background: bg, borderRadius: 8, overflow: "hidden" }}>
-      <div style={abStyles.inner}>
-        <div style={abStyles.content}>
-          <AlertTriangle size={18} color={fg} style={{ flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <p style={{ ...abStyles.heading, color: fg }}>{alert.heading}</p>
-            <p style={{ ...abStyles.body, color: textColor }}>{alert.body}</p>
-          </div>
-        </div>
-        {alert.actions.length > 0 && (
-          <div style={abStyles.actions}>
-            {alert.actions.map((a) => (
-              <Button
-                key={a.label}
-                variant={a.variant === "primary" ? "primary" : "text"}
-                onClick={() => console.log(a.label)}
-                style={a.variant === "primary" ? { height: 32, minWidth: 0, paddingInline: 16 } : { height: 32 }}
-                uppercase={false}
-              >
-                {a.label}
-              </Button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <Banner
+      tone={alert.tone === "danger" ? "danger" : "warning"}
+      heading={alert.heading}
+      body={alert.body}
+      actions={alert.actions.map((a) => ({
+        label: a.label,
+        variant: a.variant,
+        onClick: () => console.log(a.label),
+      }))}
+    />
   );
 }
 
@@ -730,6 +1276,7 @@ function TimelineSection({ timeline }) {
   const dotColor = (tone) => {
     if (tone === "success") return "var(--color-success)";
     if (tone === "warning") return "var(--color-warning)";
+    if (tone === "info")    return "var(--color-info)";
     return "var(--grey-400)";
   };
 
@@ -758,21 +1305,8 @@ function TimelineSection({ timeline }) {
 }
 
 // ---------------------------------------------------------------------------
-// Success Toast
+// Success Toast — library primitive imported as <Toast>.
 // ---------------------------------------------------------------------------
-
-function SuccessToast({ message, onDismiss }) {
-  return (
-    <div style={toastStyles.wrap}>
-      <div style={toastStyles.inner}>
-        <span style={toastStyles.text}>{message}</span>
-        <button type="button" onClick={onDismiss} style={toastStyles.close} aria-label="Dismiss">
-          <X size={16} />
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Empty State (preserved from original)
@@ -854,10 +1388,45 @@ const msStyles = {
     gap: 20,
     minHeight: 0,
   },
-  kpiRow: {
-    display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
-    gap: 16,
+  kpiCard: {
+    display: "flex",
+    alignItems: "stretch",
+    padding: "12px 24px",
+    background: "#FFFFFF",
+    borderRadius: 12,
+    boxShadow: "var(--shadow-card)",
+    width: "100%",
+    height: 76,
+  },
+  kpiTile: {
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    gap: 2,
+  },
+  kpiDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    background: "var(--color-divider-card)",
+    flexShrink: 0,
+  },
+  kpiLabel: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 14,
+    fontWeight: 500,
+    color: "var(--color-text-tertiary)",
+    lineHeight: 1.2,
+    letterSpacing: 0,
+  },
+  kpiValue: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 20,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.2,
+    letterSpacing: 0,
   },
   split: {
     flex: 1,
@@ -925,7 +1494,7 @@ const mcStyles = {
     flexDirection: "column",
     gap: 16,
     background: "#FFFFFF",
-    boxShadow: "0px 2px 4px rgba(69, 70, 79, 0.15)",
+    boxShadow: "var(--shadow-card)",
   },
   title: {
     fontSize: 14,
@@ -1046,7 +1615,7 @@ const dmcStyles = {
     flexDirection: "column",
     gap: 16,
     background: "#FFFFFF",
-    boxShadow: "0px 2px 4px rgba(69, 70, 79, 0.15)",
+    boxShadow: "var(--shadow-card)",
   },
   topRow: {
     display: "flex",
@@ -1231,43 +1800,6 @@ const dhStyles = {
   },
 };
 
-const abStyles = {
-  inner: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-    padding: "16px 24px",
-  },
-  content: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 10,
-    flex: 1,
-    minWidth: 0,
-  },
-  heading: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 14,
-    fontWeight: 700,
-    lineHeight: 1.3,
-    margin: 0,
-  },
-  body: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    fontWeight: 400,
-    lineHeight: 1.4,
-    margin: "2px 0 0",
-  },
-  actions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 0,
-  },
-};
-
 const dkStyles = {
   row: {
     display: "flex",
@@ -1309,6 +1841,209 @@ const dkStyles = {
     alignItems: "center",
     gap: 4,
     marginBottom: 4,
+  },
+  subLabel: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 400,
+    color: "var(--color-text-tertiary)",
+    marginTop: 2,
+    lineHeight: 1.4,
+  },
+};
+
+const ddStyles = {
+  divider: {
+    height: 1,
+    background: "var(--color-border-tab)",
+    width: "100%",
+  },
+  checklist: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  row: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 16px",
+    borderRadius: 8,
+    border: "none",
+    background: "transparent",
+    width: "100%",
+    textAlign: "left",
+    cursor: "pointer",
+    fontFamily: '"Mulish", sans-serif',
+    transition: "background 120ms ease",
+  },
+  rowIcon: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 20,
+    height: 20,
+    flexShrink: 0,
+  },
+  rowLabel: {
+    flex: 1,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14,
+    fontWeight: 500,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.4,
+  },
+  rowChevron: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 18,
+    height: 18,
+    flexShrink: 0,
+    transition: "opacity 120ms ease",
+  },
+};
+
+const ddcStyles = {
+  tilesRow: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: 0,
+    background: "#FFFFFF",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  tile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: "16px 20px",
+    minWidth: 0,
+  },
+  tileLabel: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-medium)",
+  },
+  tileValue: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.4,
+  },
+  tileSublabel: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 13,
+    fontWeight: 400,
+    color: "var(--color-text-tertiary)",
+    marginLeft: 4,
+  },
+  detailsGroup: {
+    background: "#FFFFFF",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 8,
+    padding: 20,
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
+  groupHeading: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 15,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    margin: 0,
+  },
+  groupDivider: {
+    height: 1,
+    background: "var(--color-border-tab)",
+    width: "100%",
+  },
+  subSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  },
+  subHeader: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 13,
+    fontWeight: 700,
+    color: "var(--color-text-medium)",
+    margin: 0,
+  },
+  chipFlow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  chip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    height: 32,
+    padding: "0 12px",
+    borderRadius: 999,
+    background: "var(--pill-bg)",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    whiteSpace: "nowrap",
+  },
+  chipLabel: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  chipIcon: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipCountBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 22,
+    height: 18,
+    padding: "0 6px",
+    borderRadius: 999,
+    background: "#E8ECFF",
+    color: "#245BFF",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  chipPercentBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 32,
+    height: 18,
+    padding: "0 6px",
+    borderRadius: 999,
+    background: "var(--color-primary-alpha-08)",
+    color: "var(--color-text-medium)",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  chipAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    display: "inline-grid",
+    placeItems: "center",
+    color: "#FFFFFF",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 11,
+    fontWeight: 700,
+    flexShrink: 0,
   },
 };
 
@@ -1582,38 +2317,3 @@ const tlStyles = {
   },
 };
 
-const toastStyles = {
-  wrap: {
-    position: "fixed",
-    bottom: 24,
-    left: 88,
-    zIndex: 50,
-  },
-  inner: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    background: "var(--color-success)",
-    color: "#FFFFFF",
-    borderRadius: 8,
-    padding: "12px 16px",
-    boxShadow: "var(--shadow-8)",
-    maxWidth: 480,
-  },
-  text: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 14,
-    fontWeight: 500,
-    flex: 1,
-  },
-  close: {
-    background: "transparent",
-    border: "none",
-    color: "#FFFFFF",
-    cursor: "pointer",
-    padding: 0,
-    display: "inline-flex",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-};

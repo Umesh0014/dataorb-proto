@@ -47,7 +47,7 @@ export default function Card({
         ...toneStyle,
         padding: `${padY}px ${padX}px`,
         boxSizing: "border-box",
-        boxShadow: shadow ? "0 2px 4px rgba(69, 70, 79, 0.15)" : undefined,
+        boxShadow: shadow ? "var(--shadow-card)" : undefined,
         ...style,
       }}
     >
