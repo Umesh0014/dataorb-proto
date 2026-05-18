@@ -83,4 +83,27 @@ export default [
       ],
     },
   },
+  // Agent Profile dropdown / tab / treemap controls. <Button> has no
+  // variant for a dropdown trigger, a menu item, or a treemap tile, and
+  // the codebase has no shared Dropdown primitive yet. Kept as warn until
+  // a Dropdown primitive lands.
+  {
+    files: [
+      "components/PageHeader.jsx",
+      "components/AgentHeader.jsx",
+      "components/Missions.jsx",
+      "components/AdherenceScopeTable.jsx",
+      "components/CoachingRecommendations.jsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or a shared Dropdown primitive) when this component is next touched.",
+        },
+      ],
+    },
+  },
 ];

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { FileText, ChevronDown, ChevronsLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import Button from "./Button";
 import TrendArrow from "./TrendArrow";
 
 const PAGE_SIZE = 5;
@@ -196,24 +197,10 @@ function ChangeCell({ change }) {
 }
 
 function PageBtn({ children, onClick, disabled, ariaLabel }) {
-  const [hover, setHover] = React.useState(false);
   return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      disabled={disabled}
-      onClick={disabled ? undefined : onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        ...astStyles.pageBtn,
-        background: !disabled && hover ? "var(--pill-bg)" : "transparent",
-        color: disabled ? "var(--color-text-placeholder)" : "var(--do-ink)",
-        cursor: disabled ? "default" : "pointer",
-      }}
-    >
+    <Button variant="icon" size="sm" aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -367,15 +354,5 @@ const astStyles = {
     fontWeight: 500,
     color: "var(--do-ink)",
     padding: "0 4px",
-  },
-  pageBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    border: "none",
-    display: "grid",
-    placeItems: "center",
-    padding: 0,
-    transition: "background 120ms ease",
   },
 };

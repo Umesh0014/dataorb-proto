@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ChevronsLeft, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import Button from "./Button";
 import TrendArrow from "./TrendArrow";
 
 // Seed data for the All recommendations table. Each row:
@@ -27,13 +28,11 @@ const allRecommendations = [
 
 const PAGE_SIZE = 5;
 
-// Only Roleplay Volume is sortable in this task.
-// TODO: confirm whether Volume % and Change% should also support sort.
 const COLS = [
-  { key: "title", label: "Title", width: "42%", sortable: false },
-  { key: "roleplayVolume", label: "Roleplay Volume", width: "20%", sortable: true },
-  { key: "volumePct", label: "Volume %", width: "18%", sortable: false },
-  { key: "change", label: "Change%", width: "20%", sortable: false },
+  { key: "title", label: "Title", width: "42%" },
+  { key: "roleplayVolume", label: "Roleplay Volume", width: "20%" },
+  { key: "volumePct", label: "Volume %", width: "18%" },
+  { key: "change", label: "Change%", width: "20%" },
 ];
 
 // Change% chip colours — matches the Top recommendations treemap mapping:
@@ -46,32 +45,24 @@ const CHANGE_VARIANTS = {
   flat: { bg: "var(--color-chip-bg)", fg: "var(--color-text-tertiary)" },
 };
 
-// AllRecommendationsTable — sortable, paginated table for the Coaching
+// AllRecommendationsTable — paginated table for the Coaching
 // recommendations card's "All recommendations" sub-tab. Mirrors the
 // AgentsPage / ContactDriverTable table + pagination pattern (the codebase
 // has no shared table component — each Learning Hub page inlines its own).
 export default function AllRecommendationsTable({ rows = allRecommendations }) {
   const [page, setPage] = React.useState(1);
-  const [sortDir, setSortDir] = React.useState("desc");
 
   // TODO: confirm whether this table should respect the global page-level
   // date filter from the header once that filter is wired.
 
-  const sorted = [...rows].sort((a, b) =>
-    sortDir === "desc"
-      ? b.roleplayVolume - a.roleplayVolume
-      : a.roleplayVolume - b.roleplayVolume
-  );
+  // Static default order — descending by Roleplay Volume.
+  const sorted = [...rows].sort((a, b) => b.roleplayVolume - a.roleplayVolume);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageRows = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const goToPage = (next) => setPage(Math.min(Math.max(1, next), totalPages));
-  const toggleSort = () => {
-    setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    setPage(1);
-  };
 
   return (
     <div style={artStyles.wrap}>
@@ -84,28 +75,8 @@ export default function AllRecommendationsTable({ rows = allRecommendations }) {
         <thead>
           <tr style={artStyles.headRow}>
             {COLS.map((c) => (
-              <th
-                key={c.key}
-                scope="col"
-                aria-sort={
-                  c.sortable
-                    ? sortDir === "desc"
-                      ? "descending"
-                      : "ascending"
-                    : undefined
-                }
-                style={artStyles.th}
-              >
-                {c.sortable ? (
-                  <button type="button" onClick={toggleSort} style={artStyles.sortBtn}>
-                    {c.label}
-                    <span aria-hidden="true" style={artStyles.sortArrow}>
-                      {sortDir === "desc" ? "↓" : "↑"}
-                    </span>
-                  </button>
-                ) : (
-                  c.label
-                )}
+              <th key={c.key} scope="col" style={artStyles.th}>
+                {c.label}
               </th>
             ))}
           </tr>
@@ -158,8 +129,9 @@ function Row({ row, isLast }) {
         <span style={artStyles.titleCell}>
           <span style={artStyles.titleText}>{row.title}</span>
           {row.context && (
-            <button
-              type="button"
+            <Button
+              variant="icon"
+              size="sm"
               aria-label="Recommendation context"
               title={row.context}
               onClick={(e) => {
@@ -167,10 +139,9 @@ function Row({ row, isLast }) {
                 // TODO: show recommendation context tooltip
                 // TODO: confirm hover vs click as the trigger pattern in DataOrb
               }}
-              style={artStyles.infoBtn}
             >
               <Info size={15} />
-            </button>
+            </Button>
           )}
         </span>
       </Cell>
@@ -206,24 +177,10 @@ function ChangeChip({ change }) {
 }
 
 function PageBtn({ children, onClick, disabled, ariaLabel }) {
-  const [hover, setHover] = React.useState(false);
   return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      disabled={disabled}
-      onClick={disabled ? undefined : onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        ...artStyles.pageBtn,
-        background: !disabled && hover ? "var(--pill-bg)" : "transparent",
-        color: disabled ? "var(--color-text-placeholder)" : "var(--do-ink)",
-        cursor: disabled ? "default" : "pointer",
-      }}
-    >
+    <Button variant="icon" size="sm" aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -249,23 +206,6 @@ const artStyles = {
     letterSpacing: "0.2px",
     whiteSpace: "nowrap",
   },
-  sortBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    padding: 0,
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    fontFamily: "var(--font-sans)",
-    fontSize: 12,
-    fontWeight: 700,
-    color: "var(--text-primary)",
-    letterSpacing: "0.2px",
-  },
-  sortArrow: {
-    color: "var(--do-ink)",
-  },
   row: {
     height: 56,
     transition: "background 120ms ease",
@@ -284,19 +224,6 @@ const artStyles = {
     fontSize: 13,
     fontWeight: 600,
     color: "var(--do-ink)",
-  },
-  infoBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 20,
-    height: 20,
-    padding: 0,
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    color: "var(--color-text-tertiary)",
-    flexShrink: 0,
   },
   cellText: {
     fontSize: 13,
@@ -334,15 +261,5 @@ const artStyles = {
     fontWeight: 500,
     color: "var(--do-ink)",
     padding: "0 4px",
-  },
-  pageBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    border: "none",
-    display: "grid",
-    placeItems: "center",
-    padding: 0,
-    transition: "background 120ms ease",
   },
 };

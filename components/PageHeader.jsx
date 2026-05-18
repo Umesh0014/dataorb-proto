@@ -4,6 +4,7 @@ import React from "react";
 import { Search, ChevronDown } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
+import AgentHeader from "./AgentHeader";
 
 // PageHeader — shared page header for every module page.
 //
@@ -41,7 +42,13 @@ export default function PageHeader({
   search,
   toolbar,
   filters,
+  agentHeader,
 }) {
+  // Agent Profile / Agent Detail header variant — when `agentHeader` is
+  // supplied, PageHeader renders the agent header instead of the standard
+  // identifier + search/toolbar layout. Other consumers are unaffected.
+  if (agentHeader) return <AgentHeader {...agentHeader} />;
+
   const hasSearch = Boolean(search);
   const hasToolbar = Array.isArray(toolbar) && toolbar.length > 0;
   const hasFilters = Array.isArray(filters) && filters.length > 0;

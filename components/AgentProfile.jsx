@@ -1,21 +1,20 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, SlidersHorizontal } from "lucide-react";
-import Card from "./Card";
-import Button from "./Button";
+import PageHeader from "./PageHeader";
 import CoachingRecommendations from "./CoachingRecommendations";
+import Missions from "./Missions";
 import RoleplayCoverage from "./RoleplayCoverage";
 import QualityAdherence from "./QualityAdherence";
 import { LEARNING_AGENTS } from "./mocks/learningAgents";
 
 // AgentProfile — Learning Hub agent detail page, opened from an Agents row.
-// Structural shell only: a back/title + filter-bar header, then four titled
-// cards with empty bodies. Card content lands in follow-up tasks. Reached
-// via app/page.jsx state (agentProfileId) — mirrors DrillDetailPage.
+// Header is the shared <PageHeader> in its agent-header mode; the body is the
+// four metric cards. Reached via app/page.jsx state (agentProfileId).
 export default function AgentProfile({ agentId, onBack }) {
   // TODO: replace this mock lookup with a real agent data fetch.
   const agent = LEARNING_AGENTS.find((a) => a.id === agentId) || LEARNING_AGENTS[0];
+  const [dateRange, setDateRange] = React.useState("last_7_days");
 
   React.useEffect(() => {
     if (typeof document === "undefined") return;
@@ -28,57 +27,31 @@ export default function AgentProfile({ agentId, onBack }) {
 
   return (
     <div style={profileStyles.page}>
-      <ProfileHeader name={agent.name} onBack={onBack} />
+      <PageHeader
+        agentHeader={{
+          agentName: agent.name,
+          contextLabel: "Readiness Profile",
+          secondaryLink: {
+            label: "Production Profile",
+            // TODO: real Production Profile route — no URL router in this app yet.
+            href: "#",
+            external: true,
+          },
+          // TODO: confirm whether a future Agent Detail page shows this link.
+          dateRange,
+          onDateRangeChange: (value) => {
+            setDateRange(value);
+            // TODO: connect the date range to a page-level data filter
+          },
+          onBack,
+        }}
+      />
 
       <CoachingRecommendations />
-
-      <SectionCard title="Missions">
-        {/* TODO: missions content (active / closed) */}
-      </SectionCard>
-
+      <Missions />
       <RoleplayCoverage />
-
       <QualityAdherence />
     </div>
-  );
-}
-
-// ProfileHeader — title row (back arrow + agent name) above a divider and
-// an intentionally-empty filter strip with a filter icon at its right end.
-// Back-arrow + title row mirrors DrillDetailPage's DetailHeader; the divider
-// + strip mirror PageHeader's row-2 pattern.
-function ProfileHeader({ name, onBack }) {
-  return (
-    <Card padX={0} padY={0}>
-      <div style={profileStyles.titleRow}>
-        <Button variant="icon" aria-label="Back to Agents" onClick={onBack}>
-          <ArrowLeft size={20} />
-        </Button>
-        <span style={profileStyles.agentName}>{name}</span>
-      </div>
-      <div style={profileStyles.headerDivider} aria-hidden="true" />
-      <div style={profileStyles.filterBar}>
-        <Button
-          variant="icon"
-          aria-label="Filter"
-          onClick={() => {
-            // TODO: open filter panel
-          }}
-        >
-          <SlidersHorizontal size={20} />
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-// SectionCard — standard <Card> surface with a title and an (empty) body.
-function SectionCard({ title, children }) {
-  return (
-    <Card>
-      <div style={profileStyles.cardTitle}>{title}</div>
-      <div style={profileStyles.cardBody}>{children}</div>
-    </Card>
   );
 }
 
@@ -90,41 +63,5 @@ const profileStyles = {
     width: "100%",
     flex: 1,
     minHeight: 0,
-  },
-  titleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    height: 80,
-    paddingInline: 28,
-  },
-  agentName: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.3,
-  },
-  headerDivider: {
-    height: 1,
-    background: "var(--color-border-tab)",
-  },
-  filterBar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    height: 56,
-    paddingInline: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.4,
-  },
-  cardBody: {
-    // Placeholder min-height so each empty shell card renders with visible
-    // room while the layout is built out. Remove when real content lands.
-    minHeight: 80,
-    marginTop: 12,
   },
 };
