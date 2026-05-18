@@ -235,3 +235,9 @@ body {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* Hide the horizontal scrollbar on scroll-snap rails (Next Best Actions).
+   Firefox honours scrollbar-width via the element's inline style. */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

@@ -4,13 +4,18 @@ import React from "react";
 import { Clipboard, Clock, BadgeCheck, Sparkles, ChevronRight } from "lucide-react";
 import Card from "./Card";
 
-// Spider chart geometry.
-const CHART_W = 240;
-const CHART_H = 190;
+// Spider chart geometry. The canvas is intentionally wider/taller than the
+// RADIUS-52 polygon so two-line axis labels have room around the perimeter
+// without shrinking the plotted area.
+const CHART_W = 340;
+const CHART_H = 220;
 const CX = CHART_W / 2;
 const CY = CHART_H / 2;
 const RADIUS = 52;
 const RINGS = [25, 50, 75, 100];
+const LABEL_RADIUS = RADIUS + 15;
+// Longest wrapped label line before falling back to an ellipsis + hover title.
+const MAX_LABEL_CHARS = 16;
 
 // ActiveMissionCard — one active mission, rendered as a card-within-the-card:
 // header (title + roleplay / days-left meta) and a two-column body with a
@@ -42,7 +47,7 @@ export default function ActiveMissionCard({ mission }) {
 
       <div style={amStyles.body}>
         <MissionSpiderChart focusAreas={mission.focusAreas} />
-        <FocusAreaList focusAreas={mission.focusAreas} />
+        <FocusAreaTable focusAreas={mission.focusAreas} />
       </div>
     </Card>
   );
@@ -64,8 +69,23 @@ function MissionSpiderChart({ focusAreas }) {
     focusAreas.map((fa, i) => pointAt(i, fa[key]).map((v) => v.toFixed(1)).join(",")).join(" ");
 
   return (
-    <div style={amStyles.spiderWrap}>
-      <svg width={CHART_W} height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`}>
+    <Card tone="outline" padX={16} padY={16} style={amStyles.radarPanel}>
+      <div style={amStyles.legend}>
+        <span style={amStyles.legendItem}>
+          <span style={amStyles.legendDashed} />
+          <span style={amStyles.legendLabel}>Target</span>
+        </span>
+        <span style={amStyles.legendItem}>
+          <span style={amStyles.legendSolid} />
+          <span style={amStyles.legendLabel}>Actual</span>
+        </span>
+      </div>
+      <svg
+        width={CHART_W}
+        height={CHART_H}
+        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+        style={{ display: "block" }}
+      >
         {RINGS.map((lvl) => (
           <polygon
             key={lvl}
@@ -90,8 +110,10 @@ function MissionSpiderChart({ focusAreas }) {
           );
         })}
 
-        {/* Target polygon — the set criteria. Outline only.
-            TODO: confirm whether the target polygon should be filled. */}
+        {/* Target polygon — the set criteria. Outline only, no vertex
+            markers (it is a reference series, not a pinpoint read).
+            TODO: confirm whether the target polygon should be filled.
+            TODO: confirm whether the target polygon should also show vertex markers */}
         <polygon
           points={polygon("target")}
           fill="none"
@@ -100,119 +122,235 @@ function MissionSpiderChart({ focusAreas }) {
           strokeDasharray="5 4"
         />
 
-        {/* Actual polygon — current performance. */}
+        {/* Actual polygon — current performance. Filled at the shared
+            chart-area opacity so it reads against the white panel. */}
         <polygon
           points={polygon("actual")}
-          style={{ stroke: "var(--chart-blue)", fill: "var(--nav-rail-active-bg)" }}
+          style={{
+            stroke: "var(--chart-blue)",
+            fill: "var(--chart-blue)",
+            fillOpacity: "var(--chart-area-opacity)",
+          }}
           strokeWidth={2}
         />
 
+        {/* Actual-polygon vertex markers — one per axis, in the polygon's
+            stroke colour with a thin white inner border to lift them off
+            the fill. */}
+        {focusAreas.map((fa, i) => {
+          const [x, y] = pointAt(i, fa.actual);
+          return (
+            <circle
+              key={fa.id}
+              cx={x}
+              cy={y}
+              r={3.5}
+              style={{ fill: "var(--chart-blue)", stroke: "var(--surface-white)" }}
+              strokeWidth={1}
+            />
+          );
+        })}
+
         {focusAreas.map((fa, i) => {
           const a = angleAt(i);
-          const lr = RADIUS + 15;
-          const lx = CX + lr * Math.cos(a);
-          const ly = CY + lr * Math.sin(a);
+          const lx = CX + LABEL_RADIUS * Math.cos(a);
+          const ly = CY + LABEL_RADIUS * Math.sin(a);
           const cos = Math.cos(a);
           const anchor = cos > 0.3 ? "start" : cos < -0.3 ? "end" : "middle";
-          // TODO: confirm axis-label truncation behaviour for long focus-area names.
-          const label = fa.name.length > 13 ? `${fa.name.slice(0, 12)}…` : fa.name;
+          const { lines, truncated } = wrapLabel(fa.name);
           return (
             <text
               key={fa.id}
-              x={lx}
-              y={ly + 3}
               textAnchor={anchor}
               fontSize={11}
               style={{ fill: "var(--text-secondary)" }}
             >
-              {label}
+              {lines.map((line, li) => (
+                <tspan key={li} x={lx} y={labelLineY(ly, li, lines.length)}>
+                  {line}
+                </tspan>
+              ))}
+              {/* Truncated labels reveal the full name via a native SVG
+                  <title> hover tooltip — the same hover-title pattern the
+                  All recommendations info button uses.
+                  TODO: confirm whether tooltips should appear for all labels
+                  or only truncated ones */}
+              {truncated && <title>{fa.name}</title>}
             </text>
           );
         })}
       </svg>
-
-      <div style={amStyles.legend}>
-        <span style={amStyles.legendItem}>
-          <span style={amStyles.legendDashed} />
-          <span style={amStyles.legendLabel}>Target</span>
-        </span>
-        <span style={amStyles.legendItem}>
-          <span style={amStyles.legendSolid} />
-          <span style={amStyles.legendLabel}>Actual</span>
-        </span>
-      </div>
-    </div>
+    </Card>
   );
 }
 
-function FocusAreaList({ focusAreas }) {
+// labelLineY — baseline Y for wrapped axis-label line `idx` of `count`,
+// keeping the one- or two-line block vertically centred on `ly`.
+function labelLineY(ly, idx, count) {
+  if (count < 2) return ly + 3;
+  return idx === 0 ? ly - 3 : ly + 9;
+}
+
+// wrapLabel — split a focus-area name into at most two lines so the full
+// name stays readable on the spider chart. Breaks on spaces (the seed
+// data's slashes and em-dashes already sit between spaces) and picks the
+// split that best balances the two line lengths. A line still too long for
+// the label gutter falls back to an ellipsis; the caller then reveals the
+// full name via a hover <title>.
+// TODO: confirm two-line wrap breakpoints with Akash for very long focus-area names
+function wrapLabel(name) {
+  const tokens = name.split(" ").filter(Boolean);
+  let lines;
+  if (tokens.length < 2) {
+    lines = [name];
+  } else {
+    let best = null;
+    for (let i = 1; i < tokens.length; i += 1) {
+      const first = tokens.slice(0, i).join(" ");
+      const second = tokens.slice(i).join(" ");
+      const diff = Math.abs(first.length - second.length);
+      if (!best || diff < best.diff) best = { diff, lines: [first, second] };
+    }
+    lines = best.lines;
+  }
+  let truncated = false;
+  const clipped = lines.map((line) => {
+    if (line.length <= MAX_LABEL_CHARS) return line;
+    truncated = true;
+    return `${line.slice(0, MAX_LABEL_CHARS - 1)}…`;
+  });
+  return { lines: clipped, truncated };
+}
+
+// FA_COLS — four-column layout for the focus-area table. Proportions follow
+// the Quality adherence By Metric / By Skills table, with the Achieved
+// column widened so the progress bar dominates.
+// TODO: confirm column widths inside the Active Missions table read well at typical viewport widths
+const FA_COLS = [
+  { key: "name", label: "Focus Area", width: "32%" },
+  { key: "target", label: "Target", width: "12%" },
+  { key: "achieved", label: "Achieved", width: "34%" },
+  { key: "status", label: "Status", width: "22%" },
+];
+
+// FocusAreaTable — the mission's focus areas as a structured table that
+// reads like the Quality adherence By Metric / By Skills tables: a header
+// row, fixed column widths, divider lines, and per-row hover. Each mission
+// sub-card renders its own header row.
+function FocusAreaTable({ focusAreas }) {
   return (
     <div style={amStyles.faList}>
-      {focusAreas.map((fa) => {
-        const Icon = fa.isAiInsight ? Sparkles : BadgeCheck;
-        return (
-          <div
-            key={fa.id}
-            onClick={
-              fa.drillable
-                ? () => {
-                    // TODO: drill into focus area detail
-                  }
-                : undefined
-            }
-            style={{ ...amStyles.faRow, cursor: fa.drillable ? "pointer" : "default" }}
-          >
-            <span style={amStyles.faName}>
-              <Icon size={14} style={{ flexShrink: 0, color: "var(--color-icon-tertiary-fg)" }} />
-              <span style={amStyles.faNameText}>{fa.name}</span>
-            </span>
-            <span style={amStyles.faTarget}>{fa.target}%</span>
-            <span style={amStyles.faProgress}>
-              <ProgressBar value={fa.actual} />
-              <span style={amStyles.faActual}>{fa.actual}%</span>
-            </span>
-            <span style={amStyles.faStatus}>
-              <StatusPill status={fa.status} gapPct={fa.gapPct} />
-            </span>
-            <span style={amStyles.faChevron}>
-              {fa.drillable && <ChevronRight size={16} style={{ color: "var(--color-text-tertiary)" }} />}
-            </span>
-          </div>
-        );
-      })}
+      <table style={amStyles.table}>
+        <colgroup>
+          {FA_COLS.map((c) => (
+            <col key={c.key} style={{ width: c.width }} />
+          ))}
+        </colgroup>
+        <thead>
+          <tr style={amStyles.headRow}>
+            {FA_COLS.map((c) => (
+              <th key={c.key} scope="col" style={amStyles.th}>
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {focusAreas.map((fa, i) => (
+            <FocusAreaRow key={fa.id} fa={fa} isLast={i === focusAreas.length - 1} />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-// ProgressBar — threshold-coloured fill; mirrors the Quality adherence bar.
-function ProgressBar({ value }) {
-  const color =
-    value < 50
-      ? "var(--color-error)"
-      : value < 80
-      ? "var(--color-warning)"
-      : "var(--color-success)";
+function FocusAreaRow({ fa, isLast }) {
+  const [hover, setHover] = React.useState(false);
+  const Icon = fa.isAiInsight ? Sparkles : BadgeCheck;
+  return (
+    <tr
+      onClick={
+        fa.drillable
+          ? () => {
+              // TODO: drill into focus area detail
+            }
+          : undefined
+      }
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        ...amStyles.row,
+        cursor: fa.drillable ? "pointer" : "default",
+        borderBottom: isLast ? "none" : "1px solid var(--table-row-border)",
+        background: fa.drillable && hover ? "var(--table-row-hover)" : "transparent",
+      }}
+    >
+      <td style={amStyles.cell}>
+        <span style={amStyles.faName}>
+          <Icon size={14} style={{ flexShrink: 0, color: "var(--color-icon-tertiary-fg)" }} />
+          <span style={amStyles.faNameText}>{fa.name}</span>
+        </span>
+      </td>
+      <td style={amStyles.cell}>
+        <span style={amStyles.faTarget}>{fa.target}%</span>
+      </td>
+      <td style={amStyles.cell}>
+        <span style={amStyles.achievedCell}>
+          <ProgressBar value={fa.actual} targetPct={fa.target} />
+          <span style={amStyles.faActual}>{fa.actual}%</span>
+        </span>
+      </td>
+      <td style={amStyles.cell}>
+        <span style={amStyles.statusCell}>
+          <StatusPill status={fa.status} gapPct={fa.gapPct} actual={fa.actual} />
+          {fa.drillable && (
+            <ChevronRight size={16} style={{ flexShrink: 0, color: "var(--color-text-tertiary)" }} />
+          )}
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+// thresholdTone — shared bar-fill / status-pill banding. Matches the
+// Quality adherence By Metric / By Skills table: <50 low, 50–79 mid,
+// >=80 high. Routing both the progress bar and the status pill through
+// this keeps their colours in agreement.
+// TODO: confirm the exact threshold breakpoints match Quality Adherence's table
+function thresholdTone(value) {
+  if (value < 50) {
+    return { fill: "var(--color-error)", bg: "var(--color-error-bg)", fg: "var(--color-error)" };
+  }
+  if (value < 80) {
+    return { fill: "var(--color-warning)", bg: "var(--color-warning-bg)", fg: "var(--color-warning)" };
+  }
+  return { fill: "var(--color-success)", bg: "var(--color-success-bg)", fg: "var(--color-success)" };
+}
+
+// ProgressBar — threshold-coloured fill plus a 1px tick on the track at the
+// target %, so the gap between actual and target reads at a glance.
+// TODO: confirm target tick treatment with Akash if extending the bar primitive
+function ProgressBar({ value, targetPct }) {
   return (
     <span style={amStyles.barTrack}>
-      <span style={{ ...amStyles.barFill, width: `${value}%`, background: color }} />
+      <span
+        style={{ ...amStyles.barFill, width: `${value}%`, background: thresholdTone(value).fill }}
+      />
+      {targetPct != null && <span style={{ ...amStyles.barTick, left: `${targetPct}%` }} />}
     </span>
   );
 }
 
-// StatusPill — "Met" / "Below {gap}%" chip.
+// StatusPill — "Met" / "Below {gap}%" chip. Text comes from the focus
+// area's status; the colour is routed through the shared threshold tone so
+// the pill always agrees with the Achieved progress bar.
 // TODO: confirm gap-percentage formula for status pills with Akash.
-function StatusPill({ status, gapPct }) {
-  if (status === "met") {
-    return (
-      <span style={{ ...amStyles.pill, background: "var(--color-success-bg)", color: "var(--color-success)" }}>
-        Met
-      </span>
-    );
-  }
+function StatusPill({ status, gapPct, actual }) {
+  const tone = thresholdTone(actual);
+  const label = status === "met" ? "Met" : gapPct != null ? `Below ${gapPct}%` : "Below";
   return (
-    <span style={{ ...amStyles.pill, background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>
-      {gapPct != null ? `Below ${gapPct}%` : "Below"}
-    </span>
+    <span style={{ ...amStyles.pill, background: tone.bg, color: tone.fg }}>{label}</span>
   );
 }
 
@@ -248,18 +386,14 @@ const amStyles = {
     gap: 24,
     marginTop: 16,
   },
-  spiderWrap: {
+  radarPanel: {
     flexShrink: 0,
-    width: CHART_W,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
   },
   legend: {
     display: "flex",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     gap: 20,
-    marginTop: 4,
+    marginBottom: 8,
   },
   legendItem: {
     display: "inline-flex",
@@ -283,44 +417,57 @@ const amStyles = {
   faList: {
     flex: 1,
     minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
   },
-  faRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    height: 48,
-    borderBottom: "1px solid var(--table-row-border)",
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    tableLayout: "fixed",
+    fontFamily: "var(--font-sans)",
+  },
+  headRow: {
+    borderBottom: "1px solid var(--table-header-border)",
+  },
+  th: {
+    padding: "14px 0",
+    textAlign: "left",
+    fontSize: 12,
+    fontWeight: 700,
+    color: "var(--text-primary)",
+    letterSpacing: "0.2px",
+    whiteSpace: "nowrap",
+  },
+  row: {
+    height: 56,
+    transition: "background 120ms ease",
+  },
+  cell: {
+    padding: 0,
+    verticalAlign: "middle",
   },
   faName: {
-    flex: 1,
-    minWidth: 0,
-    display: "inline-flex",
+    display: "flex",
     alignItems: "center",
     gap: 8,
+    width: "100%",
+    minWidth: 0,
   },
   faNameText: {
     fontSize: 13,
     fontWeight: 600,
     color: "var(--do-ink)",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
+    minWidth: 0,
   },
   faTarget: {
-    width: 44,
-    flexShrink: 0,
     fontSize: 13,
     fontWeight: 500,
     color: "var(--color-text-tertiary)",
   },
-  faProgress: {
-    width: 150,
-    flexShrink: 0,
+  achievedCell: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
+    width: "100%",
+    paddingRight: 16,
   },
   barTrack: {
     flex: 1,
@@ -329,11 +476,19 @@ const amStyles = {
     borderRadius: 2,
     background: "var(--table-header-border)",
     overflow: "hidden",
+    position: "relative",
   },
   barFill: {
     display: "block",
     height: "100%",
     borderRadius: 2,
+  },
+  barTick: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 1,
+    background: "var(--text-secondary)",
   },
   faActual: {
     fontSize: 13,
@@ -341,16 +496,12 @@ const amStyles = {
     color: "var(--do-ink)",
     flexShrink: 0,
   },
-  faStatus: {
-    width: 104,
-    flexShrink: 0,
+  statusCell: {
     display: "flex",
-  },
-  faChevron: {
-    width: 16,
-    flexShrink: 0,
-    display: "flex",
-    justifyContent: "flex-end",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    width: "100%",
   },
   pill: {
     display: "inline-flex",
@@ -359,5 +510,7 @@ const amStyles = {
     borderRadius: 4,
     fontSize: 12,
     fontWeight: 700,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
   },
 };

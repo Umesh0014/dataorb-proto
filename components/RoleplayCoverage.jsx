@@ -4,9 +4,11 @@ import React from "react";
 import { Download } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
+import InlineNBA from "./InlineNBA";
 import TabsRow from "./TabsRow";
 import ContactDriverTable from "./ContactDriverTable";
 import useMeasuredWidth from "./useMeasuredWidth";
+import { INLINE_NBA } from "./mocks/nextBestActions";
 
 // Seed data for the Activity tab. Each point:
 //   date      ISO date string — formatted at render time
@@ -72,6 +74,7 @@ const CHART_HEIGHT = 300;
 export default function RoleplayCoverage({
   data = activityData,
   target = targetRoleplays,
+  onNbaAssign,
 }) {
   const [tab, setTab] = React.useState("activity");
 
@@ -92,16 +95,28 @@ export default function RoleplayCoverage({
           <div style={rcStyles.title}>Roleplay coverage</div>
           <div style={rcStyles.subtitle}>{subtitle}</div>
         </div>
-        <Button
-          variant="text"
-          uppercase={false}
-          leadingIcon={<Download size={16} />}
-          onClick={() => {
-            // TODO: export roleplay coverage as CSV
-          }}
-        >
-          Download
-        </Button>
+        <div style={rcStyles.headerActions}>
+          <InlineNBA
+            text={INLINE_NBA.roleplay.text}
+            ctaLabel={INLINE_NBA.roleplay.ctaLabel}
+            onAction={() =>
+              onNbaAssign?.({
+                name: INLINE_NBA.roleplay.asset,
+                duration: INLINE_NBA.roleplay.duration,
+              })
+            }
+          />
+          <Button
+            variant="text"
+            uppercase={false}
+            leadingIcon={<Download size={16} />}
+            onClick={() => {
+              // TODO: export roleplay coverage as CSV
+            }}
+          >
+            Download
+          </Button>
+        </div>
       </div>
 
       <div style={rcStyles.tabs}>
@@ -314,6 +329,12 @@ const rcStyles = {
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 16,
+  },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+    minWidth: 0,
   },
   title: {
     fontSize: 16,

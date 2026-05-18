@@ -2,10 +2,12 @@
 
 import React from "react";
 import Card from "./Card";
+import InlineNBA from "./InlineNBA";
 import TabsRow from "./TabsRow";
 import TrendArrow from "./TrendArrow";
 import AllRecommendationsTable from "./AllRecommendationsTable";
 import useMeasuredWidth from "./useMeasuredWidth";
+import { INLINE_NBA } from "./mocks/nextBestActions";
 
 // Seed data for the Top recommendations tab. Each item:
 //   id     string
@@ -43,14 +45,29 @@ const TILE_GAP = 8;
 // mirroring AdherenceCard and the other DataOrb metric cards.
 export default function CoachingRecommendations({
   recommendations = topCoachingRecommendations,
+  onNbaAssign,
 }) {
   const [tab, setTab] = React.useState("top");
 
   return (
     <Card>
-      <div style={crStyles.title}>Coaching recommendations</div>
-      <div style={crStyles.subtitle}>
-        Evaluate performance across quality metrics.
+      <div style={crStyles.header}>
+        <div>
+          <div style={crStyles.title}>Coaching recommendations</div>
+          <div style={crStyles.subtitle}>
+            Evaluate performance across quality metrics.
+          </div>
+        </div>
+        <InlineNBA
+          text={INLINE_NBA.coaching.text}
+          ctaLabel={INLINE_NBA.coaching.ctaLabel}
+          onAction={() =>
+            onNbaAssign?.({
+              name: INLINE_NBA.coaching.asset,
+              duration: INLINE_NBA.coaching.duration,
+            })
+          }
+        />
       </div>
 
       <div style={crStyles.tabs}>
@@ -178,6 +195,12 @@ function layoutTreemap(nodes, x, y, w, h) {
 }
 
 const crStyles = {
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 24,
+  },
   title: {
     fontSize: 16,
     fontWeight: 700,

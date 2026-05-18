@@ -4,9 +4,11 @@ import React from "react";
 import { Download } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
+import InlineNBA from "./InlineNBA";
 import TabsRow from "./TabsRow";
 import AdherenceRateChart from "./AdherenceRateChart";
 import AdherenceScopeTable from "./AdherenceScopeTable";
+import { INLINE_NBA } from "./mocks/nextBestActions";
 
 // By metric seed — 30 rows. roleplays / adherence / change may be null.
 const metricsData = [
@@ -65,7 +67,7 @@ const TABS = [
 // QualityAdherence — interior of the Agent Profile "Quality adherence"
 // card: title + subtitle + download action, three sub-tabs. Self-contained
 // <Card>, mirroring RoleplayCoverage and the other DataOrb metric cards.
-export default function QualityAdherence() {
+export default function QualityAdherence({ onNbaAssign }) {
   const [tab, setTab] = React.useState("rate");
 
   return (
@@ -78,16 +80,28 @@ export default function QualityAdherence() {
             process, and performance standards.
           </div>
         </div>
-        <Button
-          variant="text"
-          uppercase={false}
-          leadingIcon={<Download size={16} />}
-          onClick={() => {
-            // TODO: export quality adherence as CSV (the active tab's view)
-          }}
-        >
-          Download
-        </Button>
+        <div style={qaStyles.headerActions}>
+          <InlineNBA
+            text={INLINE_NBA.quality.text}
+            ctaLabel={INLINE_NBA.quality.ctaLabel}
+            onAction={() =>
+              onNbaAssign?.({
+                name: INLINE_NBA.quality.asset,
+                duration: INLINE_NBA.quality.duration,
+              })
+            }
+          />
+          <Button
+            variant="text"
+            uppercase={false}
+            leadingIcon={<Download size={16} />}
+            onClick={() => {
+              // TODO: export quality adherence as CSV (the active tab's view)
+            }}
+          >
+            Download
+          </Button>
+        </div>
       </div>
 
       <div style={qaStyles.tabs}>
@@ -107,6 +121,12 @@ const qaStyles = {
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 16,
+  },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+    minWidth: 0,
   },
   title: {
     fontSize: 16,

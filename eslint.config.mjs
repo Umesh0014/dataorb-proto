@@ -94,6 +94,7 @@ export default [
       "components/Missions.jsx",
       "components/AdherenceScopeTable.jsx",
       "components/CoachingRecommendations.jsx",
+      "components/NextBestActions.jsx",
     ],
     rules: {
       "no-restricted-syntax": [
