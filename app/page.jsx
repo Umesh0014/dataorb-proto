@@ -9,6 +9,8 @@ import DrillDetailPage from "../components/DrillDetailPage";
 import NewRoleplayPage from "../components/NewRoleplayPage";
 import NewRoleplayContextPage from "../components/NewRoleplayContextPage";
 import InteractionsPage from "../components/InteractionsPage";
+import AgentsPage from "../components/AgentsPage";
+import AgentProfile from "../components/AgentProfile";
 import MissionsPage from "../components/MissionsPage";
 import MissionWizardPage, {
   EMPTY_MISSION_DRAFT,
@@ -65,7 +67,7 @@ const INSIGHTS_PAGES = {
 const LEARNING_PAGES = {
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
-  "agents":       { Component: ComingSoon,      pageName: "Agents" },
+  "agents":       { Component: AgentsPage,      pageName: "Agents" },
   "missions":     { Component: MissionsPage,    pageName: "Missions" },
 };
 
@@ -147,6 +149,7 @@ export default function Page() {
     setMiraNav("chat");
   }, []);
   const [drillDetailId, setDrillDetailId] = React.useState(null);
+  const [agentProfileId, setAgentProfileId] = React.useState(null);
   const [roleplayStep, setRoleplayStep] = React.useState(null); // null | 'persona' | 'context' | 'generated'
   const [roleplay, setRoleplay] = React.useState(EMPTY_ROLEPLAY);
   // Create Mission wizard — null means closed (MissionsPage renders); any
@@ -256,6 +259,7 @@ export default function Page() {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
     const onMissions = learningNav === "missions";
+    const onAgents = learningNav === "agents";
     const missionsPopulated = onMissions && !missionWizardStep;
 
     let drillContent;
@@ -302,6 +306,13 @@ export default function Page() {
           onBack={() => setDrillDetailId(null)}
         />
       );
+    } else if (onAgents && agentProfileId) {
+      drillContent = (
+        <AgentProfile
+          agentId={agentProfileId}
+          onBack={() => setAgentProfileId(null)}
+        />
+      );
     } else if (!missionsPopulated) {
       drillContent = (
         <LearningPage
@@ -312,6 +323,7 @@ export default function Page() {
             setRoleplayStep("persona");
           }}
           onCreateMission={openMissionWizard}
+          onOpenAgent={(id) => setAgentProfileId(id)}
         />
       );
     }
@@ -323,6 +335,7 @@ export default function Page() {
           activeId={learningNav}
           onSelect={(id) => {
             setDrillDetailId(null);
+            setAgentProfileId(null);
             cancelRoleplay();
             closeMissionWizard();
             setLearningNav(id);
@@ -342,6 +355,7 @@ export default function Page() {
           currentPage={currentPage}
           onSelectPage={(page) => {
             setDrillDetailId(null);
+            setAgentProfileId(null);
             cancelRoleplay();
             setDrillDetailId(null);
             cancelRoleplay();

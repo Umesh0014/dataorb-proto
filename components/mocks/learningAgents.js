@@ -1,0 +1,261 @@
+// learningAgents.js — Mock agents for the Learning Hub › Agents page.
+//
+// Agent shape:
+//   id               string   numeric employee id (shown in the avatar tooltip)
+//   name             string
+//   initials         string   2-char, uppercase
+//   email            string
+//   lastRoleplayDate string   ISO date — formatted at render time
+//   roleplaysCount   number
+//   qaScore          number | null   percentage; null = score not yet available
+//   qaScoreTrend     { direction: "up" | "down" | "flat", deltaPct: number } | null
+//   missions         Array<{ id, name, status: "on_target" | "below_target" }>
+
+export const LEARNING_AGENTS = [
+  {
+    id: "193845",
+    name: "Aaliyah Tillman",
+    initials: "AT",
+    email: "aaliyah.tillman@dataorb.io",
+    lastRoleplayDate: "2026-03-22",
+    roleplaysCount: 15,
+    qaScore: 92,
+    qaScoreTrend: { direction: "up", deltaPct: 2 },
+    missions: [
+      { id: "193845-m1", name: "Customer support enhancement", status: "on_target" },
+      { id: "193845-m2", name: "Retention save readiness — Q2", status: "below_target" },
+      { id: "193845-m3", name: "Q2 billing accuracy", status: "on_target" },
+    ],
+  },
+  {
+    id: "204417",
+    name: "Jaquan Schroeder",
+    initials: "JS",
+    email: "jaquan.schroeder@dataorb.io",
+    lastRoleplayDate: "2026-03-22",
+    roleplaysCount: 14,
+    qaScore: 86,
+    qaScoreTrend: { direction: "down", deltaPct: 4 },
+    missions: [
+      { id: "204417-m1", name: "First-call resolution drive", status: "below_target" },
+      { id: "204417-m2", name: "Empathy & tone calibration", status: "below_target" },
+      { id: "204417-m3", name: "Customer support enhancement", status: "on_target" },
+    ],
+  },
+  {
+    id: "198320",
+    name: "Willis Jast",
+    initials: "WJ",
+    email: "willis.jast@dataorb.io",
+    lastRoleplayDate: "2026-03-21",
+    roleplaysCount: 14,
+    qaScore: 54,
+    qaScoreTrend: { direction: "down", deltaPct: 2 },
+    missions: [
+      { id: "198320-m1", name: "Retention save readiness — Q2", status: "below_target" },
+      { id: "198320-m2", name: "Q2 billing accuracy", status: "below_target" },
+      { id: "198320-m3", name: "Compliance scripting refresh", status: "on_target" },
+    ],
+  },
+  {
+    id: "211902",
+    name: "Antonietta Quitzon",
+    initials: "AQ",
+    email: "antonietta.quitzon@dataorb.io",
+    lastRoleplayDate: "2026-03-21",
+    roleplaysCount: 12,
+    qaScore: 59,
+    qaScoreTrend: { direction: "up", deltaPct: 5 },
+    missions: [
+      { id: "211902-m1", name: "Empathy & tone calibration", status: "below_target" },
+      { id: "211902-m2", name: "Upsell confidence builder", status: "on_target" },
+    ],
+  },
+  {
+    id: "187655",
+    name: "Lacey Trantow",
+    initials: "LT",
+    email: "lacey.trantow@dataorb.io",
+    lastRoleplayDate: "2026-03-20",
+    roleplaysCount: 12,
+    qaScore: 52,
+    qaScoreTrend: { direction: "up", deltaPct: 2 },
+    missions: [
+      { id: "187655-m1", name: "Customer support enhancement", status: "below_target" },
+    ],
+  },
+  {
+    id: "220148",
+    name: "Tod Blick",
+    initials: "TB",
+    email: "tod.blick@dataorb.io",
+    lastRoleplayDate: "2026-03-20",
+    roleplaysCount: 10,
+    qaScore: 50,
+    qaScoreTrend: { direction: "down", deltaPct: 1 },
+    missions: [
+      { id: "220148-m1", name: "First-call resolution drive", status: "below_target" },
+    ],
+  },
+  {
+    id: "199073",
+    name: "Sara Greene",
+    initials: "SG",
+    email: "sara.greene@dataorb.io",
+    lastRoleplayDate: "2026-03-19",
+    roleplaysCount: 8,
+    qaScore: 78,
+    qaScoreTrend: { direction: "up", deltaPct: 3 },
+    missions: [
+      { id: "199073-m1", name: "Empathy & tone calibration", status: "on_target" },
+    ],
+  },
+  {
+    id: "215566",
+    name: "Ravi Patel",
+    initials: "RP",
+    email: "ravi.patel@dataorb.io",
+    lastRoleplayDate: "2026-03-19",
+    roleplaysCount: 5,
+    qaScore: 38,
+    qaScoreTrend: { direction: "down", deltaPct: 2 },
+    missions: [
+      { id: "215566-m1", name: "Q2 billing accuracy", status: "below_target" },
+    ],
+  },
+  {
+    id: "203891",
+    name: "Mukesh Patil",
+    initials: "MP",
+    email: "mukesh.patil@dataorb.io",
+    lastRoleplayDate: "2026-03-18",
+    roleplaysCount: 3,
+    qaScore: 34,
+    qaScoreTrend: { direction: "up", deltaPct: 2 },
+    missions: [
+      { id: "203891-m1", name: "Compliance scripting refresh", status: "below_target" },
+    ],
+  },
+  {
+    id: "188214",
+    name: "Devon Hartmann",
+    initials: "DH",
+    email: "devon.hartmann@dataorb.io",
+    lastRoleplayDate: "2026-03-17",
+    roleplaysCount: 11,
+    qaScore: 81,
+    qaScoreTrend: { direction: "up", deltaPct: 1 },
+    missions: [
+      { id: "188214-m1", name: "Customer support enhancement", status: "on_target" },
+      { id: "188214-m2", name: "Upsell confidence builder", status: "on_target" },
+    ],
+  },
+  {
+    id: "217430",
+    name: "Priya Nair",
+    initials: "PN",
+    email: "priya.nair@dataorb.io",
+    lastRoleplayDate: "2026-03-17",
+    roleplaysCount: 9,
+    qaScore: 67,
+    qaScoreTrend: { direction: "down", deltaPct: 3 },
+    missions: [
+      { id: "217430-m1", name: "Retention save readiness — Q2", status: "below_target" },
+      { id: "217430-m2", name: "First-call resolution drive", status: "on_target" },
+    ],
+  },
+  {
+    id: "195602",
+    name: "Marcus Lowe",
+    initials: "ML",
+    email: "marcus.lowe@dataorb.io",
+    lastRoleplayDate: "2026-03-16",
+    roleplaysCount: 9,
+    qaScore: 73,
+    qaScoreTrend: { direction: "up", deltaPct: 4 },
+    missions: [
+      { id: "195602-m1", name: "Empathy & tone calibration", status: "on_target" },
+    ],
+  },
+  {
+    id: "209188",
+    name: "Elena Vasquez",
+    initials: "EV",
+    email: "elena.vasquez@dataorb.io",
+    lastRoleplayDate: "2026-03-15",
+    roleplaysCount: 7,
+    qaScore: 88,
+    qaScoreTrend: { direction: "up", deltaPct: 2 },
+    missions: [
+      { id: "209188-m1", name: "Customer support enhancement", status: "on_target" },
+      { id: "209188-m2", name: "Q2 billing accuracy", status: "on_target" },
+      { id: "209188-m3", name: "Upsell confidence builder", status: "on_target" },
+    ],
+  },
+  {
+    id: "184775",
+    name: "Hiroshi Tanaka",
+    initials: "HT",
+    email: "hiroshi.tanaka@dataorb.io",
+    lastRoleplayDate: "2026-03-15",
+    roleplaysCount: 6,
+    qaScore: 45,
+    qaScoreTrend: { direction: "down", deltaPct: 6 },
+    missions: [
+      { id: "184775-m1", name: "First-call resolution drive", status: "below_target" },
+    ],
+  },
+  {
+    id: "222019",
+    name: "Grace Okafor",
+    initials: "GO",
+    email: "grace.okafor@dataorb.io",
+    lastRoleplayDate: "2026-03-14",
+    roleplaysCount: 6,
+    qaScore: 91,
+    qaScoreTrend: { direction: "up", deltaPct: 3 },
+    missions: [
+      { id: "222019-m1", name: "Empathy & tone calibration", status: "on_target" },
+      { id: "222019-m2", name: "Compliance scripting refresh", status: "on_target" },
+    ],
+  },
+  {
+    id: "201357",
+    name: "Liam Donovan",
+    initials: "LD",
+    email: "liam.donovan@dataorb.io",
+    lastRoleplayDate: "2026-03-13",
+    roleplaysCount: 4,
+    qaScore: 56,
+    qaScoreTrend: { direction: "down", deltaPct: 1 },
+    missions: [
+      { id: "201357-m1", name: "Retention save readiness — Q2", status: "below_target" },
+    ],
+  },
+  {
+    id: "213846",
+    name: "Sofia Russo",
+    initials: "SR",
+    email: "sofia.russo@dataorb.io",
+    lastRoleplayDate: "2026-03-12",
+    roleplaysCount: 3,
+    qaScore: 62,
+    qaScoreTrend: { direction: "up", deltaPct: 2 },
+    missions: [
+      { id: "213846-m1", name: "Upsell confidence builder", status: "on_target" },
+    ],
+  },
+  {
+    id: "190644",
+    name: "Noah Bergstrom",
+    initials: "NB",
+    email: "noah.bergstrom@dataorb.io",
+    lastRoleplayDate: "2026-03-11",
+    roleplaysCount: 2,
+    qaScore: 41,
+    qaScoreTrend: { direction: "down", deltaPct: 2 },
+    missions: [
+      { id: "190644-m1", name: "Q2 billing accuracy", status: "below_target" },
+    ],
+  },
+];
