@@ -2,7 +2,7 @@
 
 import React from "react";
 import PageHeader from "./PageHeader";
-import NextBestActions from "./NextBestActions";
+import PerformanceScore from "./PerformanceScore";
 import CoachingRecommendations from "./CoachingRecommendations";
 import Missions from "./Missions";
 import RoleplayCoverage from "./RoleplayCoverage";
@@ -68,7 +68,7 @@ export default function AgentProfile({ agentId, onBack }) {
         }}
       />
 
-      <NextBestActions onAssign={setAssignAsset} />
+      <PerformanceScore onAssign={setAssignAsset} />
       <CoachingRecommendations onNbaAssign={setAssignAsset} />
       <Missions />
       <RoleplayCoverage onNbaAssign={setAssignAsset} />

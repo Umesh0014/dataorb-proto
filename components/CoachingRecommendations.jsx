@@ -51,24 +51,21 @@ export default function CoachingRecommendations({
 
   return (
     <Card>
-      <div style={crStyles.header}>
-        <div>
-          <div style={crStyles.title}>Coaching recommendations</div>
-          <div style={crStyles.subtitle}>
-            Evaluate performance across quality metrics.
-          </div>
-        </div>
-        <InlineNBA
-          text={INLINE_NBA.coaching.text}
-          ctaLabel={INLINE_NBA.coaching.ctaLabel}
-          onAction={() =>
-            onNbaAssign?.({
-              name: INLINE_NBA.coaching.asset,
-              duration: INLINE_NBA.coaching.duration,
-            })
-          }
-        />
+      <div style={crStyles.title}>Coaching recommendations</div>
+      <div style={crStyles.subtitle}>
+        Evaluate performance across quality metrics.
       </div>
+
+      <InlineNBA
+        text={INLINE_NBA.coaching.text}
+        ctaLabel={INLINE_NBA.coaching.ctaLabel}
+        onAction={() =>
+          onNbaAssign?.({
+            name: INLINE_NBA.coaching.asset,
+            duration: INLINE_NBA.coaching.duration,
+          })
+        }
+      />
 
       <div style={crStyles.tabs}>
         <TabsRow tabs={TABS} activeTab={tab} onTabClick={setTab} />
@@ -195,12 +192,6 @@ function layoutTreemap(nodes, x, y, w, h) {
 }
 
 const crStyles = {
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 24,
-  },
   title: {
     fontSize: 16,
     fontWeight: 700,

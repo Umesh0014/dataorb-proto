@@ -4,14 +4,16 @@ import React from "react";
 import { Lightbulb, ArrowRight } from "lucide-react";
 import Button from "./Button";
 
-// InlineNBA — Tier 2 inline "next best action" prompt for a section header
-// row. One line: lightbulb + muted label + recommendation sentence + a
-// text-link CTA. Reused by the Coaching Recommendations, Roleplay Coverage,
-// and Quality Adherence section headers. `style` lets the consumer flex it
-// inside a header row so the sentence ellipsizes rather than wrapping.
-export default function InlineNBA({ text, ctaLabel, onAction, style }) {
+// InlineNBA — Tier 2 "next best action" banner shown inside a section card,
+// below the header/subtitle and above the section's content. A low-emphasis
+// neutral strip (no status colour) reused by the Coaching Recommendations,
+// Roleplay Coverage, and Quality Adherence cards.
+// TODO: no neutral low-emphasis banner/callout exists in the codebase —
+// Banner.jsx is status-toned (info / success / warning / danger). This is a
+// minimal neutral strip; confirm the pattern with the design system.
+export default function InlineNBA({ text, ctaLabel, onAction }) {
   return (
-    <div style={{ ...inStyles.wrap, ...style }}>
+    <div style={inStyles.wrap}>
       <Lightbulb size={15} style={inStyles.icon} />
       <span style={inStyles.label}>Next best action</span>
       <span style={inStyles.text}>{text}</span>
@@ -20,6 +22,7 @@ export default function InlineNBA({ text, ctaLabel, onAction, style }) {
         uppercase={false}
         trailingIcon={<ArrowRight size={14} />}
         onClick={onAction}
+        style={inStyles.cta}
       >
         {ctaLabel}
       </Button>
@@ -33,9 +36,13 @@ const inStyles = {
     alignItems: "center",
     gap: 8,
     minWidth: 0,
+    marginTop: 12,
+    padding: "6px 14px",
+    background: "var(--surface-alt)",
+    borderRadius: "var(--radius-md)",
   },
   icon: {
-    color: "var(--color-warning)",
+    color: "var(--color-text-tertiary)",
     flexShrink: 0,
   },
   label: {
@@ -54,5 +61,9 @@ const inStyles = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+  },
+  cta: {
+    color: "var(--color-button-primary-bg)",
+    flexShrink: 0,
   },
 };

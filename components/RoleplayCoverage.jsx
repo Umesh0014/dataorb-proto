@@ -95,29 +95,28 @@ export default function RoleplayCoverage({
           <div style={rcStyles.title}>Roleplay coverage</div>
           <div style={rcStyles.subtitle}>{subtitle}</div>
         </div>
-        <div style={rcStyles.headerActions}>
-          <InlineNBA
-            text={INLINE_NBA.roleplay.text}
-            ctaLabel={INLINE_NBA.roleplay.ctaLabel}
-            onAction={() =>
-              onNbaAssign?.({
-                name: INLINE_NBA.roleplay.asset,
-                duration: INLINE_NBA.roleplay.duration,
-              })
-            }
-          />
-          <Button
-            variant="text"
-            uppercase={false}
-            leadingIcon={<Download size={16} />}
-            onClick={() => {
-              // TODO: export roleplay coverage as CSV
-            }}
-          >
-            Download
-          </Button>
-        </div>
+        <Button
+          variant="text"
+          uppercase={false}
+          leadingIcon={<Download size={16} />}
+          onClick={() => {
+            // TODO: export roleplay coverage as CSV
+          }}
+        >
+          Download
+        </Button>
       </div>
+
+      <InlineNBA
+        text={INLINE_NBA.roleplay.text}
+        ctaLabel={INLINE_NBA.roleplay.ctaLabel}
+        onAction={() =>
+          onNbaAssign?.({
+            name: INLINE_NBA.roleplay.asset,
+            duration: INLINE_NBA.roleplay.duration,
+          })
+        }
+      />
 
       <div style={rcStyles.tabs}>
         <TabsRow tabs={TABS} activeTab={tab} onTabClick={setTab} />
@@ -329,12 +328,6 @@ const rcStyles = {
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 16,
-  },
-  headerActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-    minWidth: 0,
   },
   title: {
     fontSize: 16,

@@ -35,8 +35,8 @@ const PRIORITY = {
 const CARD_WIDTH = 300;
 const FADE_MS = 200;
 
-// NextBestActions — Tier 1 actionable-insight rail on the Agent Detail
-// Page. A peer section card holding a horizontally-scrolling rail of
+// NextBestActions — the Next Best Actions zone embedded in the Performance
+// score hero card: a small header + a horizontally-scrolling rail of
 // prioritized NBA cards plus a "View all" side sheet. `onAssign({ name,
 // duration })` opens the page-level Confirm assignment modal.
 export default function NextBestActions({ onAssign }) {
@@ -58,14 +58,9 @@ export default function NextBestActions({ onAssign }) {
   const visible = NBA_CARDS.filter((c) => !dismissed.includes(c.id));
 
   return (
-    <Card>
-      <div style={nbaStyles.header}>
-        <div>
-          <div style={nbaStyles.title}>Next Best Actions</div>
-          <div style={nbaStyles.subtitle}>
-            Prioritized recommendations for this agent based on the selected date range.
-          </div>
-        </div>
+    <div>
+      <div style={nbaStyles.zoneHeader}>
+        <span style={nbaStyles.zoneLabel}>Next best actions</span>
         <span ref={viewAllRef} style={{ flexShrink: 0 }}>
           <Button
             variant="text"
@@ -104,7 +99,7 @@ export default function NextBestActions({ onAssign }) {
           }}
         />
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -267,24 +262,16 @@ function EmptyState() {
 }
 
 const nbaStyles = {
-  header: {
+  zoneHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 16,
   },
-  title: {
-    fontSize: 16,
+  zoneLabel: {
+    fontSize: 13,
     fontWeight: 700,
     color: "var(--color-text-deep)",
-    lineHeight: 1.4,
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 13,
-    fontWeight: 400,
-    color: "var(--text-secondary)",
-    lineHeight: 1.4,
   },
   rail: {
     display: "flex",

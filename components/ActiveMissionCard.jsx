@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Clipboard, Clock, BadgeCheck, Sparkles, ChevronRight } from "lucide-react";
+import { Clipboard, Clock, BadgeCheck, Sparkles, ArrowRight } from "lucide-react";
+import Button from "./Button";
 import Card from "./Card";
 
 // Spider chart geometry. The canvas is intentionally wider/taller than the
@@ -42,6 +43,19 @@ export default function ActiveMissionCard({ mission }) {
             <Clock size={14} />
             {mission.daysLeft} days left
           </span>
+          <Button
+            variant="text"
+            uppercase={false}
+            trailingIcon={<ArrowRight size={14} />}
+            style={amStyles.viewCta}
+            onClick={() => {
+              // TODO: navigate to the Mission Detail page for mission.id —
+              // no standalone Mission Detail route exists yet (the only
+              // mission-detail view is the MissionsPage master-detail panel).
+            }}
+          >
+            View mission
+          </Button>
         </div>
       </div>
 
@@ -304,9 +318,6 @@ function FocusAreaRow({ fa, isLast }) {
       <td style={amStyles.cell}>
         <span style={amStyles.statusCell}>
           <StatusPill status={fa.status} gapPct={fa.gapPct} actual={fa.actual} />
-          {fa.drillable && (
-            <ChevronRight size={16} style={{ flexShrink: 0, color: "var(--color-text-tertiary)" }} />
-          )}
         </span>
       </td>
     </tr>
@@ -379,6 +390,10 @@ const amStyles = {
     fontSize: 13,
     fontWeight: 500,
     color: "var(--color-text-tertiary)",
+  },
+  viewCta: {
+    color: "var(--color-button-primary-bg)",
+    flexShrink: 0,
   },
   body: {
     display: "flex",

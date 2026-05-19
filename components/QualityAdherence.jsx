@@ -80,29 +80,28 @@ export default function QualityAdherence({ onNbaAssign }) {
             process, and performance standards.
           </div>
         </div>
-        <div style={qaStyles.headerActions}>
-          <InlineNBA
-            text={INLINE_NBA.quality.text}
-            ctaLabel={INLINE_NBA.quality.ctaLabel}
-            onAction={() =>
-              onNbaAssign?.({
-                name: INLINE_NBA.quality.asset,
-                duration: INLINE_NBA.quality.duration,
-              })
-            }
-          />
-          <Button
-            variant="text"
-            uppercase={false}
-            leadingIcon={<Download size={16} />}
-            onClick={() => {
-              // TODO: export quality adherence as CSV (the active tab's view)
-            }}
-          >
-            Download
-          </Button>
-        </div>
+        <Button
+          variant="text"
+          uppercase={false}
+          leadingIcon={<Download size={16} />}
+          onClick={() => {
+            // TODO: export quality adherence as CSV (the active tab's view)
+          }}
+        >
+          Download
+        </Button>
       </div>
+
+      <InlineNBA
+        text={INLINE_NBA.quality.text}
+        ctaLabel={INLINE_NBA.quality.ctaLabel}
+        onAction={() =>
+          onNbaAssign?.({
+            name: INLINE_NBA.quality.asset,
+            duration: INLINE_NBA.quality.duration,
+          })
+        }
+      />
 
       <div style={qaStyles.tabs}>
         <TabsRow tabs={TABS} activeTab={tab} onTabClick={setTab} />
@@ -121,12 +120,6 @@ const qaStyles = {
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 16,
-  },
-  headerActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-    minWidth: 0,
   },
   title: {
     fontSize: 16,
