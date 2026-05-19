@@ -5,22 +5,9 @@ import { Clipboard, Clock, BadgeCheck, Sparkles, ArrowRight } from "lucide-react
 import Button from "./Button";
 import Card from "./Card";
 
-// Spider chart geometry. The canvas is intentionally wider/taller than the
-// RADIUS-52 polygon so two-line axis labels have room around the perimeter
-// without shrinking the plotted area.
-const CHART_W = 340;
-const CHART_H = 220;
-const CX = CHART_W / 2;
-const CY = CHART_H / 2;
-const RADIUS = 52;
-const RINGS = [25, 50, 75, 100];
-const LABEL_RADIUS = RADIUS + 15;
-// Longest wrapped label line before falling back to an ellipsis + hover title.
-const MAX_LABEL_CHARS = 16;
-
 // ActiveMissionCard — one active mission, rendered as a card-within-the-card:
-// header (title + roleplay / days-left meta) and a two-column body with a
-// spider chart (target vs. actual) on the left and a focus-area list right.
+// header (title + roleplay / days-left meta) and a body containing the
+// mission's focus-area table.
 export default function ActiveMissionCard({ mission }) {
   // TODO: confirm days-left urgency threshold (red at <= 3 days for now).
   const urgent = mission.daysLeft <= 3;
@@ -60,180 +47,10 @@ export default function ActiveMissionCard({ mission }) {
       </div>
 
       <div style={amStyles.body}>
-        <MissionSpiderChart focusAreas={mission.focusAreas} />
         <FocusAreaTable focusAreas={mission.focusAreas} />
       </div>
     </Card>
   );
-}
-
-// MissionSpiderChart — hand-rolled SVG radar. Target polygon (dashed neutral)
-// is the set criteria; actual polygon (accent fill) is current performance.
-// Colours mirror the Roleplay coverage line chart (actual) and the Quality
-// adherence org-average dashed line (target).
-function MissionSpiderChart({ focusAreas }) {
-  const n = focusAreas.length;
-  const angleAt = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
-  const pointAt = (i, value) => {
-    const r = (value / 100) * RADIUS;
-    const a = angleAt(i);
-    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
-  };
-  const polygon = (key) =>
-    focusAreas.map((fa, i) => pointAt(i, fa[key]).map((v) => v.toFixed(1)).join(",")).join(" ");
-
-  return (
-    <Card tone="outline" padX={16} padY={16} style={amStyles.radarPanel}>
-      <div style={amStyles.legend}>
-        <span style={amStyles.legendItem}>
-          <span style={amStyles.legendDashed} />
-          <span style={amStyles.legendLabel}>Target</span>
-        </span>
-        <span style={amStyles.legendItem}>
-          <span style={amStyles.legendSolid} />
-          <span style={amStyles.legendLabel}>Actual</span>
-        </span>
-      </div>
-      <svg
-        width={CHART_W}
-        height={CHART_H}
-        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-        style={{ display: "block" }}
-      >
-        {RINGS.map((lvl) => (
-          <polygon
-            key={lvl}
-            points={focusAreas.map((_, i) => pointAt(i, lvl).map((v) => v.toFixed(1)).join(",")).join(" ")}
-            fill="none"
-            style={{ stroke: "var(--color-divider-card)" }}
-            strokeWidth={1}
-          />
-        ))}
-        {focusAreas.map((_, i) => {
-          const [x, y] = pointAt(i, 100);
-          return (
-            <line
-              key={i}
-              x1={CX}
-              y1={CY}
-              x2={x}
-              y2={y}
-              style={{ stroke: "var(--color-divider-card)" }}
-              strokeWidth={1}
-            />
-          );
-        })}
-
-        {/* Target polygon — the set criteria. Outline only, no vertex
-            markers (it is a reference series, not a pinpoint read).
-            TODO: confirm whether the target polygon should be filled.
-            TODO: confirm whether the target polygon should also show vertex markers */}
-        <polygon
-          points={polygon("target")}
-          fill="none"
-          style={{ stroke: "var(--chart-grey)" }}
-          strokeWidth={1.5}
-          strokeDasharray="5 4"
-        />
-
-        {/* Actual polygon — current performance. Filled at the shared
-            chart-area opacity so it reads against the white panel. */}
-        <polygon
-          points={polygon("actual")}
-          style={{
-            stroke: "var(--chart-blue)",
-            fill: "var(--chart-blue)",
-            fillOpacity: "var(--chart-area-opacity)",
-          }}
-          strokeWidth={2}
-        />
-
-        {/* Actual-polygon vertex markers — one per axis, in the polygon's
-            stroke colour with a thin white inner border to lift them off
-            the fill. */}
-        {focusAreas.map((fa, i) => {
-          const [x, y] = pointAt(i, fa.actual);
-          return (
-            <circle
-              key={fa.id}
-              cx={x}
-              cy={y}
-              r={3.5}
-              style={{ fill: "var(--chart-blue)", stroke: "var(--surface-white)" }}
-              strokeWidth={1}
-            />
-          );
-        })}
-
-        {focusAreas.map((fa, i) => {
-          const a = angleAt(i);
-          const lx = CX + LABEL_RADIUS * Math.cos(a);
-          const ly = CY + LABEL_RADIUS * Math.sin(a);
-          const cos = Math.cos(a);
-          const anchor = cos > 0.3 ? "start" : cos < -0.3 ? "end" : "middle";
-          const { lines, truncated } = wrapLabel(fa.name);
-          return (
-            <text
-              key={fa.id}
-              textAnchor={anchor}
-              fontSize={11}
-              style={{ fill: "var(--text-secondary)" }}
-            >
-              {lines.map((line, li) => (
-                <tspan key={li} x={lx} y={labelLineY(ly, li, lines.length)}>
-                  {line}
-                </tspan>
-              ))}
-              {/* Truncated labels reveal the full name via a native SVG
-                  <title> hover tooltip — the same hover-title pattern the
-                  All recommendations info button uses.
-                  TODO: confirm whether tooltips should appear for all labels
-                  or only truncated ones */}
-              {truncated && <title>{fa.name}</title>}
-            </text>
-          );
-        })}
-      </svg>
-    </Card>
-  );
-}
-
-// labelLineY — baseline Y for wrapped axis-label line `idx` of `count`,
-// keeping the one- or two-line block vertically centred on `ly`.
-function labelLineY(ly, idx, count) {
-  if (count < 2) return ly + 3;
-  return idx === 0 ? ly - 3 : ly + 9;
-}
-
-// wrapLabel — split a focus-area name into at most two lines so the full
-// name stays readable on the spider chart. Breaks on spaces (the seed
-// data's slashes and em-dashes already sit between spaces) and picks the
-// split that best balances the two line lengths. A line still too long for
-// the label gutter falls back to an ellipsis; the caller then reveals the
-// full name via a hover <title>.
-// TODO: confirm two-line wrap breakpoints with Akash for very long focus-area names
-function wrapLabel(name) {
-  const tokens = name.split(" ").filter(Boolean);
-  let lines;
-  if (tokens.length < 2) {
-    lines = [name];
-  } else {
-    let best = null;
-    for (let i = 1; i < tokens.length; i += 1) {
-      const first = tokens.slice(0, i).join(" ");
-      const second = tokens.slice(i).join(" ");
-      const diff = Math.abs(first.length - second.length);
-      if (!best || diff < best.diff) best = { diff, lines: [first, second] };
-    }
-    lines = best.lines;
-  }
-  let truncated = false;
-  const clipped = lines.map((line) => {
-    if (line.length <= MAX_LABEL_CHARS) return line;
-    truncated = true;
-    return `${line.slice(0, MAX_LABEL_CHARS - 1)}…`;
-  });
-  return { lines: clipped, truncated };
 }
 
 // FA_COLS — four-column layout for the focus-area table. Proportions follow
@@ -244,7 +61,7 @@ const FA_COLS = [
   { key: "name", label: "Focus Area", width: "32%" },
   { key: "target", label: "Target", width: "12%" },
   { key: "achieved", label: "Achieved", width: "34%" },
-  { key: "status", label: "Status", width: "22%" },
+  { key: "status", label: "Status", width: "22%", align: "right" },
 ];
 
 // FocusAreaTable — the mission's focus areas as a structured table that
@@ -263,7 +80,11 @@ function FocusAreaTable({ focusAreas }) {
         <thead>
           <tr style={amStyles.headRow}>
             {FA_COLS.map((c) => (
-              <th key={c.key} scope="col" style={amStyles.th}>
+              <th
+                key={c.key}
+                scope="col"
+                style={{ ...amStyles.th, textAlign: c.align || "left" }}
+              >
                 {c.label}
               </th>
             ))}
@@ -396,38 +217,7 @@ const amStyles = {
     flexShrink: 0,
   },
   body: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 24,
     marginTop: 16,
-  },
-  radarPanel: {
-    flexShrink: 0,
-  },
-  legend: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 20,
-    marginBottom: 8,
-  },
-  legendItem: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendSolid: {
-    width: 16,
-    height: 2,
-    borderRadius: 1,
-    background: "var(--chart-blue)",
-  },
-  legendDashed: {
-    width: 16,
-    borderTop: "2px dashed var(--chart-grey)",
-  },
-  legendLabel: {
-    fontSize: 12,
-    color: "var(--color-text-tertiary)",
   },
   faList: {
     flex: 1,
@@ -514,7 +304,7 @@ const amStyles = {
   statusCell: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     gap: 8,
     width: "100%",
   },

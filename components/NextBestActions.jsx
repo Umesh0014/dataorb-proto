@@ -3,7 +3,7 @@
 import React from "react";
 import {
   ArrowRight,
-  MoreVertical,
+  MoreHorizontal,
   Target,
   Repeat,
   GraduationCap,
@@ -39,10 +39,9 @@ const FADE_MS = 200;
 // score hero card: a small header + a horizontally-scrolling rail of
 // prioritized NBA cards plus a "View all" side sheet. `onAssign({ name,
 // duration })` opens the page-level Confirm assignment modal.
-export default function NextBestActions({ onAssign }) {
+export default function NextBestActions({ onAssign, hideHeader = false, sheetOpen, onSheetOpenChange }) {
   const [dismissed, setDismissed] = React.useState([]);
   const [fadingId, setFadingId] = React.useState(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
   const viewAllRef = React.useRef(null);
 
   // Dismiss / snooze both drop the card from the rail after a fade. State
@@ -59,6 +58,7 @@ export default function NextBestActions({ onAssign }) {
 
   return (
     <div>
+      {!hideHeader && (
       <div style={nbaStyles.zoneHeader}>
         <span style={nbaStyles.zoneLabel}>Next best actions</span>
         <span ref={viewAllRef} style={{ flexShrink: 0 }}>
@@ -66,12 +66,13 @@ export default function NextBestActions({ onAssign }) {
             variant="text"
             uppercase={false}
             trailingIcon={<ArrowRight size={16} />}
-            onClick={() => setSheetOpen(true)}
+            onClick={() => onSheetOpenChange(true)}
           >
             View all
           </Button>
         </span>
       </div>
+      )}
 
       {visible.length === 0 ? (
         <EmptyState />
@@ -94,7 +95,7 @@ export default function NextBestActions({ onAssign }) {
           items={[...NBA_CARDS, ...NBA_MORE]}
           onAssign={onAssign}
           onClose={() => {
-            setSheetOpen(false);
+            onSheetOpenChange(false);
             viewAllRef.current?.querySelector("button")?.focus();
           }}
         />
@@ -103,45 +104,48 @@ export default function NextBestActions({ onAssign }) {
   );
 }
 
-// NbaCard — one rail card: priority chip, behavior title, evidence,
-// suggested-action block, expected outcome, and an action row.
+// NbaCard — one rail card in three layers: a top group (priority pill,
+// title, description), an inset lavender block for the drill being
+// assigned (title + duration + projected outcome), and a bottom CTA row
+// (Assign button + kebab menu). The lavender block flexes so CTA rows
+// stay aligned across cards of differing content height.
 function NbaCard({ card, fading, onAssign, onDismiss }) {
-  const pr = PRIORITY[card.priority] || PRIORITY.recommended;
   const ActionIcon = ACTION_ICON[card.action.type] || Target;
   return (
-    <Card tone="outline" padX={20} padY={20} style={{ ...nbaStyles.card, opacity: fading ? 0 : 1 }}>
-      <span style={{ ...nbaStyles.chip, background: pr.bg, color: pr.fg }}>{pr.label}</span>
-      <div style={nbaStyles.cardTitle}>{card.title}</div>
-      <div style={nbaStyles.evidence}>{card.evidence}</div>
-
-      <div style={nbaStyles.divider} />
-
-      <div style={nbaStyles.actionBlock}>
-        <span style={nbaStyles.actionType}>
-          <ActionIcon size={14} style={{ flexShrink: 0 }} />
-          {card.action.type}
-        </span>
-        <div style={nbaStyles.assetRow}>
-          <span style={nbaStyles.assetName}>{card.action.asset}</span>
-          <span style={nbaStyles.durationChip}>{card.action.duration}</span>
-        </div>
+    <Card padX={20} padY={20} shadow style={{ ...nbaStyles.card, opacity: fading ? 0 : 1 }}>
+      <div style={nbaStyles.topGroup}>
+        <div style={nbaStyles.cardTitle}>{card.title}</div>
+        <div style={nbaStyles.evidence}>{card.evidence}</div>
       </div>
 
-      <span style={nbaStyles.outcome}>
-        <TrendingUp size={13} style={{ flexShrink: 0 }} />
-        {card.outcome}
-      </span>
-
-      <div style={nbaStyles.actionRow}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={() => onAssign({ name: card.action.asset, duration: card.action.duration })}
-          >
-            Assign
-          </Button>
+      <div style={nbaStyles.drillBlock}>
+        <div style={nbaStyles.drillRow}>
+          <span style={nbaStyles.drillTitle}>
+            <ActionIcon size={14} style={{ flexShrink: 0, color: "var(--text-secondary)" }} />
+            <span style={nbaStyles.assetName}>{card.action.asset}</span>
+          </span>
+          <span style={nbaStyles.durationChip}>{card.action.duration}</span>
         </div>
+        <span style={nbaStyles.drillDesc}>
+          <TrendingUp size={12} style={{ flexShrink: 0, marginTop: 2, color: "var(--chart-blue)" }} />
+          {card.outcome}
+        </span>
+      </div>
+
+      <div style={nbaStyles.ctaRow}>
+        <button
+          type="button"
+          onClick={() => onAssign({ name: card.action.asset, duration: card.action.duration })}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.filter = "brightness(0.95)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.filter = "none";
+          }}
+          style={nbaStyles.assignBtn}
+        >
+          Assign
+        </button>
         <KebabMenu onDismiss={onDismiss} />
       </div>
     </Card>
@@ -176,9 +180,20 @@ function KebabMenu({ onDismiss }) {
 
   return (
     <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
-      <Button variant="icon" aria-label="More actions" onClick={() => setOpen((o) => !o)}>
-        <MoreVertical size={18} />
-      </Button>
+      <button
+        type="button"
+        aria-label="More actions"
+        onClick={() => setOpen((o) => !o)}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--grey-50)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "var(--surface-white)";
+        }}
+        style={nbaStyles.kebabBtn}
+      >
+        <MoreHorizontal size={16} />
+      </button>
       {open && (
         <div role="menu" style={nbaStyles.menu}>
           {items.map((it) => (
@@ -286,10 +301,11 @@ const nbaStyles = {
     width: CARD_WIDTH,
     flexShrink: 0,
     scrollSnapAlign: "start",
-    boxSizing: "border-box",
+    borderRadius: 16,
+    border: "1px solid var(--grey-200)",
     display: "flex",
     flexDirection: "column",
-    gap: 10,
+    gap: 24,
     transition: "opacity 200ms ease",
   },
   chip: {
@@ -301,76 +317,118 @@ const nbaStyles = {
     fontSize: 12,
     fontWeight: 700,
   },
+  topGroup: {
+    display: "flex",
+    flexDirection: "column",
+  },
   cardTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 600,
-    color: "var(--do-ink)",
-    lineHeight: 1.35,
+    color: "var(--text-primary)",
+    lineHeight: 1.3,
     display: "-webkit-box",
     WebkitBoxOrient: "vertical",
     WebkitLineClamp: 2,
     overflow: "hidden",
   },
   evidence: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: 400,
+    color: "var(--text-secondary)",
+    lineHeight: 1.4,
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+    overflow: "hidden",
+  },
+  drillBlock: {
+    flex: 1,
+    background: "var(--color-card-emoji-bg)",
+    borderRadius: 12,
+    padding: 12,
+    display: "flex",
+    flexDirection: "column",
+  },
+  drillRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  drillTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+  },
+  assetName: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--text-primary)",
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  durationChip: {
+    flexShrink: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "2px 6px",
+    borderRadius: 4,
+    background: "var(--surface-white)",
+    border: "1px solid var(--grey-200)",
+    color: "var(--text-secondary)",
+    fontSize: 11,
+    fontWeight: 500,
+  },
+  drillDesc: {
+    marginTop: 8,
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 6,
     fontSize: 12,
     fontWeight: 400,
     color: "var(--text-secondary)",
     lineHeight: 1.4,
   },
-  divider: {
-    height: 1,
-    background: "var(--color-divider-card)",
-    margin: "2px 0",
-  },
-  actionBlock: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-  },
-  actionType: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-tertiary)",
-  },
-  assetRow: {
+  ctaRow: {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    flexWrap: "wrap",
   },
-  assetName: {
-    fontSize: 13,
+  assignBtn: {
+    flex: 1,
+    height: 40,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "none",
+    borderRadius: 999,
+    background: "var(--chart-blue)",
+    color: "#FFFFFF",
+    fontFamily: "var(--font-sans)",
+    fontSize: 14,
     fontWeight: 700,
-    color: "var(--do-ink)",
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+    cursor: "pointer",
+    transition: "filter 120ms ease",
   },
-  durationChip: {
+  kebabBtn: {
     display: "inline-flex",
     alignItems: "center",
-    padding: "2px 8px",
-    borderRadius: 4,
-    background: "var(--color-chip-bg)",
-    color: "var(--color-text-tertiary)",
-    fontSize: 12,
-    fontWeight: 600,
-    flexShrink: 0,
-  },
-  outcome: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--color-text-tertiary)",
-    lineHeight: 1.4,
-  },
-  actionRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 4,
+    justifyContent: "center",
+    width: 40,
+    height: 40,
+    padding: 0,
+    borderRadius: 999,
+    border: "1px solid var(--grey-200)",
+    background: "var(--surface-white)",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    transition: "background 120ms ease",
   },
   menu: {
     position: "absolute",

@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import { Download } from "lucide-react";
 import Card from "./Card";
-import Button from "./Button";
+import ExportButton from "./ExportButton";
 import InlineNBA from "./InlineNBA";
 import TabsRow from "./TabsRow";
 import AdherenceRateChart from "./AdherenceRateChart";
@@ -80,16 +79,7 @@ export default function QualityAdherence({ onNbaAssign }) {
             process, and performance standards.
           </div>
         </div>
-        <Button
-          variant="text"
-          uppercase={false}
-          leadingIcon={<Download size={16} />}
-          onClick={() => {
-            // TODO: export quality adherence as CSV (the active tab's view)
-          }}
-        >
-          Download
-        </Button>
+        <ExportButton formats={["image-copy", "table-copy", "png", "csv"]} />
       </div>
 
       <InlineNBA

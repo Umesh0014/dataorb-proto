@@ -1,10 +1,14 @@
 "use client";
 
 import React from "react";
+import { ArrowRight } from "lucide-react";
 import Card from "./Card";
+import Button from "./Button";
 import CircularProgress from "./CircularProgress";
 import TrendArrow from "./TrendArrow";
 import NextBestActions from "./NextBestActions";
+import MetricSparkline from "./MetricSparkline";
+import ExportButton from "./ExportButton";
 
 // PerformanceScore — Agent Detail Page hero card. Merges the composite
 // performance score (radial ring + 2x2 supporting metrics) and the Next
@@ -23,104 +27,216 @@ const SCORE = {
   composite: 78,
   outOf: 100,
   trend: { dir: "up", text: "4 pts this week" },
-  // TODO: confirm score -> tier thresholds with Akash (At Risk / Developing
-  // / Strong / Excellent). "Strong" is a hard-coded mock value.
-  tier: "Strong",
   evalChip: "38/47 interactions evaluated",
 };
 
-// Mock — 2x2 supporting metrics.
-const METRICS = [
-  { label: "Quality adherence", value: "81%", trend: { dir: "up", text: "2 pts" } },
-  { label: "Mission mastery", value: "74%", trend: { dir: "up", text: "6 pts" } },
-  { label: "Roleplay engagement", value: "16/20", trend: { dir: "flat", text: "Stable" } },
-  { label: "Coaching responsiveness", value: "68%", trend: { dir: "up", text: "8 pts" } },
-];
+// Date-range value (from the page header dropdown) → day count.
+const RANGE_DAYS = { last_7_days: 7, last_30_days: 30 };
 
-export default function PerformanceScore({ onAssign }) {
+// bucketFor — sparkline granularity for a range length. Daily for a week,
+// weekly up to a quarter, monthly beyond. See 10-design-principles.md §9.
+function bucketFor(rangeDays) {
+  if (rangeDays <= 7) return "daily";
+  if (rangeDays <= 90) return "weekly";
+  return "monthly";
+}
+
+// makeSeries — deterministic ~1-year daily series for a metric: gentle
+// drift plus small repeatable noise, so the sparkline looks organic but
+// is stable across reloads. Oldest value first.
+function makeSeries(base, seed) {
+  const series = [];
+  for (let i = 0; i < 365; i += 1) {
+    series.push(base + Math.sin(i * 0.1) * 4 + ((seed * (i + 1)) % 5));
+  }
+  return series;
+}
+
+// aggregate — take the trailing `rangeDays` of a series and reduce each
+// bucket to one point: mean for percentage metrics, trailing value for
+// counts (a count is a level at period end, not an average).
+function aggregate(series, rangeDays, type) {
+  const recent = series.slice(-rangeDays);
+  const bucket = bucketFor(rangeDays);
+  const size = bucket === "daily" ? 1 : bucket === "weekly" ? 7 : 30;
+  const points = [];
+  for (let i = 0; i < recent.length; i += size) {
+    const slice = recent.slice(i, i + size);
+    points.push(
+      type === "count"
+        ? slice[slice.length - 1]
+        : slice.reduce((sum, v) => sum + v, 0) / slice.length,
+    );
+  }
+  return points;
+}
+
+// BANDS — composite-score banding: ring stroke + badge colours by score.
+// TODO: confirm the 85 / 75 / 60 thresholds with Akash.
+const BANDS = [
+  { min: 85, label: "Excellent", ring: "var(--chart-green)", badgeBg: "var(--color-success-bg)", badgeText: "var(--color-success-text)" },
+  { min: 75, label: "Strong", ring: "var(--chart-blue)", badgeBg: "var(--color-info-bg)", badgeText: "var(--color-info-text)" },
+  { min: 60, label: "Watch", ring: "var(--chart-amber)", badgeBg: "var(--color-warning-bg)", badgeText: "var(--color-warning-dark)" },
+  { min: 0, label: "Needs attention", ring: "var(--chart-coral)", badgeBg: "var(--color-error-bg)", badgeText: "var(--color-error)" },
+];
+function bandFor(score) {
+  return BANDS.find((b) => score >= b.min) || BANDS[BANDS.length - 1];
+}
+
+// seriesTrend — growing / stable / declining from a points series, by the
+// first-to-last percentage change with a ±1.5% dead zone. Drives both the
+// sparkline colour and the delta chip.
+function seriesTrend(points) {
+  if (!points || points.length < 2 || points[0] === 0) return "stable";
+  const pct = ((points[points.length - 1] - points[0]) / points[0]) * 100;
+  if (pct > 1.5) return "growing";
+  if (pct < -1.5) return "declining";
+  return "stable";
+}
+
+// TREND — sparkline colour + delta-chip treatment per trend direction.
+const TREND = {
+  growing: { color: "var(--chart-green)", chipBg: "var(--color-success-bg)", chipText: "var(--color-success-text)", arrow: "up" },
+  stable: { color: "var(--chart-grey)", chipBg: "var(--grey-50)", chipText: "var(--text-secondary)", arrow: null },
+  declining: { color: "var(--chart-coral)", chipBg: "var(--color-error-bg)", chipText: "var(--color-error)", arrow: "down" },
+};
+
+// Mock — 2x2 supporting metrics. `base` seeds the deterministic series and
+// is the current numeric value; `type` drives aggregation; `target` is the
+// metric goal (null for the count metric — the /20 is its goal).
+// TODO: confirm real per-metric targets with the data team.
+const METRICS = [
+  { label: "Quality adherence", value: "81%", deltaText: "2 pts", type: "percent", base: 81, target: 85 },
+  { label: "Mission mastery", value: "74%", deltaText: "6 pts", type: "percent", base: 74, target: 85 },
+  { label: "Roleplay engagement", value: "16/20", deltaText: "Stable", type: "count", base: 16, target: null },
+  { label: "Coaching responsiveness", value: "68%", deltaText: "8 pts", type: "percent", base: 68, target: 75 },
+].map((m, i) => ({ ...m, series: makeSeries(m.base, i + 1) }));
+
+export default function PerformanceScore({ onAssign, dateRange, milestone }) {
+  const rangeDays = RANGE_DAYS[dateRange] || 7;
+  // Milestone state switcher (side rail). M0 strips the card to the NBA
+  // strip only; M1 (and the disabled M2) render the full card.
+  const showFull = milestone !== "m0";
+  const [nbaSheetOpen, setNbaSheetOpen] = React.useState(false);
+
+  const band = bandFor(SCORE.composite);
+  const scoreTrendKey =
+    SCORE.trend.dir === "down" ? "declining" : SCORE.trend.dir === "up" ? "growing" : "stable";
+
   return (
-    <Card>
+    <Card padX={24} padY={24}>
       <div style={psStyles.header}>
         <div>
-          <div style={psStyles.title}>Performance score</div>
-          <div style={psStyles.subtitle}>
-            Weighted composite of quality, mastery, engagement, and responsiveness.
+          <div style={psStyles.title}>
+            {showFull ? "Performance score" : "Next best actions"}
           </div>
-        </div>
-        <span style={psStyles.evalChip}>{SCORE.evalChip}</span>
-      </div>
-
-      <div style={psStyles.scoreZone}>
-        <div style={psStyles.ringColumn}>
-          <div style={psStyles.ringWrap}>
-            <CircularProgress
-              pct={SCORE.composite}
-              size={RING_SIZE}
-              stroke={12}
-              ringColor="var(--color-button-primary-bg)"
-              trackColor="var(--color-divider-card)"
-              label={false}
-            />
-            <div style={psStyles.ringCenter}>
-              <span style={psStyles.ringScore}>{SCORE.composite}</span>
-              <span style={psStyles.ringOutOf}>/ {SCORE.outOf}</span>
+          {showFull && (
+            <div style={psStyles.subtitle}>
+              Weighted composite of quality, mastery, engagement, and responsiveness.
             </div>
-          </div>
-          <div style={psStyles.ringChips}>
-            <TrendChip trend={SCORE.trend} />
-            {/* TODO: no "On target" lavender chip exists in the codebase —
-                using a neutral pill with --chart-lavender text as the closest
-                available. Confirm a tier-chip token with the design system. */}
-            <span style={psStyles.tierChip}>{SCORE.tier}</span>
-          </div>
+          )}
         </div>
-
-        <div style={psStyles.zoneDivider} />
-
-        <div style={psStyles.metricGrid}>
-          {METRICS.map((m) => (
-            <div key={m.label} style={psStyles.metricCell}>
-              <span style={psStyles.metricLabel}>{m.label}</span>
-              <span style={psStyles.metricValue}>{m.value}</span>
-              <TrendChip trend={m.trend} />
-            </div>
-          ))}
+        <div style={{ ...psStyles.headerActions, gap: showFull ? 4 : 12 }}>
+          {showFull && <span style={psStyles.evalChip}>{SCORE.evalChip}</span>}
+          <ExportButton formats={["image-copy", "png", "pdf"]} />
+          {!showFull && (
+            <Button
+              variant="text"
+              uppercase={false}
+              trailingIcon={<ArrowRight size={16} />}
+              onClick={() => setNbaSheetOpen(true)}
+            >
+              View all
+            </Button>
+          )}
         </div>
       </div>
 
-      <div style={psStyles.rowDivider} />
+      {showFull && (
+        <div style={psStyles.metricsPanel}>
+        <div style={psStyles.scoreZone}>
+          <div style={psStyles.ringColumn}>
+            <div style={psStyles.ringWrap}>
+              <CircularProgress
+                pct={SCORE.composite}
+                size={RING_SIZE}
+                stroke={12}
+                ringColor={band.ring}
+                trackColor="var(--color-divider-card)"
+                label={false}
+              />
+              <div style={psStyles.ringCenter}>
+                <span style={psStyles.ringScore}>{SCORE.composite}</span>
+                <span style={psStyles.ringOutOf}>/ {SCORE.outOf}</span>
+              </div>
+            </div>
+            <div style={psStyles.ringChips}>
+              <TrendChip text={SCORE.trend.text} trend={scoreTrendKey} />
+              <span
+                style={{
+                  ...psStyles.tierChip,
+                  background: band.badgeBg,
+                  color: band.badgeText,
+                }}
+              >
+                {band.label}
+              </span>
+            </div>
+          </div>
 
-      <NextBestActions onAssign={onAssign} />
+          <div style={psStyles.metricGrid}>
+            {METRICS.map((m) => {
+              const points = aggregate(m.series, rangeDays, m.type);
+              const trend = seriesTrend(points);
+              const belowT = m.target != null && m.base < m.target;
+              return (
+                <div key={m.label} style={psStyles.metricCell}>
+                  <span style={psStyles.metricLabel}>{m.label}</span>
+                  <div style={psStyles.metricValueRow}>
+                    <span style={psStyles.metricValue}>{m.value}</span>
+                    <MetricSparkline
+                      points={points}
+                      width={m.type === "count" ? 80 : 96}
+                      color={TREND[trend].color}
+                    />
+                  </div>
+                  {m.target != null && (
+                    <span
+                      style={{
+                        ...psStyles.metricTarget,
+                        color: belowT ? "var(--chart-coral)" : "var(--text-secondary)",
+                      }}
+                    >
+                      target {m.target}%
+                    </span>
+                  )}
+                  <TrendChip text={m.deltaText} trend={trend} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        </div>
+      )}
+
+      <NextBestActions
+        onAssign={onAssign}
+        hideHeader={!showFull}
+        sheetOpen={nbaSheetOpen}
+        onSheetOpenChange={setNbaSheetOpen}
+      />
     </Card>
   );
 }
 
-// TrendChip — green up-chip for positive movement, neutral chip for a
-// stable metric. Mirrors the AgentsPage QA-score trend chip.
-function TrendChip({ trend }) {
-  if (trend.dir === "flat") {
-    return (
-      <span
-        style={{
-          ...psStyles.trendChip,
-          background: "var(--pill-bg)",
-          color: "var(--color-text-tertiary)",
-        }}
-      >
-        {trend.text}
-      </span>
-    );
-  }
+// TrendChip — delta pill coloured by trend direction. `trend` is the key
+// into TREND (growing / stable / declining); `text` is the delta label.
+function TrendChip({ text, trend }) {
+  const t = TREND[trend] || TREND.stable;
   return (
-    <span
-      style={{
-        ...psStyles.trendChip,
-        background: "var(--color-success-bg)",
-        color: "var(--color-success)",
-      }}
-    >
-      <TrendArrow up={trend.dir === "up"} />
-      {trend.text}
+    <span style={{ ...psStyles.trendChip, background: t.chipBg, color: t.chipText }}>
+      {t.arrow && <TrendArrow up={t.arrow === "up"} />}
+      {text}
     </span>
   );
 }
@@ -157,14 +273,22 @@ const psStyles = {
     fontWeight: 600,
     whiteSpace: "nowrap",
   },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 0,
+  },
+  metricsPanel: {
+    padding: "24px 0",
+  },
   scoreZone: {
     display: "flex",
     alignItems: "stretch",
-    gap: 28,
-    marginTop: 20,
+    gap: 32,
   },
   ringColumn: {
-    flexShrink: 0,
+    flex: 1,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -204,23 +328,15 @@ const psStyles = {
     alignItems: "center",
     padding: "3px 10px",
     borderRadius: 4,
-    background: "var(--pill-bg)",
-    color: "var(--chart-lavender)",
     fontSize: 12,
     fontWeight: 700,
   },
-  zoneDivider: {
-    width: 1,
-    alignSelf: "stretch",
-    background: "var(--color-divider-card)",
-    flexShrink: 0,
-  },
   metricGrid: {
-    flex: 1,
+    flex: 2,
     minWidth: 0,
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: "20px 24px",
+    gap: 24,
     alignContent: "center",
   },
   metricCell: {
@@ -228,6 +344,10 @@ const psStyles = {
     flexDirection: "column",
     alignItems: "flex-start",
     gap: 4,
+  },
+  metricTarget: {
+    fontSize: 11,
+    fontWeight: 500,
   },
   metricLabel: {
     fontSize: 13,
@@ -240,6 +360,11 @@ const psStyles = {
     color: "var(--color-text-deep)",
     lineHeight: 1.2,
   },
+  metricValueRow: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: 12,
+  },
   trendChip: {
     display: "inline-flex",
     alignItems: "center",
@@ -248,10 +373,5 @@ const psStyles = {
     borderRadius: 4,
     fontSize: 12,
     fontWeight: 700,
-  },
-  rowDivider: {
-    height: 1,
-    background: "var(--color-divider-card)",
-    margin: "20px 0",
   },
 };

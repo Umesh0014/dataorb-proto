@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import { Download } from "lucide-react";
 import Card from "./Card";
-import Button from "./Button";
+import ExportButton from "./ExportButton";
 import InlineNBA from "./InlineNBA";
 import TabsRow from "./TabsRow";
 import ContactDriverTable from "./ContactDriverTable";
@@ -95,16 +94,7 @@ export default function RoleplayCoverage({
           <div style={rcStyles.title}>Roleplay coverage</div>
           <div style={rcStyles.subtitle}>{subtitle}</div>
         </div>
-        <Button
-          variant="text"
-          uppercase={false}
-          leadingIcon={<Download size={16} />}
-          onClick={() => {
-            // TODO: export roleplay coverage as CSV
-          }}
-        >
-          Download
-        </Button>
+        <ExportButton formats={["image-copy", "table-copy", "png", "csv"]} />
       </div>
 
       <InlineNBA

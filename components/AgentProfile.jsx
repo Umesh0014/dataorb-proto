@@ -3,6 +3,7 @@
 import React from "react";
 import PageHeader from "./PageHeader";
 import PerformanceScore from "./PerformanceScore";
+import MilestoneSideRail from "./MilestoneSideRail";
 import CoachingRecommendations from "./CoachingRecommendations";
 import Missions from "./Missions";
 import RoleplayCoverage from "./RoleplayCoverage";
@@ -23,6 +24,7 @@ export default function AgentProfile({ agentId, onBack }) {
   // TODO: replace this mock lookup with a real agent data fetch.
   const agent = LEARNING_AGENTS.find((a) => a.id === agentId) || LEARNING_AGENTS[0];
   const [dateRange, setDateRange] = React.useState("last_7_days");
+  const [scoreMilestone, setScoreMilestone] = React.useState("m1");
   const [assignAsset, setAssignAsset] = React.useState(null);
   const [toastShown, setToastShown] = React.useState(false);
 
@@ -68,9 +70,20 @@ export default function AgentProfile({ agentId, onBack }) {
         }}
       />
 
-      <PerformanceScore onAssign={setAssignAsset} />
-      <CoachingRecommendations onNbaAssign={setAssignAsset} />
+      <div style={profileStyles.scoreSection}>
+        <PerformanceScore
+          onAssign={setAssignAsset}
+          dateRange={dateRange}
+          milestone={scoreMilestone}
+        />
+        <div style={profileStyles.railMount}>
+          <div style={profileStyles.railSticky}>
+            <MilestoneSideRail value={scoreMilestone} onChange={setScoreMilestone} />
+          </div>
+        </div>
+      </div>
       <Missions />
+      <CoachingRecommendations onNbaAssign={setAssignAsset} />
       <RoleplayCoverage onNbaAssign={setAssignAsset} />
       <QualityAdherence onNbaAssign={setAssignAsset} />
 
@@ -98,5 +111,26 @@ const profileStyles = {
     width: "100%",
     flex: 1,
     minHeight: 0,
+  },
+  // Performance score sits at full page width; the milestone side rail is
+  // absolutely positioned out into the right gutter so it never narrows
+  // the card. The rail tracks the viewport centre, bounded by card height.
+  scoreSection: {
+    position: "relative",
+    width: "100%",
+  },
+  railMount: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: "100%",
+    marginLeft: 12,
+    width: 48,
+    zIndex: 30,
+  },
+  railSticky: {
+    position: "sticky",
+    top: "50vh",
+    transform: "translateY(-50%)",
   },
 };

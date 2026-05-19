@@ -42,6 +42,7 @@ export default [
       "components/Toggle.jsx",
       "components/TabsRow.jsx",
       "components/StatCard.jsx",
+      "components/ExportButton.jsx",
     ],
     rules: {
       "no-restricted-syntax": "off",
@@ -103,6 +104,25 @@ export default [
           selector: "JSXOpeningElement[name.name='button']",
           message:
             "Migrate to <Button variant='…'> (or a shared Dropdown primitive) when this component is next touched.",
+        },
+      ],
+    },
+  },
+  // MilestoneSideRail — a self-contained meta-tooling side rail + popover
+  // (dark surface, monospace, yellow accent) beside the Performance score
+  // card. Its controls (state-switcher buttons, info trigger, close,
+  // blocker toggle) sit deliberately outside the product design system,
+  // so <Button> — which carries product chrome — does not apply. Kept as
+  // warn so the raw <button> stays visible in lint.
+  {
+    files: ["components/MilestoneSideRail.jsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Meta-tooling rail/popover control — intentionally raw <button>, not <Button>. See components/MilestoneSideRail.jsx.",
         },
       ],
     },
