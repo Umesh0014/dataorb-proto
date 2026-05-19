@@ -150,6 +150,7 @@ export default function Page() {
   }, []);
   const [drillDetailId, setDrillDetailId] = React.useState(null);
   const [agentProfileId, setAgentProfileId] = React.useState(null);
+  const [selectedMissionId, setSelectedMissionId] = React.useState(null);
   const [roleplayStep, setRoleplayStep] = React.useState(null); // null | 'persona' | 'context' | 'generated'
   const [roleplay, setRoleplay] = React.useState(EMPTY_ROLEPLAY);
   // Create Mission wizard — null means closed (MissionsPage renders); any
@@ -171,6 +172,13 @@ export default function Page() {
   const closeMissionWizard = () => {
     setMissionWizardStep(null);
     setMissionDraft(EMPTY_MISSION_DRAFT);
+  };
+  // openMission — from an agent's mission card to the Missions module,
+  // with that mission's detail panel open (team-leader view).
+  const openMission = (missionId) => {
+    setAgentProfileId(null);
+    setSelectedMissionId(missionId);
+    setLearningNav("missions");
   };
   const saveMissionDraft = (draft) => {
     // TODO: persist draft mission server-side; logging for prototype.
@@ -311,6 +319,7 @@ export default function Page() {
         <AgentProfile
           agentId={agentProfileId}
           onBack={() => setAgentProfileId(null)}
+          onViewMission={openMission}
         />
       );
     } else if (!missionsPopulated) {
@@ -336,6 +345,7 @@ export default function Page() {
           onSelect={(id) => {
             setDrillDetailId(null);
             setAgentProfileId(null);
+            setSelectedMissionId(null);
             cancelRoleplay();
             closeMissionWizard();
             setLearningNav(id);
@@ -344,7 +354,10 @@ export default function Page() {
           onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
         />
         {missionsPopulated ? (
-          <MissionsPage onCreateMission={openMissionWizard} />
+          <MissionsPage
+            onCreateMission={openMissionWizard}
+            initialMissionId={selectedMissionId}
+          />
         ) : (
           <PageLayout>{drillContent}</PageLayout>
         )}

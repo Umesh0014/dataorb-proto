@@ -10,6 +10,7 @@ import ClosedMissions from "./ClosedMissions";
 const activeMissions = [
   {
     id: "mission-1",
+    pageMissionId: "mission-b",
     title: "Customer support enhancement",
     roleplaysCompleted: 9,
     roleplaysTotal: 12,
@@ -23,6 +24,7 @@ const activeMissions = [
   },
   {
     id: "mission-2",
+    pageMissionId: "mission-a",
     title: "Retention save readiness — Q2",
     roleplaysCompleted: 4,
     roleplaysTotal: 15,
@@ -85,7 +87,7 @@ const SCOPE_OPTIONS = [
 // Missions — interior of the Agent Profile "Missions" card. A scope dropdown
 // in the header switches between the Active Missions stack (mission sub-cards
 // with spider charts) and the Closed Missions metric strip + table.
-export default function Missions() {
+export default function Missions({ onViewMission }) {
   const [scope, setScope] = React.useState("active");
 
   return (
@@ -101,7 +103,11 @@ export default function Missions() {
       {scope === "active" ? (
         <div style={mxStyles.activeStack}>
           {activeMissions.map((mission) => (
-            <ActiveMissionCard key={mission.id} mission={mission} />
+            <ActiveMissionCard
+              key={mission.id}
+              mission={mission}
+              onViewMission={onViewMission}
+            />
           ))}
         </div>
       ) : (

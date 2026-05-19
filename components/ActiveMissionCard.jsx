@@ -8,7 +8,7 @@ import Card from "./Card";
 // ActiveMissionCard — one active mission, rendered as a card-within-the-card:
 // header (title + roleplay / days-left meta) and a body containing the
 // mission's focus-area table.
-export default function ActiveMissionCard({ mission }) {
+export default function ActiveMissionCard({ mission, onViewMission }) {
   // TODO: confirm days-left urgency threshold (red at <= 3 days for now).
   const urgent = mission.daysLeft <= 3;
 
@@ -35,11 +35,7 @@ export default function ActiveMissionCard({ mission }) {
             uppercase={false}
             trailingIcon={<ArrowRight size={14} />}
             style={amStyles.viewCta}
-            onClick={() => {
-              // TODO: navigate to the Mission Detail page for mission.id —
-              // no standalone Mission Detail route exists yet (the only
-              // mission-detail view is the MissionsPage master-detail panel).
-            }}
+            onClick={() => onViewMission?.(mission.pageMissionId)}
           >
             View mission
           </Button>

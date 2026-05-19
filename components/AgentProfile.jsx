@@ -20,7 +20,7 @@ const TOAST_MS = 3200;
 // Next Best Actions rail followed by the four metric cards. The page owns the
 // Assign confirm modal + toast so the Tier 1 rail and the Tier 2 inline
 // prompts inside the sections can all trigger them.
-export default function AgentProfile({ agentId, onBack }) {
+export default function AgentProfile({ agentId, onBack, onViewMission }) {
   // TODO: replace this mock lookup with a real agent data fetch.
   const agent = LEARNING_AGENTS.find((a) => a.id === agentId) || LEARNING_AGENTS[0];
   const [dateRange, setDateRange] = React.useState("last_7_days");
@@ -82,7 +82,7 @@ export default function AgentProfile({ agentId, onBack }) {
           </div>
         </div>
       </div>
-      <Missions />
+      <Missions onViewMission={onViewMission} />
       <CoachingRecommendations onNbaAssign={setAssignAsset} />
       <RoleplayCoverage onNbaAssign={setAssignAsset} />
       <QualityAdherence onNbaAssign={setAssignAsset} />

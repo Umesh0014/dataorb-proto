@@ -77,9 +77,9 @@ function fmtDateRange(start, end) {
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function MissionsPage({ onCreateMission }) {
+export default function MissionsPage({ onCreateMission, initialMissionId }) {
   const hasMissions = DEMO_MISSIONS.length > 0;
-  const [selectedId, setSelectedId] = React.useState(DEMO_MISSIONS[0]?.id);
+  const [selectedId, setSelectedId] = React.useState(initialMissionId || DEMO_MISSIONS[0]?.id);
   const [statusFilter, setStatusFilter] = React.useState("Active");
   const [toastVisible, setToastVisible] = React.useState(true);
   const globalKpis = React.useMemo(() => deriveGlobalKpis(DEMO_MISSIONS), []);
