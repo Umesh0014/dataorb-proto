@@ -241,3 +241,15 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Skills page — keyboard focus ring on skill cards, and the search
+   placeholder colour (inline styles can't target ::placeholder). */
+.skill-card:focus-visible {
+  outline: 2px solid var(--do-brand-blue);
+  outline-offset: 2px;
+}
+
+.skills-search::placeholder,
+.tasks-search::placeholder {
+  color: var(--color-text-placeholder);
+}

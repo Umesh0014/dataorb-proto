@@ -24,9 +24,16 @@ function emptyRow() {
   };
 }
 
-export default function FocusAreaStep({ draft, onChange }) {
+export default function FocusAreaStep({
+  draft,
+  onChange,
+  title = "Focus Area",
+  subtitle = "Set the quality metrics agents should hit",
+  maxRows = Infinity,
+}) {
   const focusArea = draft.focusArea || { rows: [] };
   const rows = focusArea.rows;
+  const atMax = rows.length >= maxRows;
 
   // First mount: seed exactly one empty row if none exist (initial
   // state per spec). Subsequent removals leave the user with zero rows
@@ -54,8 +61,9 @@ export default function FocusAreaStep({ draft, onChange }) {
     });
   };
 
+  // Any edit drops the AI-suggested flag — the user has touched the row.
   const updateRow = (id, patch) =>
-    setRows(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    setRows(rows.map((r) => (r.id === id ? { ...r, ...patch, suggested: false } : r)));
 
   const removeRow = (id) => {
     const next = rows.filter((r) => r.id !== id);
@@ -69,10 +77,8 @@ export default function FocusAreaStep({ draft, onChange }) {
   return (
     <>
       <div style={faStyles.titleBlock}>
-        <div style={faStyles.title}>Focus Area</div>
-        <div style={faStyles.subtitle}>
-          Set the quality metrics agents should hit
-        </div>
+        <div style={faStyles.title}>{title}</div>
+        <div style={faStyles.subtitle}>{subtitle}</div>
       </div>
 
       <div style={faStyles.table}>
@@ -86,6 +92,7 @@ export default function FocusAreaStep({ draft, onChange }) {
             key={row.id}
             row={row}
             selectedIds={selectedIds}
+            showSuggested={Boolean(row.suggested)}
             onChangeFocus={(focusAreaId) => updateRow(row.id, { focusAreaId })}
             onChangeTarget={(target) => updateRow(row.id, { target })}
             onRemove={() => removeRow(row.id)}
@@ -93,10 +100,24 @@ export default function FocusAreaStep({ draft, onChange }) {
         ))}
 
         <div style={faStyles.addRow}>
-          <button type="button" onClick={addRow} style={faStyles.addBtn}>
+          <button
+            type="button"
+            onClick={addRow}
+            disabled={atMax}
+            style={{
+              ...faStyles.addBtn,
+              cursor: atMax ? "default" : "pointer",
+              opacity: atMax ? 0.5 : 1,
+            }}
+          >
             <Plus size={16} />
             <span>Add Focus Area</span>
           </button>
+          {atMax && Number.isFinite(maxRows) && (
+            <span style={faStyles.maxCaption}>
+              Maximum {maxRows} focus areas per task.
+            </span>
+          )}
         </div>
       </div>
     </>
@@ -106,6 +127,7 @@ export default function FocusAreaStep({ draft, onChange }) {
 function FocusAreaRow({
   row,
   selectedIds,
+  showSuggested,
   onChangeFocus,
   onChangeTarget,
   onRemove,
@@ -118,6 +140,7 @@ function FocusAreaRow({
           onChange={onChangeFocus}
           excluded={selectedIds}
         />
+        {showSuggested && <span style={faStyles.suggestedChip}>Suggested</span>}
       </div>
       <div style={faStyles.cellTarget}>
         <TargetControl value={row.target} onChange={onChangeTarget} />
@@ -344,7 +367,26 @@ const faStyles = {
     paddingInline: 20,
     borderBottom: "1px solid var(--color-divider-card)",
   },
-  cellFocus: { minWidth: 0 },
+  cellFocus: { minWidth: 0, display: "flex", flexDirection: "column", gap: 6 },
+  suggestedChip: {
+    alignSelf: "flex-start",
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "2px 8px",
+    borderRadius: 999,
+    background: "var(--color-primary-alpha-12)",
+    color: "var(--color-button-primary-bg)",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.02em",
+  },
+  maxCaption: {
+    marginLeft: 12,
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+  },
   cellTarget: { minWidth: 0 },
   cellAction: {
     display: "flex",

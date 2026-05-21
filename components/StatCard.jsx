@@ -10,8 +10,12 @@ import Card from "./Card";
 //   value      Required string or number (rendered inside a span)
 //   size       "sm" (default) — 16px value, used for the 4-up DrillDetail
 //              stat row.
+//              "md" — 20px value over a sublabel, outline tile. Used for
+//              the Skill Record engagement-summary stat row.
 //              "lg" — 36px value, used for the headline KPI tile
 //              (TotalInteractions / Contact Center).
+//   sublabel   Optional caption shown under the value (size="md" only).
+//   labelStyle "uppercase" renders the label tracked + uppercase.
 //   trailing   Arbitrary right-aligned slot. Common uses: chevron / external-
 //              link affordance, sparkline, info icon.
 //   onAction   When provided, the trailing slot becomes click-only — used
@@ -23,6 +27,8 @@ export default function StatCard({
   label,
   value,
   size = "sm",
+  sublabel,
+  labelStyle,
   trailing,
   onAction,
   ariaLabel,
@@ -59,6 +65,22 @@ export default function StatCard({
           </div>
           {Trailing}
         </div>
+      </Card>
+    );
+  }
+
+  if (size === "md") {
+    return (
+      <Card padX={20} padY={16} tone="outline" style={statStyles.cardMd}>
+        <div style={statStyles.headerRow}>
+          {icon && <IconSlot icon={icon} />}
+          <span style={labelStyle === "uppercase" ? statStyles.labelUpper : statStyles.labelSm}>
+            {label}
+          </span>
+          {Trailing}
+        </div>
+        <div style={statStyles.valueMd}>{value}</div>
+        {sublabel && <span style={statStyles.sublabel}>{sublabel}</span>}
       </Card>
     );
   }
@@ -108,6 +130,33 @@ const statStyles = {
     fontSize: 16,
     fontWeight: 600,
     color: "var(--color-text-deep)",
+    lineHeight: 1.4,
+  },
+
+  // size="md"
+  cardMd: { display: "flex", flexDirection: "column", gap: 4 },
+  labelUpper: {
+    flex: 1,
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 11,
+    fontWeight: 700,
+    color: "var(--color-text-tertiary)",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+  },
+  valueMd: {
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 20,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.3,
+    whiteSpace: "nowrap",
+  },
+  sublabel: {
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 12,
+    fontWeight: 400,
+    color: "var(--color-text-tertiary)",
     lineHeight: 1.4,
   },
   trailingBtn: {

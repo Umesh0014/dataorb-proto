@@ -19,6 +19,15 @@ import ComingSoon from "../components/ComingSoon";
 import AskMiraProPage from "../components/AskMiraProPage";
 import MiraSetupContextPanel from "../components/MiraSetupContextPanel";
 import MiraChatsPage from "../components/MiraChatsPage";
+import SkillsPage from "../components/SkillsPage";
+import SkillRecordPage from "../components/SkillRecordPage";
+import TasksPage from "../components/TasksPage";
+import TaskRecordPage from "../components/TaskRecordPage";
+import CreateTaskWizardPage, {
+  EMPTY_TASK_DRAFT,
+  SKILL_CATALOGUE,
+} from "../components/CreateTaskWizardPage";
+import { TASKS as INITIAL_TASKS } from "../components/mocks/tasks";
 import {
   RESPONSE_TEMPLATE,
   INITIAL_MIRA_CONVERSATIONS,
@@ -72,8 +81,10 @@ const LEARNING_PAGES = {
 };
 
 const MIRA_PAGES = {
-  "chat":    { Component: AskMiraProPage,  pageName: "Ask Mira Pro" },
-  "history": { Component: MiraChatsPage,   pageName: "Chats" },
+  "chat":    { Component: AskMiraProPage, pageName: "Ask Mira Pro" },
+  "history": { Component: MiraChatsPage,  pageName: "Chats" },
+  "skills":  { Component: SkillsPage,     pageName: "Skills" },
+  "tasks":   { Component: TasksPage,      pageName: "Tasks" },
 };
 
 function resolvePage(map, navId, fallbackName = "Page") {
@@ -82,11 +93,25 @@ function resolvePage(map, navId, fallbackName = "Page") {
   return { Component: ComingSoon, pageName: fallbackName };
 }
 
+const TASK_ID_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function generateTaskId() {
+  let out = "";
+  for (let i = 0; i < 6; i += 1) {
+    out += TASK_ID_ALPHABET[Math.floor(Math.random() * TASK_ID_ALPHABET.length)];
+  }
+  return out;
+}
+
 export default function Page() {
   const [currentPage, setCurrentPage] = React.useState("insights"); // 'insights' | 'learning' | 'mira'
   const [insightsNav, setInsightsNav] = React.useState("contact-center");
   const [learningNav, setLearningNav] = React.useState("drill");
   const [miraNav, setMiraNav] = React.useState("chat");
+  const [skillRecordId, setSkillRecordId] = React.useState(null);
+  const [taskRecordId, setTaskRecordId] = React.useState(null);
+  const [tasks, setTasks] = React.useState(INITIAL_TASKS);
+  const [taskWizardStep, setTaskWizardStep] = React.useState(null);
+  const [taskDraft, setTaskDraft] = React.useState(EMPTY_TASK_DRAFT);
   const [miraSetupOpen, setMiraSetupOpen] = React.useState(false);
   const [miraConversations, setMiraConversations] = React.useState(INITIAL_MIRA_CONVERSATIONS);
   const [miraActiveId, setMiraActiveId] = React.useState(null);
@@ -173,6 +198,56 @@ export default function Page() {
     setMissionWizardStep(null);
     setMissionDraft(EMPTY_MISSION_DRAFT);
   };
+
+  const openTaskWizard = () => {
+    setTaskDraft(EMPTY_TASK_DRAFT);
+    setTaskWizardStep("skill");
+  };
+  const closeTaskWizard = () => {
+    setTaskWizardStep(null);
+    setTaskDraft(EMPTY_TASK_DRAFT);
+  };
+  const saveTaskDraft = (draft) => {
+    // TODO: persist draft task server-side; logging for prototype.
+    console.log("save task draft", draft);
+  };
+  const publishTask = () => {
+    const skill = SKILL_CATALOGUE.find((s) => s.id === taskDraft.skillId);
+    if (!skill) return;
+    const id = generateTaskId();
+    const newTask = {
+      id,
+      skill: {
+        id: skill.id,
+        name: skill.name,
+        category: skill.name,
+        tint: skill.tint,
+        iconName: skill.iconName,
+      },
+      runBy: { id: "current-user", name: "Demo Internal", initials: "DI" },
+      status: "queued",
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+    };
+    setTasks((prev) => [newTask, ...prev]);
+    closeTaskWizard();
+    // Cosmetic status transitions: queued → generating after 3s, then
+    // generating → completed after another 8s. No real generation runs.
+    window.setTimeout(() => {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, status: "generating" } : t)),
+      );
+    }, 3000);
+    window.setTimeout(() => {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? { ...t, status: "completed", completedAt: new Date().toISOString() }
+            : t,
+        ),
+      );
+    }, 11000);
+  };
   // openMission — from an agent's mission card to the Missions module,
   // with that mission's detail panel open (team-leader view).
   const openMission = (missionId) => {
@@ -226,8 +301,42 @@ export default function Page() {
           onNewChat={startNewMiraChat}
         />
       );
+    } else if (miraNav === "skills" && skillRecordId) {
+      miraContent = (
+        <SkillRecordPage
+          skillId={skillRecordId}
+          onBack={() => setSkillRecordId(null)}
+        />
+      );
+    } else if (miraNav === "tasks" && taskWizardStep !== null) {
+      miraContent = (
+        <CreateTaskWizardPage
+          step={taskWizardStep}
+          draft={taskDraft}
+          onChange={setTaskDraft}
+          onStepChange={setTaskWizardStep}
+          onCancel={closeTaskWizard}
+          onSave={saveTaskDraft}
+          onPublish={publishTask}
+        />
+      );
+    } else if (miraNav === "tasks" && taskRecordId) {
+      miraContent = (
+        <TaskRecordPage
+          taskId={taskRecordId}
+          onBack={() => setTaskRecordId(null)}
+        />
+      );
     } else {
-      miraContent = <MiraPage pageName={pageName} />;
+      miraContent = (
+        <MiraPage
+          pageName={pageName}
+          tasks={tasks}
+          onOpenSkill={setSkillRecordId}
+          onOpenTask={setTaskRecordId}
+          onCreateTask={openTaskWizard}
+        />
+      );
     }
 
     return (
@@ -237,6 +346,10 @@ export default function Page() {
           activeId={miraNav}
           onSelect={(id) => {
             if (id !== "chat") setMiraSetupOpen(false);
+            setSkillRecordId(null);
+            setTaskRecordId(null);
+            setTaskWizardStep(null);
+            setTaskDraft(EMPTY_TASK_DRAFT);
             setMiraNav(id);
           }}
           appSwitcherTriggerRef={appMenuTriggerRef}
@@ -255,6 +368,10 @@ export default function Page() {
           currentPage={currentPage}
           onSelectPage={(page) => {
             setMiraSetupOpen(false);
+            setSkillRecordId(null);
+            setTaskRecordId(null);
+            setTaskWizardStep(null);
+            setTaskDraft(EMPTY_TASK_DRAFT);
             setCurrentPage(page);
             setAppMenuOpen(false);
           }}
