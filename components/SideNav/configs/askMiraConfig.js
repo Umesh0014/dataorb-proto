@@ -9,6 +9,10 @@ import { MiraStarIcon, HistoryIcon, SkillsIcon, TasksIcon } from "../icons";
 export const askMiraConfig = {
   moduleId: "mira",
   moduleLabel: "Ask Mira Pro",
+  // Short name rendered next to the 9-dot app switcher row when this
+  // module is active; also drives the collapsed-state tooltip.
+  displayName: "Mira",
+  routePrefix: "/mira",
   items: [
     {
       id: "chat",

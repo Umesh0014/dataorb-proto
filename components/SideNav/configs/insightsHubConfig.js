@@ -16,6 +16,10 @@ import {
 export const insightsHubConfig = {
   moduleId: "insights",
   moduleLabel: "Insights Hub",
+  // Short name rendered next to the 9-dot app switcher row when this
+  // module is active; also drives the collapsed-state tooltip.
+  displayName: "Insights",
+  routePrefix: "/insights",
   items: [
     {
       id: "rocket",

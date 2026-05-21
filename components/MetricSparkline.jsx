@@ -1,66 +1,237 @@
 "use client";
 
 import React from "react";
+import useMeasuredWidth from "./useMeasuredWidth";
 
-// MetricSparkline — a 96x24 bar-chart trend glyph for a metric cell:
-// one vertical bar per aggregation bucket, no axes, labels, hover or
-// tooltip. Bars are anchored to the baseline and scaled to the series
-// max, so a flat metric reads flat and a growing one ascends. Completed
-// bars take the trend `color`; the final bar — the current, still
-// in-progress period — renders faded grey to signal it is not yet
-// finalised. The parent aggregates; this component only plots.
+// MetricSparkline — filled-area line-chart glyph for a metric cell. The
+// component stretches to fill its container's width; the parent sizes
+// the slot. Height stays fixed at 24px. One monotone-cubic line through
+// the aggregation buckets with a soft gradient fill underneath. No axes,
+// no labels, no default dots. Hovering a vertical hit strip emphasises a
+// dot at the underlying value and shows a dark tooltip with the point
+// value (and an optional interval label). The parent aggregates and
+// supplies `formatValue` to render values in the metric's primary format
+// (`81%`, `16/20`).
 const HEIGHT = 24;
-const BAR_GAP = 2;
-const BAR_RADIUS = 2;
-const IN_PROGRESS = "var(--chart-grey)";
-const IN_PROGRESS_OPACITY = 0.5;
+const PAD_X = 1.5;
+const PAD_TOP = 2;
+const STROKE_WIDTH = 1.5;
+const DOT_RADIUS = 2;
+const DOT_RING_WIDTH = 1.5;
+const FILL_OPACITY_TOP = 0.24;
+const FILL_OPACITY_BOTTOM = 0.04;
+const GUIDE_OPACITY = 0.24;
+const HOVER_FADE_MS = 80;
+const TOUCH_DISMISS_MS = 3000;
 
-// barPath — a rect with only its top two corners rounded, so the bar
-// sits flush on the baseline. (x, y) is the top-left corner; the bar
-// runs down to y + h.
-function barPath(x, y, w, h, r) {
-  const rr = Math.min(r, w / 2, h);
-  return (
-    `M${x},${y + rr}` +
-    `Q${x},${y} ${x + rr},${y}` +
-    `L${x + w - rr},${y}` +
-    `Q${x + w},${y} ${x + w},${y + rr}` +
-    `L${x + w},${y + h}` +
-    `L${x},${y + h}Z`
-  );
+// monotonePath — Fritsch-Carlson monotone cubic Hermite spline through
+// points (same algorithm as d3 curveMonotoneX). Picked over curveBasis /
+// curveCardinal because those overshoot peaks/troughs on tight sparkline
+// swings, which would visibly disagree with the underlying values.
+function monotonePath(pts) {
+  const n = pts.length;
+  if (n < 2) return "";
+  if (n === 2) return `M${pts[0][0]},${pts[0][1]} L${pts[1][0]},${pts[1][1]}`;
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const d = [];
+  for (let i = 0; i < n - 1; i += 1) {
+    d[i] = (ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]);
+  }
+  const m = [d[0]];
+  for (let i = 1; i < n - 1; i += 1) {
+    if (d[i - 1] * d[i] <= 0) {
+      m[i] = 0;
+    } else {
+      const dx0 = xs[i] - xs[i - 1];
+      const dx1 = xs[i + 1] - xs[i];
+      const sum = dx0 + dx1;
+      m[i] = (3 * sum) / ((sum + dx1) / d[i - 1] + (sum + dx0) / d[i]);
+    }
+  }
+  m[n - 1] = d[n - 2];
+  let path = `M${xs[0]},${ys[0]}`;
+  for (let i = 0; i < n - 1; i += 1) {
+    const dx = (xs[i + 1] - xs[i]) / 3;
+    path += ` C${xs[i] + dx},${ys[i] + m[i] * dx} ${xs[i + 1] - dx},${ys[i + 1] - m[i + 1] * dx} ${xs[i + 1]},${ys[i + 1]}`;
+  }
+  return path;
 }
 
-export default function MetricSparkline({ points, width = 96, color = "var(--chart-blue)" }) {
+export default function MetricSparkline({
+  points,
+  color = "var(--chart-blue)",
+  formatValue,
+  labels,
+}) {
+  const [containerRef, measuredWidth] = useMeasuredWidth(96);
+  const width = Math.max(1, measuredWidth);
+  const [hoverIdx, setHoverIdx] = React.useState(null);
+  const touchTimerRef = React.useRef(null);
+  const gradientId = React.useId();
+
+  React.useEffect(() => () => {
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+  }, []);
+
   if (!points || points.length === 0) {
-    return <svg width={width} height={HEIGHT} style={{ display: "block" }} />;
+    return <span ref={containerRef} style={{ ...sparkStyles.wrap, height: HEIGHT }} />;
   }
 
-  const count = points.length;
+  const n = points.length;
   const max = Math.max(...points) || 1;
-  const barWidth = width / count - BAR_GAP;
+  const xAt =
+    n === 1 ? () => width / 2 : (i) => PAD_X + (i / (n - 1)) * (width - 2 * PAD_X);
+  const yAt = (v) => PAD_TOP + (1 - v / max) * (HEIGHT - PAD_TOP);
+  const xy = points.map((v, i) => [xAt(i), yAt(v)]);
+
+  const linePath = monotonePath(xy);
+  const areaPath =
+    n < 2 ? "" : `${linePath} L${xy[n - 1][0]},${HEIGHT} L${xy[0][0]},${HEIGHT} Z`;
+
+  const stripWidth = n > 1 ? width / n : width;
+
+  const handleTouch = (i) => {
+    setHoverIdx(i);
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    touchTimerRef.current = setTimeout(() => setHoverIdx(null), TOUCH_DISMISS_MS);
+  };
+
+  const valueText =
+    hoverIdx != null
+      ? typeof formatValue === "function"
+        ? formatValue(points[hoverIdx])
+        : `${Math.round(points[hoverIdx])}`
+      : null;
+  const labelText = hoverIdx != null && labels ? labels[hoverIdx] : null;
 
   return (
-    <svg
-      width={width}
-      height={HEIGHT}
-      viewBox={`0 0 ${width} ${HEIGHT}`}
-      style={{ display: "block" }}
-    >
-      {points.map((value, i) => {
-        const barHeight = (value / max) * HEIGHT;
-        const x = i * (barWidth + BAR_GAP);
-        const inProgress = i === count - 1;
-        return (
-          <path
-            key={i}
-            d={barPath(x, HEIGHT - barHeight, barWidth, barHeight, BAR_RADIUS)}
+    <span ref={containerRef} style={{ ...sparkStyles.wrap, height: HEIGHT }}>
+      <svg
+        width="100%"
+        height={HEIGHT}
+        viewBox={`0 0 ${width} ${HEIGHT}`}
+        preserveAspectRatio="none"
+        style={sparkStyles.svg}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={FILL_OPACITY_TOP} />
+            <stop offset="100%" stopColor={color} stopOpacity={FILL_OPACITY_BOTTOM} />
+          </linearGradient>
+        </defs>
+
+        {n >= 2 && (
+          <>
+            <path d={areaPath} fill={`url(#${gradientId})`} />
+            <path
+              d={linePath}
+              fill="none"
+              stroke={color}
+              strokeWidth={STROKE_WIDTH}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </>
+        )}
+
+        {xy.map((pt, i) => (
+          <g
+            key={`marker-${i}`}
             style={{
-              fill: inProgress ? IN_PROGRESS : color,
-              fillOpacity: inProgress ? IN_PROGRESS_OPACITY : 1,
+              opacity: hoverIdx === i ? 1 : 0,
+              transition: `opacity ${HOVER_FADE_MS}ms ease`,
+              pointerEvents: "none",
+            }}
+          >
+            <line
+              x1={pt[0]}
+              y1={pt[1]}
+              x2={pt[0]}
+              y2={HEIGHT}
+              stroke={color}
+              strokeOpacity={GUIDE_OPACITY}
+              strokeWidth={1}
+            />
+            <circle
+              cx={pt[0]}
+              cy={pt[1]}
+              r={DOT_RADIUS}
+              fill={color}
+              stroke="#FFFFFF"
+              strokeWidth={DOT_RING_WIDTH}
+            />
+          </g>
+        ))}
+
+        {xy.map((pt, i) => (
+          <rect
+            key={`hit-${i}`}
+            x={pt[0] - stripWidth / 2}
+            y={0}
+            width={stripWidth}
+            height={HEIGHT}
+            fill="transparent"
+            style={sparkStyles.hitStrip}
+            onMouseEnter={() => setHoverIdx(i)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleTouch(i);
             }}
           />
-        );
-      })}
-    </svg>
+        ))}
+      </svg>
+
+      {hoverIdx != null && (
+        <div
+          style={{
+            ...sparkStyles.tooltip,
+            left: xy[hoverIdx][0],
+          }}
+        >
+          <div>{valueText}</div>
+          {labelText && <div style={sparkStyles.tooltipLabel}>{labelText}</div>}
+        </div>
+      )}
+    </span>
   );
 }
+
+const sparkStyles = {
+  wrap: {
+    position: "relative",
+    display: "block",
+    width: "100%",
+  },
+  svg: {
+    display: "block",
+    overflow: "visible",
+  },
+  hitStrip: {
+    pointerEvents: "all",
+    cursor: "default",
+  },
+  tooltip: {
+    position: "absolute",
+    top: -6,
+    transform: "translate(-50%, -100%)",
+    background: "#1F2440",
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: 1.2,
+    padding: "6px 8px",
+    borderRadius: 6,
+    pointerEvents: "none",
+    whiteSpace: "nowrap",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+    zIndex: 10,
+  },
+  tooltipLabel: {
+    fontSize: 10,
+    fontWeight: 500,
+    opacity: 0.7,
+    marginTop: 2,
+  },
+};

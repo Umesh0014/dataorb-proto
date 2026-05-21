@@ -2,7 +2,6 @@
 
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import DashboardShell from "../../components/DashboardShell";
 import AppSwitcherPopover from "../../components/AppSwitcherPopover";
 import InsightsHubPage from "../../components/InsightsHubPage";
 import LearningHubPage from "../../components/LearningHubPage";
@@ -13,6 +12,8 @@ import InteractionsPage from "../../components/InteractionsPage";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsPage from "../../components/MissionsPage";
+import MissionsLandingShell from "../../components/MissionsLandingShell";
+import MissionDetailPage from "../../components/MissionDetailPage";
 import MissionWizardPage, {
   EMPTY_MISSION_DRAFT,
 } from "../../components/MissionWizardPage";
@@ -103,6 +104,19 @@ function generateTaskId() {
   return out;
 }
 
+// MODULE_REGISTRY — short list of shipped modules keyed by route prefix.
+// Drives the active-module label rendered beside the 9-dot app switcher
+// row (expanded sidenav) and its collapsed-state tooltip. Coaching does
+// not have a config yet; its prefix is matched inline below until the
+// module ships.
+const MODULE_REGISTRY = [insightsHubConfig, learningHubConfig, askMiraConfig];
+
+function resolveAppSwitcherLabel(pathname) {
+  if (pathname?.startsWith("/coaching")) return "Coaching";
+  const matched = MODULE_REGISTRY.find((c) => pathname?.startsWith(c.routePrefix));
+  return matched?.displayName ?? "Apps";
+}
+
 // ---- URL ↔ nav state ----------------------------------------------------
 
 const DEFAULT_NAV = {
@@ -110,6 +124,7 @@ const DEFAULT_NAV = {
   insightsNav: "contact-center",
   learningNav: "drill",
   miraNav: "chat",
+  missionDetailId: null,
 };
 
 // deriveNav — pathname → { currentPage, insightsNav, learningNav, miraNav }.
@@ -138,6 +153,12 @@ function deriveNav(pathname) {
   } else if (segs[0] === "learning") {
     next.currentPage = "learning";
     if (segs.length >= 2) next.learningNav = segs[1];
+    // /learning/missions/{id} — surface the trailing id so the route can
+    // mount the standalone Mission detail page used by sandbox Options
+    // 2 (Dense table) and 3 (Kanban).
+    if (segs[1] === "missions" && segs.length >= 3) {
+      next.missionDetailId = segs[2];
+    }
   } else if (segs[0] === "mira") {
     next.currentPage = "mira";
     if (segs.length >= 2) next.miraNav = segs[1];
@@ -177,7 +198,7 @@ export default function Page() {
   // URL is the source of truth for module + sub-section. Derive the four
   // nav ids on every render from the pathname; nav-driving setState calls
   // are replaced with router.push() against the same URL schema.
-  const { currentPage, insightsNav, learningNav, miraNav } = React.useMemo(
+  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId } = React.useMemo(
     () => deriveNav(pathname),
     [pathname],
   );
@@ -191,21 +212,18 @@ export default function Page() {
     else if (pathname === "/mira") router.replace(pathForMira("chat"));
   }, [pathname, router]);
 
-  const [sidenavExpanded, setSidenavExpanded] = React.useState(false);
-
-  // Restore the SideNav expand/collapse state from localStorage on first
-  // mount. Default is collapsed; one-frame flash on first paint is
-  // acceptable for V1 (sidenav spec §8).
-  React.useEffect(() => {
-    if (typeof window === "undefined") return undefined;
+  // Read the persisted SideNav expand/collapse preference synchronously in
+  // the initializer so first paint already matches the user's choice. A
+  // post-mount useEffect would force a second render and a visible
+  // 64 → 260px width animation on every route change.
+  const [sidenavExpanded, setSidenavExpanded] = React.useState(() => {
+    if (typeof window === "undefined") return false;
     try {
-      const stored = window.localStorage.getItem("dataorb.sidenav.expanded");
-      if (stored === "true") setSidenavExpanded(true);
+      return window.localStorage.getItem("dataorb.sidenav.expanded") === "true";
     } catch {
-      // localStorage blocked (private window etc.) — fall back to default.
+      return false;
     }
-    return undefined;
-  }, []);
+  });
 
   const handleToggleSidenav = () => {
     const next = !sidenavExpanded;
@@ -376,6 +394,17 @@ export default function Page() {
     closeMissionWizard();
   };
 
+  // Build module-specific SideNav config + content here so the single
+  // return below renders SideNav + AppSwitcherPopover at one persistent
+  // JSX position. React reconciles the same SideNav instance across
+  // module switches, which means the rail never re-mounts and the
+  // expanded width never resets to 64px between routes.
+  let sidenavConfig;
+  let sidenavActiveId;
+  let handleSidenavSelect;
+  let handleAppSelectPage;
+  let moduleContent;
+
   if (currentPage === "mira") {
     const { Component: MiraPage, pageName } = resolvePage(MIRA_PAGES, miraNav, "Ask Mira Pro");
     const isChat = miraNav === "chat";
@@ -447,50 +476,34 @@ export default function Page() {
       );
     }
 
-    return (
-      <>
-        <SideNav
-          config={askMiraConfig}
-          activeId={miraNav}
-          onSelect={(id) => {
-            if (id !== "chat") setMiraSetupOpen(false);
-            setSkillRecordId(null);
-            setTaskRecordId(null);
-            setTaskWizardStep(null);
-            setTaskDraft(EMPTY_TASK_DRAFT);
-            router.push(pathForMira(id));
-          }}
-          appSwitcherTriggerRef={appMenuTriggerRef}
-          onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
-          isExpanded={sidenavExpanded}
-          onToggleExpanded={handleToggleSidenav}
-        />
-        <PageLayout
-          rightPanel={miraRightPanel}
-          onPanelClose={() => setMiraSetupOpen(false)}
-        >
-          {miraContent}
-        </PageLayout>
-        <AppSwitcherPopover
-          open={appMenuOpen}
-          onClose={() => setAppMenuOpen(false)}
-          anchorRef={appMenuTriggerRef}
-          currentPage={currentPage}
-          onSelectPage={(page) => {
-            setMiraSetupOpen(false);
-            setSkillRecordId(null);
-            setTaskRecordId(null);
-            setTaskWizardStep(null);
-            setTaskDraft(EMPTY_TASK_DRAFT);
-            setAppMenuOpen(false);
-            router.push(pathForCurrentPage(page));
-          }}
-        />
-      </>
+    sidenavConfig = askMiraConfig;
+    sidenavActiveId = miraNav;
+    handleSidenavSelect = (id) => {
+      if (id !== "chat") setMiraSetupOpen(false);
+      setSkillRecordId(null);
+      setTaskRecordId(null);
+      setTaskWizardStep(null);
+      setTaskDraft(EMPTY_TASK_DRAFT);
+      router.push(pathForMira(id));
+    };
+    handleAppSelectPage = (page) => {
+      setMiraSetupOpen(false);
+      setSkillRecordId(null);
+      setTaskRecordId(null);
+      setTaskWizardStep(null);
+      setTaskDraft(EMPTY_TASK_DRAFT);
+      setAppMenuOpen(false);
+      router.push(pathForCurrentPage(page));
+    };
+    moduleContent = (
+      <PageLayout
+        rightPanel={miraRightPanel}
+        onPanelClose={() => setMiraSetupOpen(false)}
+      >
+        {miraContent}
+      </PageLayout>
     );
-  }
-
-  if (currentPage === "learning") {
+  } else if (currentPage === "learning") {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
     const onMissions = learningNav === "missions";
@@ -564,87 +577,94 @@ export default function Page() {
       );
     }
 
-    return (
-      <>
-        <SideNav
-          config={learningHubConfig}
-          activeId={learningNav}
-          onSelect={(id) => {
-            setDrillDetailId(null);
-            setAgentProfileId(null);
-            setSelectedMissionId(null);
-            cancelRoleplay();
-            closeMissionWizard();
-            router.push(pathForLearning(id));
-          }}
-          appSwitcherTriggerRef={appMenuTriggerRef}
-          onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
-          isExpanded={sidenavExpanded}
-          onToggleExpanded={handleToggleSidenav}
+    sidenavConfig = learningHubConfig;
+    sidenavActiveId = learningNav;
+    handleSidenavSelect = (id) => {
+      setDrillDetailId(null);
+      setAgentProfileId(null);
+      setSelectedMissionId(null);
+      cancelRoleplay();
+      closeMissionWizard();
+      router.push(pathForLearning(id));
+    };
+    handleAppSelectPage = (page) => {
+      setDrillDetailId(null);
+      setAgentProfileId(null);
+      cancelRoleplay();
+      closeMissionWizard();
+      setAppMenuOpen(false);
+      router.push(pathForCurrentPage(page));
+    };
+    if (onMissions && missionDetailId && !missionWizardStep) {
+      moduleContent = (
+        <MissionDetailPage
+          missionId={missionDetailId}
+          onBack={() => router.push("/learning/missions")}
+          onSelectLayout={() => router.push("/learning/missions")}
         />
-        {missionsPopulated ? (
-          <MissionsPage
-            onCreateMission={openMissionWizard}
-            initialMissionId={selectedMissionId}
-          />
-        ) : (
-          <PageLayout>{drillContent}</PageLayout>
-        )}
-        <AppSwitcherPopover
-          open={appMenuOpen}
-          onClose={() => setAppMenuOpen(false)}
-          anchorRef={appMenuTriggerRef}
-          currentPage={currentPage}
-          onSelectPage={(page) => {
-            setDrillDetailId(null);
-            setAgentProfileId(null);
-            cancelRoleplay();
-            closeMissionWizard();
-            setAppMenuOpen(false);
-            router.push(pathForCurrentPage(page));
-          }}
+      );
+    } else if (missionsPopulated) {
+      moduleContent = (
+        <MissionsLandingShell
+          onCreateMission={openMissionWizard}
+          initialMissionId={selectedMissionId}
+          onOpenMission={(id) => router.push(`/learning/missions/${id}`)}
         />
-      </>
+      );
+    } else {
+      moduleContent = <PageLayout>{drillContent}</PageLayout>;
+    }
+  } else {
+    const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");
+    const isInsightsHome = insightsNav === "contact-center";
+    const insightsRightPanel = isInsightsHome && filtersOpen
+      ? <FilterPanel open onClose={() => setFiltersOpen(false)} />
+      : null;
+
+    sidenavConfig = insightsHubConfig;
+    sidenavActiveId = insightsNav;
+    handleSidenavSelect = (id) => {
+      if (id !== "contact-center") setFiltersOpen(false);
+      router.push(pathForInsights(id));
+    };
+    handleAppSelectPage = (page) => {
+      setAppMenuOpen(false);
+      router.push(pathForCurrentPage(page));
+    };
+    moduleContent = (
+      <PageLayout
+        rightPanel={insightsRightPanel}
+        onPanelClose={() => setFiltersOpen(false)}
+      >
+        <InsightsPage
+          pageName={pageName}
+          filtersOpen={filtersOpen}
+          onToggleFilters={() => setFiltersOpen((o) => !o)}
+        />
+      </PageLayout>
     );
   }
 
-  const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");
-  const isInsightsHome = insightsNav === "contact-center";
-  const insightsRightPanel = isInsightsHome && filtersOpen
-    ? <FilterPanel open onClose={() => setFiltersOpen(false)} />
-    : null;
-
   return (
-    <DashboardShell
-      config={insightsHubConfig}
-      activeId={insightsNav}
-      onSelect={(id) => {
-        if (id !== "contact-center") setFiltersOpen(false);
-        router.push(pathForInsights(id));
-      }}
-      onAppMenuClick={() => setAppMenuOpen((o) => !o)}
-      appMenuTriggerRef={appMenuTriggerRef}
-      rightPanel={insightsRightPanel}
-      onPanelClose={() => setFiltersOpen(false)}
-      isExpanded={sidenavExpanded}
-      onToggleExpanded={handleToggleSidenav}
-    >
-      <InsightsPage
-        pageName={pageName}
-        filtersOpen={filtersOpen}
-        onToggleFilters={() => setFiltersOpen((o) => !o)}
+    <>
+      <SideNav
+        config={sidenavConfig}
+        activeId={sidenavActiveId}
+        onSelect={handleSidenavSelect}
+        appSwitcherTriggerRef={appMenuTriggerRef}
+        appSwitcherLabel={resolveAppSwitcherLabel(pathname)}
+        onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
+        isExpanded={sidenavExpanded}
+        onToggleExpanded={handleToggleSidenav}
       />
-
+      {moduleContent}
       <AppSwitcherPopover
         open={appMenuOpen}
         onClose={() => setAppMenuOpen(false)}
         anchorRef={appMenuTriggerRef}
         currentPage={currentPage}
-        onSelectPage={(page) => {
-          setAppMenuOpen(false);
-          router.push(pathForCurrentPage(page));
-        }}
+        onSelectPage={handleAppSelectPage}
       />
-    </DashboardShell>
+    </>
   );
 }

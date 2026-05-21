@@ -391,6 +391,17 @@ override is a spec change and must update this document first.
       collapsed.
 - [ ] Sub-menu parent items still open `RailFlyout` correctly in both
       widths (anchor uses `rect.right + 12`, not a hardcoded `64`).
+- [ ] Rail width is correct on first paint for both collapsed and
+      expanded preferences — `useState` reads localStorage in its
+      initializer; no post-mount `useEffect` flips the width.
+- [ ] Navigating between routes in expanded state does not cause the
+      rail to collapse or animate. The width transition is gated on an
+      `animateWidth` flag enabled one `requestAnimationFrame` after
+      mount, so involuntary first-paint width writes never animate.
+- [ ] User-triggered toggle still animates over 200 ms exactly.
+- [ ] SideNav is rendered at a single persistent JSX position across
+      every module branch so React reconciles the same instance — the
+      rail never re-mounts when switching Insights ↔ Learning ↔ Mira.
 
 ## Contract limitations to plan around
 

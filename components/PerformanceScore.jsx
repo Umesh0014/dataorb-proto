@@ -191,29 +191,37 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
               const belowT = m.target != null && m.base < m.target;
               return (
                 <div key={m.label} style={psStyles.metricCell}>
-                  <span style={psStyles.metricLabel}>{m.label}</span>
-                  <div style={psStyles.metricValueRow}>
-                    <span style={psStyles.metricValue}>{m.value}</span>
+                  <div style={psStyles.metricCellLeft}>
+                    <span style={psStyles.metricLabel}>{m.label}</span>
+                    <div style={psStyles.metricValueRow}>
+                      <span style={psStyles.metricValue}>{m.value}</span>
+                      {m.target != null && (
+                        <GoalChip base={m.base} target={m.target} />
+                      )}
+                    </div>
                     {m.target != null && (
-                      <GoalChip base={m.base} target={m.target} />
+                      <span
+                        style={{
+                          ...psStyles.metricTarget,
+                          color: belowT ? "var(--chart-coral)" : "var(--text-secondary)",
+                        }}
+                      >
+                        target {m.target}%
+                      </span>
                     )}
+                    <TrendChip text={m.deltaText} trend={trend} />
+                  </div>
+                  <div style={psStyles.metricCellRight}>
                     <MetricSparkline
                       points={points}
-                      width={m.type === "count" ? 80 : 96}
                       color={TREND[trend].color}
+                      formatValue={
+                        m.type === "count"
+                          ? (v) => `${Math.round(v)}/20`
+                          : (v) => `${Math.round(v)}%`
+                      }
                     />
                   </div>
-                  {m.target != null && (
-                    <span
-                      style={{
-                        ...psStyles.metricTarget,
-                        color: belowT ? "var(--chart-coral)" : "var(--text-secondary)",
-                      }}
-                    >
-                      target {m.target}%
-                    </span>
-                  )}
-                  <TrendChip text={m.deltaText} trend={trend} />
                 </div>
               );
             })}
@@ -363,9 +371,25 @@ const psStyles = {
   },
   metricCell: {
     display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+    minWidth: 280,
+  },
+  metricCellLeft: {
+    display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
     gap: 4,
+    flexShrink: 0,
+    minWidth: 160,
+  },
+  metricCellRight: {
+    flex: "1 1 0",
+    minWidth: 120,
+    display: "flex",
+    alignItems: "center",
   },
   metricTarget: {
     fontSize: 11,

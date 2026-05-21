@@ -455,6 +455,94 @@ Recommended naming inconsistencies to fix in this pass:
 
 ---
 
+---
+
+## Addendum — Sandbox redesign standardization (2026-05-21)
+
+The four-layout Missions landing sandbox (Current / Table / Kanban /
+Hybrid) and the new `MissionDetailPage` were audited against the
+standardization addendum. Canonical resolutions for every surface they
+touch:
+
+| Surface                                | Canonical primitive used                                                                            |
+|----------------------------------------|------------------------------------------------------------------------------------------------------|
+| Module page header (3 new layouts)     | [`PageHeader`](../components/PageHeader.jsx) with `identifier / primaryAction / filters / toolbar`. |
+| Detail page header                     | `<Card padX={20} padY={16} shadow>` + `<Button variant="icon">` back arrow — same shell as [`TaskRecordPage`](../components/TaskRecordPage.jsx) / [`SkillRecordPage`](../components/SkillRecordPage.jsx). |
+| Card containers (detail body)          | [`Card`](../components/Card.jsx) (`padX/padY` props). KPI tiles + Mission Performance + Roleplay Interactions all use the same primitive. |
+| Tab row inside cards                   | [`TabsRow`](../components/TabsRow.jsx) — drives the `By Focus Area / By Agent / By Driver` tabs in `MissionDetailContent`. |
+| Buttons                                | [`Button`](../components/Button.jsx) with `variant="icon" / "text" / "primary"`. Detail-page back, kebab, and action chips all consume it. |
+| Status pill                            | Inline pill using `STATUS_TONE` map → existing `--color-info / --color-error / --color-warning / --pill-bg` tokens. Same map used for Kanban column accents. |
+| Progress bar                           | Inline track + fill using `--color-success / --color-warning / --color-error` thresholds via `progressColor`. Shared across MissionsTable and MissionCardCompact. |
+| Avatar (initials)                      | `AVATAR_PALETTE` + `avatarColor(seed)` hashing, exported from [`MissionsTable`](../components/MissionsTable.jsx). |
+| Sandbox switcher                       | [`SandboxSwitcher`](../components/sandbox/SandboxSwitcher.jsx) — token-aligned with [`MilestoneSideRail`](../components/MilestoneSideRail.jsx). |
+
+### Narrow Agents-chassis adoption (Dense Table only)
+
+The Dense Table landing and the Mission detail page both render inside
+[`PageLayout`](../components/PageLayout.jsx) — the same primitive
+[`AgentsPage`](../components/AgentsPage.jsx) and
+[`AgentProfile`](../components/AgentProfile.jsx) consume. That sets the
+content column to `--page-content-max-width: 1068px`, centered with
+`--page-gutter: 64px` on each side. Kanban and Hybrid keep their wider
+1440px chassis (per addendum §4: kanban columns + inline-expanded rows
+need horizontal room).
+
+Verified widths in browser:
+
+| Surface             | Content width |
+|---------------------|---------------|
+| Dense Table landing | 1068px        |
+| Mission detail page | 1068px        |
+| Kanban landing      | 1440px        |
+| Hybrid landing      | 1440px        |
+
+The table's fixed-column widths were shrunk to fit the narrow column
+(sum of fixed widths ≈ 812px + Mission flex min 200px = 1012px). Cell
+horizontal padding tuned to 12px from 16px so columns finish inside the
+table card.
+
+### Dense table polish (§1 of the polish addendum)
+
+| Spec item                | Implementation                                                                                                       |
+|--------------------------|---------------------------------------------------------------------------------------------------------------------|
+| Body row min-height 56px | `padding: 16px` on every body cell + intrinsic content height.                                                       |
+| Header row 48px          | `th { height: 48px }` + heavier `1.5px var(--color-divider-card)` bottom border.                                    |
+| Horizontal cell padding 16px | Uniform across header + body.                                                                                   |
+| Fit-in-viewport          | `table-layout: fixed` + explicit `<colgroup>` widths matching the spec table. Mission column flexes; others fixed.   |
+| Status + Days-left placement | Two adjacent columns (Status then Days-left). Independent sortability preserved.                                 |
+| Mission truncation       | `text-overflow: ellipsis` + `title={mission.name}` for the full string on hover.                                     |
+| Focus-area `+N` overflow | Max 2 chips visible + `+N` overflow chip carrying the hidden labels via `title` (newline-separated).                 |
+| Sort UI                  | Chevron renders only on the active sort column; inactive sortable headers carry no chevron and hover-tint to `#F5F4FB`. |
+| Default sort             | Status asc (workflow order: Active → At Risk → Ending Soon → Completed) with Days-left asc as a stable secondary.    |
+| Sort persistence         | `dataorb.missions.tableSort` localStorage key, JSON-encoded `{ key, dir }`.                                          |
+
+### Known deviations / follow-ups
+
+1. **Dark tooltip on truncation.** Spec asks for the `#1F2440` dark
+   tooltip surface (same as the sparkline hover bubble) with 300 ms
+   hover delay. V1 ships native `title=""` to avoid building a positioned
+   tooltip primitive. The platform has no shared `Tooltip` yet — promote
+   from `MetricSparkline`'s inline implementation once a third surface
+   needs it (rule of three).
+2. **Column visibility / resize / multi-column sort.** Not in V1.
+3. **Kanban card.** [`MissionCardCompact`](../components/MissionCardCompact.jsx)
+   is a bespoke card; `<Card>` did not accept the column-padding density
+   Kanban needed without overrides. Promote a `<CompactCard>` (or add a
+   `density` prop) once another Kanban-style surface ships.
+4. **Status enum order.** Workflow order shipped per V1 default. Flag if
+   Akash prefers urgency-first (`At Risk < Ending Soon < Active < Completed`).
+5. **Date formatting.** `23 Mar 2026` (seed-data convention) treated as
+   canonical across the redesign.
+6. **PageHeader detail-page slots.** `PageHeader` exposes
+   identifier/primaryAction/filters/search/toolbar — no
+   title/back/subtitle/accessory slots needed by detail pages. Detail
+   pages across the prototype (TaskRecordPage / SkillRecordPage / now
+   MissionDetailPage) all use the `<Card padX={20} padY={16}>` shell
+   instead. Long-term, extracting a shared `DetailHeader` primitive is
+   worth doing.
+
+---
+
 ## Out-of-scope for this pass
 
 - Cross-feature components (DrillHeader, InteractionsHeader inline) — flagged, not refactored.

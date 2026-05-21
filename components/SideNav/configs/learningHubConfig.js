@@ -7,6 +7,10 @@ import { DrillIcon, InteractionsIcon, AgentsIcon, MissionsIcon } from "../icons"
 export const learningHubConfig = {
   moduleId: "learning",
   moduleLabel: "Learning Hub",
+  // Short name rendered next to the 9-dot app switcher row when this
+  // module is active; also drives the collapsed-state tooltip.
+  displayName: "Learning",
+  routePrefix: "/learning",
   items: [
     {
       id: "drill",

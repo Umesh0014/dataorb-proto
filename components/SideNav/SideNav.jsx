@@ -78,6 +78,7 @@ export default function SideNav({
   onSettingsClick,
   onAvatarClick,
   appSwitcherTriggerRef,
+  appSwitcherLabel = "Apps",
   userInitial = "T",
   userName = "Demo Internal",
   logoSrc = "/assets/logo-color.svg",
@@ -103,11 +104,24 @@ export default function SideNav({
     if (!isExpandedControlled) setInternalExpanded((v) => !v);
   };
 
+  // Suppress the width transition until one animation frame after mount.
+  // Without this gate, the initial paint after hydration (and any
+  // re-mount across a route change) animates 64 → 260px even when the
+  // user's stored preference is "expanded". Only deliberate toggles —
+  // which happen after the rAF callback fires — animate.
+  const [animateWidth, setAnimateWidth] = React.useState(false);
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => setAnimateWidth(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   // Sync the rail width to a CSS var on :root so PageLayout (which
   // already reads --sidenav-width) reflows automatically. The data
   // attribute drives the body min-width swap so horizontal scroll
-  // behaviour stays consistent.
-  React.useEffect(() => {
+  // behaviour stays consistent. useLayoutEffect so the variable is
+  // written before the browser paints the new width — otherwise the
+  // content column briefly mismatches the rail width on first frame.
+  React.useLayoutEffect(() => {
     if (typeof document === "undefined") return undefined;
     const root = document.documentElement;
     root.style.setProperty(
@@ -159,7 +173,7 @@ export default function SideNav({
             : `${T.rail.paddingY}px 0`,
           boxSizing: "border-box",
           zIndex: T.rail.zIndex,
-          transition: T.rail.widthTransition,
+          transition: animateWidth ? T.rail.widthTransition : "none",
         }}
       >
         <BrandSlot src={logoSrc} alt={logoAlt} isExpanded={isExpanded} />
@@ -168,6 +182,7 @@ export default function SideNav({
           onClick={onAppSwitcherClick}
           triggerRef={appSwitcherTriggerRef}
           isExpanded={isExpanded}
+          label={appSwitcherLabel}
         />
 
         <Divider isExpanded={isExpanded} />
@@ -186,28 +201,78 @@ export default function SideNav({
         >
           {items.map((item) => {
             const childIds = item.children?.map((c) => c.id) ?? [];
-            const isActive = item.matcher
-              ? item.matcher(active)
-              : active === item.id || childIds.includes(active);
             const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+            const isDirectlyActive = item.matcher
+              ? item.matcher(active)
+              : active === item.id;
+            const hasActiveChild = childIds.includes(active);
+            // Collapsed state keeps today's combined active treatment:
+            // child active → parent icon active. Expanded inline mode
+            // splits the two — see active cascade in §1.
+            const showInlineChildren = isExpanded && hasChildren;
+            const parentIsActive = showInlineChildren
+              ? isDirectlyActive
+              : isDirectlyActive || hasActiveChild;
+            const parentActiveWithDescendant =
+              showInlineChildren && hasActiveChild && !isDirectlyActive;
             return (
               <li key={item.id} style={{ width: isExpanded ? "100%" : "auto" }}>
                 <RailItem
                   item={item}
-                  isActive={isActive}
+                  isActive={parentIsActive}
+                  activeWithDescendant={parentActiveWithDescendant}
                   hasChildren={hasChildren}
                   isFlyoutOpen={flyoutItemId === item.id}
                   isExpanded={isExpanded}
                   buttonRef={hasChildren ? getItemRef(item.id) : undefined}
                   onClick={() => {
-                    if (hasChildren) {
+                    if (!isExpanded && hasChildren) {
+                      // Collapsed state: flyout, unchanged from today.
                       setFlyoutItemId((cur) => (cur === item.id ? null : item.id));
+                      return;
+                    }
+                    setFlyoutItemId(null);
+                    if (item.route) {
+                      handleSelect(item.id);
+                    } else if (hasChildren) {
+                      // Grouping parent in expanded mode — navigate to
+                      // first child's destination.
+                      handleSelect(item.children[0].id);
                     } else {
-                      setFlyoutItemId(null);
                       handleSelect(item.id);
                     }
                   }}
                 />
+                {showInlineChildren && (
+                  <ul
+                    role="list"
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      listStyle: "none",
+                      margin: 0,
+                      marginTop: 8,
+                      padding: 0,
+                      width: "100%",
+                    }}
+                  >
+                    {item.children.map((child) => (
+                      <li key={child.id} style={{ width: "100%" }}>
+                        <RailItem
+                          item={child}
+                          isActive={active === child.id}
+                          activeWithDescendant={false}
+                          hasChildren={false}
+                          isFlyoutOpen={false}
+                          isExpanded
+                          indented
+                          onClick={() => handleSelect(child.id)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             );
           })}
@@ -377,11 +442,11 @@ function ToggleButton({ isExpanded, onClick }) {
 
 // ---- App switcher trigger ----------------------------------------------
 
-function AppSwitcherTrigger({ onClick, triggerRef, isExpanded }) {
+function AppSwitcherTrigger({ onClick, triggerRef, isExpanded, label = "Apps" }) {
   const [hover, setHover] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
   return (
-    <Tooltip label="Apps" disabled={isExpanded}>
+    <Tooltip label={label} disabled={isExpanded}>
       <button
         type="button"
         ref={triggerRef}
@@ -406,7 +471,7 @@ function AppSwitcherTrigger({ onClick, triggerRef, isExpanded }) {
           outline: "none",
           boxShadow: focus ? T.state.focusRing : "none",
         }}
-        aria-label="Apps"
+        aria-label={label}
         aria-haspopup="menu"
       >
         <span
@@ -423,7 +488,7 @@ function AppSwitcherTrigger({ onClick, triggerRef, isExpanded }) {
             color={T.state.appSwitcherColor}
           />
         </span>
-        {isExpanded && <ExpandedLabel>Apps</ExpandedLabel>}
+        {isExpanded && <ExpandedLabel>{label}</ExpandedLabel>}
       </button>
     </Tooltip>
   );
@@ -452,9 +517,11 @@ function Divider({ isExpanded }) {
 function RailItem({
   item,
   isActive,
+  activeWithDescendant = false,
   hasChildren,
   isFlyoutOpen,
   isExpanded,
+  indented = false,
   buttonRef,
   onClick,
 }) {
@@ -462,11 +529,24 @@ function RailItem({
   const [focus, setFocus] = React.useState(false);
   const Icon = item.Icon;
 
+  // Parent-with-active-descendant gets the subtler hover tint per §1
+  // active cascade (V1 default). Direct active still wins.
   const bg = isActive
     ? T.state.bgActive
     : hover
       ? T.state.bgHover
-      : T.state.bgDefault;
+      : activeWithDescendant
+        ? T.state.bgHover
+        : T.state.bgDefault;
+
+  // Indented child rows align horizontally with the parent label
+  // (8 base padding + 40 icon + 12 gap = 60px from the rail's left
+  // inner edge). Icon slot is suppressed on these rows.
+  const padding = isExpanded
+    ? indented
+      ? "0 8px 0 60px"
+      : "0 8px"
+    : 0;
 
   return (
     <Tooltip label={item.label} disabled={isExpanded}>
@@ -488,8 +568,8 @@ function RailItem({
           display: "flex",
           alignItems: "center",
           justifyContent: isExpanded ? "flex-start" : "center",
-          padding: isExpanded ? "0 8px" : 0,
-          gap: isExpanded ? T.expandedLabel.marginLeft : 0,
+          padding,
+          gap: isExpanded && !indented ? T.expandedLabel.marginLeft : 0,
           transition: T.iconButton.transition,
           position: "relative",
           outline: "none",
@@ -500,17 +580,19 @@ function RailItem({
         aria-haspopup={hasChildren ? "menu" : undefined}
         aria-expanded={hasChildren ? isFlyoutOpen : undefined}
       >
-        <span
-          style={{
-            width: T.iconButton.size,
-            height: T.iconButton.size,
-            display: "grid",
-            placeItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Icon size={T.iconButton.iconSize} color={T.state.iconColor} />
-        </span>
+        {!indented && Icon && (
+          <span
+            style={{
+              width: T.iconButton.size,
+              height: T.iconButton.size,
+              display: "grid",
+              placeItems: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icon size={T.iconButton.iconSize} color={T.state.iconColor} />
+          </span>
+        )}
         {isExpanded && <ExpandedLabel>{item.label}</ExpandedLabel>}
         {item.dot && (isExpanded ? <InlineDot /> : <NotificationDot />)}
       </button>
