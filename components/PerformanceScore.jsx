@@ -194,6 +194,9 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
                   <span style={psStyles.metricLabel}>{m.label}</span>
                   <div style={psStyles.metricValueRow}>
                     <span style={psStyles.metricValue}>{m.value}</span>
+                    {m.target != null && (
+                      <GoalChip base={m.base} target={m.target} />
+                    )}
                     <MetricSparkline
                       points={points}
                       width={m.type === "count" ? 80 : 96}
@@ -237,6 +240,25 @@ function TrendChip({ text, trend }) {
     <span style={{ ...psStyles.trendChip, background: t.chipBg, color: t.chipText }}>
       {t.arrow && <TrendArrow up={t.arrow === "up"} />}
       {text}
+    </span>
+  );
+}
+
+// GoalChip — achievement-ratio pill shown inline with a percentage
+// metric's value: the current value as a percentage of its target,
+// colour-banded (success ≥ 100, amber 90–99, error below 90). Count
+// metrics omit it — their fraction already carries the ratio.
+function GoalChip({ base, target }) {
+  const ratio = Math.round((base / target) * 100);
+  const band =
+    ratio >= 100
+      ? { bg: "var(--color-success-bg)", text: "var(--color-success-text)" }
+      : ratio >= 90
+        ? { bg: "var(--badge-amber-bg)", text: "var(--badge-amber)" }
+        : { bg: "var(--color-error-bg)", text: "var(--color-error)" };
+  return (
+    <span style={{ ...psStyles.goalChip, background: band.bg, color: band.text }}>
+      {ratio}% of goal
     </span>
   );
 }
@@ -348,6 +370,7 @@ const psStyles = {
   metricTarget: {
     fontSize: 11,
     fontWeight: 500,
+    marginTop: 2,
   },
   metricLabel: {
     fontSize: 13,
@@ -355,8 +378,8 @@ const psStyles = {
     color: "var(--color-text-tertiary)",
   },
   metricValue: {
-    fontSize: 24,
-    fontWeight: 700,
+    fontSize: 28,
+    fontWeight: 600,
     color: "var(--color-text-deep)",
     lineHeight: 1.2,
   },
@@ -364,6 +387,16 @@ const psStyles = {
     display: "flex",
     alignItems: "baseline",
     gap: 12,
+  },
+  goalChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    flexShrink: 0,
+    padding: "2px 8px",
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 600,
+    whiteSpace: "nowrap",
   },
   trendChip: {
     display: "inline-flex",
