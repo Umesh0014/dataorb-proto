@@ -22,6 +22,8 @@ export default function DashboardShell({
   config = insightsHubConfig,
   rightPanel = null,
   onPanelClose,
+  isExpanded,
+  onToggleExpanded,
 }) {
   return (
     <>
@@ -34,6 +36,8 @@ export default function DashboardShell({
         onSettingsClick={onSettingsClick}
         onAvatarClick={onAvatarClick}
         appSwitcherTriggerRef={appMenuTriggerRef}
+        isExpanded={isExpanded}
+        onToggleExpanded={onToggleExpanded}
       />
       <PageLayout rightPanel={rightPanel} onPanelClose={onPanelClose}>{children}</PageLayout>
     </>

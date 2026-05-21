@@ -1,25 +1,36 @@
 "use client";
 
 import React from "react";
+import { PanelLeft } from "lucide-react";
 import { SIDENAV_TOKENS as T } from "./tokens";
 import { AppSwitcherIcon, SettingsIcon, HelpIcon } from "./icons";
 import RailFlyout, { RailFlyoutItem } from "./RailFlyout";
 
 /**
- * SideNav — canonical 64px navigation rail.
+ * SideNav — canonical navigation rail with two width states.
  *
- * Single source of truth for all four modules (Insights Hub, Learning Hub,
- * Ask Mira, Coaching). The middle icon set varies per module via `config`.
- * Everything else (chrome, states, footer, motion, a11y) is constant.
+ * Single source of truth for all four modules (Insights Hub, Learning
+ * Hub, Ask Mira Pro, Coaching). The middle icon set varies per module
+ * via `config`. Everything else (chrome, states, footer, motion, a11y)
+ * is constant.
  *
- * The 9-dot app switcher is treated as an external dependency: SideNav owns
- * only the trigger button (renders the 3×3 icon, exposes a ref, fires
- * `onAppSwitcherClick`). The popover/menu component (AppSwitcherPopover) is
- * not modified or owned by SideNav — consumers continue to render it next to
- * SideNav and anchor it via `appSwitcherTriggerRef`.
+ * Width states:
+ *   - Collapsed (default, 64px) — icon-only.
+ *   - Expanded (260px) — icons + labels, dataOrb wordmark in the brand
+ *     slot, "Apps" / user name visible in the footer.
+ * Switching states is driven by the `isExpanded` prop. The component
+ * also syncs `--sidenav-width` on `:root` and a `data-sidenav` attribute
+ * so PageLayout / body min-width respond without any consumer change.
  *
- * Per-item sub-menus use the same `RailFlyout` primitive that powers the
- * 9-dot popover, so motion + surface + dismissal are identical.
+ * The 9-dot app switcher is treated as an external dependency: SideNav
+ * owns only the trigger (renders the 3×3 icon, exposes a ref, fires
+ * `onAppSwitcherClick`). The popover (AppSwitcherPopover) is rendered
+ * by the consumer and anchored via `appSwitcherTriggerRef`.
+ *
+ * Per-item sub-menus continue to use the same `RailFlyout` primitive
+ * that powers the 9-dot popover so motion + surface + dismissal are
+ * identical across both states. RailFlyout anchors against the
+ * triggering button's rect so it works at both rail widths.
  *
  * @typedef {Object} SideNavChild
  * @property {string} id     Stable child identifier (matches activeId).
@@ -28,10 +39,10 @@ import RailFlyout, { RailFlyoutItem } from "./RailFlyout";
  *
  * @typedef {Object} SideNavItem
  * @property {string} id                Stable item identifier (matches activeId).
- * @property {string} label             Tooltip + aria-label.
+ * @property {string} label             Tooltip + aria-label + expanded-state label.
  * @property {(p:{size:number,color:string})=>JSX.Element} Icon  Icon component.
  * @property {string} [route]           Direct nav target (mutually exclusive with children).
- * @property {SideNavChild[]} [children] Sub-menu items; clicking the icon opens a flyout.
+ * @property {SideNavChild[]} [children] Sub-menu items; clicking opens a flyout.
  * @property {(active:string)=>boolean} [matcher] Custom active-route matcher.
  * @property {boolean} [dot]            Show a small notification dot.
  *
@@ -50,9 +61,12 @@ import RailFlyout, { RailFlyoutItem } from "./RailFlyout";
  *   onAvatarClick?: () => void,
  *   appSwitcherTriggerRef?: React.RefObject<HTMLButtonElement>,
  *   userInitial?: string,
+ *   userName?: string,
  *   logoSrc?: string,
  *   logoAlt?: string,
  *   showHelp?: boolean,
+ *   isExpanded?: boolean,
+ *   onToggleExpanded?: () => void,
  * }} props
  */
 export default function SideNav({
@@ -65,21 +79,50 @@ export default function SideNav({
   onAvatarClick,
   appSwitcherTriggerRef,
   userInitial = "T",
+  userName = "Demo Internal",
   logoSrc = "/assets/logo-color.svg",
   logoAlt = "dataOrb",
   showHelp = true,
+  isExpanded: isExpandedProp,
+  onToggleExpanded,
 }) {
   const [internalActive, setInternalActive] = React.useState(
-    activeId ?? config?.items?.[0]?.id ?? ""
+    activeId ?? config?.items?.[0]?.id ?? "",
   );
   const isControlled = activeId !== undefined;
   const active = isControlled ? activeId : internalActive;
 
+  // Width state: controlled when parent supplies isExpanded; otherwise
+  // self-managed via internal toggle.
+  const [internalExpanded, setInternalExpanded] = React.useState(false);
+  const isExpandedControlled = isExpandedProp !== undefined;
+  const isExpanded = isExpandedControlled ? isExpandedProp : internalExpanded;
+
+  const handleToggle = () => {
+    if (onToggleExpanded) onToggleExpanded();
+    if (!isExpandedControlled) setInternalExpanded((v) => !v);
+  };
+
+  // Sync the rail width to a CSS var on :root so PageLayout (which
+  // already reads --sidenav-width) reflows automatically. The data
+  // attribute drives the body min-width swap so horizontal scroll
+  // behaviour stays consistent.
+  React.useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const root = document.documentElement;
+    root.style.setProperty(
+      "--sidenav-width",
+      isExpanded ? `${T.rail.expandedWidth}px` : `${T.rail.width}px`,
+    );
+    root.setAttribute("data-sidenav", isExpanded ? "expanded" : "collapsed");
+    return undefined;
+  }, [isExpanded]);
+
   // Which item's sub-menu flyout (if any) is currently open. Only items
-  // with `children` participate. Mirrors the 9-dot trigger toggle pattern.
+  // with `children` participate.
   const [flyoutItemId, setFlyoutItemId] = React.useState(null);
 
-  // Per-item button refs so RailFlyout can anchor against the clicked icon.
+  // Per-item button refs so RailFlyout can anchor against the clicked item.
   const itemRefs = React.useRef({});
   const getItemRef = (id) => {
     if (!itemRefs.current[id]) {
@@ -104,26 +147,30 @@ export default function SideNav({
           position: "fixed",
           top: 0,
           left: 0,
-          width: T.rail.width,
+          width: isExpanded ? T.rail.expandedWidth : T.rail.width,
           height: "100vh",
           background: T.rail.bg,
           borderRight: `1px solid ${T.rail.border}`,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          padding: `${T.rail.paddingY}px 0`,
+          alignItems: isExpanded ? "stretch" : "center",
+          padding: isExpanded
+            ? `${T.rail.paddingY}px ${T.rail.paddingXExpanded}px`
+            : `${T.rail.paddingY}px 0`,
           boxSizing: "border-box",
           zIndex: T.rail.zIndex,
+          transition: T.rail.widthTransition,
         }}
       >
-        <Logo src={logoSrc} alt={logoAlt} />
+        <BrandSlot src={logoSrc} alt={logoAlt} isExpanded={isExpanded} />
 
         <AppSwitcherTrigger
           onClick={onAppSwitcherClick}
           triggerRef={appSwitcherTriggerRef}
+          isExpanded={isExpanded}
         />
 
-        <Divider />
+        <Divider isExpanded={isExpanded} />
 
         <ul
           role="list"
@@ -134,6 +181,7 @@ export default function SideNav({
             listStyle: "none",
             margin: 0,
             padding: 0,
+            width: isExpanded ? "100%" : "auto",
           }}
         >
           {items.map((item) => {
@@ -143,12 +191,13 @@ export default function SideNav({
               : active === item.id || childIds.includes(active);
             const hasChildren = Array.isArray(item.children) && item.children.length > 0;
             return (
-              <li key={item.id}>
+              <li key={item.id} style={{ width: isExpanded ? "100%" : "auto" }}>
                 <RailItem
                   item={item}
                   isActive={isActive}
                   hasChildren={hasChildren}
                   isFlyoutOpen={flyoutItemId === item.id}
+                  isExpanded={isExpanded}
                   buttonRef={hasChildren ? getItemRef(item.id) : undefined}
                   onClick={() => {
                     if (hasChildren) {
@@ -170,20 +219,36 @@ export default function SideNav({
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
+            alignItems: isExpanded ? "stretch" : "center",
             gap: T.footer.gap,
+            width: isExpanded ? "100%" : "auto",
           }}
         >
           {showHelp && (
-            <FooterIconButton label="Help" onClick={onHelpClick} Icon={HelpIcon} />
+            <FooterIconButton
+              label="Help"
+              onClick={onHelpClick}
+              Icon={HelpIcon}
+              isExpanded={isExpanded}
+            />
           )}
           <FooterIconButton
             label="Settings"
             onClick={onSettingsClick}
             Icon={SettingsIcon}
+            isExpanded={isExpanded}
           />
-          <Avatar onClick={onAvatarClick} initial={userInitial} />
+          <Avatar
+            onClick={onAvatarClick}
+            initial={userInitial}
+            name={userName}
+            isExpanded={isExpanded}
+          />
         </div>
+
+        {/* Floating chrome — rendered last so it's tabbed at the end of
+            the rail, after the avatar, without reordering any item. */}
+        <ToggleButton isExpanded={isExpanded} onClick={handleToggle} />
       </aside>
 
       {items
@@ -213,7 +278,9 @@ export default function SideNav({
   );
 }
 
-function Logo({ src, alt }) {
+// ---- Brand slot ---------------------------------------------------------
+
+function BrandSlot({ src, alt, isExpanded }) {
   return (
     <div
       style={{
@@ -221,8 +288,9 @@ function Logo({ src, alt }) {
         width: "100%",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: isExpanded ? "flex-start" : "center",
         marginBottom: T.brand.marginBottom,
+        flexShrink: 0,
       }}
     >
       <img
@@ -232,19 +300,88 @@ function Logo({ src, alt }) {
           width: T.brand.logoSize,
           height: T.brand.logoSize,
           display: "block",
+          flexShrink: 0,
         }}
       />
+      {isExpanded && (
+        <span
+          style={{
+            marginLeft: T.brand.wordmark.marginLeft,
+            fontFamily: T.font.sans,
+            fontSize: T.brand.wordmark.fontSize,
+            fontWeight: T.brand.wordmark.fontWeight,
+            color: T.brand.wordmark.color,
+            transition: T.expandedLabel.fadeIn,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {T.brand.wordmark.text}
+        </span>
+      )}
     </div>
   );
 }
 
-// Trigger button only. The 9-dot popover (AppSwitcherPopover) is NOT owned by
-// SideNav — consumers render it separately and anchor it via triggerRef.
-function AppSwitcherTrigger({ onClick, triggerRef }) {
+// ---- Toggle button (floating chrome) ------------------------------------
+
+function ToggleButton({ isExpanded, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [focus, setFocus] = React.useState(false);
+  const label = isExpanded
+    ? T.toggle.tooltipCopy.expanded
+    : T.toggle.tooltipCopy.collapsed;
+  // Outer wrapper is absolutely positioned relative to the <aside> so the
+  // toggle anchors to the rail's top-right regardless of flex flow. The
+  // Tooltip wrapper inside lays out normally around the 28×28 button.
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: T.toggle.anchorTop,
+        right: T.toggle.anchorRight,
+        zIndex: 2,
+      }}
+    >
+      <Tooltip label={label}>
+        <button
+          type="button"
+          onClick={onClick}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          aria-label={label}
+          aria-pressed={isExpanded}
+          style={{
+            width: T.toggle.size,
+            height: T.toggle.size,
+            borderRadius: T.toggle.radius,
+            border: T.toggle.border,
+            background: hover ? T.state.bgHover : T.toggle.bg,
+            cursor: "pointer",
+            display: "grid",
+            placeItems: "center",
+            padding: 0,
+            color: T.toggle.iconColor,
+            transition: T.iconButton.transition,
+            outline: "none",
+            boxShadow: focus ? T.state.focusRing : "none",
+          }}
+        >
+          <PanelLeft size={T.toggle.iconSize} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+// ---- App switcher trigger ----------------------------------------------
+
+function AppSwitcherTrigger({ onClick, triggerRef, isExpanded }) {
   const [hover, setHover] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
   return (
-    <Tooltip label="Apps">
+    <Tooltip label="Apps" disabled={isExpanded}>
       <button
         type="button"
         ref={triggerRef}
@@ -254,15 +391,17 @@ function AppSwitcherTrigger({ onClick, triggerRef }) {
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
         style={{
-          width: T.iconButton.size,
+          width: isExpanded ? "100%" : T.iconButton.size,
           height: T.iconButton.size,
-          borderRadius: T.iconButton.appSwitcherRadius,
+          borderRadius: isExpanded ? T.iconButton.radius : T.iconButton.appSwitcherRadius,
           border: "none",
           background: hover ? T.state.bgHover : "transparent",
           cursor: "pointer",
-          display: "grid",
-          placeItems: "center",
-          padding: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: isExpanded ? "flex-start" : "center",
+          padding: isExpanded ? "0 8px" : 0,
+          gap: isExpanded ? T.expandedLabel.marginLeft : 0,
           transition: T.iconButton.transition,
           outline: "none",
           boxShadow: focus ? T.state.focusRing : "none",
@@ -270,35 +409,52 @@ function AppSwitcherTrigger({ onClick, triggerRef }) {
         aria-label="Apps"
         aria-haspopup="menu"
       >
-        <AppSwitcherIcon
-          size={T.iconButton.iconSize}
-          color={T.state.appSwitcherColor}
-        />
+        <span
+          style={{
+            width: T.iconButton.size,
+            height: T.iconButton.size,
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <AppSwitcherIcon
+            size={T.iconButton.iconSize}
+            color={T.state.appSwitcherColor}
+          />
+        </span>
+        {isExpanded && <ExpandedLabel>Apps</ExpandedLabel>}
       </button>
     </Tooltip>
   );
 }
 
-function Divider() {
+// ---- Divider ------------------------------------------------------------
+
+function Divider({ isExpanded }) {
   return (
     <div
       role="separator"
       aria-orientation="horizontal"
       style={{
-        width: T.divider.width,
+        width: isExpanded ? "calc(100% - 24px)" : T.divider.width,
         height: T.divider.height,
         background: T.divider.color,
-        margin: `${T.divider.marginY}px 0`,
+        margin: `${T.divider.marginY}px ${isExpanded ? "12px" : "0"}`,
+        flexShrink: 0,
       }}
     />
   );
 }
+
+// ---- Module item --------------------------------------------------------
 
 function RailItem({
   item,
   isActive,
   hasChildren,
   isFlyoutOpen,
+  isExpanded,
   buttonRef,
   onClick,
 }) {
@@ -313,7 +469,7 @@ function RailItem({
       : T.state.bgDefault;
 
   return (
-    <Tooltip label={item.label}>
+    <Tooltip label={item.label} disabled={isExpanded}>
       <button
         type="button"
         ref={buttonRef}
@@ -323,15 +479,17 @@ function RailItem({
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
         style={{
-          width: T.iconButton.size,
+          width: isExpanded ? "100%" : T.iconButton.size,
           height: T.iconButton.size,
           borderRadius: T.iconButton.radius,
           border: "none",
           background: bg,
           cursor: "pointer",
-          display: "grid",
-          placeItems: "center",
-          padding: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: isExpanded ? "flex-start" : "center",
+          padding: isExpanded ? "0 8px" : 0,
+          gap: isExpanded ? T.expandedLabel.marginLeft : 0,
           transition: T.iconButton.transition,
           position: "relative",
           outline: "none",
@@ -342,8 +500,19 @@ function RailItem({
         aria-haspopup={hasChildren ? "menu" : undefined}
         aria-expanded={hasChildren ? isFlyoutOpen : undefined}
       >
-        <Icon size={T.iconButton.iconSize} color={T.state.iconColor} />
-        {item.dot && <NotificationDot />}
+        <span
+          style={{
+            width: T.iconButton.size,
+            height: T.iconButton.size,
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon size={T.iconButton.iconSize} color={T.state.iconColor} />
+        </span>
+        {isExpanded && <ExpandedLabel>{item.label}</ExpandedLabel>}
+        {item.dot && (isExpanded ? <InlineDot /> : <NotificationDot />)}
       </button>
     </Tooltip>
   );
@@ -368,11 +537,29 @@ function NotificationDot() {
   );
 }
 
-function FooterIconButton({ label, onClick, Icon }) {
+function InlineDot() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        marginLeft: "auto",
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+        background: "#004BEF",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+// ---- Footer icon button -------------------------------------------------
+
+function FooterIconButton({ label, onClick, Icon, isExpanded }) {
   const [hover, setHover] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
   return (
-    <Tooltip label={label}>
+    <Tooltip label={label} disabled={isExpanded}>
       <button
         type="button"
         onClick={onClick}
@@ -381,28 +568,43 @@ function FooterIconButton({ label, onClick, Icon }) {
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
         style={{
-          width: T.iconButton.size,
+          width: isExpanded ? "100%" : T.iconButton.size,
           height: T.iconButton.size,
           borderRadius: T.iconButton.radius,
           border: "none",
           background: hover ? T.state.bgHover : "transparent",
           cursor: "pointer",
-          display: "grid",
-          placeItems: "center",
-          padding: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: isExpanded ? "flex-start" : "center",
+          padding: isExpanded ? "0 8px" : 0,
+          gap: isExpanded ? T.expandedLabel.marginLeft : 0,
           transition: T.iconButton.transition,
           outline: "none",
           boxShadow: focus ? T.state.focusRing : "none",
         }}
         aria-label={label}
       >
-        <Icon size={T.iconButton.iconSize} color={T.state.iconColor} />
+        <span
+          style={{
+            width: T.iconButton.size,
+            height: T.iconButton.size,
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon size={T.iconButton.iconSize} color={T.state.iconColor} />
+        </span>
+        {isExpanded && <ExpandedLabel>{label}</ExpandedLabel>}
       </button>
     </Tooltip>
   );
 }
 
-function Avatar({ initial, onClick }) {
+// ---- Avatar -------------------------------------------------------------
+
+function Avatar({ initial, name, onClick, isExpanded }) {
   const [focus, setFocus] = React.useState(false);
   return (
     <button
@@ -411,35 +613,71 @@ function Avatar({ initial, onClick }) {
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
       style={{
-        width: T.avatar.size,
-        height: T.avatar.size,
-        borderRadius: T.avatar.radius,
-        background: T.avatar.bg,
-        color: T.avatar.fg,
-        display: "grid",
-        placeItems: "center",
+        width: isExpanded ? "100%" : T.avatar.size,
+        height: isExpanded ? T.iconButton.size : T.avatar.size,
+        background: "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: isExpanded ? "flex-start" : "center",
         cursor: "pointer",
         border: "none",
-        fontFamily: T.font.sans,
-        fontSize: T.avatar.fontSize,
-        fontWeight: T.avatar.fontWeight,
-        padding: 0,
+        padding: isExpanded ? `0 ${(T.iconButton.size - T.avatar.size) / 2}px` : 0,
+        gap: isExpanded ? T.expandedLabel.marginLeft : 0,
         marginTop: T.footer.avatarMarginTop,
         outline: "none",
         boxShadow: focus ? T.state.focusRing : "none",
+        borderRadius: isExpanded ? T.iconButton.radius : T.avatar.radius,
       }}
-      aria-label="Profile"
+      aria-label={isExpanded ? `Profile — ${name}` : "Profile"}
     >
-      {initial}
+      <span
+        style={{
+          width: T.avatar.size,
+          height: T.avatar.size,
+          borderRadius: T.avatar.radius,
+          background: T.avatar.bg,
+          color: T.avatar.fg,
+          display: "grid",
+          placeItems: "center",
+          fontFamily: T.font.sans,
+          fontSize: T.avatar.fontSize,
+          fontWeight: T.avatar.fontWeight,
+          flexShrink: 0,
+        }}
+      >
+        {initial}
+      </span>
+      {isExpanded && <ExpandedLabel>{name}</ExpandedLabel>}
     </button>
   );
 }
 
-function Tooltip({ label, children }) {
+// ---- Shared bits --------------------------------------------------------
+
+function ExpandedLabel({ children }) {
+  return (
+    <span
+      style={{
+        fontFamily: T.font.sans,
+        fontSize: T.expandedLabel.fontSize,
+        fontWeight: T.expandedLabel.fontWeight,
+        color: T.expandedLabel.color,
+        whiteSpace: "nowrap",
+        transition: T.expandedLabel.fadeIn,
+        pointerEvents: "none",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Tooltip({ label, children, disabled = false }) {
   const [show, setShow] = React.useState(false);
   const timerRef = React.useRef(null);
 
   const open = () => {
+    if (disabled) return;
     timerRef.current = setTimeout(() => setShow(true), T.tooltip.delayMs);
   };
   const close = () => {
@@ -448,6 +686,10 @@ function Tooltip({ label, children }) {
   };
 
   React.useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  if (disabled) {
+    return <>{children}</>;
+  }
 
   return (
     <div

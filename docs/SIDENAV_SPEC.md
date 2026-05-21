@@ -23,6 +23,18 @@ Top-to-bottom, vertically stacked inside a 64 px fixed-position rail:
 5. **Spacer** — `flex: 1`, pushes the footer to the bottom.
 6. **Footer group** — Help → Settings → Avatar, in that order.
 
+### Floating chrome
+
+A single floating element is layered above the item flow — it is **not**
+a new slot in the anatomy and never displaces an item:
+
+- **Collapse/expand toggle** — 28 × 28 button anchored at `top: 12 px;
+  right: 8 px` relative to the `<aside>`. Renders lucide's `PanelLeft`
+  glyph at 18 px in `#1F2440`. Tooltip copy switches between `"Expand
+  sidebar"` (collapsed) and `"Collapse sidebar"` (expanded). Tab order:
+  appended at the end of the rail sequence so it never reorders the
+  existing focusables.
+
 ## 9-dot app switcher
 
 The 9-dot menu (`components/AppSwitcherPopover.jsx`) keeps its public
@@ -68,10 +80,15 @@ Do not duplicate this primitive — extend it.
 
 | Token                               | Value             |
 | ----------------------------------- | ----------------- |
-| Rail width                          | 64 px             |
+| Rail width (collapsed, default)     | 64 px             |
+| Rail width (expanded)               | 260 px            |
+| Rail width transition               | `width 200ms ease`|
 | Rail vertical padding               | 16 px top/bot     |
+| Rail horizontal padding (collapsed) | 0 px              |
+| Rail horizontal padding (expanded)  | 12 px L/R         |
 | Brand slot height                   | 64 px             |
 | Brand logo size                     | 28 × 28 px        |
+| Wordmark (expanded)                 | 16 / 700 `#1F2440`, marginLeft 8 |
 | App switcher button                 | 40 × 40 px        |
 | App switcher radius                 | 8 px              |
 | Module icon button                  | 40 × 40 px        |
@@ -83,6 +100,9 @@ Do not duplicate this primitive — extend it.
 | Avatar margin-top                   | 8 px              |
 | Divider                             | 32 × 1 px, margin 12 px |
 | Icon glyph                          | 22 × 22 px        |
+| Expanded label                      | 14 / 500 `#1F2440`, marginLeft 12, fade `opacity 150ms ease 50ms` |
+| Toggle button                       | 28 × 28 px, 6 px radius, anchored `top: 12 right: 8` |
+| Toggle icon glyph                   | 18 × 18 px, `#1F2440` |
 
 ## Color tokens
 
@@ -127,6 +147,87 @@ interactive element.
   drop shadow `0 2px 6px rgba(0,0,0,0.15)`, `pointer-events: none`,
   `role="tooltip"`.
 - Dismissal: hover-out, blur, or unmount.
+- **Suppression in expanded state**: every interactive element has its
+  label visible, so tooltips are suppressed via the `Tooltip` component's
+  internal `disabled` prop. The collapse/expand toggle is the only
+  exception — its glyph is unlabeled in both states, so its tooltip
+  stays active (copy switches between `"Expand sidebar"` /
+  `"Collapse sidebar"`).
+
+## Collapse/expand state
+
+The rail has two width states. Switching does not alter the existing
+6-element anatomy — every item stays in its slot and the toggle floats
+above the item flow as documented under **Floating chrome**.
+
+| Property               | Collapsed (default) | Expanded                     |
+| ---------------------- | ------------------- | ---------------------------- |
+| Rail width             | 64 px               | 260 px                       |
+| Horizontal padding     | 0                   | 12 px L/R                    |
+| Brand slot             | logo centered       | logo + `dataOrb` wordmark    |
+| App switcher           | 40 × 40 icon-only   | full-width row, `Apps` label |
+| Module items           | icon-only buttons   | full-width rows, label after icon, dot moves inline-right |
+| Sub-menu parents       | open `RailFlyout`   | open `RailFlyout` (V1 — inline accordion deferred) |
+| Help / Settings        | icon-only           | row + label                  |
+| Avatar                 | 32 × 32 circle      | circle + full user name      |
+| Tooltips               | shown on hover/focus | suppressed (toggle exempt)   |
+| Notification dot       | absolute top-right corner | inline, right-aligned, vertically centered |
+
+### Width sync
+
+`<SideNav>` writes `--sidenav-width` on `:root` whenever the state
+changes (`64px` collapsed, `260px` expanded). `PageLayout` already reads
+that variable for its left offset, so every page reflows automatically
+with no consumer change. A sibling attribute `data-sidenav="expanded" |
+"collapsed"` is set on `<html>`; the body `min-width` swap is driven by:
+
+```css
+:root[data-sidenav="expanded"] body {
+  min-width: var(--page-min-width-expanded); /* 1456 px */
+}
+```
+
+Below the active min-width, the page horizontal-scrolls — same pattern
+the app already uses below the collapsed-state floor of 1260 px. No new
+responsive breakpoints are introduced.
+
+### Motion
+
+- `<aside>` width transitions `width 200ms ease`. The CSS-var change
+  propagates the main-content offset transition naturally.
+- Labels (brand wordmark, item labels, footer labels) fade in via
+  `opacity 150ms ease 50ms` — opacity-only, no slide motion.
+- Tooltip suppression is instant.
+
+### Persistence
+
+Single source of truth: `localStorage`, key `dataorb.sidenav.expanded`
+(string `"true"` / `"false"`). Default when unset: `false` (collapsed).
+The app shell (`app/page.jsx`) owns the read/write handshake and passes
+the value down via `isExpanded` + `onToggleExpanded`. Every
+`localStorage` access is guarded with `typeof window !== "undefined"`
+to stay SSR-safe; a brief one-frame flash from collapsed to expanded on
+first paint is accepted for V1 (open question #10).
+
+### Sub-menu anchoring
+
+`RailFlyout` anchors against the trigger's right edge (`rect.right +
+12`), so per-icon sub-menus open at the correct offset in **both** rail
+widths without any hardcoded width literal.
+
+### What does NOT change
+
+- The 6-element anatomy order is preserved exactly. No item is added,
+  removed, reordered, demoted, or pushed down. The toggle is floating
+  chrome, not a slot.
+- Per-module configs (`askMiraConfig`, `learningHubConfig`,
+  `insightsHubConfig`) are untouched. Every existing `SideNavItem`
+  already carries a `label` which now renders in the expanded row.
+- Sub-menu parent items keep their existing `RailFlyout` behavior in
+  both states. The inline-accordion redesign is deferred (open question
+  #2 below).
+- The avatar keeps its filled `#1B92A6` circle when expanded; the user
+  name renders beside it, not in place of it.
 
 ## Accessibility
 
@@ -217,8 +318,16 @@ The shared `<SideNav config={…} />` accepts:
 - `onAppSwitcherClick`, `onHelpClick`, `onSettingsClick`, `onAvatarClick`.
 - `appSwitcherTriggerRef` — exposed so the popover can position against it.
 - `userInitial?: string` — defaults to `"T"`.
+- `userName?: string` — full name shown beside the avatar in expanded
+  state; defaults to `"Demo Internal"`.
 - `showHelp?: boolean` — defaults to `true`; allows future modules to hide
   Help if explicitly approved at the spec level.
+- `isExpanded?: boolean` — collapse/expand state. Defaults to `false`
+  (collapsed). Omit to let the component manage state internally;
+  recommended pattern is to control it from the app shell so the
+  parent can own the `localStorage` handshake.
+- `onToggleExpanded?: () => void` — fired when the toggle is clicked.
+  Required when `isExpanded` is supplied.
 
 Modules **may not** override colors, dimensions, motion, tooltip behavior,
 focus styling, or footer composition. Anything that would require such an
@@ -261,10 +370,27 @@ override is a spec change and must update this document first.
 - [ ] Tooltips appear after 300 ms with correct placement and copy.
 - [ ] Footer order: Help → Settings → Avatar.
 - [ ] Avatar is `#1B92A6`, 32 × 32, white initial, 700 weight.
-- [ ] Tab order: app switcher → module items → help → settings → avatar.
+- [ ] Tab order: app switcher → module items → help → settings → avatar
+      → toggle (appended at end).
 - [ ] No module-specific colors or sizes leak into the shared component.
 - [ ] 9-dot popover (`AppSwitcherPopover.jsx`) is unmodified and the
       Insights ↔ Learning round-trip still works.
+- [ ] Existing 6-element anatomy is preserved exactly — no item is
+      reordered, demoted, or shifted by the toggle addition.
+- [ ] Toggle renders as floating chrome at the top-right of the rail,
+      layered above the item flow.
+- [ ] Toggle does not overlap the dataOrb logo in collapsed state.
+- [ ] Toggle persists state across page refresh via the
+      `dataorb.sidenav.expanded` localStorage key.
+- [ ] Expanded width is exactly 260 px; transition is 200 ms.
+- [ ] Expanded labels match `item.label` verbatim; tooltips are
+      suppressed (except on the toggle itself).
+- [ ] Main content offset transitions without jank because
+      `--sidenav-width` propagates through `PageLayout`.
+- [ ] Avatar shows the full user name in expanded; initial-only in
+      collapsed.
+- [ ] Sub-menu parent items still open `RailFlyout` correctly in both
+      widths (anchor uses `rect.right + 12`, not a hardcoded `64`).
 
 ## Contract limitations to plan around
 

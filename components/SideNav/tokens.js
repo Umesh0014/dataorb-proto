@@ -6,15 +6,46 @@
 export const SIDENAV_TOKENS = {
   rail: {
     width: 64,
+    expandedWidth: 260,
     bg: "#EFEEF6",
     border: "#E4E2EE",
     paddingY: 16,
+    paddingXExpanded: 12,
     zIndex: 30,
+    widthTransition: "width 200ms ease",
   },
   brand: {
     slotHeight: 64,
     logoSize: 28,
     marginBottom: 4,
+    wordmark: {
+      text: "dataOrb",
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#1F2440",
+      marginLeft: 8,
+    },
+  },
+  expandedLabel: {
+    fontSize: 14,
+    fontWeight: 500,
+    color: "#1F2440",
+    marginLeft: 12,
+    fadeIn: "opacity 150ms ease 50ms",
+  },
+  toggle: {
+    // Floating handle straddling the rail's right edge — half inside,
+    // half outside. Sits in the brand-slot vertical band so it reads
+    // beside the logo without overlapping it.
+    size: 28,
+    radius: 999, // full circle reads cleanly on the edge
+    iconSize: 16,
+    iconColor: "#1F2440",
+    anchorTop: 18,
+    anchorRight: -14, // (size / 2) — center on the rail's right border
+    bg: "var(--surface-white)",
+    border: "1px solid var(--color-divider-card)",
+    tooltipCopy: { collapsed: "Expand sidebar", expanded: "Collapse sidebar" },
   },
   divider: {
     width: 32,

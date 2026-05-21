@@ -201,6 +201,9 @@
      Element sizes are fixed (token-based); only the layout responds.
      ============================================================== */
   --sidenav-width:               64px;
+  --sidenav-width-collapsed:     64px;
+  --sidenav-width-expanded:      260px;
+  --page-min-width-expanded:    1456px;
   --page-gutter:                 64px;
   --page-content-max-width:      1068px;
   --page-right-panel-width:      320px;
@@ -221,6 +224,14 @@ html, body {
   width: 100%;
   min-width: var(--page-min-width);
   min-height: 100vh;
+}
+
+/* When the SideNav is expanded, the body min-width grows so the
+   1068px content column + 64px gutters keep room beside the 260px rail.
+   Below this width the page scrolls horizontally — same pattern the app
+   already uses below the collapsed-state floor of 1260px. */
+:root[data-sidenav="expanded"] body {
+  min-width: var(--page-min-width-expanded);
 }
 
 body {

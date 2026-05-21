@@ -38,7 +38,9 @@ export default function RailFlyout({
   React.useEffect(() => {
     if (!anchorRef?.current) return;
     const rect = anchorRef.current.getBoundingClientRect();
-    setPos({ top: rect.top, left: 64 + 12 });
+    // Anchor against the trigger's right edge so the flyout sits correctly
+    // at both rail widths (64 collapsed / 260 expanded) without hardcoding.
+    setPos({ top: rect.top, left: rect.right + 12 });
   }, [open, anchorRef]);
 
   React.useEffect(() => {
