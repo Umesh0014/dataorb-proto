@@ -1,37 +1,44 @@
 "use client";
 
 import React from "react";
-import DashboardShell from "../components/DashboardShell";
-import AppSwitcherPopover from "../components/AppSwitcherPopover";
-import InsightsHubPage from "../components/InsightsHubPage";
-import LearningHubPage from "../components/LearningHubPage";
-import DrillDetailPage from "../components/DrillDetailPage";
-import NewRoleplayPage from "../components/NewRoleplayPage";
-import NewRoleplayContextPage from "../components/NewRoleplayContextPage";
-import InteractionsPage from "../components/InteractionsPage";
-import AgentsPage from "../components/AgentsPage";
-import AgentProfile from "../components/AgentProfile";
-import MissionsPage from "../components/MissionsPage";
+import { usePathname, useRouter } from "next/navigation";
+import DashboardShell from "../../components/DashboardShell";
+import AppSwitcherPopover from "../../components/AppSwitcherPopover";
+import InsightsHubPage from "../../components/InsightsHubPage";
+import LearningHubPage from "../../components/LearningHubPage";
+import DrillDetailPage from "../../components/DrillDetailPage";
+import NewRoleplayPage from "../../components/NewRoleplayPage";
+import NewRoleplayContextPage from "../../components/NewRoleplayContextPage";
+import InteractionsPage from "../../components/InteractionsPage";
+import AgentsPage from "../../components/AgentsPage";
+import AgentProfile from "../../components/AgentProfile";
+import MissionsPage from "../../components/MissionsPage";
 import MissionWizardPage, {
   EMPTY_MISSION_DRAFT,
-} from "../components/MissionWizardPage";
-import ComingSoon from "../components/ComingSoon";
-import AskMiraProPage from "../components/AskMiraProPage";
-import MiraSetupContextPanel from "../components/MiraSetupContextPanel";
-import MiraChatsPage from "../components/MiraChatsPage";
-import SkillsPage from "../components/SkillsPage";
-import SkillRecordPage from "../components/SkillRecordPage";
-import TasksPage from "../components/TasksPage";
-import TaskRecordPage from "../components/TaskRecordPage";
+} from "../../components/MissionWizardPage";
+import ComingSoon from "../../components/ComingSoon";
+import AskMiraProPage from "../../components/AskMiraProPage";
+import MiraSetupContextPanel from "../../components/MiraSetupContextPanel";
+import MiraChatsPage from "../../components/MiraChatsPage";
+import SkillsPage from "../../components/SkillsPage";
+import SkillRecordPage from "../../components/SkillRecordPage";
+import TasksPage from "../../components/TasksPage";
+import TaskRecordPage from "../../components/TaskRecordPage";
 import CreateTaskWizardPage, {
   EMPTY_TASK_DRAFT,
   SKILL_CATALOGUE,
-} from "../components/CreateTaskWizardPage";
-import { TASKS as INITIAL_TASKS } from "../components/mocks/tasks";
+} from "../../components/CreateTaskWizardPage";
+import { TASKS as INITIAL_TASKS } from "../../components/mocks/tasks";
 import {
   RESPONSE_TEMPLATE,
   INITIAL_MIRA_CONVERSATIONS,
-} from "../components/mocks/miraConversation";
+} from "../../components/mocks/miraConversation";
+import PageLayout from "../../components/PageLayout";
+import SideNav from "../../components/SideNav/SideNav";
+import FilterPanel from "../../components/FilterPanel";
+import { insightsHubConfig } from "../../components/SideNav/configs/insightsHubConfig";
+import { learningHubConfig } from "../../components/SideNav/configs/learningHubConfig";
+import { askMiraConfig } from "../../components/SideNav/configs/askMiraConfig";
 
 const MIRA_RESPONSE_DELAY_MS = 800;
 
@@ -50,12 +57,6 @@ const EMPTY_ROLEPLAY = {
     context: "",
   },
 };
-import PageLayout from "../components/PageLayout";
-import SideNav from "../components/SideNav/SideNav";
-import FilterPanel from "../components/FilterPanel";
-import { insightsHubConfig } from "../components/SideNav/configs/insightsHubConfig";
-import { learningHubConfig } from "../components/SideNav/configs/learningHubConfig";
-import { askMiraConfig } from "../components/SideNav/configs/askMiraConfig";
 
 // Single page-resolver per module. Built routes map to real components;
 // missing routes map to <ComingSoon pageName=… />. No 404s, no blank screens.
@@ -102,11 +103,120 @@ function generateTaskId() {
   return out;
 }
 
+// ---- URL ↔ nav state ----------------------------------------------------
+
+const DEFAULT_NAV = {
+  currentPage: "insights",
+  insightsNav: "contact-center",
+  learningNav: "drill",
+  miraNav: "chat",
+};
+
+// deriveNav — pathname → { currentPage, insightsNav, learningNav, miraNav }.
+// Unknown paths fall through to the defaults (no 404). Module-only paths
+// (/learning, /insights, /mira) resolve to that module's default sub-section
+// for rendering; the redirect-to-canonical-URL is handled separately via a
+// router.replace effect.
+function deriveNav(pathname) {
+  if (!pathname || pathname === "/") return { ...DEFAULT_NAV };
+  const segs = pathname.split("/").filter(Boolean);
+  if (segs.length === 0) return { ...DEFAULT_NAV };
+
+  const next = { ...DEFAULT_NAV };
+
+  if (segs[0] === "insights") {
+    next.currentPage = "insights";
+    if (segs.length >= 2) {
+      if (segs[1] === "agents") {
+        // /insights/agents/performance | /insights/agents/session
+        next.insightsNav = segs[2] === "session" ? "session" : "agent-performance";
+      } else {
+        // /insights/contact-center | /insights/reports | /insights/interaction
+        next.insightsNav = segs[1];
+      }
+    }
+  } else if (segs[0] === "learning") {
+    next.currentPage = "learning";
+    if (segs.length >= 2) next.learningNav = segs[1];
+  } else if (segs[0] === "mira") {
+    next.currentPage = "mira";
+    if (segs.length >= 2) next.miraNav = segs[1];
+  }
+  return next;
+}
+
+// Path builders — used wherever the app used to call setCurrentPage /
+// setXxxNav. The strings match the `route` fields in the per-module configs.
+function pathForCurrentPage(currentPage) {
+  if (currentPage === "learning") return "/learning/drill";
+  if (currentPage === "mira") return "/mira/chat";
+  return "/insights/contact-center";
+}
+
+function pathForInsights(id) {
+  if (id === "agent-performance") return "/insights/agents/performance";
+  if (id === "session") return "/insights/agents/session";
+  // Parent ids fall through to their first child's path.
+  if (id === "rocket") return "/insights/contact-center";
+  if (id === "headset") return "/insights/agents/performance";
+  return `/insights/${id}`;
+}
+
+function pathForLearning(id) {
+  return `/learning/${id}`;
+}
+
+function pathForMira(id) {
+  return `/mira/${id}`;
+}
+
 export default function Page() {
-  const [currentPage, setCurrentPage] = React.useState("insights"); // 'insights' | 'learning' | 'mira'
-  const [insightsNav, setInsightsNav] = React.useState("contact-center");
-  const [learningNav, setLearningNav] = React.useState("drill");
-  const [miraNav, setMiraNav] = React.useState("chat");
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // URL is the source of truth for module + sub-section. Derive the four
+  // nav ids on every render from the pathname; nav-driving setState calls
+  // are replaced with router.push() against the same URL schema.
+  const { currentPage, insightsNav, learningNav, miraNav } = React.useMemo(
+    () => deriveNav(pathname),
+    [pathname],
+  );
+
+  // Module-only paths (/insights | /learning | /mira) redirect to the
+  // module's default sub-section so the address bar always shows a
+  // canonical leaf path. router.replace keeps the redirect out of history.
+  React.useEffect(() => {
+    if (pathname === "/learning") router.replace(pathForLearning("drill"));
+    else if (pathname === "/insights") router.replace(pathForInsights("contact-center"));
+    else if (pathname === "/mira") router.replace(pathForMira("chat"));
+  }, [pathname, router]);
+
+  const [sidenavExpanded, setSidenavExpanded] = React.useState(false);
+
+  // Restore the SideNav expand/collapse state from localStorage on first
+  // mount. Default is collapsed; one-frame flash on first paint is
+  // acceptable for V1 (sidenav spec §8).
+  React.useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    try {
+      const stored = window.localStorage.getItem("dataorb.sidenav.expanded");
+      if (stored === "true") setSidenavExpanded(true);
+    } catch {
+      // localStorage blocked (private window etc.) — fall back to default.
+    }
+    return undefined;
+  }, []);
+
+  const handleToggleSidenav = () => {
+    const next = !sidenavExpanded;
+    try {
+      window.localStorage.setItem("dataorb.sidenav.expanded", String(next));
+    } catch {
+      // ignore write errors
+    }
+    setSidenavExpanded(next);
+  };
+
   const [skillRecordId, setSkillRecordId] = React.useState(null);
   const [taskRecordId, setTaskRecordId] = React.useState(null);
   const [tasks, setTasks] = React.useState(INITIAL_TASKS);
@@ -165,14 +275,15 @@ export default function Page() {
   const startNewMiraChat = React.useCallback(() => {
     setMiraActiveId(null);
     setMiraPendingTurnId(null);
-    setMiraNav("chat");
-  }, []);
+    router.push(pathForMira("chat"));
+  }, [router]);
 
   const openMiraConversation = React.useCallback((id) => {
     setMiraActiveId(id);
     setMiraPendingTurnId(null);
-    setMiraNav("chat");
-  }, []);
+    router.push(pathForMira("chat"));
+  }, [router]);
+
   const [drillDetailId, setDrillDetailId] = React.useState(null);
   const [agentProfileId, setAgentProfileId] = React.useState(null);
   const [selectedMissionId, setSelectedMissionId] = React.useState(null);
@@ -253,7 +364,7 @@ export default function Page() {
   const openMission = (missionId) => {
     setAgentProfileId(null);
     setSelectedMissionId(missionId);
-    setLearningNav("missions");
+    router.push(pathForLearning("missions"));
   };
   const saveMissionDraft = (draft) => {
     // TODO: persist draft mission server-side; logging for prototype.
@@ -275,9 +386,6 @@ export default function Page() {
     const miraRightPanel = isChat && miraSetupOpen
       ? <MiraSetupContextPanel open onClose={() => setMiraSetupOpen(false)} />
       : null;
-    // Panel is gated on isChat (history route doesn't show the composer),
-    // but allowed in both home + chat conversation states since the chip
-    // lives in the composer that persists across both.
 
     let miraContent;
     if (isChat) {
@@ -350,10 +458,12 @@ export default function Page() {
             setTaskRecordId(null);
             setTaskWizardStep(null);
             setTaskDraft(EMPTY_TASK_DRAFT);
-            setMiraNav(id);
+            router.push(pathForMira(id));
           }}
           appSwitcherTriggerRef={appMenuTriggerRef}
           onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
+          isExpanded={sidenavExpanded}
+          onToggleExpanded={handleToggleSidenav}
         />
         <PageLayout
           rightPanel={miraRightPanel}
@@ -372,8 +482,8 @@ export default function Page() {
             setTaskRecordId(null);
             setTaskWizardStep(null);
             setTaskDraft(EMPTY_TASK_DRAFT);
-            setCurrentPage(page);
             setAppMenuOpen(false);
+            router.push(pathForCurrentPage(page));
           }}
         />
       </>
@@ -465,10 +575,12 @@ export default function Page() {
             setSelectedMissionId(null);
             cancelRoleplay();
             closeMissionWizard();
-            setLearningNav(id);
+            router.push(pathForLearning(id));
           }}
           appSwitcherTriggerRef={appMenuTriggerRef}
           onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
+          isExpanded={sidenavExpanded}
+          onToggleExpanded={handleToggleSidenav}
         />
         {missionsPopulated ? (
           <MissionsPage
@@ -487,11 +599,9 @@ export default function Page() {
             setDrillDetailId(null);
             setAgentProfileId(null);
             cancelRoleplay();
-            setDrillDetailId(null);
-            cancelRoleplay();
             closeMissionWizard();
-            setCurrentPage(page);
             setAppMenuOpen(false);
+            router.push(pathForCurrentPage(page));
           }}
         />
       </>
@@ -510,12 +620,14 @@ export default function Page() {
       activeId={insightsNav}
       onSelect={(id) => {
         if (id !== "contact-center") setFiltersOpen(false);
-        setInsightsNav(id);
+        router.push(pathForInsights(id));
       }}
       onAppMenuClick={() => setAppMenuOpen((o) => !o)}
       appMenuTriggerRef={appMenuTriggerRef}
       rightPanel={insightsRightPanel}
       onPanelClose={() => setFiltersOpen(false)}
+      isExpanded={sidenavExpanded}
+      onToggleExpanded={handleToggleSidenav}
     >
       <InsightsPage
         pageName={pageName}
@@ -529,8 +641,8 @@ export default function Page() {
         anchorRef={appMenuTriggerRef}
         currentPage={currentPage}
         onSelectPage={(page) => {
-          setCurrentPage(page);
           setAppMenuOpen(false);
+          router.push(pathForCurrentPage(page));
         }}
       />
     </DashboardShell>
