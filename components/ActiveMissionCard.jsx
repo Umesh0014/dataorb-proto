@@ -20,85 +20,93 @@ export default function ActiveMissionCard({ mission, expanded, onToggle, onViewM
   const bodyId = `mission-body-${mission.id}`;
 
   return (
-    <Card tone="muted">
-      <div
-        role="button"
-        tabIndex={0}
-        aria-expanded={expanded}
-        aria-controls={bodyId}
-        onClick={onToggle}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onToggle();
-          }
-        }}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={{
-          ...amStyles.header,
-          background: hover ? "var(--pill-bg)" : "transparent",
-        }}
+    // Wrapper owns whole-card hover detection (the Card primitive doesn't
+    // forward mouse events). Collapsed cards raise --shadow-card on hover;
+    // expanded cards have no hover affordance.
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ cursor: expanded ? "default" : "pointer" }}
+    >
+      <Card
+        tone="outline"
+        shadow={!expanded && hover}
+        style={{ transition: "box-shadow 120ms ease" }}
       >
-        <span style={amStyles.headerLeft}>
-          <ChevronRight
-            size={16}
-            color="var(--color-text-tertiary)"
-            style={{
-              flexShrink: 0,
-              transition: "transform 120ms ease",
-              transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-            }}
-          />
-          <span style={amStyles.title}>{mission.title}</span>
-        </span>
-        <div style={amStyles.meta}>
-          <span style={amStyles.metaItem}>
-            <Clipboard size={14} />
-            {mission.roleplaysCompleted}/{mission.roleplaysTotal} Roleplays
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+          onClick={onToggle}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onToggle();
+            }
+          }}
+          style={amStyles.header}
+        >
+          <span style={amStyles.headerLeft}>
+            <ChevronRight
+              size={16}
+              color="var(--color-text-tertiary)"
+              style={{
+                flexShrink: 0,
+                transition: "transform 120ms ease",
+                transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
+              }}
+            />
+            <span style={amStyles.title}>{mission.title}</span>
           </span>
-          <span
-            style={{
-              ...amStyles.metaItem,
-              color: urgent ? "var(--color-error)" : "var(--color-text-tertiary)",
-            }}
-          >
-            <Clock size={14} />
-            {mission.daysLeft} days left
-          </span>
-          {!expanded && (
-            <InlineStatusAffordance tone={summaryTone(met, below)}>
-              {summaryLabel(met, below)}
-            </InlineStatusAffordance>
-          )}
-          <Button
-            variant="text"
-            uppercase={false}
-            trailingIcon={<ArrowRight size={14} />}
-            style={amStyles.viewCta}
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewMission?.(mission.pageMissionId);
-            }}
-          >
-            View mission
-          </Button>
+          <div style={amStyles.meta}>
+            <span style={amStyles.metaItem}>
+              <Clipboard size={14} />
+              {mission.roleplaysCompleted}/{mission.roleplaysTotal} Roleplays
+            </span>
+            <span
+              style={{
+                ...amStyles.metaItem,
+                color: urgent ? "var(--color-error)" : "var(--color-text-tertiary)",
+              }}
+            >
+              <Clock size={14} />
+              {mission.daysLeft} days left
+            </span>
+            {!expanded && (
+              <InlineStatusAffordance tone={summaryTone(met, below)}>
+                {summaryLabel(met, below)}
+              </InlineStatusAffordance>
+            )}
+            <Button
+              variant="text"
+              uppercase={false}
+              trailingIcon={<ArrowRight size={14} />}
+              style={amStyles.viewCta}
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewMission?.(mission.pageMissionId);
+              }}
+            >
+              View mission
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <div
-        id={bodyId}
-        style={{
-          maxHeight: expanded ? 2000 : 0,
-          overflow: "hidden",
-          transition: "max-height 200ms ease-out",
-        }}
-      >
-        <div style={amStyles.body}>
-          <FocusAreaTable focusAreas={mission.focusAreas} />
+        <div
+          id={bodyId}
+          style={{
+            maxHeight: expanded ? 2000 : 0,
+            overflow: "hidden",
+            transition: "max-height 200ms ease-out",
+          }}
+        >
+          <div style={amStyles.body}>
+            <FocusAreaTable focusAreas={mission.focusAreas} />
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
@@ -266,12 +274,6 @@ const amStyles = {
     justifyContent: "space-between",
     gap: 16,
     cursor: "pointer",
-    borderRadius: 8,
-    // Net-zero padding + negative margin: the padded hover surface bleeds
-    // toward (not to) the card edges without shifting the resting layout.
-    padding: "8px 12px",
-    margin: "-8px -12px",
-    transition: "background 120ms ease",
   },
   headerLeft: {
     display: "flex",
