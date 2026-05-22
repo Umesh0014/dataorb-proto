@@ -20,6 +20,7 @@ import Card from "./Card";
 import Button from "./Button";
 import { SkillsIcon } from "./SideNav/icons";
 import { SKILLS } from "./mocks/skills";
+import { formatDate } from "./formatDate";
 
 // SkillsPage — Ask Mira Pro module's Skills library landing page. Lists
 // every runnable AI skill as a card grid; picking a skill is the first
@@ -43,18 +44,6 @@ const TINT = {
   orange: { bg: "var(--color-warning-bg)", glyph: "var(--color-warning)" },
   red: { bg: "var(--color-error-bg)", glyph: "var(--color-error)" },
 };
-
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
-// formatDate — ISO date → "DD MMM YYYY" (e.g. "23 Mar 2026").
-function formatDate(iso) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
 
 export default function SkillsPage({ pageName, onOpenSkill }) {
   const [search, setSearch] = React.useState("");

@@ -3,6 +3,7 @@
 import React from "react";
 import Card from "./Card";
 import useMeasuredWidth from "./useMeasuredWidth";
+import { formatDate } from "./formatDate";
 
 // Seed data for the Adherence rate tab. Each point:
 //   date (ISO), agent (int %), orgAverage (int %)
@@ -18,7 +19,6 @@ const adherenceRateData = [
 
 const CHART_HEIGHT = 300;
 const Y_TICKS = [0, 20, 40, 60, 80, 100];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // AdherenceRateChart — hand-rolled SVG line chart with two series (agent's
 // daily adherence rate, solid + markers; org. average, dashed). Mirrors the
@@ -203,13 +203,6 @@ function ChartTooltip({ rect, point }) {
       </div>
     </Card>
   );
-}
-
-// formatDate — ISO date → "DD MMM YYYY" (e.g. "20 Mar 2026").
-function formatDate(iso) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 const arcStyles = {

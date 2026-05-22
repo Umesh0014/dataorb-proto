@@ -7,6 +7,7 @@ import MultiLineInput from "./MultiLineInput";
 import { FOCUS_AREAS } from "./mocks/missionFocusAreas";
 import { COVERAGE_DRIVERS, CONTACT_REASONS } from "./mocks/missionCoverage";
 import { AGENTS } from "./mocks/missionAgents";
+import { formatDate, formatDateRange } from "./formatDate";
 
 const NAME_MAX = 80;
 const DESCRIPTION_MAX = 300;
@@ -16,30 +17,17 @@ const DURATION_OPTIONS = [
   "1 Week", "2 Weeks", "3 Weeks", "4 Weeks",
   "6 Weeks", "8 Weeks", "12 Weeks",
 ];
-const MONTHS_SHORT = [
-  "Jan","Feb","Mar","Apr","May","Jun",
-  "Jul","Aug","Sep","Oct","Nov","Dec",
-];
-
-function formatDate(iso) {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-").map((n) => parseInt(n, 10));
-  if (!y || !m || !d) return iso;
-  return `${String(d).padStart(2, "0")} ${MONTHS_SHORT[m - 1]} ${y}`;
-}
-
+// computeEndDate — start ISO + "N Weeks" → end Date (UTC). Date math only;
+// rendering routes through the shared formatDate util.
 function computeEndDate(startIso, durationLabel) {
-  if (!startIso || !durationLabel) return "";
+  if (!startIso || !durationLabel) return null;
   const match = durationLabel.match(/(\d+)\s*Week/i);
-  if (!match) return "";
+  if (!match) return null;
   const weeks = parseInt(match[1], 10);
   const [y, m, d] = startIso.split("-").map((n) => parseInt(n, 10));
-  const start = new Date(y, m - 1, d);
-  start.setDate(start.getDate() + weeks * 7);
-  const ey = start.getFullYear();
-  const em = start.getMonth();
-  const ed = start.getDate();
-  return `${String(ed).padStart(2, "0")} ${MONTHS_SHORT[em]} ${ey}`;
+  const end = new Date(Date.UTC(y, m - 1, d));
+  end.setUTCDate(end.getUTCDate() + weeks * 7);
+  return end;
 }
 
 function shortName(fullName) {
@@ -91,7 +79,7 @@ export default function PreviewStep({ draft, onChange, onStepChange }) {
             label="Duration"
             value={
               draft.startDate
-                ? `${formatDate(draft.startDate)} - ${computeEndDate(draft.startDate, draft.duration)}`
+                ? formatDateRange(draft.startDate, computeEndDate(draft.startDate, draft.duration))
                 : ""
             }
           />

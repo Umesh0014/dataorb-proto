@@ -25,6 +25,7 @@ import FocusAreaStep, { isFocusAreaValid } from "./FocusAreaStep";
 import { FOCUS_AREAS } from "./mocks/missionFocusAreas";
 import { LEARNING_AGENTS } from "./mocks/learningAgents";
 import { COVERAGE_DRIVERS } from "./mocks/missionCoverage";
+import { formatDate, formatDateRange } from "./formatDate";
 
 // CreateTaskWizardPage — Create Task flow for the Ask Mira Pro module.
 // Four steps + a transient Data Processing modal between steps 2 and 3.
@@ -132,17 +133,6 @@ const SUGGESTED_FOCUS = [
   { focusAreaId: "fa-policy-accuracy", target: 80 },
 ];
 
-const MONTHS_SHORT = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
-function formatDateIso(iso) {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-").map((n) => parseInt(n, 10));
-  if (!y || !m || !d) return iso;
-  return `${String(d).padStart(2, "0")} ${MONTHS_SHORT[m - 1]} ${y}`;
-}
 
 function todayIso() {
   const d = new Date();
@@ -609,7 +599,7 @@ function TaskPreviewStep({ skill, parameters, focusRows, onEditParameters, onEdi
             label="DATE RANGE"
             value={
               parameters?.startDate && parameters?.endDate
-                ? `${formatDateIso(parameters.startDate)} → ${formatDateIso(parameters.endDate)}`
+                ? formatDateRange(parameters.startDate, parameters.endDate)
                 : "—"
             }
           />
@@ -940,7 +930,7 @@ function DateField({ value, onChange }) {
             color: isFilled ? "var(--color-text-deep)" : "var(--color-text-placeholder)",
           }}
         >
-          {isFilled ? formatDateIso(value) : "Select a date"}
+          {isFilled ? formatDate(value) : "Select a date"}
         </span>
         <Calendar size={18} color="var(--color-text-tertiary)" />
       </button>

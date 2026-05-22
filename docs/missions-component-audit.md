@@ -531,8 +531,27 @@ table card.
    `density` prop) once another Kanban-style surface ships.
 4. **Status enum order.** Workflow order shipped per V1 default. Flag if
    Akash prefers urgency-first (`At Risk < Ending Soon < Active < Completed`).
-5. **Date formatting.** `23 Mar 2026` (seed-data convention) treated as
-   canonical across the redesign.
+5. **Date formatting.** ✓ RESOLVED (2026-05-22). Superseded — the
+   `23 Mar 2026` convention is retired. Every date in DataOrb now routes
+   through the shared [`formatDate`](../components/formatDate.js) util:
+   - `formatDate` → `Mar 23, 2026`
+   - `formatDateRange` → `Mar 23 – Apr 1, 2026` (same year, en-dash, year
+     once) / `Dec 28, 2025 – Jan 4, 2026` (cross-year)
+   - `formatDateTime` → `Mar 23, 2026, 3:45 PM` (12-hour)
+
+   Migrated off inlined formatters (local `MONTHS`/`fmt*`/`formatDate`
+   deleted): AgentsPage, RoleplayCoverage, AdherenceRateChart,
+   ContactDriverTable, SkillsPage, SkillRecordPage, MissionWizardPage,
+   PreviewStep (computeEndDate keeps date math, returns a Date),
+   RecruitStep, CreateTaskWizardPage, ClosedMissions, MissionsPage
+   (fmtDateShort/fmtDateRange/fmtFullDate/fmtBannerDate), InteractionsPage
+   (→ formatDateTime), TaskRecordPage (→ formatDateTime). All UTC, ISO
+   stays the wire format, null → `—`. `CHURN_MONTHS`/`SALES_MONTHS` in
+   ChurnRiskCard/SalesOutcomesCard are chart data series (month buckets +
+   metric values), not date formatters — intentionally untouched.
+   Verified in browser: `Mar 22, 2026` (Agents), `May 12 – Jun 26, 2026`
+   (mission cards), `May 7, 2026, 4:50 PM` (Interactions),
+   `Mar 24, 2026, 6:00 AM` (Coaching Brief).
 6. **PageHeader detail-page slots.** `PageHeader` exposes
    identifier/primaryAction/filters/search/toolbar — no
    title/back/subtitle/accessory slots needed by detail pages. Detail
@@ -540,6 +559,66 @@ table card.
    MissionDetailPage) all use the `<Card padX={20} padY={16}>` shell
    instead. Long-term, extracting a shared `DetailHeader` primitive is
    worth doing.
+7. **KebabMenu portal + smart positioning.** ✓ RESOLVED (2026-05-22).
+   The per-row kebab menu was clipped by adjacent row cells — a
+   stacking-context + `overflow: hidden` trap, not a z-index problem.
+   [`KebabMenu`](../components/KebabMenu.jsx) now renders its surface via
+   `createPortal(…, document.body)` so it escapes the table card's
+   clipping entirely. Position is computed from the trigger's
+   `getBoundingClientRect()` in viewport coordinates (`position: fixed`):
+   - [x] Renders in a portal (parent is `<body>`, not the row cell).
+   - [x] Opens downward by default with an 8 px gap; **flips upward** when
+     `spaceBelow < menuHeight + 8` (verified on the bottom-most row at the
+     viewport bottom — menu sits above the trigger, fully in view).
+   - [x] Right-edge aligns with the trigger; clamps 8 px from the left and
+     right viewport edges (defensive — the narrow chassis never pushes the
+     menu past the left edge in practice).
+   - [x] Two-pass `useLayoutEffect` measure (`visibility: hidden` until
+     coords are set) — no position flash.
+   - [x] Closes on: item click (handler fires first), scrim click, Escape,
+     window scroll (capture phase), and resize. Focus returns to the
+     trigger on item/scrim/Escape close.
+   - [x] Verified on Missions Dense Table rows **and** the Current option's
+     active `DetailHeader`. `CompletedDetailHeader` and the complete-variant
+     `DraftDetailHeader` were migrated off their inline `dhStyles.menu`
+     duplicates (identical chrome → zero visual change) and now consume the
+     same shared component; `dhStyles.menu/menuScrim/menuItem` deleted.
+
+   **Not migrated (flagged):**
+   - `NextBestActions` keeps its own local kebab — a deliberately distinct
+     visual (round bordered `MoreHorizontal` button; `shadow-4` + bordered
+     `minWidth: 160` menu). Folding it into the shared `KebabMenu` would
+     change its appearance (the spec's "do not change visual styling"
+     guardrail), so it was left as-is. True single-source would require
+     either NBA adopting the standard kebab visuals or `KebabMenu` gaining
+     trigger/menu style variants — needs a design call.
+   - `MissionDetailPage`'s header kebab is a stub `<Button>` with no menu
+     (logs only) — nothing to clip, so not converted to a full menu (that
+     would be net-new behavior). Revisit when its actions are specified.
+   - Arrow-key navigation within the menu (Up/Down cycling) is a follow-up;
+     V1 ships focus-first-item + Escape + DOM-order tab, per spec §6.
+8. **Agent Profile Missions card — Active stack → accordion.** ✓ SHIPPED
+   (2026-05-22). The Active Missions stack in
+   [`Missions`](../components/Missions.jsx) is now a single-open accordion;
+   [`ActiveMissionCard`](../components/ActiveMissionCard.jsx) gained
+   `expanded`/`onToggle` props. First mission expanded on load, one open at a
+   time, collapse-all is a valid state. Collapsed header: leading
+   `ChevronRight` (rotates 90° on expand, 120 ms), title, roleplay +
+   days-left meta, and a focus-area summary via `<InlineStatusAffordance>`
+   (`All N met` / `N met, M below` / `All N below`). The summary is hidden
+   when expanded (the table below carries per-area status). Header is one
+   `role="button"` toggle target (Enter/Space, `aria-expanded` +
+   `aria-controls`); `View mission` stops propagation so it navigates
+   without toggling. Body animates via `max-height` (200 ms ease-out).
+   **Deviation:** spec §8 says unmount the table when collapsed, but §5/§6
+   make the `max-height` transition the V1 default — and animating both
+   directions needs the body mounted. Chose always-mounted (render cost is
+   nil at the ≤3-mission `MISSION_CAP`); true unmount + animation needs a
+   measured-height state machine (follow-up). **Open question (spec §9.1):**
+   summary tone is `success` (none below) / `danger` (none met) / `warning`
+   (mixed) — confirm whether a majority-below mission should read `danger`
+   rather than `warning`. Other §9 items (pill in expanded state, count
+   badges, urgency auto-expand, persistence) intentionally not built.
 
 ---
 

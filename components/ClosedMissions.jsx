@@ -3,10 +3,9 @@
 import React from "react";
 import { ChevronsLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import Button from "./Button";
+import { formatDate } from "./formatDate";
 
 const PAGE_SIZE = 8;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const COLS = [
   { key: "title", label: "Closed Missions", width: "36%" },
@@ -123,7 +122,7 @@ function Row({ row, isLast }) {
         <span style={cmStyles.cellText}>{row.roleplays}</span>
       </Cell>
       <Cell>
-        <span style={cmStyles.cellText}>{formatClosingDate(row.closingDate)}</span>
+        <span style={cmStyles.cellText}>{formatDate(row.closingDate)}</span>
       </Cell>
       <Cell>
         {/* TODO: confirm closing-state vocabulary — "Completion Status"
@@ -164,13 +163,6 @@ function PageBtn({ children, onClick, disabled, ariaLabel }) {
 
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// formatClosingDate — ISO date → "DD MMM, YYYY" (e.g. "30 Apr, 2026").
-function formatClosingDate(iso) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]}, ${d.getUTCFullYear()}`;
 }
 
 const cmStyles = {

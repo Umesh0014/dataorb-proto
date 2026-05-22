@@ -23,6 +23,7 @@ import Card from "./Card";
 import Button from "./Button";
 import MultiLineInput from "./MultiLineInput";
 import { getCoachingBrief } from "./mocks/coachingBrief";
+import { formatDateTime } from "./formatDate";
 
 // TaskRecordPage — the AI-generated artifact behind a task (here a
 // Coaching Brief). Built as a section-driven, schema-versioned template:
@@ -67,11 +68,6 @@ const AVATAR_PALETTE = [
   "#E3867F", "#F0B775", "#8DC99E", "#7CB0D6",
   "#C59BD8", "#6DC6B9", "#E88FA2", "#A7AAD1",
 ];
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
 function avatarColor(name) {
   let h = 0;
   for (let i = 0; i < name.length; i += 1) h = name.charCodeAt(i) + ((h << 5) - h);
@@ -80,15 +76,6 @@ function avatarColor(name) {
 
 function initialsOf(name) {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
-
-// formatDateTime — ISO → "24 Mar, 2026, 06:00".
-function formatDateTime(iso) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mm = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]}, ${d.getUTCFullYear()}, ${hh}:${mm}`;
 }
 
 // scoreColor — QA-score threshold colouring (confirm thresholds w/ Akash).

@@ -3,6 +3,7 @@
 import React from "react";
 import { ChevronsLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import Button from "./Button";
+import { formatDate } from "./formatDate";
 
 // Seed data for the By contact driver table. Each row:
 //   id, name, roleplays (int), lastRoleplayDate (ISO), qaScore (int %)
@@ -24,7 +25,6 @@ const driverData = [
 // TODO: confirm per-page count (4) vs the AgentsPage convention (9 there).
 const PAGE_SIZE = 4;
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const COLS = [
   { key: "name", label: "Drivers", width: "46%" },
@@ -139,14 +139,6 @@ function PageBtn({ children, onClick, disabled, ariaLabel }) {
   );
 }
 
-// formatDate — ISO date → "DD MMM YYYY" (e.g. "14 Jan 2026").
-// TODO: this DD-MMM-YYYY formatter is also inlined in AgentsPage and
-// RoleplayCoverage — promote to a shared util (rule-of-three reached).
-function formatDate(iso) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
 
 const cdtStyles = {
   wrap: {

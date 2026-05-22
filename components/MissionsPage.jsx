@@ -2,7 +2,7 @@
 
 import React from "react";
 import {
-  Plus, Search, ArrowUpDown, MoreVertical, ChevronLeft, ChevronRight,
+  Plus, Search, ArrowUpDown, ChevronLeft, ChevronRight,
   Info, ExternalLink, ShieldCheck, Sparkles, Clock, FileClock,
   PartyPopper, Trash2, CheckCircle2, Circle,
 } from "lucide-react";
@@ -15,6 +15,8 @@ import Banner, { AlertCircleFilled } from "./Banner";
 import CircularProgress from "./CircularProgress";
 import SelectionAccentBar from "./SelectionAccentBar";
 import Toast from "./Toast";
+import KebabMenu from "./KebabMenu";
+import { formatDate, formatDateRange } from "./formatDate";
 import { MissionsIcon } from "./SideNav/icons";
 import { DEMO_MISSIONS, deriveGlobalKpis, DRAFT_SETUP_STEPS } from "./mocks/missionsSeedData";
 
@@ -60,17 +62,6 @@ function getQAStyle(score) {
   if (score >= 90) return { color: "var(--color-success)" };
   if (score >= 70) return { color: "var(--color-warning)" };
   return { color: "var(--color-error)" };
-}
-
-function fmtDateShort(iso) {
-  const [, m, d] = iso.split("-").map(Number);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${d} ${months[m - 1]}`;
-}
-
-function fmtDateRange(start, end) {
-  const ey = end.split("-")[0];
-  return `${fmtDateShort(start)} - ${fmtDateShort(end)} ${ey}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,7 +276,7 @@ function MissionCard({ mission, selected, onClick }) {
       </div>
 
       <div style={mcStyles.footer}>
-        <span style={mcStyles.dateRange}>{fmtDateRange(mission.startDate, mission.endDate)}</span>
+        <span style={mcStyles.dateRange}>{formatDateRange(mission.startDate, mission.endDate)}</span>
         <InlineStatusAffordance tone={timeTone} icon={<Clock size={12} />}>
           {timeLabel}
         </InlineStatusAffordance>
@@ -338,7 +329,7 @@ function CompletedMissionCard({ mission, selected, onClick }) {
       </div>
 
       <div style={mcStyles.footer}>
-        <span style={mcStyles.dateRange}>{fmtDateRange(mission.startDate, mission.endDate)}</span>
+        <span style={mcStyles.dateRange}>{formatDateRange(mission.startDate, mission.endDate)}</span>
         <CompletedAffordance />
       </div>
     </button>
@@ -421,7 +412,7 @@ function DraftMissionCard({ mission, selected, onClick }) {
 
       <div style={dmcStyles.bottomRow}>
         <span style={hasDates ? mcStyles.dateRange : dmcStyles.placeholderText}>
-          {hasDates ? fmtDateRange(mission.startDate, mission.endDate) : "--"}
+          {hasDates ? formatDateRange(mission.startDate, mission.endDate) : "--"}
         </span>
         <span style={dmcStyles.draftChip}>
           <FileClock size={12} />
@@ -493,7 +484,6 @@ function DraftMissionDetailComplete({ mission }) {
 }
 
 function DraftDetailHeader({ mission, variant }) {
-  const [menuOpen, setMenuOpen] = React.useState(false);
   return (
     <div style={dhStyles.row}>
       <div style={dhStyles.left}>
@@ -507,36 +497,13 @@ function DraftDetailHeader({ mission, variant }) {
           Draft
         </InlineStatusAffordance>
         {variant === "complete" ? (
-          <div style={{ position: "relative" }}>
-            <Button
-              variant="icon"
-              size="sm"
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Mission actions"
-            >
-              <MoreVertical size={18} />
-            </Button>
-            {menuOpen && (
-              <>
-                <div style={dhStyles.menuScrim} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-                <div style={dhStyles.menu}>
-                  {[
-                    { label: "Preview & Publish", onClick: () => console.log("preview & publish") },
-                    { label: "Delete",            onClick: () => console.log("delete draft") },
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      type="button"
-                      style={dhStyles.menuItem}
-                      onClick={() => { item.onClick(); setMenuOpen(false); }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <KebabMenu
+            ariaLabel="Mission actions"
+            items={[
+              { label: "Preview & Publish", onClick: () => console.log("preview & publish") },
+              { label: "Delete", onClick: () => console.log("delete draft") },
+            ]}
+          />
         ) : (
           <Button
             variant="icon"
@@ -579,7 +546,7 @@ function DraftStatTiles({ mission }) {
     {
       label: "Timeline",
       value: mission.startDate && mission.endDate
-        ? `${fmtDateRange(mission.startDate, mission.endDate)}`
+        ? `${formatDateRange(mission.startDate, mission.endDate)}`
         : "--",
       sublabel: mission.timelineLabel ? `(${mission.timelineLabel})` : null,
     },
@@ -765,7 +732,6 @@ function CompletedMissionDetail({ mission }) {
 }
 
 function CompletedDetailHeader({ mission }) {
-  const [menuOpen, setMenuOpen] = React.useState(false);
   return (
     <div>
       <div style={dhStyles.row}>
@@ -775,28 +741,13 @@ function CompletedDetailHeader({ mission }) {
         </div>
         <div style={dhStyles.right}>
           <CompletedAffordance />
-          <div style={{ position: "relative" }}>
-            <Button variant="icon" size="sm" onClick={() => setMenuOpen((o) => !o)} aria-label="Mission actions">
-              <MoreVertical size={18} />
-            </Button>
-            {menuOpen && (
-              <>
-                <div style={dhStyles.menuScrim} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-                <div style={dhStyles.menu}>
-                  {["Duplicate mission", "Delete mission"].map((label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      style={dhStyles.menuItem}
-                      onClick={() => { console.log(label); setMenuOpen(false); }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <KebabMenu
+            ariaLabel="Mission actions"
+            items={["Duplicate mission", "Delete mission"].map((label) => ({
+              label,
+              onClick: () => console.log(label),
+            }))}
+          />
         </div>
       </div>
     </div>
@@ -812,15 +763,15 @@ function SuccessBanner({ mission }) {
   if (closeOutcome === "all_met") {
     tone = "success";
     heading = `All ${agentsTotal} agents reached their readiness targets`;
-    body = `Mission completed successfully on ${fmtBannerDate(closedAt)}. Mission ran for ${missionDurationDays} days.`;
+    body = `Mission completed successfully on ${formatDate(closedAt)}. Mission ran for ${missionDurationDays} days.`;
   } else if (closeOutcome === "closed_early") {
     tone = "info";
     heading = `Mission closed early — ${agentsReachedTarget} of ${agentsTotal} agents reached their readiness target`;
-    body = `Closed on ${fmtBannerDate(closedAt)}. Original end date: ${fmtBannerDate(originalEndDate)}.`;
+    body = `Closed on ${formatDate(closedAt)}. Original end date: ${formatDate(originalEndDate)}.`;
   } else {
     tone = "info";
     heading = `${agentsReachedTarget} of ${agentsTotal} agents reached their readiness target`;
-    body = `Mission ended on ${fmtBannerDate(closedAt)}. Closed automatically at deadline.`;
+    body = `Mission ended on ${formatDate(closedAt)}. Closed automatically at deadline.`;
   }
 
   const ringColor = tone === "success" ? "var(--color-success)" : "var(--color-info)";
@@ -951,7 +902,7 @@ function AgentResultRow({ row, stale }) {
       </span>
       <span style={icStyles.bodyCell}>{row.roleplaysCompleted}</span>
       <span style={{ ...icStyles.bodyCell, color: stale ? "var(--color-error)" : "var(--color-text-medium)" }}>
-        {fmtFullDate(row.lastActive)}
+        {formatDate(row.lastActive)}
       </span>
       <span style={{ ...icStyles.bodyCell, justifyContent: "space-between" }}>
         <span style={{ ...pcStyles.badge, ...badgeStyle }}>{row.target}</span>
@@ -959,16 +910,6 @@ function AgentResultRow({ row, stale }) {
       </span>
     </div>
   );
-}
-
-function fmtFullDate(iso) {
-  const [y, m, d] = iso.split("-").map(Number);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${d} ${months[m - 1]} ${y}`;
-}
-
-function fmtBannerDate(iso) {
-  return fmtFullDate(iso);
 }
 
 function parseISODateUTC(iso) {
@@ -1014,7 +955,6 @@ function MissionDetail({ mission }) {
 // ---------------------------------------------------------------------------
 
 function DetailHeader({ mission }) {
-  const [menuOpen, setMenuOpen] = React.useState(false);
   const timeTone = getTimeAffordanceTone(mission.daysLeft);
   const timeLabel = mission.daysLeft <= 0 ? "Ends Today" : `${mission.daysLeft} days left`;
 
@@ -1034,28 +974,13 @@ function DetailHeader({ mission }) {
           >
             {timeLabel}
           </InlineStatusAffordance>
-          <div style={{ position: "relative" }}>
-            <Button variant="icon" size="sm" onClick={() => setMenuOpen((o) => !o)} aria-label="Mission actions">
-              <MoreVertical size={18} />
-            </Button>
-            {menuOpen && (
-              <>
-                <div style={dhStyles.menuScrim} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-                <div style={dhStyles.menu}>
-                  {["Edit mission", "Duplicate mission", "Close mission", "Delete mission"].map((label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      style={dhStyles.menuItem}
-                      onClick={() => { console.log(label); setMenuOpen(false); }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <KebabMenu
+            ariaLabel="Mission actions"
+            items={["Edit mission", "Duplicate mission", "Close mission", "Delete mission"].map((label) => ({
+              label,
+              onClick: () => console.log(label),
+            }))}
+          />
         </div>
       </div>
     </div>
@@ -1767,36 +1692,6 @@ const dhStyles = {
     borderRadius: 999,
     padding: "4px 12px",
     whiteSpace: "nowrap",
-  },
-  menuScrim: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 39,
-  },
-  menu: {
-    position: "absolute",
-    top: "100%",
-    right: 0,
-    marginTop: 4,
-    width: 200,
-    background: "#FFFFFF",
-    borderRadius: 8,
-    boxShadow: "var(--shadow-8)",
-    padding: "4px 0",
-    zIndex: 40,
-  },
-  menuItem: {
-    display: "block",
-    width: "100%",
-    padding: "8px 16px",
-    background: "transparent",
-    border: "none",
-    textAlign: "left",
-    fontFamily: '"Mulish", sans-serif',
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    cursor: "pointer",
   },
 };
 

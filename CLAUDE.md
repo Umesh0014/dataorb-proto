@@ -1,24 +1,24 @@
 # CLAUDE
 
-What AI assistants must read before touching this repo.
+What AI must read before touch repo.
 
 ---
 
 ## Read this first
 
-[CONVENTIONS.md](CONVENTIONS.md) is authoritative. Anything here is AI-specific guardrails on top — never duplicate the conventions doc.
+[CONVENTIONS.md](CONVENTIONS.md) authoritative. Here = AI-specific guardrails on top. Never duplicate conventions doc.
 
 ---
 
 ## Behavior rules
 
-1. **Read the closest existing similar file first.** Match its patterns: file structure, style-object layout, JSDoc shape, prop ordering, import order. Don't invent a new structure.
-2. **Match existing tokens.** Don't introduce new colors, fonts, shadows, or spacing values. If you need a token, either use an existing one or surface the gap in the response — don't add ad-hoc.
-3. **Rule of three.** Don't extract a shared primitive until the same composition appears at 3 callsites. Until then, inline composition is fine.
-4. **Don't over-abstract.** No prop named `as`, no render-prop indirection, no factory wrappers. The codebase prefers explicit composition.
-5. **Don't add features the brief didn't ask for.** No "while we're here" cleanup, no speculative props, no hidden affordances.
-6. **No dead code.** If you replace something, delete the old code in the same change. Don't leave commented-out blocks.
-7. **Element sizes are fixed.** Layout responds (max-width, gutters); elements (button heights, icon sizes, padding, font sizes) do not.
+1. **Read closest similar file first.** Match patterns: file structure, style-object layout, JSDoc shape, prop ordering, import order. No invent new structure.
+2. **Match existing tokens.** No new colors, fonts, shadows, spacing. Need token? Use existing or surface gap in response — no ad-hoc.
+3. **Rule of three.** No extract shared primitive until same composition at 3 callsites. Until then, inline fine.
+4. **No over-abstract.** No `as` prop, no render-prop indirection, no factory wrappers. Codebase prefer explicit composition.
+5. **No features brief no ask.** No "while we're here" cleanup, no speculative props, no hidden affordances.
+6. **No dead code.** Replace something → delete old in same change. No commented-out blocks.
+7. **Element sizes fixed.** Layout respond (max-width, gutters); elements (button heights, icon sizes, padding, font sizes) no.
 
 ---
 
@@ -26,59 +26,59 @@ What AI assistants must read before touching this repo.
 
 | Pattern | Why | Use instead |
 |---|---|---|
-| `// click handler` / line-by-line narration | Restates the code | Comment WHY, or skip |
-| `any` (if/when TS lands) | Defeats the purpose | Concrete type or `unknown` + narrow |
-| Hard-coded hex / pixel font sizes / spacing magic numbers | Bypasses tokens | CSS variable from `globals.css` |
-| Raw `<button>` outside `Button.jsx` | We standardized | `<Button variant="…">` |
-| Bespoke white-card divs (`bg-white rounded-xl`) | We standardized | `<Card>` (with `tone` if muted/outline) |
-| Inline shadow on a card | We standardized | `<Card shadow>` |
-| `position: fixed` for full-height side panels | PageLayout handles this | Pass content as `rightPanel` to `<PageLayout>` |
-| `height: 100vh` on layout containers | Breaks layout system | `min-height: 100vh` only on the outermost shell |
-| `max-width` on cards / page wrappers | Layout owns max-width | Let `<PageLayout>`'s 1068 container size you |
-| New top-level folder | Folder structure is settled | Put the file in `components/` |
-| `"potentially useful" optional props` | Adds noise | Add when a 2nd consumer needs it |
+| `// click handler` / line-by-line narration | Restates code | Comment WHY, or skip |
+| `any` (if/when TS lands) | Defeats purpose | Concrete type or `unknown` + narrow |
+| Hard-coded hex / pixel font sizes / spacing magic numbers | Bypass tokens | CSS variable from `globals.css` |
+| Raw `<button>` outside `Button.jsx` | Standardized | `<Button variant="…">` |
+| Bespoke white-card divs (`bg-white rounded-xl`) | Standardized | `<Card>` (with `tone` if muted/outline) |
+| Inline shadow on card | Standardized | `<Card shadow>` |
+| `position: fixed` for full-height side panels | PageLayout handle | Pass content as `rightPanel` to `<PageLayout>` |
+| `height: 100vh` on layout containers | Break layout system | `min-height: 100vh` only on outermost shell |
+| `max-width` on cards / page wrappers | Layout own max-width | Let `<PageLayout>`'s 1068 container size you |
+| New top-level folder | Folder structure settled | Put file in `components/` |
+| `"potentially useful" optional props` | Add noise | Add when 2nd consumer need |
 
 ---
 
 ## Page-creation recipe
 
-For a new module page (e.g. a new Insights Hub route):
+New module page (e.g. new Insights Hub route):
 
-1. **Pick the route id** matching the side nav config (`/components/SideNav/configs/<module>Config.js`). If the id doesn't exist, add it to the config.
-2. **Add an entry to the page resolver** in `app/page.jsx` (`INSIGHTS_PAGES` or `LEARNING_PAGES`):
+1. **Pick route id** match side nav config (`/components/SideNav/configs/<module>Config.js`). Id no exist? Add to config.
+2. **Add entry to page resolver** in `app/page.jsx` (`INSIGHTS_PAGES` or `LEARNING_PAGES`):
    ```js
    "<id>": { Component: <NewPage>, pageName: "<Display Name>" }
    ```
    Missing routes auto-fall back to `<ComingSoon pageName=… />`.
-3. **Build the page component** at `components/<NewPage>.jsx`. It receives `{ pageName }` and any wizard / detail-routing props.
-4. **The page renders inside `<PageLayout>`**. Don't add new layout primitives — compose with `<Card>`, `<Button>`, `<TabsRow>`, `<StatCard>`, etc.
-5. **For sub-routes that don't exist yet**, render `<ComingSoon pageName="<Sub Route>" />`.
-6. **No new tokens.** If the design needs something the design system doesn't provide, surface it.
+3. **Build page component** at `components/<NewPage>.jsx`. Receives `{ pageName }` and any wizard / detail-routing props.
+4. **Page renders inside `<PageLayout>`**. No new layout primitives — compose with `<Card>`, `<Button>`, `<TabsRow>`, `<StatCard>`, etc.
+5. **Sub-routes no exist yet** → render `<ComingSoon pageName="<Sub Route>" />`.
+6. **No new tokens.** Design need something design system no provide? Surface.
 
 ---
 
 ## Component-creation recipe
 
-Before creating a new component:
+Before create new component:
 
-1. **Check the standard inventory** in CONVENTIONS.md §12. If a primitive matches, compose it.
-2. **Apply the rule of three.** If only 1–2 callsites need this composition, inline it.
-3. **If you must create a new primitive:** location is `components/<Name>.jsx`, default-exported, JSDoc on the API.
+1. **Check standard inventory** in CONVENTIONS.md §12. Primitive match? Compose it.
+2. **Apply rule of three.** Only 1–2 callsites need composition? Inline.
+3. **Must create new primitive:** location `components/<Name>.jsx`, default-exported, JSDoc on API.
 4. **Tokens only.** Pull from `app/globals.css` CSS variables.
-5. **Style-object pattern:** style block at the bottom of the file as `const xxStyles = { … }`, not co-located with each JSX node.
-6. **No new dependencies** without surfacing.
+5. **Style-object pattern:** style block at bottom of file as `const xxStyles = { … }`, no co-locate with each JSX node.
+6. **No new dependencies** without surface.
 
 ---
 
 ## Layout system summary
 
-Re-read these constraints on every layout-touching change.
+Re-read these constraints every layout-touching change.
 
-- Min viewport width 1260; sidebar 64; content max-width 1068, centered with `margin-inline: auto`; minimum gutter 64 each side at 1260, grows above.
-- Right panel: viewport ≥ 1644 → dock (centered as a unit: `1068 + 64 gap + 320 panel`). Viewport < 1644 → overlay the right edge of content. Mode locked at the moment the panel opens.
-- `min-height: 100vh` on the root shell only. No other layout container has any `height` rule. Element sizes (icons, buttons) are fixed.
+- Min viewport width 1260; sidebar 64; content max-width 1068, centered with `margin-inline: auto`; min gutter 64 each side at 1260, grows above.
+- Right panel: viewport ≥ 1644 → dock (centered as unit: `1068 + 64 gap + 320 panel`). Viewport < 1644 → overlay right edge of content. Mode locked moment panel opens.
+- `min-height: 100vh` on root shell only. No other layout container has `height` rule. Element sizes (icons, buttons) fixed.
 
-PageLayout owns this. Don't reimplement.
+PageLayout owns this. No reimplement.
 
 ---
 
@@ -99,13 +99,13 @@ PageLayout owns this. Don't reimplement.
 | `RoleplayBreadcrumb` | [components/RoleplayBreadcrumb.jsx](components/RoleplayBreadcrumb.jsx) |
 | `PageHeader` | [components/PageHeader.jsx](components/PageHeader.jsx) |
 
-Promotion candidates (deferred until 3rd callsite): `Pagination`, `Chip`, `PillGroup`, `Dropdown`.
+Promotion candidates (defer until 3rd callsite): `Pagination`, `Chip`, `PillGroup`, `Dropdown`.
 
 ---
 
 ## When in doubt
 
-- **Don't guess.** Surface uncertainty in the response: "I'm not sure whether this should reuse `<Card tone='muted'>` or be its own primitive — both readings of the spec are plausible. Picking X for now; flag for review."
-- **Don't redesign.** If the brief asks for a fix, fix only that. Don't refactor the surrounding file.
-- **Don't add tests.** No test infrastructure exists; if a brief asks for tests, surface that as out-of-scope.
-- **Don't push to GitHub or run destructive commands** without explicit confirmation. The repo isn't even initialized as a git repo today.
+- **No guess.** Surface uncertainty in response: "Not sure if this reuse `<Card tone='muted'>` or own primitive — both readings plausible. Pick X for now; flag for review."
+- **No redesign.** Brief ask fix? Fix only that. No refactor surrounding file.
+- **No add tests.** No test infrastructure exists; brief ask tests → surface as out-of-scope.
+- **No push to GitHub or run destructive commands** without explicit confirmation. Repo no init as git repo today.

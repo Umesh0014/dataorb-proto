@@ -27,6 +27,7 @@ import Button from "./Button";
 import StatCard from "./StatCard";
 import MonthlyRunsChart from "./MonthlyRunsChart";
 import { getSkillRecord } from "./mocks/skills";
+import { formatDate } from "./formatDate";
 
 // SkillRecordPage — Ask Mira Pro skill record view. Static reference page
 // for a single skill: what it does, its inputs, and how it has been used.
@@ -55,11 +56,6 @@ const AVATAR_PALETTE = [
   "#E3867F", "#F0B775", "#8DC99E", "#7CB0D6",
   "#C59BD8", "#6DC6B9", "#E88FA2", "#A7AAD1",
 ];
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
 function avatarColor(name) {
   let h = 0;
   for (let i = 0; i < name.length; i += 1) h = name.charCodeAt(i) + ((h << 5) - h);
@@ -68,13 +64,6 @@ function avatarColor(name) {
 
 function initialsOf(name) {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("");
-}
-
-// formatDate — ISO → "DD MMM YYYY", or "DD MMM, YYYY" when withComma.
-function formatDate(iso, withComma) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]}${withComma ? "," : ""} ${d.getUTCFullYear()}`;
 }
 
 // isStale — true when a run date is more than 30 days behind today.
@@ -154,7 +143,7 @@ function AboutCard({ rec, Icon, tint }) {
             <Avatar name={rec.createdBy.name} />
             <span style={s.metaName}>{rec.createdBy.name}</span>
             <span style={s.metaDot}>·</span>
-            <span style={s.metaDate}>{formatDate(rec.createdBy.date, true)}</span>
+            <span style={s.metaDate}>{formatDate(rec.createdBy.date)}</span>
           </div>
         </MetaBlock>
         <MetaBlock label="Category">
@@ -171,7 +160,7 @@ function AboutCard({ rec, Icon, tint }) {
         <MetaBlock label="Last Updated">
           <div style={s.metaRow}>
             <Avatar name={rec.lastUpdatedBy.name} />
-            <span style={s.metaDate}>{formatDate(rec.lastUpdatedBy.date, true)}</span>
+            <span style={s.metaDate}>{formatDate(rec.lastUpdatedBy.date)}</span>
           </div>
         </MetaBlock>
       </div>
@@ -203,7 +192,7 @@ function TemplateCard({ rec }) {
         <ExternalLink size={16} color="var(--color-text-tertiary)" />
       </div>
       <InertDropdown value={rec.template.version} ariaLabel="Template version" />
-      <span style={s.tplCaption}>Updated: {formatDate(rec.template.updated, true)}</span>
+      <span style={s.tplCaption}>Updated: {formatDate(rec.template.updated)}</span>
     </Card>
   );
 }

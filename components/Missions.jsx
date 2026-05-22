@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { ChevronDown } from "lucide-react";
 import Card from "./Card";
+import TabsRow from "./TabsRow";
 import ActiveMissionCard from "./ActiveMissionCard";
 import ClosedMissions from "./ClosedMissions";
 
@@ -80,15 +80,23 @@ const closedMissions = [
 ];
 
 const SCOPE_OPTIONS = [
-  { value: "active", label: "Active Missions" },
-  { value: "closed", label: "Closed Missions" },
+  { value: "active", label: "Active" },
+  { value: "closed", label: "Closed" },
 ];
 
-// Missions — interior of the Agent Profile "Missions" card. A scope dropdown
-// in the header switches between the Active Missions stack (mission sub-cards
+// Missions — interior of the Agent Profile "Missions" card. A tabs row below
+// the title switches between the Active Missions stack (mission sub-cards
 // with spider charts) and the Closed Missions metric strip + table.
 export default function Missions({ onViewMission }) {
   const [scope, setScope] = React.useState("active");
+  // Single-open accordion: the first active mission is expanded on load; one
+  // open at a time. null means every mission is collapsed (a valid state —
+  // clicking the open mission's header collapses it without opening another).
+  const [openMissionId, setOpenMissionId] = React.useState(activeMissions[0]?.id ?? null);
+
+  const handleToggle = (id) => {
+    setOpenMissionId((current) => (current === id ? null : id));
+  };
 
   return (
     <Card>
@@ -97,7 +105,14 @@ export default function Missions({ onViewMission }) {
           <div style={mxStyles.title}>Missions</div>
           <div style={mxStyles.subtitle}>Evaluate performance across quality metrics.</div>
         </div>
-        <ScopeDropdown value={scope} onChange={setScope} />
+      </div>
+
+      <div style={mxStyles.tabs}>
+        <TabsRow
+          tabs={SCOPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+          activeTab={scope}
+          onTabClick={setScope}
+        />
       </div>
 
       {scope === "active" ? (
@@ -106,6 +121,8 @@ export default function Missions({ onViewMission }) {
             <ActiveMissionCard
               key={mission.id}
               mission={mission}
+              expanded={openMissionId === mission.id}
+              onToggle={() => handleToggle(mission.id)}
               onViewMission={onViewMission}
             />
           ))}
@@ -114,60 +131,6 @@ export default function Missions({ onViewMission }) {
         <ClosedMissions metrics={closedMissionsMetrics} rows={closedMissions} />
       )}
     </Card>
-  );
-}
-
-// ScopeDropdown — Active / Closed selector. Mirrors the Quality adherence
-// card's scope dropdown pattern.
-function ScopeDropdown({ value, onChange }) {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef(null);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  const selected = SCOPE_OPTIONS.find((o) => o.value === value) || SCOPE_OPTIONS[0];
-
-  return (
-    <div ref={ref} style={mxStyles.scopeWrap}>
-      <button type="button" onClick={() => setOpen((o) => !o)} style={mxStyles.scopeBtn}>
-        <span style={mxStyles.scopeValue}>{selected.label}</span>
-        <ChevronDown size={14} style={{ color: "var(--color-text-placeholder)" }} />
-      </button>
-      {open && (
-        <div role="menu" style={mxStyles.scopeMenu}>
-          {SCOPE_OPTIONS.map((opt) => {
-            const isSelected = opt.value === value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                role="menuitemradio"
-                aria-checked={isSelected}
-                onClick={() => {
-                  onChange(opt.value);
-                  setOpen(false);
-                }}
-                style={{
-                  ...mxStyles.scopeMenuItem,
-                  background: isSelected ? "var(--pill-bg)" : "transparent",
-                  color: isSelected ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
-                  fontWeight: isSelected ? 700 : 500,
-                }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -191,53 +154,13 @@ const mxStyles = {
     color: "var(--text-secondary)",
     lineHeight: 1.4,
   },
+  tabs: {
+    marginTop: 16,
+  },
   activeStack: {
     display: "flex",
     flexDirection: "column",
     gap: 16,
     marginTop: 16,
-  },
-  scopeWrap: {
-    position: "relative",
-    flexShrink: 0,
-  },
-  scopeBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    height: 32,
-    paddingInline: 12,
-    borderRadius: 8,
-    background: "var(--pill-bg)",
-    border: "1px solid var(--color-border-tab)",
-    cursor: "pointer",
-    fontFamily: "var(--font-sans)",
-  },
-  scopeValue: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "var(--do-ink)",
-  },
-  scopeMenu: {
-    position: "absolute",
-    top: "calc(100% + 4px)",
-    right: 0,
-    minWidth: 180,
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-border-tab)",
-    borderRadius: 8,
-    boxShadow: "var(--shadow-4)",
-    padding: "4px 0",
-    zIndex: 30,
-  },
-  scopeMenuItem: {
-    display: "block",
-    width: "100%",
-    padding: "8px 16px",
-    border: "none",
-    textAlign: "left",
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    cursor: "pointer",
   },
 };

@@ -4,18 +4,8 @@ import React from "react";
 import { Search, SlidersHorizontal, ArrowUp, ArrowDown, Info } from "lucide-react";
 import { AGENTS, MISSION_CAP } from "./mocks/missionAgents";
 import RecruitFiltersDrawer, { EMPTY_FILTERS } from "./RecruitFiltersDrawer";
+import { formatDate } from "./formatDate";
 
-const MONTHS_SHORT = [
-  "Jan","Feb","Mar","Apr","May","Jun",
-  "Jul","Aug","Sep","Oct","Nov","Dec",
-];
-
-function formatDate(iso) {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-").map((n) => parseInt(n, 10));
-  if (!y || !m || !d) return iso;
-  return `${String(d).padStart(2, "0")} ${MONTHS_SHORT[m - 1]} ${y}`;
-}
 
 function matchesFilters(agent, filters) {
   if (filters.lastActive !== "all") {

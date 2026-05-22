@@ -17,6 +17,7 @@ import CoverageStep, { isCoverageValid } from "./CoverageStep";
 import FocusAreaStep, { isFocusAreaValid } from "./FocusAreaStep";
 import RecruitStep, { isRecruitValid } from "./RecruitStep";
 import PreviewStep, { isPreviewValid } from "./PreviewStep";
+import { formatDate } from "./formatDate";
 
 // MissionWizardPage — Create Mission flow shell. Five steps; only
 // "define" has real content. Other steps mount the same shell with a
@@ -431,17 +432,6 @@ function DateField({ value, onChange, placeholder = "Select a date" }) {
   );
 }
 
-const MONTHS_SHORT = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
-function formatDate(iso) {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-").map((n) => parseInt(n, 10));
-  if (!y || !m || !d) return iso;
-  return `${String(d).padStart(2, "0")} ${MONTHS_SHORT[m - 1]} ${y}`;
-}
 
 // ---------- SessionsControl (number input + slider, two-way bound) ----------
 

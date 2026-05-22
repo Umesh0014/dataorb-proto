@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Card from "./Card";
+import { formatDateTime } from "./formatDate";
 
 const TOTAL = 6811;
 const PAGE_SIZE = 20;
@@ -262,7 +263,7 @@ function Row({ row, isLast }) {
       </Cell>
       <Cell>
         <span style={{ fontSize: 13, color: "var(--do-ink)", fontWeight: 500 }}>
-          {formatDate(row.date)}
+          {formatDateTime(row.date)}
         </span>
       </Cell>
       <Cell>
@@ -535,15 +536,3 @@ function formatDuration({ h = 0, m = 0, s = 0 }) {
   return `${m}m ${s}s`;
 }
 
-function formatDate(iso) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const d = new Date(iso);
-  const month = months[d.getUTCMonth()];
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const year = d.getUTCFullYear();
-  let h = d.getUTCHours();
-  const min = String(d.getUTCMinutes()).padStart(2, "0");
-  const ampm = h >= 12 ? "PM" : "AM";
-  h = h % 12 || 12;
-  return `${month} ${day}, ${year}, ${h}:${min} ${ampm}`;
-}

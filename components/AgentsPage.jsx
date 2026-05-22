@@ -8,10 +8,9 @@ import PageHeader from "./PageHeader";
 import TrendArrow from "./TrendArrow";
 import { AgentsIcon } from "./SideNav/icons";
 import { LEARNING_AGENTS } from "./mocks/learningAgents";
+import { formatDate } from "./formatDate";
 
 const PAGE_SIZE = 9;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // Search-by selector options. The screenshot defaults to "Agent ID".
 // TODO: confirm the full search-by option list (spec: other options TBD).
@@ -394,13 +393,6 @@ function PageBtn({ children, onClick, disabled, ariaLabel }) {
       {children}
     </Button>
   );
-}
-
-// formatDate — ISO date → "DD MMM YYYY" (e.g. "22 Mar 2026").
-function formatDate(iso) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 const apStyles = {

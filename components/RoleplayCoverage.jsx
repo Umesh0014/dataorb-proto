@@ -8,6 +8,7 @@ import TabsRow from "./TabsRow";
 import ContactDriverTable from "./ContactDriverTable";
 import useMeasuredWidth from "./useMeasuredWidth";
 import { INLINE_NBA } from "./mocks/nextBestActions";
+import { formatDate } from "./formatDate";
 
 // Seed data for the Activity tab. Each point:
 //   date      ISO date string — formatted at render time
@@ -60,7 +61,6 @@ const TABS = [
   { id: "driver", label: "By contact driver" },
 ];
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // Fixed chart region height — structural; mirrors ChannelEngagementCard's
 // `height` chart prop. The codebase has no height token scale.
@@ -303,13 +303,6 @@ function ChartTooltip({ rect, point }) {
       </div>
     </Card>
   );
-}
-
-// formatDate — ISO date → "DD MMM YYYY" (e.g. "20 Mar 2026").
-function formatDate(iso) {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${day} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 const rcStyles = {

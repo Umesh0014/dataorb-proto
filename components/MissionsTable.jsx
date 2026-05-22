@@ -9,6 +9,12 @@ import {
 } from "lucide-react";
 import Card from "./Card";
 import MissionDetailContent from "./MissionDetailContent";
+import KebabMenu from "./KebabMenu";
+
+// Per-row action menu options — sourced verbatim from the Active
+// DetailHeader in MissionsPage. Uniform across all mission states in the
+// Dense/Hybrid table (open question: per-state option sets).
+const ROW_ACTIONS = ["Edit mission", "Duplicate mission", "Close mission", "Delete mission"];
 
 // MissionsTable — shared dense table for the Dense table (Option 2) and
 // Hybrid table (Option 4) layouts. The two layouts differ only in row
@@ -157,8 +163,8 @@ export default function MissionsTable({
   // space via `width: auto` + table-layout: fixed; every other column
   // gets a fixed pixel width.
   // Column widths sized to fit the narrow 1068px PageLayout chassis.
-  // Fixed columns sum to ≈700; Mission column flexes with a 200
-  // minimum. Owner + Actions removed (spec'd out of the Dense Table).
+  // Fixed columns sum to ≈748; Mission column flexes with a 200 minimum.
+  // Owner stays removed; Actions (kebab) re-added at the trailing edge.
   const cols = [
     expandable && { id: "expand", label: "", sortKey: null, width: 36, align: "center" },
     { id: "name",     label: "Mission",       sortKey: "name",     align: "left",  flex: true },
@@ -168,6 +174,7 @@ export default function MissionsTable({
     { id: "focus",    label: "Focus areas",   sortKey: null,       align: "left",  width: 160 },
     { id: "progress", label: "Progress",      sortKey: "progress", align: "left",  width: 180 },
     { id: "last",     label: "Last roleplay", sortKey: "last",     align: "left",  width: 100 },
+    { id: "actions",  label: "",              sortKey: null,       align: "center", width: 48 },
   ].filter(Boolean);
 
   return (
@@ -349,6 +356,18 @@ function Row({ mission, expandable, expanded, onClick }) {
       </td>
       <td style={{ ...mtStyles.td, color: lastDateStale ? "var(--color-text-tertiary)" : "var(--color-text-deep)" }}>
         {lastDate || "—"}
+      </td>
+      <td
+        style={{ ...mtStyles.td, padding: "16px 0", textAlign: "center" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <KebabMenu
+          ariaLabel="Mission actions"
+          items={ROW_ACTIONS.map((label) => ({
+            label,
+            onClick: () => console.log(label),
+          }))}
+        />
       </td>
     </tr>
   );

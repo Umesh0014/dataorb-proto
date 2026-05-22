@@ -1,21 +1,57 @@
 "use client";
 
 import React from "react";
-import { Clipboard, Clock, BadgeCheck, Sparkles, ArrowRight } from "lucide-react";
+import { Clipboard, Clock, BadgeCheck, Sparkles, ArrowRight, ChevronRight } from "lucide-react";
 import Button from "./Button";
 import Card from "./Card";
+import InlineStatusAffordance from "./InlineStatusAffordance";
 
-// ActiveMissionCard — one active mission, rendered as a card-within-the-card:
-// header (title + roleplay / days-left meta) and a body containing the
-// mission's focus-area table.
-export default function ActiveMissionCard({ mission, onViewMission }) {
+// ActiveMissionCard — one active mission as a collapsible card-within-the-card.
+// Collapsed shows the header row only (toggle chevron, title, roleplay /
+// days-left meta, a focus-area summary affordance, View mission). Expanded
+// adds the focus-area table below. The single-open accordion is owned by the
+// parent (Missions.jsx) via the `expanded` / `onToggle` props; the table is
+// unmounted-by-height (max-height collapse) when not expanded.
+export default function ActiveMissionCard({ mission, expanded, onToggle, onViewMission }) {
+  const [hover, setHover] = React.useState(false);
   // TODO: confirm days-left urgency threshold (red at <= 3 days for now).
   const urgent = mission.daysLeft <= 3;
+  const { met, below } = summarizeMissionStatus(mission.focusAreas);
+  const bodyId = `mission-body-${mission.id}`;
 
   return (
     <Card tone="muted">
-      <div style={amStyles.header}>
-        <span style={amStyles.title}>{mission.title}</span>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          ...amStyles.header,
+          background: hover ? "var(--pill-bg)" : "transparent",
+        }}
+      >
+        <span style={amStyles.headerLeft}>
+          <ChevronRight
+            size={16}
+            color="var(--color-text-tertiary)"
+            style={{
+              flexShrink: 0,
+              transition: "transform 120ms ease",
+              transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
+            }}
+          />
+          <span style={amStyles.title}>{mission.title}</span>
+        </span>
         <div style={amStyles.meta}>
           <span style={amStyles.metaItem}>
             <Clipboard size={14} />
@@ -30,23 +66,64 @@ export default function ActiveMissionCard({ mission, onViewMission }) {
             <Clock size={14} />
             {mission.daysLeft} days left
           </span>
+          {!expanded && (
+            <InlineStatusAffordance tone={summaryTone(met, below)}>
+              {summaryLabel(met, below)}
+            </InlineStatusAffordance>
+          )}
           <Button
             variant="text"
             uppercase={false}
             trailingIcon={<ArrowRight size={14} />}
             style={amStyles.viewCta}
-            onClick={() => onViewMission?.(mission.pageMissionId)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewMission?.(mission.pageMissionId);
+            }}
           >
             View mission
           </Button>
         </div>
       </div>
 
-      <div style={amStyles.body}>
-        <FocusAreaTable focusAreas={mission.focusAreas} />
+      <div
+        id={bodyId}
+        style={{
+          maxHeight: expanded ? 2000 : 0,
+          overflow: "hidden",
+          transition: "max-height 200ms ease-out",
+        }}
+      >
+        <div style={amStyles.body}>
+          <FocusAreaTable focusAreas={mission.focusAreas} />
+        </div>
       </div>
     </Card>
   );
+}
+
+// summarizeMissionStatus — tallies focus-area outcomes for the collapsed
+// summary affordance.
+function summarizeMissionStatus(focusAreas) {
+  const met = focusAreas.filter((fa) => fa.status === "met").length;
+  const below = focusAreas.filter((fa) => fa.status === "below").length;
+  return { met, below };
+}
+
+// summaryTone / summaryLabel — the collapsed-state focus-area summary. Tone
+// thresholds are the V1 default (success when none below, danger when none
+// met, warning otherwise) — see the audit doc's open question on whether a
+// majority-below mission should read danger instead of warning.
+function summaryTone(met, below) {
+  if (below === 0) return "success";
+  if (met === 0) return "danger";
+  return "warning";
+}
+
+function summaryLabel(met, below) {
+  if (below === 0) return `All ${met} met`;
+  if (met === 0) return `All ${below} below`;
+  return `${met} met, ${below} below`;
 }
 
 // FA_COLS — four-column layout for the focus-area table. Proportions follow
@@ -188,6 +265,19 @@ const amStyles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 16,
+    cursor: "pointer",
+    borderRadius: 8,
+    // Net-zero padding + negative margin: the padded hover surface bleeds
+    // toward (not to) the card edges without shifting the resting layout.
+    padding: "8px 12px",
+    margin: "-8px -12px",
+    transition: "background 120ms ease",
+  },
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
   },
   title: {
     fontSize: 14,
