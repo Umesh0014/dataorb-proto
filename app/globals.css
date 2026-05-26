@@ -264,3 +264,30 @@ body {
 .tasks-search::placeholder {
   color: var(--color-text-placeholder);
 }
+
+/* Missions kanban lanes — scrollbar hidden at rest, fades in on lane hover
+   (and shown by the OS while actively scrolling). Inline styles can't reach
+   the ::-webkit-scrollbar pseudo-elements, so it lives here. */
+.kanbanLaneScroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 150ms ease;
+}
+.kanbanLane:hover .kanbanLaneScroll {
+  scrollbar-color: color-mix(in srgb, var(--color-text-tertiary) 30%, transparent) transparent;
+}
+.kanbanLaneScroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.kanbanLaneScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kanbanLaneScroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+  transition: background 150ms ease;
+}
+.kanbanLane:hover .kanbanLaneScroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text-tertiary) 30%, transparent);
+}

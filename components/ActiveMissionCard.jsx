@@ -231,7 +231,7 @@ function FocusAreaRow({ fa, isLast }) {
 // >=80 high. Routing both the progress bar and the status pill through
 // this keeps their colours in agreement.
 // TODO: confirm the exact threshold breakpoints match Quality Adherence's table
-function thresholdTone(value) {
+export function thresholdTone(value) {
   if (value < 50) {
     return { fill: "var(--color-error)", bg: "var(--color-error-bg)", fg: "var(--color-error)" };
   }
@@ -244,7 +244,7 @@ function thresholdTone(value) {
 // ProgressBar — threshold-coloured fill plus a 1px tick on the track at the
 // target %, so the gap between actual and target reads at a glance.
 // TODO: confirm target tick treatment with Akash if extending the bar primitive
-function ProgressBar({ value, targetPct }) {
+export function ProgressBar({ value, targetPct }) {
   return (
     <span style={amStyles.barTrack}>
       <span
@@ -259,7 +259,7 @@ function ProgressBar({ value, targetPct }) {
 // area's status; the colour is routed through the shared threshold tone so
 // the pill always agrees with the Achieved progress bar.
 // TODO: confirm gap-percentage formula for status pills with Akash.
-function StatusPill({ status, gapPct, actual }) {
+export function StatusPill({ status, gapPct, actual }) {
   const tone = thresholdTone(actual);
   const label = status === "met" ? "Met" : gapPct != null ? `Below ${gapPct}%` : "Below";
   return (

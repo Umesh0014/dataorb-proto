@@ -6,7 +6,7 @@ import MissionsDenseTableLayout from "./MissionsDenseTableLayout";
 import MissionsKanbanLayout from "./MissionsKanbanLayout";
 import MissionsHybridTableLayout from "./MissionsHybridTableLayout";
 import SandboxSwitcher from "./sandbox/SandboxSwitcher";
-import { SANDBOX_MISSIONS } from "./mocks/missionsExtra";
+import { SANDBOX_MISSIONS, SANDBOX_DRAFTS, KANBAN_DEMO_MISSIONS } from "./mocks/missionsExtra";
 
 // MissionsLandingShell — wraps the Missions landing in a layout
 // sandbox. Renders one of four layouts based on the persisted demo
@@ -65,8 +65,7 @@ export default function MissionsLandingShell({
   } else if (layout === "kanban") {
     content = (
       <MissionsKanbanLayout
-        missions={SANDBOX_MISSIONS.filter((m) => m.state !== "draft")}
-        onOpenMission={onOpenMission}
+        missions={[...SANDBOX_DRAFTS, ...KANBAN_DEMO_MISSIONS]}
         onCreateMission={onCreateMission}
       />
     );

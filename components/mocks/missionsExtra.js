@@ -219,9 +219,161 @@ export const EXTRA_MISSIONS = [
   }),
 ];
 
-// Merged set the sandbox layouts iterate over. Drafts excluded from the
-// landing list views — they live in the existing "Draft" tab of the
-// Current layout and don't belong in table/kanban demos.
+// Merged set the non-Kanban sandbox layouts iterate over. Drafts are
+// excluded here — Table and Hybrid still keep them in their own surfaces.
+// The Kanban (Iteration 5) consumes [...SANDBOX_DRAFTS, ...SANDBOX_MISSIONS]
+// so the Draft swimlane has rows to render.
 export const SANDBOX_MISSIONS = [...DEMO_MISSIONS, ...EXTRA_MISSIONS].filter(
   (m) => m.state !== "draft",
 );
+
+// Empty-state draft — seeded so the Kanban can demo the third draft card
+// variant (no name, no checklist progress, no metadata at all).
+const EMPTY_DRAFT = {
+  id: "mission-draft-empty",
+  name: "",
+  description: "",
+  startDate: null,
+  endDate: null,
+  daysLeft: null,
+  progress: 0,
+  agentCount: null,
+  focusAreaCount: 0,
+  driverCount: 0,
+  state: "draft",
+  ownerInitials: "",
+  tags: [],
+  setupChecklist: {},
+};
+
+// Draft missions surfaced in the Kanban's Draft swimlane. Covers all three
+// card states: empty (no name + zero items), incomplete (some items), and
+// complete (all six items).
+export const SANDBOX_DRAFTS = [
+  EMPTY_DRAFT,
+  ...DEMO_MISSIONS.filter((m) => m.state === "draft"),
+];
+
+// KANBAN_DEMO_MISSIONS — curated to exactly one card per non-draft
+// running/closed sub-state described in Iteration 7. Today is treated as
+// 2026-05-23 (see formatDate UTC logic). Each card carries the shared
+// detail body so the curtain still has populated KPIs / Performance /
+// Interactions / Timeline content.
+function withDetail(base, kpiOverride) {
+  return {
+    ...withSharedDetail(base),
+    ...(kpiOverride ? { kpis: { ...SOURCE_DETAIL.kpis, ...kpiOverride } } : null),
+  };
+}
+
+export const KANBAN_DEMO_MISSIONS = [
+  // Active — Just Started (started 3 days ago, 48 days left)
+  withDetail({
+    id: "kanban-just-started",
+    name: "Win-Back Pulse — June Cohort",
+    description: "Initial coaching pass for newly onboarded win-back specialists.",
+    startDate: "2026-05-20",
+    endDate: "2026-07-10",
+    daysLeft: 48,
+    progress: 0,
+    agentCount: 12,
+    focusAreaCount: 4,
+    driverCount: 6,
+    state: "on_track",
+    ownerInitials: "NB",
+    tags: ["Onboarding", "Initial Coaching"],
+  }),
+  // Active — On Track (started 18 days ago, 30 days left, healthy progress)
+  withDetail({
+    id: "kanban-on-track",
+    name: "Customer Support Enhancement",
+    description: "Improve customer satisfaction through in-call resolution and consistent empathy under pressure.",
+    startDate: "2026-05-05",
+    endDate: "2026-06-22",
+    daysLeft: 30,
+    progress: 60,
+    agentCount: 18,
+    focusAreaCount: 5,
+    driverCount: 12,
+    state: "on_track",
+    ownerInitials: "MK",
+    tags: ["First-Call Resolution", "Empathy", "Implement Feedback"],
+  }),
+  // At Risk — Ending Soon (8 days left, healthy progress but window closing)
+  withDetail({
+    id: "kanban-ending-soon",
+    name: "Empathy Pulse Refresh",
+    description: "Refresh empathy fundamentals across veteran agents before quarterly review.",
+    startDate: "2026-03-30",
+    endDate: "2026-05-31",
+    daysLeft: 8,
+    progress: 76,
+    agentCount: 28,
+    focusAreaCount: 4,
+    driverCount: 12,
+    state: "ending_soon",
+    ownerInitials: "VG",
+    tags: ["Empathy", "Refresher"],
+  }),
+  // At Risk — Ends Today — Agents Behind (closing today, 14 of 22 still below)
+  withDetail(
+    {
+      id: "kanban-ends-today-behind",
+      name: "Chat Channel Onboarding",
+      description: "Onboard new chat-only specialists.",
+      startDate: "2026-05-05",
+      endDate: "2026-05-23",
+      daysLeft: 0,
+      progress: 38,
+      agentCount: 22,
+      focusAreaCount: 3,
+      driverCount: 6,
+      state: "ends_today",
+      ownerInitials: "LF",
+      tags: ["Chat", "Onboarding"],
+    },
+    { agentsBelowTarget: { current: 14, total: 22 } },
+  ),
+  // At Risk — Ready to Close (closing today, every agent at target)
+  withDetail(
+    {
+      id: "kanban-ready-to-close",
+      name: "Compliance Readiness — Q1",
+      description: "Disclosure scripts, payment authorization, policy handoff timing.",
+      startDate: "2026-04-23",
+      endDate: "2026-05-23",
+      daysLeft: 0,
+      progress: 100,
+      agentCount: 22,
+      focusAreaCount: 5,
+      driverCount: 8,
+      state: "ends_today",
+      ownerInitials: "AC",
+      tags: ["Compliance", "Disclosure"],
+    },
+    { agentsBelowTarget: { current: 0, total: 22 } },
+  ),
+  // Completed — representative closed mission, all targets met
+  withDetail({
+    id: "kanban-completed",
+    name: "Payment Plan Coaching",
+    description: "Coach payment-plan presentation across collections.",
+    startDate: "2026-03-22",
+    endDate: "2026-05-12",
+    daysLeft: -11,
+    progress: 100,
+    agentCount: 16,
+    focusAreaCount: 4,
+    driverCount: 10,
+    state: "completed",
+    closeOutcome: "all_met",
+    closedAt: "2026-05-12",
+    originalEndDate: "2026-05-12",
+    extendedDays: 0,
+    missionDurationDays: 51,
+    agentsReachedTarget: 16,
+    agentsTotal: 16,
+    ownerInitials: "TH",
+    tags: ["Payments", "Collections"],
+  }),
+];
