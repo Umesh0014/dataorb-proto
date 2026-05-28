@@ -25,6 +25,8 @@ import SkillsPage from "../../components/SkillsPage";
 import SkillRecordPage from "../../components/SkillRecordPage";
 import TasksPage from "../../components/TasksPage";
 import TaskRecordPage from "../../components/TaskRecordPage";
+import SettingsPage from "../../components/SettingsPage";
+import CreditsUsagePage from "../../components/CreditsUsagePage";
 import CreateTaskWizardPage, {
   EMPTY_TASK_DRAFT,
   SKILL_CATALOGUE,
@@ -113,6 +115,7 @@ const MODULE_REGISTRY = [insightsHubConfig, learningHubConfig, askMiraConfig];
 
 function resolveAppSwitcherLabel(pathname) {
   if (pathname?.startsWith("/coaching")) return "Coaching";
+  if (pathname?.startsWith("/settings")) return "Settings";
   const matched = MODULE_REGISTRY.find((c) => pathname?.startsWith(c.routePrefix));
   return matched?.displayName ?? "Apps";
 }
@@ -125,6 +128,7 @@ const DEFAULT_NAV = {
   learningNav: "drill",
   miraNav: "chat",
   missionDetailId: null,
+  settingsSubpage: null,
 };
 
 // deriveNav — pathname → { currentPage, insightsNav, learningNav, miraNav }.
@@ -162,6 +166,9 @@ function deriveNav(pathname) {
   } else if (segs[0] === "mira") {
     next.currentPage = "mira";
     if (segs.length >= 2) next.miraNav = segs[1];
+  } else if (segs[0] === "settings") {
+    next.currentPage = "settings";
+    if (segs.length >= 2) next.settingsSubpage = segs[1];
   }
   return next;
 }
@@ -191,6 +198,16 @@ function pathForMira(id) {
   return `/mira/${id}`;
 }
 
+// Settings is a cross-module utility surface — when the user opens it
+// the SideNav keeps the module rail they came from (no rail item turns
+// active). We remember the last non-settings module so a direct load on
+// /settings still picks a sensible rail (defaulting to insights).
+function resolveSettingsRailModule(previous) {
+  return previous === "learning" || previous === "mira" || previous === "insights"
+    ? previous
+    : "insights";
+}
+
 export default function Page() {
   const pathname = usePathname();
   const router = useRouter();
@@ -198,7 +215,7 @@ export default function Page() {
   // URL is the source of truth for module + sub-section. Derive the four
   // nav ids on every render from the pathname; nav-driving setState calls
   // are replaced with router.push() against the same URL schema.
-  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId } = React.useMemo(
+  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId, settingsSubpage } = React.useMemo(
     () => deriveNav(pathname),
     [pathname],
   );
@@ -211,6 +228,14 @@ export default function Page() {
     else if (pathname === "/insights") router.replace(pathForInsights("contact-center"));
     else if (pathname === "/mira") router.replace(pathForMira("chat"));
   }, [pathname, router]);
+
+  // Track the most recently visited module so /settings can render with
+  // that module's rail (since Settings has no rail of its own). Loading
+  // /settings directly falls back to insights via resolveSettingsRailModule.
+  const lastModuleRef = React.useRef(currentPage === "settings" ? "insights" : currentPage);
+  React.useEffect(() => {
+    if (currentPage !== "settings") lastModuleRef.current = currentPage;
+  }, [currentPage]);
 
   // Read the persisted SideNav expand/collapse preference synchronously in
   // the initializer so first paint already matches the user's choice. A
@@ -405,7 +430,37 @@ export default function Page() {
   let handleAppSelectPage;
   let moduleContent;
 
-  if (currentPage === "mira") {
+  if (currentPage === "settings") {
+    // Settings is a cross-module surface. Pick whichever module rail the
+    // user most recently visited so the chrome stays continuous; no rail
+    // item is "active" while on /settings.
+    const railModule = resolveSettingsRailModule(lastModuleRef.current);
+    if (railModule === "mira") {
+      sidenavConfig = askMiraConfig;
+      handleSidenavSelect = (id) => router.push(pathForMira(id));
+    } else if (railModule === "learning") {
+      sidenavConfig = learningHubConfig;
+      handleSidenavSelect = (id) => router.push(pathForLearning(id));
+    } else {
+      sidenavConfig = insightsHubConfig;
+      handleSidenavSelect = (id) => router.push(pathForInsights(id));
+    }
+    sidenavActiveId = "__settings__"; // matches no item, suppresses active state
+    handleAppSelectPage = (page) => {
+      setAppMenuOpen(false);
+      router.push(pathForCurrentPage(page));
+    };
+    const settingsContent = settingsSubpage === "credits-usage"
+      ? <CreditsUsagePage onBack={() => router.push("/settings")} />
+      : <SettingsPage onSelectCard={(cardId) => {
+          if (cardId === "credits-usage") router.push("/settings/credits-usage");
+        }} />;
+    moduleContent = (
+      <PageLayout>
+        {settingsContent}
+      </PageLayout>
+    );
+  } else if (currentPage === "mira") {
     const { Component: MiraPage, pageName } = resolvePage(MIRA_PAGES, miraNav, "Ask Mira Pro");
     const isChat = miraNav === "chat";
     const isHistory = miraNav === "history";
@@ -654,6 +709,7 @@ export default function Page() {
         appSwitcherTriggerRef={appMenuTriggerRef}
         appSwitcherLabel={resolveAppSwitcherLabel(pathname)}
         onAppSwitcherClick={() => setAppMenuOpen((o) => !o)}
+        onSettingsClick={() => router.push("/settings")}
         isExpanded={sidenavExpanded}
         onToggleExpanded={handleToggleSidenav}
       />

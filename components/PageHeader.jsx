@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import AgentHeader from "./AgentHeader";
@@ -31,11 +31,18 @@ import AgentHeader from "./AgentHeader";
 // existing border-tab divider token). No new tokens introduced.
 //
 // API:
-//   identifier:    { icon, label, withDropdown?, onClick? }
+//   identifier:    { icon, label, withDropdown?, onClick?, iconBg?, iconColor? }
 //   primaryAction: { label, icon?, onClick, variant?, disabled? }
 //   search:        { value, onChange, placeholder? }
 //   toolbar:       Array<{ id, icon, label, onClick, active? }>
 //   filters:       Array<{ id, label, value, onClick }>
+//   breadcrumb:    Array<{ label, onClick? }>  — last item renders as
+//                  current (non-link); earlier items render as links.
+//   subtitle:      string  — small descriptive line below row1
+//   meta:          React.ReactNode — status/meta line below subtitle
+//                  (e.g. "Setup complete · …")
+//   back:          () => void  — when supplied, a Back chip renders
+//                  before the identifier icon
 export default function PageHeader({
   identifier,
   primaryAction,
@@ -43,6 +50,10 @@ export default function PageHeader({
   toolbar,
   filters,
   agentHeader,
+  breadcrumb,
+  subtitle,
+  meta,
+  back,
 }) {
   // Agent Profile / Agent Detail header variant — when `agentHeader` is
   // supplied, PageHeader renders the agent header instead of the standard
@@ -54,12 +65,20 @@ export default function PageHeader({
   const hasFilters = Array.isArray(filters) && filters.length > 0;
   const hasRow2 = hasSearch || hasToolbar || hasFilters;
 
+  const hasBreadcrumb = Array.isArray(breadcrumb) && breadcrumb.length > 0;
+
   return (
     <Card padX={0} padY={0} style={phStyles.outer}>
+      {hasBreadcrumb && <Breadcrumb items={breadcrumb} />}
       <div style={phStyles.row1}>
-        {identifier ? <Identifier {...identifier} /> : <span />}
+        <div style={phStyles.row1Left}>
+          {back && <BackChip onClick={back} />}
+          {identifier ? <Identifier {...identifier} /> : <span />}
+        </div>
         {primaryAction && <PrimaryAction {...primaryAction} />}
       </div>
+      {subtitle && <p style={phStyles.subtitle}>{subtitle}</p>}
+      {meta && <div style={phStyles.meta}>{meta}</div>}
       {hasRow2 && (
         <>
           <div style={phStyles.rowDivider} aria-hidden="true" />
@@ -81,10 +100,50 @@ export default function PageHeader({
   );
 }
 
-function Identifier({ icon, label, withDropdown = false, onClick }) {
+function Breadcrumb({ items }) {
+  return (
+    <nav aria-label="Breadcrumb" style={phStyles.breadcrumb}>
+      {items.map((item, i) => {
+        const isLast = i === items.length - 1;
+        return (
+          <React.Fragment key={`${item.label}-${i}`}>
+            {isLast ? (
+              <span style={phStyles.crumbCurrent} aria-current="page">{item.label}</span>
+            ) : item.onClick ? (
+              <button type="button" onClick={item.onClick} style={phStyles.crumbLink}>
+                {item.label}
+              </button>
+            ) : (
+              <span style={phStyles.crumbInactive}>{item.label}</span>
+            )}
+            {!isLast && (
+              <ChevronRight size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </nav>
+  );
+}
+
+function BackChip({ onClick }) {
+  return (
+    <button type="button" onClick={onClick} aria-label="Back" style={phStyles.backChip}>
+      <ArrowLeft size={16} color="var(--color-text-tertiary)" />
+    </button>
+  );
+}
+
+function Identifier({ icon, label, withDropdown = false, onClick, iconBg, iconColor }) {
+  // Optional iconBg/iconColor override the default blue chip — used by
+  // surfaces that want a tone-themed identifier (e.g. lavender on the
+  // Credits & Usage page, matching the Settings card tile).
+  const chipStyle = (iconBg || iconColor)
+    ? { ...phStyles.iconChip, background: iconBg || phStyles.iconChip.background, color: iconColor || phStyles.iconChip.color }
+    : phStyles.iconChip;
   const inner = (
     <>
-      <div style={phStyles.iconChip}>{icon}</div>
+      <div style={chipStyle}>{icon}</div>
       <span style={phStyles.label}>{label}</span>
       {withDropdown && (
         <span className="material-symbols-outlined" style={phStyles.chevron}>
@@ -246,8 +305,82 @@ const phStyles = {
     justifyContent: "space-between",
     gap: 16,
     paddingInline: 28,
-    height: 80,
+    minHeight: 80,
   },
+  row1Left: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    minWidth: 0,
+  },
+
+  breadcrumb: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    paddingInline: 28,
+    paddingTop: 16,
+    paddingBottom: 4,
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+  },
+  crumbLink: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    color: "var(--do-brand-blue)",
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 12,
+    fontWeight: 500,
+  },
+  crumbInactive: {
+    color: "var(--color-text-tertiary)",
+    fontWeight: 500,
+  },
+  crumbCurrent: {
+    color: "var(--color-text-deep)",
+    fontWeight: 600,
+  },
+
+  backChip: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    border: "none",
+    background: "var(--color-card-emoji-bg)",
+    display: "inline-grid",
+    placeItems: "center",
+    cursor: "pointer",
+    padding: 0,
+    flexShrink: 0,
+    transition: "background 120ms ease",
+  },
+
+  subtitle: {
+    margin: 0,
+    paddingInline: 28,
+    paddingBottom: 8,
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 13,
+    fontWeight: 400,
+    lineHeight: 1.5,
+    color: "var(--color-text-tertiary)",
+    marginTop: -8,
+  },
+  meta: {
+    paddingInline: 28,
+    paddingBottom: 16,
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: 1.5,
+    color: "var(--color-text-tertiary)",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+
   identifierBox: { display: "flex", alignItems: "center", gap: 0 },
   identifierBtn: {
     display: "flex",

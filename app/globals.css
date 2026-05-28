@@ -216,6 +216,36 @@
   --page-header-gap:         24px;
   --page-card-gap:           24px;
   --page-padding-bottom:     24px;
+
+  /* ==============================================================
+     SETTINGS — pastel icon-tile palette + card outline
+     Pastel bg + saturated fg pairs lifted verbatim from the Figma
+     Settings spec (Quality & Coaching / User management / Interaction
+     typology / System processing card icons). Card outline is the same
+     pale primary-tint Figma uses on every Settings card border. Page
+     surface intentionally reuses `--surface-canvas` so Settings sits in
+     the same chrome as every other landing page.
+     ============================================================== */
+  --color-border-card-soft: #EFEFFF;
+
+  --tile-green-bg:    #F7FEE7;
+  --tile-green-fg:    #84CC16;
+  --tile-emerald-bg:  #ECFDF5;
+  --tile-emerald-fg:  #10B981;
+  --tile-blue-bg:     #EFF6FF;
+  --tile-blue-fg:     #3B82F6;
+  --tile-yellow-bg:   #FEFCE8;
+  --tile-yellow-fg:   #EAB308;
+  --tile-rose-bg:     #FFF1F2;
+  --tile-rose-fg:     #F43F5E;
+  --tile-orange-bg:   #FFF7ED;
+  --tile-orange-fg:   #F97316;
+  --tile-cyan-bg:     #ECFEFF;
+  --tile-cyan-fg:     #06B6D4;
+  --tile-violet-bg:   #F5F3FF;
+  --tile-violet-fg:   #8B5CF6;
+  --tile-fuchsia-bg:  #FDF4FF;
+  --tile-fuchsia-fg:  #D946EF;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
