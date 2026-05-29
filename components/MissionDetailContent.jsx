@@ -120,7 +120,7 @@ function qaColor(score) {
   return "var(--color-error)";
 }
 
-export default function MissionDetailContent({ mission, persona = "Team Leader", compact = false }) {
+export default function MissionDetailContent({ mission, persona = "Team Lead", compact = false }) {
   const [perfTab, setPerfTab] = React.useState("focus");
   const k = mission.kpis || {};
   // Upcoming-state curtain strips the top stats row + Roleplay

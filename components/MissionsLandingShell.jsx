@@ -2,8 +2,8 @@
 
 import React from "react";
 import MissionsKanbanLayout from "./MissionsKanbanLayout";
-import PersonaSwitcher from "./PersonaSwitcher";
 import VariantSwitcher from "./VariantSwitcher";
+import { usePersona } from "./lib/personaContext";
 import {
   SANDBOX_DRAFTS,
   KANBAN_DEMO_MISSIONS,
@@ -11,11 +11,16 @@ import {
 } from "./mocks/missionsExtra";
 
 // MissionsLandingShell — Missions landing entry point. Kanban is the
-// single canonical view (revisions Part A). Hosts the demo-only persona
-// state (Part E) + variant state (Part F) and the floating switcher
-// cluster. Both states are in-memory only — when the session ends the
-// page resets to "Team Leader" + "M2" defaults (deletable in a single
-// commit).
+// single canonical view (revisions Part A).
+//
+// Persona state was originally page-local (Part E demo affordance). With
+// the Roleplay Phase 1 work it now reads from the shell-level
+// PersonaContext (PersonaProvider in app/[[...slug]]/page.jsx) so the
+// top-right PersonaPill drives the same value, and any other module
+// that hides manager-only chrome stays in sync.
+//
+// Variant state (M1 / M2) stays page-local — variant is a presentation
+// choice for Missions only, not an app-wide concern.
 
 // Demo agent — used by the Agent persona to filter visible missions.
 // Pick ids that span Active / At Risk / Completed / Upcoming so every
@@ -35,14 +40,13 @@ export default function MissionsLandingShell({
   onCreateMission,
   onOpenMission,
 }) {
-  const [persona, setPersona] = React.useState("Team Leader");
-  // Variant default M2 = current Team Leader view (spec §F3). Persists
-  // across persona toggles within the session (spec §F8 #6) because the
-  // state lives at this level — Agent toggling doesn't unmount it.
+  const { persona, isAgent } = usePersona();
+  // Variant default M2 = current Team Lead view (spec §F3). Persists
+  // across persona toggles within the session because the state lives
+  // at this level — Agent toggling doesn't unmount it.
   const [variant, setVariant] = React.useState("M2");
-  const isAgent = persona === "Agent";
 
-  // Source data — Team Leader sees everything; Agent sees only the
+  // Source data — Team Lead sees everything; Agent sees only the
   // missions assigned to them (sample filter for the demo).
   const allMissions = React.useMemo(
     () => [...SANDBOX_DRAFTS, ...KANBAN_DEMO_MISSIONS],
@@ -65,16 +69,14 @@ export default function MissionsLandingShell({
         persona={persona}
         variant={variant}
       />
-      {/* Floating cluster bottom-right (Part F §F3): variant switcher
-          stacks above the persona switcher with a small gap. Variant
-          switcher is gated to Team Leader only — when hidden, the
-          persona switcher stays anchored, no shift. */}
-      <div style={switcherClusterStyles.cluster}>
-        {!isAgent && (
+      {/* Variant switcher (M1 / M2) is a demo-only authoring affordance
+          for Missions Kanban. Hidden when persona = Agent because the
+          M1/M2 distinction is a Team Lead authoring concern. */}
+      {!isAgent && (
+        <div style={switcherClusterStyles.cluster}>
           <VariantSwitcher variant={variant} onChange={setVariant} />
-        )}
-        <PersonaSwitcher persona={persona} onChange={setPersona} />
-      </div>
+        </div>
+      )}
     </>
   );
 }

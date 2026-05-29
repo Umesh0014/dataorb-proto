@@ -25,6 +25,8 @@ import SkillRecordPage from "../../components/SkillRecordPage";
 import TasksPage from "../../components/TasksPage";
 import TaskRecordPage from "../../components/TaskRecordPage";
 import SettingsPage from "../../components/SettingsPage";
+import { PersonaProvider } from "../../components/lib/personaContext";
+import PersonaPill from "../../components/PersonaPill";
 import CreditsUsagePage from "../../components/CreditsUsagePage";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
@@ -763,7 +765,7 @@ export default function Page() {
   }
 
   return (
-    <>
+    <PersonaProvider>
       <SideNav
         config={sidenavConfig}
         activeId={sidenavActiveId}
@@ -783,6 +785,10 @@ export default function Page() {
         currentPage={currentPage}
         onSelectPage={handleAppSelectPage}
       />
-    </>
+      {/* Persona pill is product chrome — sits above PageHeader so it
+          stays visible across every module, including the Settings
+          surface and Mission detail curtain. */}
+      <PersonaPill />
+    </PersonaProvider>
   );
 }

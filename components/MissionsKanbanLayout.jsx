@@ -65,7 +65,7 @@ export default function MissionsKanbanLayout({
   missions,
   upcomingMissions = [],
   onCreateMission,
-  persona = "Team Leader",
+  persona = "Team Lead",
   variant = "M2",
 }) {
   const [query, setQuery] = React.useState("");
