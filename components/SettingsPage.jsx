@@ -14,7 +14,9 @@ import {
   LineChart,
   ArrowUpRight,
   Gauge,
+  Waves,
 } from "lucide-react";
+import { ROLEPLAY_DRIVERS } from "./mocks/roleplayDrivers";
 
 // SettingsPage — DataOrb admin Settings landing.
 //
@@ -185,6 +187,28 @@ const SECTIONS = [
         Icon: TrendingUp,
         tone: "yellow",
         placeholder: true,
+      },
+    ],
+  },
+  {
+    // Learning Hub — new Settings section added for the Figma "In review
+    // - V2" Roleplay Drivers card. Currently surfaces a single live card
+    // (Roleplay Drivers); the other Learning Hub admin surfaces (Roleplay
+    // Scorecards / Roleplay Metrics) ship in a later branch and fall back
+    // to ComingSoon at the route level.
+    id: "learning-hub",
+    label: "Learning Hub",
+    subheader: "Evaluate agent performance using configurable scorecards and quality metrics.",
+    cards: [
+      {
+        id: "roleplay-drivers",
+        title: "Roleplay Drivers",
+        // Roleplay Drivers card surfaces its current live count, matching
+        // the "{N} Drivers Available" copy in the Figma Settings card.
+        description: "View available contact drivers linked contact reasons",
+        Icon: Waves,
+        tone: "violet",
+        stat: { kind: "driverCount" },
       },
     ],
   },
@@ -368,8 +392,22 @@ function SettingsCard({ card, onClick }) {
         </div>
         <p style={styles.cardDescription}>{card.description}</p>
         {card.stat?.kind === "poolUsage" && <PoolUsageStat sample={card.stat.sample} />}
+        {card.stat?.kind === "driverCount" && <DriverCountStat />}
       </div>
     </button>
+  );
+}
+
+// DriverCountStat — small "{N} Drivers Available" tag matching the Figma
+// Settings card affordance. Pulls the live count from the shared seed
+// list so the Settings landing and the Roleplay Drivers list always
+// agree on how many active drivers exist out of the box.
+function DriverCountStat() {
+  const activeCount = ROLEPLAY_DRIVERS.filter((d) => !d.archived).length;
+  return (
+    <div style={styles.statBlock}>
+      <span style={styles.driverCountChip}>{activeCount} Drivers Available</span>
+    </div>
   );
 }
 
@@ -580,5 +618,19 @@ const styles = {
     height: "100%",
     borderRadius: 2,
     transition: "width 200ms ease",
+  },
+  driverCountChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    height: 22,
+    padding: "0 10px",
+    borderRadius: 999,
+    background: "var(--tile-violet-bg)",
+    color: "var(--tile-violet-fg)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 500,
+    fontVariantNumeric: "tabular-nums",
   },
 };

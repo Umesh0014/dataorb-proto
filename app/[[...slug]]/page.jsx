@@ -25,6 +25,7 @@ import SkillRecordPage from "../../components/SkillRecordPage";
 import TasksPage from "../../components/TasksPage";
 import TaskRecordPage from "../../components/TaskRecordPage";
 import SettingsPage from "../../components/SettingsPage";
+import RoleplayDriversPage from "../../components/RoleplayDriversPage";
 import CreditsUsagePage from "../../components/CreditsUsagePage";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
@@ -173,7 +174,11 @@ function deriveNav(pathname) {
     if (segs.length >= 2) next.miraNav = segs[1];
   } else if (segs[0] === "settings") {
     next.currentPage = "settings";
-    if (segs.length >= 2) next.settingsSubpage = segs[1];
+    // Capture the full sub-route past `/settings/` so multi-segment
+    // surfaces (e.g. `/settings/learning-hub/drivers`) resolve to one
+    // settingsSubpage key. Existing single-segment routes
+    // (`credits-usage`) keep working unchanged.
+    if (segs.length >= 2) next.settingsSubpage = segs.slice(1).join("/");
   }
   return next;
 }
@@ -486,16 +491,31 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
-    const settingsContent = settingsSubpage === "credits-usage"
-      ? <CreditsUsagePage onBack={() => router.push("/settings")} />
-      : <SettingsPage onSelectCard={(cardId) => {
-          if (cardId === "credits-usage") router.push("/settings/credits-usage");
-        }} />;
-    moduleContent = (
-      <PageLayout>
-        {settingsContent}
-      </PageLayout>
-    );
+    let settingsContent;
+    if (settingsSubpage === "credits-usage") {
+      settingsContent = (
+        <PageLayout>
+          <CreditsUsagePage onBack={() => router.push("/settings")} />
+        </PageLayout>
+      );
+    } else if (settingsSubpage === "learning-hub/drivers") {
+      // Roleplay Drivers list owns its own PageLayout so it can pass the
+      // PageHeader through the `header` slot — wrapping in another
+      // PageLayout (as Credits & Usage does) would double-pad.
+      settingsContent = (
+        <RoleplayDriversPage onBack={() => router.push("/settings")} />
+      );
+    } else {
+      settingsContent = (
+        <PageLayout>
+          <SettingsPage onSelectCard={(cardId) => {
+            if (cardId === "credits-usage") router.push("/settings/credits-usage");
+            else if (cardId === "roleplay-drivers") router.push("/settings/learning-hub/drivers");
+          }} />
+        </PageLayout>
+      );
+    }
+    moduleContent = settingsContent;
   } else if (currentPage === "mira") {
     const { Component: MiraPage, pageName } = resolvePage(MIRA_PAGES, miraNav, "Ask Mira Pro");
     const isChat = miraNav === "chat";
