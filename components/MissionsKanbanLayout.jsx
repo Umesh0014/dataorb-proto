@@ -31,7 +31,9 @@ const LANES = [
 
 // Agent persona lane order — Draft dropped (agents don't see in-flight
 // authoring) and Upcoming promoted from a sub-section (Team Leader's
-// Part B pattern) to its own top-level column. Part E §E3.
+// Part B pattern) to its own top-level column. Part E §E3. Same shape
+// is reused by Team Leader's M1 variant (Part F §F4) — Upcoming as own
+// column, Draft silently hidden.
 const AGENT_LANES = [
   { id: "upcoming",  label: "Upcoming" },
   { id: "active",    label: "Active" },
@@ -64,12 +66,17 @@ export default function MissionsKanbanLayout({
   upcomingMissions = [],
   onCreateMission,
   persona = "Team Leader",
+  variant = "M2",
 }) {
   const [query, setQuery] = React.useState("");
   const isAgent = persona === "Agent";
-  // Role gate — Upcoming sub-section (Part B) is the Team Leader
-  // pattern only. Agents get Upcoming as its own column (Part E §E3).
-  const showUpcomingSubsection = isTeamViewer() && !isAgent;
+  // M1 variant (Team Leader only, Part F §F4) reuses the Agent lane
+  // shape — Upcoming as its own column, Draft hidden. The variant prop
+  // is only meaningful for Team Leader; Agent ignores it.
+  const useUpcomingColumn = isAgent || variant === "M1";
+  // Role gate — Upcoming sub-section (Part B) is the Team Leader M2
+  // pattern only. Agent and M1 promote Upcoming to a top-level column.
+  const showUpcomingSubsection = isTeamViewer() && !isAgent && variant === "M2";
   // Earliest start first; cap to first 5 by default (spec §B5 + §B7 #4).
   const upcomingSorted = React.useMemo(
     () => [...upcomingMissions]
@@ -94,27 +101,27 @@ export default function MissionsKanbanLayout({
   );
 
   // Group into lanes, then sort each lane by % target met ascending
-  // (lowest first — surfaces "who needs attention" at the top). For
-  // Agent persona, also bucket the upcomingMissions into their own
-  // "upcoming" lane (Part E §E3 — Upcoming as a top-level column,
-  // not a sub-section).
+  // (lowest first — surfaces "who needs attention" at the top). When
+  // Upcoming is its own column (Agent persona OR Team Leader M1
+  // variant), also bucket the upcomingMissions into their own
+  // "upcoming" lane (Part E §E3 / Part F §F4).
   const grouped = React.useMemo(() => {
     const out = { draft: [], active: [], at_risk: [], completed: [], upcoming: [] };
     for (const m of filtered) {
       const lane = laneOf(m);
       if (out[lane]) out[lane].push(m);
     }
-    if (isAgent) {
+    if (useUpcomingColumn) {
       out.upcoming = upcomingSorted;
     }
     for (const id of Object.keys(out)) {
       out[id].sort((a, b) => (a.progress ?? 0) - (b.progress ?? 0));
     }
     return out;
-  }, [filtered, isAgent, upcomingSorted]);
+  }, [filtered, useUpcomingColumn, upcomingSorted]);
 
-  const lanesForPersona = isAgent ? AGENT_LANES : LANES;
-  const visibleLanes = lanesForPersona.filter((l) => grouped[l.id].length > 0);
+  const lanesForView = useUpcomingColumn ? AGENT_LANES : LANES;
+  const visibleLanes = lanesForView.filter((l) => grouped[l.id].length > 0);
 
   // Curtain-lookup pool covers every clickable card on the board —
   // including Upcoming sub-section cards that don't live in `missions`
