@@ -1,102 +1,64 @@
 "use client";
 
 import React from "react";
-import MissionsPage from "./MissionsPage";
-import MissionsDenseTableLayout from "./MissionsDenseTableLayout";
 import MissionsKanbanLayout from "./MissionsKanbanLayout";
-import MissionsHybridTableLayout from "./MissionsHybridTableLayout";
-import SandboxSwitcher from "./sandbox/SandboxSwitcher";
-import { SANDBOX_MISSIONS, SANDBOX_DRAFTS, KANBAN_DEMO_MISSIONS } from "./mocks/missionsExtra";
+import PersonaSwitcher from "./PersonaSwitcher";
+import {
+  SANDBOX_DRAFTS,
+  KANBAN_DEMO_MISSIONS,
+  KANBAN_UPCOMING_MISSIONS,
+} from "./mocks/missionsExtra";
 
-// MissionsLandingShell — wraps the Missions landing in a layout
-// sandbox. Renders one of four layouts based on the persisted demo
-// preference and overlays the shared SandboxSwitcher in the
-// bottom-right. The "Current" layout delegates to the original
-// MissionsPage so the production layout is preserved untouched.
+// MissionsLandingShell — Missions landing entry point. Kanban is the
+// single canonical view (revisions Part A). Hosts the demo-only
+// persona state (Part E) and the floating switcher. Persona state is
+// in-memory only — when the session ends the page resets to the
+// "Team Leader" default (deletable in a single commit).
 
-const STORAGE_KEY = "dataorb.missions.layoutSandbox";
-const VALID = new Set(["current", "table", "kanban", "hybrid"]);
-
-export const SANDBOX_OPTIONS = [
-  { id: "current", label: "Current" },
-  { id: "table",   label: "Table" },
-  { id: "kanban",  label: "Kanban" },
-  { id: "hybrid",  label: "Hybrid" },
-];
+// Demo agent — used by the Agent persona to filter visible missions.
+// Pick ids that span Active / At Risk / Completed / Upcoming so every
+// swimlane has at least one card during the demo. Real impl: derive
+// from the signed-in user + their mission assignments.
+const AGENT_MISSION_IDS = new Set([
+  "kanban-on-track",          // Active (Customer Support Enhancement)
+  "kanban-ending-soon",       // At Risk (if present)
+  "kanban-at-risk",           // At Risk
+  "kanban-ends-today",        // At Risk
+  "kanban-completed",         // Completed
+  "kanban-upcoming-1",        // Upcoming (Premium Loyalty Save Drill)
+  "kanban-upcoming-2",        // Upcoming
+]);
 
 export default function MissionsLandingShell({
   onCreateMission,
-  initialMissionId,
   onOpenMission,
 }) {
-  const [layout, setLayout] = React.useState(() => {
-    if (typeof window === "undefined") return "current";
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored && VALID.has(stored)) return stored;
-    } catch {
-      // ignore — fall back to default
-    }
-    return "current";
-  });
+  const [persona, setPersona] = React.useState("Team Leader");
+  const isAgent = persona === "Agent";
 
-  const [statusFilter, setStatusFilter] = React.useState("Active");
-  const missions = React.useMemo(() => {
-    if (statusFilter === "Completed") {
-      return SANDBOX_MISSIONS.filter((m) => m.state === "completed");
-    }
-    if (statusFilter === "Draft") {
-      return SANDBOX_MISSIONS.filter((m) => m.state === "draft");
-    }
-    return SANDBOX_MISSIONS.filter((m) => m.state !== "completed" && m.state !== "draft");
-  }, [statusFilter]);
-
-  let content;
-  if (layout === "table") {
-    content = (
-      <MissionsDenseTableLayout
-        missions={missions}
-        statusFilter={statusFilter}
-        onStatusFilter={setStatusFilter}
-        onOpenMission={onOpenMission}
-        onCreateMission={onCreateMission}
-      />
-    );
-  } else if (layout === "kanban") {
-    content = (
-      <MissionsKanbanLayout
-        missions={[...SANDBOX_DRAFTS, ...KANBAN_DEMO_MISSIONS]}
-        onCreateMission={onCreateMission}
-      />
-    );
-  } else if (layout === "hybrid") {
-    content = (
-      <MissionsHybridTableLayout
-        missions={missions}
-        statusFilter={statusFilter}
-        onStatusFilter={setStatusFilter}
-        onCreateMission={onCreateMission}
-      />
-    );
-  } else {
-    content = (
-      <MissionsPage
-        onCreateMission={onCreateMission}
-        initialMissionId={initialMissionId}
-      />
-    );
-  }
+  // Source data — Team Leader sees everything; Agent sees only the
+  // missions assigned to them (sample filter for the demo).
+  const allMissions = React.useMemo(
+    () => [...SANDBOX_DRAFTS, ...KANBAN_DEMO_MISSIONS],
+    [],
+  );
+  const visibleMissions = isAgent
+    ? allMissions.filter((m) => AGENT_MISSION_IDS.has(m.id))
+    : allMissions;
+  const visibleUpcoming = isAgent
+    ? KANBAN_UPCOMING_MISSIONS.filter((m) => AGENT_MISSION_IDS.has(m.id))
+    : KANBAN_UPCOMING_MISSIONS;
 
   return (
     <>
-      {content}
-      <SandboxSwitcher
-        options={SANDBOX_OPTIONS}
-        activeId={layout}
-        onChange={setLayout}
-        storageKey={STORAGE_KEY}
-        orientation="horizontal"
+      <MissionsKanbanLayout
+        missions={visibleMissions}
+        upcomingMissions={visibleUpcoming}
+        onCreateMission={onCreateMission}
+        onOpenMission={onOpenMission}
+        persona={persona}
       />
+      <PersonaSwitcher persona={persona} onChange={setPersona} />
     </>
   );
 }

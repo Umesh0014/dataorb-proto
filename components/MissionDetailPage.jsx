@@ -7,38 +7,22 @@ import Button from "./Button";
 import PageLayout from "./PageLayout";
 import { SANDBOX_MISSIONS } from "./mocks/missionsExtra";
 import MissionDetailContent from "./MissionDetailContent";
-import SandboxSwitcher from "./sandbox/SandboxSwitcher";
-import { SANDBOX_OPTIONS } from "./MissionsLandingShell";
 import { displayStatus, STATUS_TONE } from "./MissionsTable";
 
 // MissionDetailPage — full-page mission detail rendered at the
-// /learning/missions/{missionId} route under Options 2 (Dense table)
-// and 3 (Kanban) of the sandbox. Sits in the narrow Agents-page
+// /learning/missions/{missionId} route. Sits in the narrow Agents-page
 // chassis (PageLayout 1068px). Header mirrors the Card-based sticky
 // header pattern used by TaskRecordPage / SkillRecordPage.
+//
+// Revisions Part A: removed the floating view-mode sandbox switcher —
+// Kanban is now the only Missions landing view, so the deep-link
+// detail page no longer needs to advertise alternate layouts.
 
-const SANDBOX_STORAGE_KEY = "dataorb.missions.layoutSandbox";
-
-function readSandboxLayout() {
-  if (typeof window === "undefined") return "current";
-  try {
-    return window.localStorage.getItem(SANDBOX_STORAGE_KEY) || "current";
-  } catch {
-    return "current";
-  }
-}
-
-export default function MissionDetailPage({ missionId, onBack, onSelectLayout }) {
+export default function MissionDetailPage({ missionId, onBack }) {
   const mission = React.useMemo(
     () => SANDBOX_MISSIONS.find((m) => m.id === missionId) || SANDBOX_MISSIONS[0],
     [missionId],
   );
-  const [layout, setLayout] = React.useState(readSandboxLayout);
-
-  const handleLayoutChange = (next) => {
-    setLayout(next);
-    onSelectLayout?.(next);
-  };
 
   if (!mission) {
     return (
@@ -109,13 +93,6 @@ export default function MissionDetailPage({ missionId, onBack, onSelectLayout })
 
         <MissionDetailContent mission={mission} />
       </PageLayout>
-      <SandboxSwitcher
-        options={SANDBOX_OPTIONS}
-        activeId={layout}
-        onChange={handleLayoutChange}
-        storageKey={SANDBOX_STORAGE_KEY}
-        orientation="horizontal"
-      />
     </>
   );
 }

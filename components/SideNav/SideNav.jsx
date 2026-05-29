@@ -595,8 +595,51 @@ function RailItem({
         )}
         {isExpanded && <ExpandedLabel>{item.label}</ExpandedLabel>}
         {item.dot && (isExpanded ? <InlineDot /> : <NotificationDot />)}
+        {item.wip  && <NavBadge label="WIP"  variant="light"  isExpanded={isExpanded} />}
+        {item.beta && <NavBadge label="Beta" variant="filled" isExpanded={isExpanded} />}
       </button>
     </Tooltip>
+  );
+}
+
+// NavBadge — corner pill marking module state on the rail. Anchors
+// top-right of the 40×40 icon button in collapsed mode (does not shift
+// the icon's optical centring or change rail width). In expanded mode
+// it sits inline after the label.
+//
+// Variants (revisions Part C):
+//   light  — outline + tinted fill on warning hue (used by WIP).
+//   filled — saturated warning fill + white text (used by Beta). Same
+//            hue family as WIP so the rail reads as one badge type;
+//            flag for product if Beta should switch to a distinct hue
+//            (e.g. brand blue) for at-a-glance stage differentiation.
+function NavBadge({ label, variant = "light", isExpanded }) {
+  const filled = variant === "filled";
+  const sharedStyle = {
+    fontFamily: T.font.sans,
+    fontSize: 8,
+    fontWeight: 700,
+    letterSpacing: "0.4px",
+    color: filled ? "#FFFFFF" : "var(--color-warning-text)",
+    background: filled ? "var(--color-warning)" : "var(--color-warning-bg)",
+    border: `1px solid var(--color-warning)`,
+    borderRadius: 4,
+    padding: "1px 4px",
+    lineHeight: 1,
+    whiteSpace: "nowrap",
+    pointerEvents: "none",
+    textTransform: "uppercase",
+  };
+  if (isExpanded) {
+    return <span style={{ ...sharedStyle, marginLeft: "auto" }}>{label}</span>;
+  }
+  return (
+    <span
+      aria-hidden="true"
+      style={{ ...sharedStyle, position: "absolute", top: 2, right: 2 }}
+    >
+      {label}
+    </span>
   );
 }
 

@@ -377,3 +377,56 @@ export const KANBAN_DEMO_MISSIONS = [
     tags: ["Payments", "Collections"],
   }),
 ];
+
+// KANBAN_UPCOMING_MISSIONS — feeds the Upcoming sub-section inside the
+// Active swimlane (team-viewer role only, revisions Part B). Inclusion
+// rule per spec §B5: state !== "active" + start_date > today. Sorted
+// here in earliest-first order so consumers can splice the first N
+// directly.
+export const KANBAN_UPCOMING_MISSIONS = [
+  withDetail({
+    id: "kanban-upcoming-1",
+    name: "Premium Loyalty Save Drill",
+    description: "Practice the saving-grace framework against high-ARPU churn threats before the August surge.",
+    startDate: "2026-06-03",
+    endDate: "2026-07-15",
+    daysLeft: null,
+    progress: 0,
+    agentCount: 8,
+    focusAreaCount: 3,
+    driverCount: 5,
+    state: "upcoming",
+    ownerInitials: "MR",
+    tags: ["Retention", "Loyalty"],
+  }),
+  withDetail({
+    id: "kanban-upcoming-2",
+    name: "Q3 Compliance Refresher",
+    description: "Quarterly compliance pass covering tariff disclosure + concession-cap escalation.",
+    startDate: "2026-06-15",
+    endDate: "2026-07-30",
+    daysLeft: null,
+    progress: 0,
+    agentCount: 22,
+    focusAreaCount: 4,
+    driverCount: 7,
+    state: "upcoming",
+    ownerInitials: "AC",
+    tags: ["Compliance"],
+  }),
+  withDetail({
+    id: "kanban-upcoming-3",
+    name: "Empathy Reinforcement — Tier 2",
+    description: "Second-pass coaching for agents who scored below the empathy bar in May.",
+    startDate: "2026-07-01",
+    endDate: "2026-08-12",
+    daysLeft: null,
+    progress: 0,
+    agentCount: 14,
+    focusAreaCount: 2,
+    driverCount: 4,
+    state: "upcoming",
+    ownerInitials: "JV",
+    tags: ["Coaching", "Soft Skills"],
+  }),
+];

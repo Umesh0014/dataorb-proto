@@ -277,6 +277,22 @@ body {
   to   { transform: rotate(360deg); }
 }
 
+/* GuideSessionPage — orb pulse + sources-panel slide-in. The orb's two
+   blurred rings breathe at offset durations so the motion never repeats
+   in lockstep. Sources panel pushes in from the right edge of the card. */
+@keyframes orbPulseOuter {
+  0%, 100% { transform: scale(1);    opacity: 0.85; }
+  50%      { transform: scale(1.06); opacity: 1;    }
+}
+@keyframes orbPulseMid {
+  0%, 100% { transform: scale(1);    opacity: 0.9;  }
+  50%      { transform: scale(1.04); opacity: 1;    }
+}
+@keyframes panelSlideIn {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
 /* Hide the horizontal scrollbar on scroll-snap rails (Next Best Actions).
    Firefox honours scrollbar-width via the element's inline style. */
 .scrollbar-none::-webkit-scrollbar {

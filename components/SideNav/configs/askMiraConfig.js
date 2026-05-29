@@ -37,6 +37,9 @@ export const askMiraConfig = {
       label: "Tasks",
       Icon: TasksIcon,
       route: "/mira/tasks",
+      // Same `wip` flag the Guide tab uses — drives the WipBadge on
+      // the rail icon (pixel-mirrors Guide; same component, no fork).
+      wip: true,
     },
   ],
 };

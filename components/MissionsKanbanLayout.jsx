@@ -13,6 +13,7 @@ import KebabMenu from "./KebabMenu";
 import Modal from "./Modal";
 import Toast from "./Toast";
 import Button from "./Button";
+import { isTeamViewer } from "./lib/currentUser";
 
 // MissionsKanbanLayout — Option 3. Urgency-first swimlanes (Active / At
 // Risk / Ending Soon / Completed) derived directly from state + daysLeft,
@@ -25,6 +26,16 @@ const LANES = [
   { id: "draft", label: "Draft" },
   { id: "active", label: "Active" },
   { id: "at_risk", label: "At Risk" },
+  { id: "completed", label: "Completed" },
+];
+
+// Agent persona lane order — Draft dropped (agents don't see in-flight
+// authoring) and Upcoming promoted from a sub-section (Team Leader's
+// Part B pattern) to its own top-level column. Part E §E3.
+const AGENT_LANES = [
+  { id: "upcoming",  label: "Upcoming" },
+  { id: "active",    label: "Active" },
+  { id: "at_risk",   label: "At Risk" },
   { id: "completed", label: "Completed" },
 ];
 
@@ -48,8 +59,24 @@ function matchesSearch(m, q) {
   return hay.includes(q.toLowerCase());
 }
 
-export default function MissionsKanbanLayout({ missions, onCreateMission }) {
+export default function MissionsKanbanLayout({
+  missions,
+  upcomingMissions = [],
+  onCreateMission,
+  persona = "Team Leader",
+}) {
   const [query, setQuery] = React.useState("");
+  const isAgent = persona === "Agent";
+  // Role gate — Upcoming sub-section (Part B) is the Team Leader
+  // pattern only. Agents get Upcoming as its own column (Part E §E3).
+  const showUpcomingSubsection = isTeamViewer() && !isAgent;
+  // Earliest start first; cap to first 5 by default (spec §B5 + §B7 #4).
+  const upcomingSorted = React.useMemo(
+    () => [...upcomingMissions]
+      .filter((m) => m.startDate)
+      .sort((a, b) => a.startDate.localeCompare(b.startDate)),
+    [upcomingMissions],
+  );
   const [openId, setOpenId] = React.useState(null);
   // Delete-draft flow: deletedDraftIds filters cards out of the Draft lane,
   // deleteTarget drives the confirmation modal, and toast carries the Undo
@@ -67,25 +94,36 @@ export default function MissionsKanbanLayout({ missions, onCreateMission }) {
   );
 
   // Group into lanes, then sort each lane by % target met ascending
-  // (lowest first — surfaces "who needs attention" at the top).
+  // (lowest first — surfaces "who needs attention" at the top). For
+  // Agent persona, also bucket the upcomingMissions into their own
+  // "upcoming" lane (Part E §E3 — Upcoming as a top-level column,
+  // not a sub-section).
   const grouped = React.useMemo(() => {
-    const out = { draft: [], active: [], at_risk: [], completed: [] };
+    const out = { draft: [], active: [], at_risk: [], completed: [], upcoming: [] };
     for (const m of filtered) {
       const lane = laneOf(m);
       if (out[lane]) out[lane].push(m);
+    }
+    if (isAgent) {
+      out.upcoming = upcomingSorted;
     }
     for (const id of Object.keys(out)) {
       out[id].sort((a, b) => (a.progress ?? 0) - (b.progress ?? 0));
     }
     return out;
-  }, [filtered]);
+  }, [filtered, isAgent, upcomingSorted]);
 
-  const visibleLanes = LANES.filter((l) => grouped[l.id].length > 0);
+  const lanesForPersona = isAgent ? AGENT_LANES : LANES;
+  const visibleLanes = lanesForPersona.filter((l) => grouped[l.id].length > 0);
 
-  const selected = React.useMemo(
-    () => missions.find((m) => m.id === openId) || null,
-    [missions, openId],
-  );
+  // Curtain-lookup pool covers every clickable card on the board —
+  // including Upcoming sub-section cards that don't live in `missions`
+  // (Part D2 — universal curtain across all swimlanes).
+  const selected = React.useMemo(() => {
+    const inLanes = missions.find((m) => m.id === openId);
+    if (inLanes) return inLanes;
+    return upcomingMissions.find((m) => m.id === openId) || null;
+  }, [missions, upcomingMissions, openId]);
 
   // Keep the last-opened mission mounted through the close animation so the
   // curtain slides out with its content intact rather than blanking first.
@@ -145,13 +183,17 @@ export default function MissionsKanbanLayout({ missions, onCreateMission }) {
               withDropdown: true,
               onClick: () => {},
             }}
-            primaryAction={{
+            // Agent persona drops authoring chrome (Part E §E3): no
+            // "+ Mission" CTA, no Team / Created Date filters (agent
+            // only sees their own missions, so cohort filters don't
+            // apply). Search stays.
+            primaryAction={isAgent ? undefined : {
               label: "Mission",
               icon: <Plus size={16} />,
               onClick: onCreateMission,
             }}
             search={{ value: query, onChange: setQuery, placeholder: "Search missions" }}
-            filters={[
+            filters={isAgent ? [] : [
               { id: "team", label: "Team", value: "All", onClick: () => {} },
               { id: "created", label: "Created Date", value: "Last 7 days", onClick: () => {} },
             ]}
@@ -163,8 +205,10 @@ export default function MissionsKanbanLayout({ missions, onCreateMission }) {
                 key={lane.id}
                 lane={lane}
                 missions={grouped[lane.id]}
+                upcoming={lane.id === "active" && showUpcomingSubsection ? upcomingSorted : null}
                 openId={openId}
                 onOpenMission={setOpenId}
+                hideAgentCount={isAgent}
               />
             ))}
           </div>
@@ -191,7 +235,7 @@ export default function MissionsKanbanLayout({ missions, onCreateMission }) {
               {displayMission.state === "draft" ? (
                 <KanbanDraftDetail mission={displayMission} />
               ) : (
-                <MissionDetailContent mission={displayMission} compact />
+                <MissionDetailContent mission={displayMission} persona={persona} compact />
               )}
             </div>
           </>
@@ -224,8 +268,51 @@ export default function MissionsKanbanLayout({ missions, onCreateMission }) {
   );
 }
 
-function Lane({ lane, missions, openId, onOpenMission }) {
+// UpcomingSubSection — sticks inside the Active swimlane below the
+// running cards. Sub-divider matches the column header type ramp at a
+// smaller size + reuses the same count pill. Card variant comes from
+// MissionCardCompact's upcoming branch (no progress bar + "Starts in
+// N days" footer line) — no fork.
+//
+// `maxCardsInUpcoming` caps the visible card count (Part D1). Demo
+// default = 1 so the upcoming UX-sync screenshot stays compact. The
+// header pill always reflects items.length (the real total); cards
+// beyond the cap surface via an inline "+ N more" link that expands
+// the rest in place (no modal / route nav — spec §D5 #5 default).
+function UpcomingSubSection({ items, maxCardsInUpcoming = 1, openId, onOpenMission }) {
+  const [showAll, setShowAll] = React.useState(false);
+  const visible = showAll ? items : items.slice(0, maxCardsInUpcoming);
+  const overflow = items.length - visible.length;
+  return (
+    <div style={layoutStyles.upcomingWrap}>
+      <div style={layoutStyles.upcomingDivider}>
+        <div style={layoutStyles.upcomingDividerLeft}>
+          <span style={layoutStyles.upcomingTitle}>Upcoming</span>
+          <span style={layoutStyles.countPill}>{items.length}</span>
+        </div>
+      </div>
+      {visible.map((m) => (
+        <MissionCardCompact
+          key={m.id}
+          mission={m}
+          selected={openId === m.id}
+          onClick={() => onOpenMission(m.id)}
+        />
+      ))}
+      {overflow > 0 && (
+        <button type="button" onClick={() => setShowAll(true)} style={layoutStyles.showAllBtn}>
+          + {overflow} more
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount = false }) {
   const isDraft = lane.id === "draft";
+  // Upcoming sub-section (active lane, team viewer only, k > 0). Hide
+  // the divider entirely when empty per spec §B7 #6. Cap collapsed at
+  // 5 with a "Show all" toggle per §B5 / §B7 #4.
   return (
     <section style={layoutStyles.lane} className="kanbanLane">
       <div style={layoutStyles.laneHeader}>
@@ -251,8 +338,13 @@ function Lane({ lane, missions, openId, onOpenMission }) {
               mission={m}
               selected={openId === m.id}
               onClick={() => onOpenMission(m.id)}
+              hideAgentCount={hideAgentCount}
             />
           ),
+        )}
+
+        {upcoming && upcoming.length > 0 && (
+          <UpcomingSubSection items={upcoming} openId={openId} onOpenMission={onOpenMission} />
         )}
       </div>
     </section>
@@ -466,6 +558,43 @@ const layoutStyles = {
     minHeight: 0,
     overflowY: "auto",
     padding: 24,
+  },
+
+  // Upcoming sub-section (active lane only, team viewer role)
+  upcomingWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    paddingTop: 16,
+    marginTop: 4,
+  },
+  upcomingDivider: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 8,
+    borderTop: "1px solid var(--color-border-card-soft)",
+    paddingTop: 12,
+  },
+  upcomingDividerLeft: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  upcomingTitle: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 13, fontWeight: 600, letterSpacing: "0.1px",
+    color: "var(--color-text-tertiary)",
+    textTransform: "uppercase",
+  },
+  showAllBtn: {
+    alignSelf: "flex-start",
+    appearance: "none", border: "none", background: "transparent",
+    padding: "4px 0",
+    cursor: "pointer",
+    fontFamily: "var(--font-sans)",
+    fontSize: 13, fontWeight: 500, letterSpacing: "0.1px",
+    color: "var(--do-brand-blue)",
   },
 };
 

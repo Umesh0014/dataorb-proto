@@ -3,7 +3,6 @@
 import React from "react";
 import {
   Check,
-  CheckCircle2,
   Download,
   Gauge,
   Info,
@@ -22,10 +21,12 @@ import {
 // CreditsUsagePage — Surface B of the Credits & Usage feature (spec §4).
 //
 // Single config page reached from the Settings landing's Credits & Usage
-// card. Sections render top-to-bottom: Overview & balance, Pool
-// exhaustion mode (the only step required to mark setup complete),
-// Alerts, Limits, Audit log. Edge-case banners surface above the section
-// stack when their trigger condition holds.
+// card. Sections render top-to-bottom: Overview (4 metric tiles +
+// progress bar, with Consumption forecast as the 4th tile), Limits,
+// Alerts, Audit log. Edge-case banners surface above the section stack
+// when their trigger condition holds. The Pool exhaustion mode card was
+// removed in the revisions pass — with the only required setting gone,
+// the page header no longer carries a setup-complete badge.
 //
 // Wiring scope (spec §2): the page is presentational with local state
 // so every control demonstrates its state. Real persistence, audit
@@ -50,13 +51,10 @@ const AUDIT_LOG_SAMPLE = [
   { id: "a-5", at: "Apr 28, 2026 · 16:30", who: "Alice Martin", change: "Setup completed — Mode A selected" },
 ];
 
-const ADMIN_NAME = "Alice Martin";
-const SETUP_TIMESTAMP = "May 22, 2026 · 14:08 IST";
 const FORECAST_TODAY = { d: 12, D: 30 };
 
 export default function CreditsUsagePage({ onBack }) {
   // ---- Settings state (sample defaults from spec §4.2) -----------------
-  const [mode, setMode] = React.useState("continue"); // "continue" | "block"
   const [softThreshold, setSoftThreshold] = React.useState(80);
   const [alertEnabled, setAlertEnabled] = React.useState({ 75: true, 90: true, 100: true });
   const [recipients, setRecipients] = React.useState(DEFAULT_RECIPIENTS.map((r) => r.id));
@@ -66,9 +64,6 @@ export default function CreditsUsagePage({ onBack }) {
   const [perAgentCap, setPerAgentCap] = React.useState(120);
   const [perAgentFrequency, setPerAgentFrequency] = React.useState("monthly"); // "daily" | "monthly"
   const [poolIncreaseDismissed, setPoolIncreaseDismissed] = React.useState(false);
-
-  // Setup-complete logic: only mode-selection is required (spec §4.4).
-  const setupComplete = Boolean(mode);
 
   // Per-roleplay cap inline error: cap < MTD consumed (spec §4.5).
   const mtdConsumedRoleplayMinutes = 52; // sample
@@ -99,14 +94,6 @@ export default function CreditsUsagePage({ onBack }) {
           iconColor: "var(--color-icon-tertiary-fg)",
         }}
         subtitle="Manage Learning Hub credit allocation and usage limits."
-        meta={setupComplete ? (
-          <>
-            <CheckCircle2 size={14} color="var(--color-success)" aria-hidden="true" />
-            <span style={{ color: "var(--color-success)", fontWeight: 600 }}>
-              Setup complete · Last updated by {ADMIN_NAME} · {SETUP_TIMESTAMP}
-            </span>
-          </>
-        ) : null}
       />
 
       {!poolIncreaseDismissed && (
@@ -119,17 +106,6 @@ export default function CreditsUsagePage({ onBack }) {
       )}
 
       <OverviewSection />
-      <ModeSection mode={mode} onChange={setMode} />
-      <AlertsSection
-        softThreshold={softThreshold}
-        onSoftThresholdChange={setSoftThreshold}
-        alertEnabled={alertEnabled}
-        onAlertToggle={(level, next) =>
-          setAlertEnabled((cur) => ({ ...cur, [level]: next }))
-        }
-        recipients={recipients}
-        onRecipientsChange={setRecipients}
-      />
       <LimitsSection
         perRoleplayEnabled={perRoleplayEnabled}
         onPerRoleplayToggle={setPerRoleplayEnabled}
@@ -142,6 +118,16 @@ export default function CreditsUsagePage({ onBack }) {
         onPerAgentCapChange={setPerAgentCap}
         perAgentFrequency={perAgentFrequency}
         onPerAgentFrequencyChange={setPerAgentFrequency}
+      />
+      <AlertsSection
+        softThreshold={softThreshold}
+        onSoftThresholdChange={setSoftThreshold}
+        alertEnabled={alertEnabled}
+        onAlertToggle={(level, next) =>
+          setAlertEnabled((cur) => ({ ...cur, [level]: next }))
+        }
+        recipients={recipients}
+        onRecipientsChange={setRecipients}
       />
       <AuditSection />
 
@@ -162,23 +148,26 @@ export default function CreditsUsagePage({ onBack }) {
 // ---- Overview ----------------------------------------------------------
 
 function OverviewSection() {
+  const pool = CREDITS_USAGE_SAMPLE.poolMinutes;
+  const consumed = CREDITS_USAGE_SAMPLE.consumedMTD;
   const pct = poolPercentUsed(CREDITS_USAGE_SAMPLE);
   const tone = poolBarTone(pct);
   const fillPct = Math.min(100, pct);
-  const consumedHrs = (CREDITS_USAGE_SAMPLE.consumedMTD / 60).toFixed(1);
-  const poolHrs = (CREDITS_USAGE_SAMPLE.poolMinutes / 60).toFixed(0);
+  const consumedHrs = (consumed / 60).toFixed(1);
+  const poolHrs = (pool / 60).toFixed(0);
+  const forecast = computeForecast(pool, consumed, FORECAST_TODAY.d, FORECAST_TODAY.D);
 
   return (
     <Section title="Overview" description="Tenant pool, consumption to date, and end-of-month forecast.">
       <div style={styles.overviewGrid}>
         <ReadonlyStat
           label="Tenant pool"
-          value={`${CREDITS_USAGE_SAMPLE.poolMinutes.toLocaleString()} min`}
+          value={`${pool.toLocaleString()} min`}
           sub={`${poolHrs} hrs · contracted`}
         />
         <ReadonlyStat
           label="Consumed this month"
-          value={`${CREDITS_USAGE_SAMPLE.consumedMTD.toLocaleString()} min`}
+          value={`${consumed.toLocaleString()} min`}
           sub={`${consumedHrs} hrs`}
         />
         <ReadonlyStat
@@ -186,6 +175,11 @@ function OverviewSection() {
           value={`${pct}%`}
           sub={pct >= 100 ? "Overage active" : pct >= 90 ? "Critical" : pct >= 80 ? "Warning" : "Healthy"}
           tone={tone.fg}
+        />
+        <ReadonlyStat
+          label="Consumption forecast"
+          value={forecast.primary}
+          sub={forecast.tertiary}
         />
       </div>
       <div style={styles.overviewBar}>
@@ -200,14 +194,35 @@ function OverviewSection() {
         </span>
         <span style={{ ...styles.barLabel, color: tone.fg }}>{pct}%</span>
       </div>
-      <ForecastWidget
-        pool={CREDITS_USAGE_SAMPLE.poolMinutes}
-        consumed={CREDITS_USAGE_SAMPLE.consumedMTD}
-        d={FORECAST_TODAY.d}
-        D={FORECAST_TODAY.D}
-      />
     </Section>
   );
+}
+
+// computeForecast — maps the four §1.3 forecast states onto the existing
+// ReadonlyStat tile's primary + tertiary slots. Returns plain strings so
+// the tile inherits its default color (no health tinting per spec §1.2 —
+// the "% pool used" tile already carries the color-coded health state).
+//
+//   d  — current day-of-month
+//   D  — last day of month
+//   Confidence band: ±15% for d 7–13, ±8% for d ≥ 14. Band omitted in
+//   the insufficient-data and pool-exceeded states.
+function computeForecast(pool, consumed, d, D) {
+  if (d < 7) {
+    return { primary: "—", tertiary: "Forecast available after Day 7" };
+  }
+  if (consumed >= pool) {
+    const overage = consumed - pool;
+    return { primary: `+${overage.toLocaleString()} min`, tertiary: "Overage active" };
+  }
+  const band = d >= 14 ? "±8%" : "±15%";
+  const dailyRate = consumed / Math.max(1, d);
+  const projectedMonthEnd = Math.round(consumed + dailyRate * (D - d));
+  const exhaustsDay = Math.ceil(d + (pool - consumed) / Math.max(1, dailyRate));
+  if (exhaustsDay >= D) {
+    return { primary: `${projectedMonthEnd.toLocaleString()} min`, tertiary: `On track · ${band}` };
+  }
+  return { primary: `Day ${exhaustsDay}`, tertiary: `Confidence band ${band}` };
 }
 
 // Tenant-pool read-only stat tile.
@@ -218,103 +233,6 @@ function ReadonlyStat({ label, value, sub, tone }) {
       <span style={{ ...styles.statTileValue, color: tone || "var(--color-text-deep)" }}>{value}</span>
       {sub && <span style={styles.statTileSub}>{sub}</span>}
     </div>
-  );
-}
-
-// ForecastWidget — projects month-end consumption / exhaustion date from
-// pool + MTD per spec §4.3. Hidden body before Day 7.
-function ForecastWidget({ pool, consumed, d, D }) {
-  const insufficient = d < 7;
-  const overage = !insufficient && consumed >= pool;
-  const dailyRate = consumed / Math.max(1, d);
-  const projectedMonthEnd = Math.round(consumed + dailyRate * (D - d));
-  const exhaustsDay = Math.ceil(d + (pool - consumed) / Math.max(1, dailyRate));
-  const onTrack = !overage && exhaustsDay >= D;
-  const band = d >= 14 ? "±8%" : "±15%";
-
-  let line;
-  if (insufficient) {
-    line = "Insufficient data — forecast available after Day 7";
-  } else if (overage) {
-    const over = consumed - pool;
-    line = `Pool exceeded by ${over.toLocaleString()} min — overage active`;
-  } else if (onTrack) {
-    line = `On track. Projected month-end: ${projectedMonthEnd.toLocaleString()} min`;
-  } else {
-    line = `At current pace, pool exhausts on Day ${exhaustsDay}`;
-  }
-
-  return (
-    <div style={styles.forecast}>
-      <div style={styles.forecastHeader}>
-        <span style={styles.forecastTitle}>Consumption forecast</span>
-        {!insufficient && (
-          <span style={styles.forecastBand}>Confidence band {band}</span>
-        )}
-      </div>
-      <p style={styles.forecastLine}>{line}</p>
-    </div>
-  );
-}
-
-// ---- Mode (required) ---------------------------------------------------
-
-function ModeSection({ mode, onChange }) {
-  return (
-    <Section
-      title="Pool exhaustion mode"
-      description="When the pool reaches 100%, choose how new sessions are handled. This is the only step required to mark setup complete."
-      required
-    >
-      <div style={styles.modeStack}>
-        <ModeOption
-          id="continue"
-          selected={mode === "continue"}
-          onSelect={() => onChange("continue")}
-          title="Continue — bill overage"
-          subtitle="At 100%, sessions continue. Overage minutes are billed at the published rate."
-          badge="Default"
-        />
-        <ModeOption
-          id="block"
-          selected={mode === "block"}
-          onSelect={() => onChange("block")}
-          title="Block — wait for top-up"
-          subtitle="At 100%, new sessions are blocked until DataOrb Ops applies a top-up or the next monthly refresh."
-        />
-      </div>
-    </Section>
-  );
-}
-
-function ModeOption({ id, selected, onSelect, title, subtitle, badge }) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      style={{
-        ...styles.modeOption,
-        borderColor: selected ? "var(--do-brand-blue)" : "var(--color-border-card-soft)",
-        boxShadow: selected ? "inset 0 0 0 1px var(--do-brand-blue)" : "none",
-      }}
-    >
-      <span style={styles.modeRadio} aria-hidden="true">
-        <span
-          style={{
-            ...styles.modeRadioDot,
-            background: selected ? "var(--do-brand-blue)" : "transparent",
-          }}
-        />
-      </span>
-      <div style={styles.modeBody}>
-        <div style={styles.modeTitleRow}>
-          <span style={styles.modeTitle}>{title}</span>
-          {badge && <span style={styles.modeBadge}>{badge}</span>}
-        </div>
-        <span style={styles.modeSubtitle}>{subtitle}</span>
-      </div>
-    </button>
   );
 }
 
@@ -745,10 +663,12 @@ const styles = {
     gap: 8,
   },
 
-  // Overview stats + bar
+  // Overview stats + bar. Auto-fit handles 4-at-desktop → 2×2 → 1
+  // wrapping without bespoke breakpoints (minmax floor 180px clamps the
+  // tile so labels stay legible before they wrap).
   overviewGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
     gap: 12,
   },
   statTile: {
@@ -800,109 +720,6 @@ const styles = {
     fontVariantNumeric: "tabular-nums",
     minWidth: 44,
     textAlign: "right",
-  },
-
-  // Forecast
-  forecast: {
-    padding: "12px 16px",
-    background: "var(--color-card-emoji-bg)",
-    borderRadius: 12,
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  forecastHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  forecastTitle: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-    textTransform: "uppercase",
-    letterSpacing: "0.4px",
-  },
-  forecastBand: {
-    fontSize: 11,
-    fontWeight: 500,
-    color: "var(--color-text-tertiary)",
-  },
-  forecastLine: {
-    margin: 0,
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-  },
-
-  // Mode radio cards
-  modeStack: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  modeOption: {
-    appearance: "none",
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: 14,
-    borderRadius: 12,
-    border: "1px solid var(--color-border-card-soft)",
-    background: "#FFFFFF",
-    cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "inherit",
-    transition: "border-color 120ms ease, box-shadow 120ms ease",
-  },
-  modeRadio: {
-    width: 18,
-    height: 18,
-    borderRadius: 999,
-    border: "1.5px solid var(--color-text-tertiary)",
-    display: "inline-grid",
-    placeItems: "center",
-    flexShrink: 0,
-    marginTop: 2,
-  },
-  modeRadioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    transition: "background 120ms ease",
-  },
-  modeBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-    minWidth: 0,
-  },
-  modeTitleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  modeTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-  },
-  modeBadge: {
-    padding: "2px 6px",
-    borderRadius: 4,
-    background: "var(--color-info-bg)",
-    color: "var(--color-info)",
-    fontSize: 10,
-    fontWeight: 600,
-    textTransform: "uppercase",
-    letterSpacing: "0.3px",
-  },
-  modeSubtitle: {
-    fontSize: 12,
-    fontWeight: 400,
-    color: "var(--color-text-tertiary)",
-    lineHeight: "18px",
   },
 
   // Alerts

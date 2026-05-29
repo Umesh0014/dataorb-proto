@@ -45,7 +45,7 @@ export default function Banner({ tone = "info", heading, body, leading, actions 
   const hasActions = Array.isArray(actions) && actions.length > 0;
 
   return (
-    <div style={{ ...wrapStyle, background: palette.bg }}>
+    <div style={{ ...wrapStyle, background: palette.bg, borderColor: palette.accent }}>
       <div style={contentStyle}>
         {leadingNode}
         <div style={{ minWidth: 0 }}>
@@ -92,6 +92,12 @@ const wrapStyle = {
   gap: 16,
   padding: "16px 20px",
   borderRadius: 8,
+  // 1px accent-color border on every Banner — separates the callout from
+  // the lavender page canvas so the tinted fill can't blend into the
+  // surface. Tone's accent token doubles as the border so no new hues
+  // are introduced (system-wide tweak per Credits & Usage spec §4 #3).
+  border: "1px solid",
+  borderColor: "transparent",
   overflow: "hidden",
 };
 const contentStyle = {

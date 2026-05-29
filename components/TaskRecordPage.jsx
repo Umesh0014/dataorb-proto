@@ -3,1131 +3,919 @@
 import React from "react";
 import {
   ArrowLeft,
-  Download,
-  ArrowUp,
-  ArrowDown,
-  Minus,
+  FileText,
+  Crosshair,
+  UserSearch,
+  Flame,
+  TrendingDown,
+  CheckCircle2,
+  GitMerge,
+  ListChecks,
+  List,
+  Database,
+  MoreHorizontal,
   ChevronDown,
   ChevronUp,
-  Info,
-  Pencil,
-  Target,
-  BadgeCheck,
-  Gauge,
-  RefreshCw,
-  Headset,
-  Tag,
-  AlertTriangle,
+  ExternalLink,
+  Phone,
+  MessageSquare,
+  Mail,
+  Send,
+  ChevronLeft,
+  ChevronRight,
+  Quote,
 } from "lucide-react";
 import Card from "./Card";
-import Button from "./Button";
-import MultiLineInput from "./MultiLineInput";
-import { getCoachingBrief } from "./mocks/coachingBrief";
-import { formatDateTime } from "./formatDate";
+import {
+  TASK_PLAYBOOK,
+  SENTIMENT_TONE,
+  CHALLENGE_TONE,
+  adherenceTone,
+} from "./mocks/taskPlaybook";
 
-// TaskRecordPage — the AI-generated artifact behind a task (here a
-// Coaching Brief). Built as a section-driven, schema-versioned template:
-// each section in the brief data carries a `type` + `schemaVersion`, and
-// SECTION_RENDERERS dispatches it to a self-contained section component.
-// A future v2 schema adds a renderer without touching v1 sections.
-// Renders inside the PageLayout from app/page.jsx.
+// TaskRecordPage — long-form playbook artifact behind a task. Sticky
+// left TOC drives smooth-scroll anchors into the right column of
+// content cards. Borrowed chrome: PageHeader-style bar, tag chips,
+// avatar, accordion rows, standard table — no new visual language.
+//
+// Layout (spec §A3):
+//   Top page bar          — back · ID · title · separator dot · author · timestamp · status tag
+//   2-col body            — sticky TOC (~243px) + content stack
+//
+// Sections render in TOC order. Three (Verification Checklist · Key
+// Terminologies · Learning) are empty placeholders per spec §A8 #4
+// default — render the card frame with a "No items yet" muted line.
 
-// Edits attribute to the team lead viewing the brief.
-const CURRENT_USER = "Javier Ruiz";
-
-// lucide-react icon name → component (skill metadata carries the name).
-const ICON_MAP = { Target, BadgeCheck, Gauge, RefreshCw, Headset, Tag, AlertTriangle };
-
-// Category tint → { bg, glyph } token pair — same mapping as SkillsPage.
-const TINT = {
-  purple: { bg: "var(--color-icon-tertiary-bg)", glyph: "var(--color-icon-tertiary-fg)" },
-  green: { bg: "var(--color-success-bg)", glyph: "var(--color-success)" },
-  teal: { bg: "var(--color-info-bg)", glyph: "var(--color-info)" },
-  pink: { bg: "var(--color-error-bg)", glyph: "var(--color-secondary-500)" },
-  orange: { bg: "var(--color-warning-bg)", glyph: "var(--color-warning)" },
-  red: { bg: "var(--color-error-bg)", glyph: "var(--color-error)" },
-};
-
-// Trend tone → colour + arrow. Semantic, not literal: a worsening metric
-// is "negative" (down arrow) even if its raw number rose.
-const TREND = {
-  positive: { color: "var(--color-success)", Icon: ArrowUp },
-  negative: { color: "var(--color-error)", Icon: ArrowDown },
-  neutral: { color: "var(--color-text-tertiary)", Icon: Minus },
-};
-
-// Pill tabs → the section each one anchor-scrolls to. Adherence has no
-// pill; it reads as part of the Overview span while scrolling.
-const SECTION_TABS = [
-  { id: "overview", label: "Overview", section: "overview" },
-  { id: "focus-areas", label: "Focus Areas", section: "focus-area" },
-  { id: "actions", label: "Coaching Actions", section: "coaching-actions" },
+const TOC_ITEMS = [
+  { id: "overview",      label: "Overview",               Icon: FileText },
+  { id: "approach",      label: "The Approach",           Icon: Crosshair },
+  { id: "questions",     label: "Customer Questions",     Icon: UserSearch },
+  { id: "challenges",    label: "Challenges",             Icon: Flame },
+  { id: "pitfalls",      label: "Pitfalls",               Icon: TrendingDown },
+  { id: "why-works",     label: "Why It Works",           Icon: CheckCircle2 },
+  { id: "competitor",    label: "Competitor Context",     Icon: GitMerge },
+  { id: "verification",  label: "Verification Checklist", Icon: ListChecks },
+  { id: "terminology",   label: "Key Terminologies",      Icon: List },
+  { id: "sources",       label: "Sources",                Icon: Database },
+  { id: "learning",      label: "Learning",               Icon: MoreHorizontal },
 ];
 
-const AVATAR_PALETTE = [
-  "#E3867F", "#F0B775", "#8DC99E", "#7CB0D6",
-  "#C59BD8", "#6DC6B9", "#E88FA2", "#A7AAD1",
-];
-function avatarColor(name) {
-  let h = 0;
-  for (let i = 0; i < name.length; i += 1) h = name.charCodeAt(i) + ((h << 5) - h);
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
-}
+export default function TaskRecordPage({ taskId, onBack }) {
+  const playbook = TASK_PLAYBOOK;
 
-function initialsOf(name) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
-
-// scoreColor — QA-score threshold colouring (confirm thresholds w/ Akash).
-function scoreColor(score) {
-  if (score >= 80) return "var(--color-success)";
-  if (score >= 60) return "var(--color-warning)";
-  return "var(--color-error)";
-}
-
-// ---- Shared bits ---------------------------------------------------------
-
-function Avatar({ name, size = 20 }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 999,
-        background: avatarColor(name),
-        color: "var(--surface-white)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: size <= 20 ? 9 : 11,
-        fontWeight: 700,
-        flexShrink: 0,
-        textTransform: "uppercase",
-      }}
-    >
-      {initialsOf(name)}
-    </span>
-  );
-}
-
-function SkillChip({ skill }) {
-  const Icon = ICON_MAP[skill.iconName] || Target;
-  const tint = TINT[skill.tint] || TINT.purple;
-  return (
-    <span style={s.skillChip}>
-      <span style={{ ...s.skillChipIcon, background: tint.bg, color: tint.glyph }}>
-        <Icon size={16} />
-      </span>
-      <span style={s.skillChipLabel}>{skill.category}</span>
-    </span>
-  );
-}
-
-// EditableNarrative — AI-generated prose or bullet list the user owns
-// (design principle #7). View mode shows the text + an Edit Narrative
-// affordance; edit mode swaps in a MultiLineInput with Save / Cancel.
-function EditableNarrative({ value, variant = "prose", label, accent, onSave }) {
-  const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState(value);
-  const [linkHover, setLinkHover] = React.useState(false);
-
-  const begin = () => {
-    setDraft(value);
-    setEditing(true);
-  };
-  const cancel = () => setEditing(false);
-  const commit = () => {
-    setEditing(false);
-    onSave(draft);
+  // Smooth-scroll TOC handler. Section anchors come straight from the
+  // TOC item id so URL hash + scroll target stay in sync. No scrollspy
+  // (spec §A8 #1 default) — TOC items only carry hover state.
+  const handleTocClick = (id) => {
+    if (typeof window === "undefined") return;
+    const el = document.getElementById(`section-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    try { history.replaceState(null, "", `#${id}`); } catch { /* read-only */ }
   };
 
-  const bullets = value.split("\n").map((l) => l.trim()).filter(Boolean);
-  const paragraphs = value.split("\n\n").map((p) => p.trim()).filter(Boolean);
-
   return (
-    <div style={s.editable}>
-      <div style={s.editableHead}>
-        {label && (
-          <span style={{ ...s.editableLabel, color: accent || "var(--color-text-tertiary)" }}>
-            {label}
-          </span>
-        )}
-        <span style={s.flexSpacer} />
-        {!editing && (
-          <button
-            type="button"
-            style={{
-              ...s.editLink,
-              color: linkHover ? "var(--color-button-primary-bg)" : "var(--color-text-medium)",
-            }}
-            onMouseEnter={() => setLinkHover(true)}
-            onMouseLeave={() => setLinkHover(false)}
-            onClick={begin}
-          >
-            <Pencil size={14} />
-            <span>Edit Narrative</span>
-          </button>
-        )}
-      </div>
+    <div style={styles.column}>
+      <Header playbook={playbook} onBack={onBack} taskId={taskId} />
 
-      {editing ? (
-        <div style={s.editBody}>
-          <MultiLineInput value={draft} onChange={setDraft} max={4000} rows={6} />
-          <div style={s.editActions}>
-            <Button variant="primary" onClick={commit}>Save</Button>
-            <Button variant="text" uppercase={false} onClick={cancel}>Cancel</Button>
-          </div>
-        </div>
-      ) : variant === "bullets" ? (
-        <div style={s.bulletList}>
-          {bullets.map((line, i) => (
-            <div key={i} style={s.bulletItem}>
-              <span style={{ ...s.bulletDot, color: accent || "var(--color-text-medium)" }}>•</span>
-              <span style={s.bulletText}>{line}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={s.proseStack}>
-          {paragraphs.map((para, i) => (
-            <p key={i} style={s.prose}>{para}</p>
-          ))}
-        </div>
-      )}
+      <div style={styles.body}>
+        <TocColumn onItemClick={handleTocClick} />
+
+        <main style={styles.content}>
+          <OverviewSection data={playbook.overview} />
+          <ApproachSection data={playbook.approach} />
+          <CustomerQuestionsSection items={playbook.customerQuestions} />
+          <ChallengesSection items={playbook.challenges} />
+          <PitfallsSection items={playbook.pitfalls} />
+          <WhyItWorksSection body={playbook.whyItWorks} />
+          <CompetitorContextSection data={playbook.competitorContext} />
+          <EmptySection id="verification" title="Verification Checklist" Icon={ListChecks} />
+          <EmptySection id="terminology"  title="Key Terminologies"      Icon={List} />
+          <SourcesSection items={playbook.sources} total={playbook.totalSources} pages={playbook.pagesTotal} />
+          <EmptySection id="learning"     title="Learning"               Icon={MoreHorizontal} />
+        </main>
+      </div>
     </div>
   );
 }
 
-function PillTabs({ tabs, activeId, onPick }) {
+// ---- Header ------------------------------------------------------------
+
+function Header({ playbook, onBack, taskId }) {
   return (
-    <div style={s.pillRow}>
-      {tabs.map((tab) => {
-        const active = tab.id === activeId;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onPick(tab.id)}
-            style={{ ...s.pill, ...(active ? s.pillActive : s.pillInactive) }}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+    <Card padX={0} padY={0} style={styles.headerCard}>
+      <div style={styles.headerInner}>
+        <button type="button" onClick={onBack} aria-label="Back to Tasks" style={styles.backBtn}>
+          <ArrowLeft size={20} color="var(--color-text-medium)" />
+        </button>
 
-function UpdatedBy({ name }) {
-  return (
-    <span style={s.updatedBy}>
-      <span style={s.updatedByLabel}>Last Updated by:</span>
-      <Avatar name={name} size={20} />
-      <span style={s.updatedByName}>{name}</span>
-      <button
-        type="button"
-        style={s.updatedByInfo}
-        aria-label="View edit history"
-        onClick={() => console.log("open activity log")}
-      >
-        <Info size={16} color="var(--color-text-tertiary)" />
-      </button>
-    </span>
-  );
-}
-
-// ---- Section 1 — Overview ------------------------------------------------
-
-function KpiTile({ kpi }) {
-  const t = TREND[kpi.trend] || TREND.neutral;
-  const TrendIcon = t.Icon;
-  return (
-    <div style={s.kpiTile}>
-      <span style={s.kpiLabel}>{kpi.label}</span>
-      <span style={s.kpiValue}>{kpi.value}</span>
-      <span style={{ ...s.kpiTrend, color: t.color }}>
-        <TrendIcon size={12} />
-        {kpi.delta}
-      </span>
-    </div>
-  );
-}
-
-function OverviewSection({ section }) {
-  return (
-    <Card padX={32} padY={28} tone="default" style={s.sectionCard}>
-      <div style={s.sectionHeadRow}>
-        <span style={s.sectionTitle}>Overview</span>
-        <span style={s.flexSpacer} />
-        <span style={s.generatedOn}>Generated on: {formatDateTime(section.generatedAt)}</span>
-      </div>
-
-      <div style={s.heroBlock}>
-        <h2 style={s.heroHeading}>Weekly Coaching Brief — {section.agentName}</h2>
-        <div style={s.metaRow}>
-          <span style={s.metaItem}>
-            <span style={s.metaLabel}>Period:</span>
-            <span style={s.metaValue}>{section.period}</span>
-          </span>
-          <span style={s.metaSep}>·</span>
-          <span style={s.metaItem}>
-            <span style={s.metaLabel}>Brand:</span>
-            <span style={s.metaValue}>{section.brand}</span>
-          </span>
-          <span style={s.metaSep}>·</span>
-          <span style={s.metaItem}>
-            <span style={s.metaLabel}>Service:</span>
-            <span style={s.metaValue}>{section.service}</span>
-          </span>
-          <span style={s.metaSep}>·</span>
-          <span style={s.metaItem}>
-            <span style={s.metaLabel}>Team Lead:</span>
-            <Avatar name={section.teamLead} size={20} />
-            <span style={s.metaValue}>{section.teamLead}</span>
-          </span>
+        <div style={styles.headerMeta}>
+          <span style={styles.taskId}>{taskId || playbook.id}</span>
+          <Dot />
+          <span style={styles.taskTitle}>{playbook.title}</span>
+          <Dot />
+          <span style={styles.createdByLabel}>Created By:</span>
+          <span style={styles.authorAvatar} aria-hidden="true">{playbook.author.initial}</span>
+          <span style={styles.authorName}>{playbook.author.name}</span>
+          <Dot />
+          <span style={styles.timestamp}>{playbook.timestamp}</span>
         </div>
-        <span style={s.sampleSize}>{section.sampleSize}</span>
-      </div>
 
-      <div style={s.kpiGrid}>
-        {section.kpis.map((kpi) => (
-          <KpiTile key={kpi.label} kpi={kpi} />
-        ))}
+        <span style={styles.statusTag}>{playbook.tag}</span>
       </div>
     </Card>
   );
 }
 
-// ---- Section 2 — Adherence -----------------------------------------------
+function Dot() {
+  return <span style={styles.headerDot} aria-hidden="true" />;
+}
 
-function AdherenceSection({ section }) {
-  const [execText, setExecText] = React.useState(section.execNarrative);
-  const [closingText, setClosingText] = React.useState(section.closingNarrative);
+// ---- TOC ---------------------------------------------------------------
+
+function TocColumn({ onItemClick }) {
+  return (
+    <aside style={styles.tocWrap}>
+      <nav style={styles.tocInner} aria-label="Sections">
+        {TOC_ITEMS.map((item) => (
+          <TocItem key={item.id} item={item} onClick={() => onItemClick(item.id)} />
+        ))}
+      </nav>
+    </aside>
+  );
+}
+
+function TocItem({ item, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        ...styles.tocBtn,
+        background: hover ? "var(--color-card-emoji-bg)" : "transparent",
+      }}
+    >
+      <item.Icon size={16} color="var(--color-text-tertiary)" />
+      <span style={styles.tocLabel}>{item.label}</span>
+    </button>
+  );
+}
+
+// ---- Section frame ----------------------------------------------------
+
+function Section({ id, title, Icon, children }) {
+  // Card primitive doesn't forward `id` (it's a layout primitive, not
+  // pass-through). Wrap in an anchor div so smooth-scroll lands here.
+  return (
+    <div id={`section-${id}`} style={{ scrollMarginTop: 16 }}>
+      <Card padX={0} padY={0} style={styles.sectionCard}>
+        {title && (
+          <header style={styles.sectionHead}>
+            <span style={styles.sectionHeadLeft}>
+              {Icon && <Icon size={16} color="var(--color-text-tertiary)" />}
+              <h2 style={styles.sectionTitle}>{title}</h2>
+            </span>
+          </header>
+        )}
+        <div style={styles.sectionBody}>{children}</div>
+      </Card>
+    </div>
+  );
+}
+
+// ---- 1. Overview -------------------------------------------------------
+
+function OverviewSection({ data }) {
+  return (
+    <div id="section-overview" style={{ scrollMarginTop: 16 }}>
+      <Card padX={0} padY={0} style={styles.sectionCard}>
+        <div style={styles.overviewBody}>
+        <h1 style={styles.overviewHeadline}>{data.headline}</h1>
+        <p style={styles.overviewSummary}>{data.body}</p>
+
+        <div style={styles.chipRow}>
+          {data.chips.map((c) => (
+            <span key={c} style={styles.chipNeutral}>{c}</span>
+          ))}
+        </div>
+
+        <div style={styles.overviewSplit}>
+          <div style={styles.overviewHalf}>
+            <span style={styles.subLabel}>When to use this Playbook</span>
+            <p style={styles.overviewPara}>{data.whenToUse}</p>
+          </div>
+          <div style={{ ...styles.overviewHalf, ...styles.overviewHalfRight }}>
+            <span style={styles.subLabel}>Customer Profile</span>
+            <p style={styles.overviewPara}>{data.customerProfile}</p>
+            <p style={styles.keyPattern}><strong>Key Pattern:</strong> {data.keyPattern}</p>
+          </div>
+        </div>
+
+        <div style={styles.emotionalBlock}>
+          <span style={styles.subLabelLavender}>EMOTIONAL CONTEXT</span>
+          <p style={styles.overviewPara}>{data.emotionalContext}</p>
+        </div>
+      </div>
+      </Card>
+    </div>
+  );
+}
+
+// ---- 2. The Approach --------------------------------------------------
+
+function ApproachSection({ data }) {
+  const [openId, setOpenId] = React.useState(data.steps[0]?.id || null);
+  const toggle = (id) => setOpenId((cur) => (cur === id ? null : id));
 
   return (
-    <Card padX={32} padY={28} tone="default" style={s.sectionCard}>
-      <span style={s.sectionTitle}>Adherence</span>
+    <Section id="approach" title="The Approach" Icon={Crosshair}>
+      <p style={styles.sectionIntro}>{data.intro}</p>
+      <div style={styles.accordionList}>
+        {data.steps.map((step) => (
+          <AccordionRow
+            key={step.id}
+            open={openId === step.id}
+            onToggle={() => toggle(step.id)}
+            head={<span style={styles.accordionTitle}>{step.title}</span>}
+          >
+            <p style={styles.accordionBody}>{step.body}</p>
+            {(step.label || step.example) && (
+              <div style={styles.exampleBlock}>
+                {step.label && <span style={styles.exampleLabel}>{step.label}</span>}
+                {step.example && <p style={styles.exampleQuote}>{step.example}</p>}
+              </div>
+            )}
+          </AccordionRow>
+        ))}
+      </div>
+    </Section>
+  );
+}
 
-      <EditableNarrative value={execText} variant="prose" onSave={setExecText} />
+// ---- 3. Common Customer Questions -------------------------------------
 
-      <div>
-        <div style={s.subHeading}>Focus Area Adherence vs. Benchmarks</div>
-        <table style={s.table}>
-          <colgroup>
-            <col style={{ width: "36%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "18%" }} />
-          </colgroup>
+function CustomerQuestionsSection({ items }) {
+  const [openId, setOpenId] = React.useState(items[0]?.id || null);
+  const toggle = (id) => setOpenId((cur) => (cur === id ? null : id));
+
+  return (
+    <Section id="questions" title="Common Customer Questions" Icon={UserSearch}>
+      <div style={styles.accordionList}>
+        {items.map((q) => (
+          <AccordionRow
+            key={q.id}
+            open={openId === q.id}
+            onToggle={() => toggle(q.id)}
+            head={(
+              <>
+                <span style={styles.accordionTitle}>{q.question}</span>
+                <span style={styles.stepChip}>Step {q.step}</span>
+              </>
+            )}
+          >
+            <p style={styles.accordionBody}>{q.answer}</p>
+          </AccordionRow>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ---- 4. Common Challenges ---------------------------------------------
+
+function ChallengesSection({ items }) {
+  const [openId, setOpenId] = React.useState(items[0]?.id || null);
+  const toggle = (id) => setOpenId((cur) => (cur === id ? null : id));
+
+  return (
+    <Section id="challenges" title="Common Challenges" Icon={Flame}>
+      <div style={styles.accordionList}>
+        {items.map((c) => {
+          const tone = CHALLENGE_TONE[c.tag.tone] || CHALLENGE_TONE.info;
+          return (
+            <AccordionRow
+              key={c.id}
+              open={openId === c.id}
+              onToggle={() => toggle(c.id)}
+              head={(
+                <>
+                  <span style={styles.accordionTitle}>{c.title}</span>
+                  <span style={{ ...styles.tagChip, background: tone.bg, color: tone.fg }}>
+                    {c.tag.label}
+                  </span>
+                </>
+              )}
+            >
+              <p style={styles.accordionBody}>{c.answer}</p>
+            </AccordionRow>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+// ---- 5. Common Pitfalls -----------------------------------------------
+
+function PitfallsSection({ items }) {
+  return (
+    <Section id="pitfalls" title="Common Pitfalls" Icon={TrendingDown}>
+      <div style={styles.pitfallList}>
+        {items.map((p) => (
+          <div key={p.id} style={styles.pitfallRow}>
+            <span style={styles.pitfallLabel}>{p.label}</span>
+            <p style={styles.pitfallBody}>{p.body}</p>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ---- 6. Why It Works --------------------------------------------------
+
+function WhyItWorksSection({ body }) {
+  return (
+    <Section id="why-works" title="Why This Approach Works" Icon={CheckCircle2}>
+      <div style={styles.whyWorksBlock}>
+        <p style={styles.whyWorksBody}>{body}</p>
+      </div>
+    </Section>
+  );
+}
+
+// ---- 7. Competitor Context --------------------------------------------
+
+function CompetitorContextSection({ data }) {
+  const [openId, setOpenId] = React.useState(data.competitors[0]?.id || null);
+  const toggle = (id) => setOpenId((cur) => (cur === id ? null : id));
+
+  return (
+    <Section id="competitor" title="Competitor Context" Icon={GitMerge}>
+      <p style={styles.sectionIntro}>{data.intro}</p>
+      <div style={styles.accordionList}>
+        {data.competitors.map((c) => (
+          <AccordionRow
+            key={c.id}
+            open={openId === c.id}
+            onToggle={() => toggle(c.id)}
+            head={<span style={styles.accordionTitle}>{c.name}</span>}
+          >
+            <p style={styles.accordionBody}>
+              <span style={styles.competitorMeta}>Mention context: {c.mention}</span>
+            </p>
+            <div style={styles.competitorGuidance}>
+              <p style={styles.competitorGuidanceText}>{c.guidance}</p>
+            </div>
+          </AccordionRow>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ---- 8/10. Source Evidence --------------------------------------------
+
+const CHANNEL_ICON = {
+  voice:    Phone,
+  chat:     MessageSquare,
+  email:    Mail,
+  whatsapp: Send,
+};
+
+function SourcesSection({ items, total, pages }) {
+  const [page, setPage] = React.useState(1);
+
+  return (
+    <Section id="sources" title="Source Evidence" Icon={Quote}>
+      <div style={styles.tableScroll}>
+        <table style={styles.table}>
           <thead>
-            <tr style={s.headRow}>
-              <th style={s.th} scope="col">Focus Area</th>
-              <th style={s.th} scope="col">Agent Rate</th>
-              <th style={s.th} scope="col">Org. Avg.</th>
-              <th style={s.th} scope="col">Top Performer Avg.</th>
-              <th style={s.th} scope="col">Vs. Org</th>
+            <tr>
+              <th style={{ ...styles.th, ...styles.thTopic }}>Interaction ID</th>
+              <th style={styles.th}>Channel</th>
+              <th style={styles.th}>Date</th>
+              <th style={styles.th}>Agent</th>
+              <th style={styles.th}>Sentiment</th>
+              <th style={styles.th}>Adherence ↑</th>
+              <th style={{ ...styles.th, width: 40 }} aria-label="Open" />
             </tr>
           </thead>
           <tbody>
-            {section.benchmarks.map((row, i) => (
-              <tr
-                key={row.area}
-                style={{
-                  ...s.bRow,
-                  borderBottom:
-                    i === section.benchmarks.length - 1
-                      ? "none"
-                      : "1px solid var(--color-divider-card)",
-                }}
-              >
-                <td style={s.bCell}><span style={s.bArea}>{row.area}</span></td>
-                <td style={s.bCell}><span style={s.bAgent}>{row.agentRate}</span></td>
-                <td style={s.bCell}><span style={s.bMuted}>{row.orgAvg}</span></td>
-                <td style={s.bCell}><span style={s.bMuted}>{row.topAvg}</span></td>
-                <td style={s.bCell}>
-                  <span
-                    style={{
-                      ...s.bDelta,
-                      color:
-                        row.vsOrgTone === "negative"
-                          ? "var(--color-error)"
-                          : "var(--color-success)",
-                    }}
-                  >
-                    {row.vsOrg}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {items.map((row, idx) => {
+              const Channel = CHANNEL_ICON[row.channel] || Phone;
+              const sentTone = SENTIMENT_TONE[row.sentiment] || SENTIMENT_TONE.neutral;
+              return (
+                <tr key={row.id} style={{ background: idx % 2 === 1 ? "#F9F9FF" : "#FFFFFF" }}>
+                  <td style={{ ...styles.td, ...styles.tdTopic }}>{row.topic}</td>
+                  <td style={styles.td}>
+                    <Channel size={18} color="var(--color-text-tertiary)" />
+                  </td>
+                  <td style={styles.td}>{row.date}</td>
+                  <td style={styles.td}>
+                    <span style={styles.agentAvatar} aria-hidden="true">{row.agent}</span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ ...styles.sentimentChip, background: sentTone.bg, color: sentTone.fg }}>
+                      {row.sentiment.charAt(0).toUpperCase() + row.sentiment.slice(1)}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={styles.adherenceCell}>
+                      <span style={{ ...styles.adherenceDot, background: adherenceTone(row.adherence) }} aria-hidden="true" />
+                      <span style={styles.adherenceValue}>{row.adherence}%</span>
+                    </span>
+                  </td>
+                  <td style={{ ...styles.td, width: 40, paddingInline: 8 }}>
+                    <button
+                      type="button"
+                      aria-label={`Open ${row.topic}`}
+                      onClick={() => {
+                        // TODO: open interaction detail in new tab.
+                        // eslint-disable-next-line no-console
+                        console.log("open interaction", row.id);
+                      }}
+                      style={styles.openBtn}
+                    >
+                      <ExternalLink size={16} color="var(--color-text-tertiary)" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      <EditableNarrative value={closingText} variant="prose" onSave={setClosingText} />
-
-      <div style={s.chipRow}>
-        <SourceChip label="SOURCE" value={section.source} />
-        <SourceChip label="BENCHMARK" value={section.benchmark} />
-      </div>
-    </Card>
-  );
-}
-
-function SourceChip({ label, value }) {
-  return (
-    <span style={s.sourceChip}>
-      <span style={s.sourceChipLabel}>{label}:</span>
-      <span style={s.sourceChipValue}>{value}</span>
-    </span>
-  );
-}
-
-// ---- Section 3 — Focus Area Analysis -------------------------------------
-
-function FocusAreaSection({ section, agentName }) {
-  const [lastUpdatedBy, setLastUpdatedBy] = React.useState(section.lastUpdatedBy);
-
-  return (
-    <Card padX={32} padY={28} tone="default" style={s.sectionCard}>
-      <div style={s.sectionHeadRow}>
-        <span style={s.sectionTitle}>Focus Area Analysis</span>
-        <span style={s.flexSpacer} />
-        <UpdatedBy name={lastUpdatedBy} />
-      </div>
-      <p style={s.sectionIntro}>{section.intro}</p>
-      <div style={s.areaList}>
-        {section.areas.map((area, i) => (
-          <FocusAreaRow
-            key={area.name}
-            area={area}
-            agentName={agentName}
-            defaultExpanded={i === 0}
-            isLast={i === section.areas.length - 1}
-            onEdited={() => setLastUpdatedBy(CURRENT_USER)}
-          />
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-function StatusChip({ chip }) {
-  const primary = chip.kind === "primary";
-  return (
-    <span
-      style={{
-        ...s.statusChip,
-        background: primary ? "var(--color-error-bg)" : "var(--color-card-emoji-bg)",
-        color: primary ? "var(--color-error)" : "var(--color-text-medium)",
-      }}
-    >
-      {chip.label}
-    </span>
-  );
-}
-
-function FocusAreaRow({ area, agentName, defaultExpanded, isLast, onEdited }) {
-  const [expanded, setExpanded] = React.useState(defaultExpanded);
-  const Chevron = expanded ? ChevronUp : ChevronDown;
-  return (
-    <div
-      style={{
-        ...s.areaRow,
-        borderBottom: isLast ? "none" : "1px solid var(--color-divider-card)",
-      }}
-    >
-      <button
-        type="button"
-        style={s.areaHeader}
-        aria-expanded={expanded}
-        onClick={() => setExpanded((x) => !x)}
-      >
-        <span style={s.areaName}>{area.name}</span>
-        <span style={s.flexSpacer} />
-        <span style={{ ...s.areaScore, color: scoreColor(area.score) }}>{area.score}%</span>
-        <StatusChip chip={area.statusChip} />
-        <Chevron size={18} color="var(--color-text-medium)" style={{ flexShrink: 0 }} />
-      </button>
-      {expanded && (
-        <div style={s.areaBody}>
-          <InsightCard kind="positive" label="WHAT'S WORKING" data={area.whatsWorking} onEdited={onEdited} />
-          <InsightCard
-            kind="attention"
-            label="WHERE TO FOCUS"
-            data={area.whereToFocus}
-            agentName={agentName}
-            onEdited={onEdited}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// InsightCard — the What's Working (green) / Where to Focus (amber) card.
-// Tint sits on this nested card, never on the section card.
-function InsightCard({ kind, label, data, agentName, onEdited }) {
-  const accent = kind === "positive" ? "var(--color-success)" : "var(--color-warning)";
-  const bg = kind === "positive" ? "var(--color-success-bg)" : "var(--color-warning-bg)";
-  const [bullets, setBullets] = React.useState((data && data.bullets) || "");
-
-  if (data && data.empty) {
-    return (
-      <div style={{ ...s.insightCard, background: bg }}>
-        <span style={{ ...s.insightLabel, color: accent }}>{label}</span>
-        <p style={s.insightEmpty}>
-          {`No coaching observations for this metric. ${agentName || "The agent"}'s `}
-          compliance is exemplary and can be used as a reference model for team training.
-        </p>
-        <span style={s.sampleChip}>0 Coaching Flags This Period</span>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ ...s.insightCard, background: bg }}>
-      <EditableNarrative
-        value={bullets}
-        variant="bullets"
-        label={label}
-        accent={accent}
-        onSave={(v) => {
-          setBullets(v);
-          onEdited();
-        }}
-      />
-      {data && data.sample && <span style={s.sampleChip}>{data.sample}</span>}
-    </div>
-  );
-}
-
-// ---- Section 4 — Recommended Coaching Actions ----------------------------
-
-function CoachingActionsSection({ section }) {
-  const [lastUpdatedBy, setLastUpdatedBy] = React.useState(section.lastUpdatedBy);
-  const [reinforcement, setReinforcement] = React.useState(section.reinforcementNarrative);
-  const [closing, setClosing] = React.useState(section.closingNarrative);
-  const markEdited = () => setLastUpdatedBy(CURRENT_USER);
-
-  return (
-    <Card padX={32} padY={28} tone="default" style={s.sectionCard}>
-      <div style={s.sectionHeadRow}>
-        <span style={s.sectionTitle}>Recommended Coaching Actions</span>
-        <span style={s.flexSpacer} />
-        <UpdatedBy name={lastUpdatedBy} />
-      </div>
-
-      <div style={{ ...s.insightCard, background: "var(--color-success-bg)" }}>
-        <EditableNarrative
-          value={reinforcement}
-          variant="prose"
-          label={`REINFORCEMENT: ${section.reinforcementSubject}`}
-          accent="var(--color-success)"
-          onSave={(v) => {
-            setReinforcement(v);
-            markEdited();
-          }}
-        />
-      </div>
-
-      <div style={s.actionList}>
-        {section.actions.map((action, i) => (
-          <ActionItem key={action.title} index={i + 1} action={action} />
-        ))}
-      </div>
-
-      <EditableNarrative
-        value={closing}
-        variant="prose"
-        onSave={(v) => {
-          setClosing(v);
-          markEdited();
-        }}
-      />
-    </Card>
-  );
-}
-
-function ActionItem({ index, action }) {
-  return (
-    <div style={s.actionItem}>
-      <div style={s.actionTitleRow}>
-        <span style={s.actionNumber}>{String(index).padStart(2, "0")}</span>
-        <span style={s.actionTitle}>{action.title}</span>
-      </div>
-      <p style={s.actionDesc}>{action.description}</p>
-      <div style={s.impactCallout}>
-        <span style={s.impactText}>Expected Impact: {action.impact}</span>
-      </div>
-    </div>
-  );
-}
-
-// ---- Section registry ----------------------------------------------------
-
-const SECTION_RENDERERS = {
-  overview: OverviewSection,
-  adherence: AdherenceSection,
-  "focus-area": FocusAreaSection,
-  "coaching-actions": CoachingActionsSection,
-};
-
-export default function TaskRecordPage({ taskId, onBack }) {
-  const brief = React.useMemo(() => getCoachingBrief(taskId), [taskId]);
-  const [activeTab, setActiveTab] = React.useState("overview");
-
-  React.useEffect(() => {
-    if (typeof document === "undefined") return undefined;
-    const previous = document.title;
-    document.title = `${brief.agentName} — Weekly Coaching Brief`;
-    return () => {
-      document.title = previous;
-    };
-  }, [brief.agentName]);
-
-  // Scroll-spy — the section nearest the top sets the active pill.
-  React.useEffect(() => {
-    const els = SECTION_TABS.map((t) => document.getElementById(`brief-${t.section}`)).filter(
-      Boolean,
-    );
-    if (!els.length) return undefined;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (!visible.length) return;
-        const sectionId = visible[0].target.id.replace("brief-", "");
-        const tab = SECTION_TABS.find((t) => t.section === sectionId);
-        if (tab) setActiveTab(tab.id);
-      },
-      { rootMargin: "-100px 0px -65% 0px", threshold: 0 },
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [brief]);
-
-  const pickTab = (tabId) => {
-    setActiveTab(tabId);
-    const tab = SECTION_TABS.find((t) => t.id === tabId);
-    const el = tab && document.getElementById(`brief-${tab.section}`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  return (
-    <div style={s.page}>
-      <Card padX={20} padY={16} tone="default" shadow style={s.headerBar}>
-        <div style={s.headerInner}>
-          <Button variant="icon" size="sm" aria-label="Back to Tasks" onClick={onBack}>
-            <ArrowLeft size={20} color="var(--color-text-medium)" />
-          </Button>
-          <span style={s.taskIdText}>{brief.taskId}</span>
-          <span style={s.flexSpacer} />
-          <SkillChip skill={brief.skill} />
-          <Button
-            variant="text"
-            uppercase={false}
-            leadingIcon={<Download size={16} />}
-            onClick={() => console.log("download brief")}
+      <div style={styles.tableFooter}>
+        <span style={styles.tableTotal}>Total {total} Citations</span>
+        <div style={styles.pagination}>
+          <span style={styles.pageLabel}>Page {page} of {pages}</span>
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            style={styles.pageBtn}
+            aria-label="Previous page"
           >
-            Download
-          </Button>
+            <ChevronLeft size={16} color={page <= 1 ? "var(--color-text-placeholder)" : "var(--color-text-medium)"} />
+          </button>
+          <button
+            type="button"
+            disabled={page >= pages}
+            onClick={() => setPage((p) => Math.min(pages, p + 1))}
+            style={styles.pageBtn}
+            aria-label="Next page"
+          >
+            <ChevronRight size={16} color={page >= pages ? "var(--color-text-placeholder)" : "var(--color-text-medium)"} />
+          </button>
         </div>
-      </Card>
+      </div>
+    </Section>
+  );
+}
 
-      <PillTabs tabs={SECTION_TABS} activeId={activeTab} onPick={pickTab} />
+// ---- 9/11. Empty placeholder section ----------------------------------
 
-      {brief.sections.map((section) => {
-        const Renderer = SECTION_RENDERERS[section.type];
-        if (!Renderer) return null;
-        return (
-          <div key={section.type} id={`brief-${section.type}`} style={s.sectionAnchor}>
-            <Renderer section={section} agentName={brief.agentName} />
-          </div>
-        );
-      })}
+function EmptySection({ id, title, Icon }) {
+  return (
+    <Section id={id} title={title} Icon={Icon}>
+      <p style={styles.emptyLine}>No items yet</p>
+    </Section>
+  );
+}
+
+// ---- Accordion row ----------------------------------------------------
+
+function AccordionRow({ open, onToggle, head, children }) {
+  return (
+    <div style={{ ...styles.accRow, background: open ? "#FAFAFA" : "#FFFFFF" }}>
+      <button type="button" onClick={onToggle} style={styles.accHead}>
+        <span style={styles.accHeadLeft}>{head}</span>
+        {open
+          ? <ChevronUp size={20} color="var(--color-text-tertiary)" />
+          : <ChevronDown size={20} color="var(--color-text-tertiary)" />
+        }
+      </button>
+      {open && <div style={styles.accBody}>{children}</div>}
     </div>
   );
 }
 
-const s = {
-  page: {
-    flex: 1,
-    minHeight: 0,
+// ---- Styles ------------------------------------------------------------
+
+const styles = {
+  column: {
     display: "flex",
     flexDirection: "column",
-    gap: "var(--page-card-gap)",
+    gap: 24,
+    width: "100%",
     fontFamily: "var(--font-sans)",
   },
-  headerBar: {
-    position: "sticky",
-    top: 0,
-    zIndex: 10,
-    flexShrink: 0,
+
+  // Header
+  headerCard: {
+    boxShadow: "0 2px 4px rgba(69, 70, 79, 0.15)",
   },
   headerInner: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    gap: 8, padding: "8px 24px",
+    minHeight: 56,
   },
-  taskIdText: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
+  backBtn: {
+    width: 32, height: 32, borderRadius: 6,
+    border: "none", background: "transparent", cursor: "pointer",
+    display: "inline-grid", placeItems: "center",
+    flexShrink: 0,
+    padding: 0,
   },
-  flexSpacer: { flex: 1 },
-  skillChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    background: "var(--color-card-emoji-bg)",
-    borderRadius: 999,
-    padding: "4px 12px 4px 4px",
+  headerMeta: {
+    flex: 1, minWidth: 0,
+    display: "inline-flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+  },
+  taskId: {
+    fontSize: 16, fontWeight: 600, color: "var(--color-text-medium)",
+    fontFamily: '"JetBrains Mono", monospace',
+  },
+  taskTitle: { fontSize: 14, fontWeight: 400, color: "var(--color-text-medium)", letterSpacing: "0.17px" },
+  createdByLabel: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)" },
+  authorAvatar: {
+    width: 20, height: 20, borderRadius: 999,
+    background: "#DDE1FF", color: "var(--color-icon-tertiary-fg)",
+    display: "inline-grid", placeItems: "center",
+    fontSize: 10, fontWeight: 700, letterSpacing: "0.15px",
+  },
+  authorName: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)" },
+  timestamp: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)" },
+  headerDot: {
+    width: 3, height: 3, borderRadius: 999,
+    background: "#A7AAC1",
     flexShrink: 0,
   },
-  skillChipIcon: {
-    width: 24,
-    height: 24,
+  statusTag: {
+    display: "inline-flex", alignItems: "center",
+    padding: "4px 10px",
+    background: "var(--color-icon-tertiary-bg)",
+    color: "var(--color-icon-tertiary-fg)",
     borderRadius: 999,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
+    fontFamily: '"JetBrains Mono", monospace',
+    fontSize: 12, fontWeight: 700, letterSpacing: "0.1px",
     flexShrink: 0,
-  },
-  skillChipLabel: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--color-text-deep)",
   },
 
-  pillRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 0,
+  // Body
+  body: {
+    display: "flex", alignItems: "flex-start", gap: 24,
+    width: "100%",
   },
-  pill: {
-    padding: "8px 16px",
-    borderRadius: 999,
+
+  // TOC
+  tocWrap: {
+    width: 243,
+    flexShrink: 0,
+    position: "sticky",
+    top: 16,
+    alignSelf: "flex-start",
+  },
+  tocInner: {
+    display: "flex", flexDirection: "column",
+    padding: 16,
+    background: "#FFFFFF",
+    borderRadius: 12,
+    boxShadow: "var(--shadow-card)",
+  },
+  tocBtn: {
+    display: "flex", alignItems: "center", gap: 12,
+    padding: "16px",
+    width: "100%",
     border: "none",
+    borderRadius: 8,
     cursor: "pointer",
+    fontFamily: "inherit",
+    textAlign: "left",
+    transition: "background 120ms ease",
+  },
+  tocLabel: {
     fontFamily: "var(--font-sans)",
-    fontSize: 14,
-    fontWeight: 500,
-  },
-  pillActive: {
-    background: "var(--color-secondary-500)",
-    color: "var(--surface-white)",
-  },
-  pillInactive: {
-    background: "transparent",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.25px",
     color: "var(--color-text-medium)",
   },
 
-  sectionAnchor: { scrollMarginTop: 90 },
-  sectionCard: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
+  // Content
+  content: {
+    flex: 1, minWidth: 0,
+    display: "flex", flexDirection: "column", gap: 16,
   },
-  sectionHeadRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
+
+  // Section card
+  sectionCard: { boxShadow: "var(--shadow-card)" },
+  sectionHead: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    gap: 8, padding: "16px 24px",
+    borderBottom: "1px solid var(--color-border-card-soft)",
   },
+  sectionHeadLeft: { display: "inline-flex", alignItems: "center", gap: 8 },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.4,
-  },
-  generatedOn: {
-    fontSize: 13,
-    fontWeight: 400,
-    color: "var(--color-text-tertiary)",
-  },
-
-  heroBlock: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  heroHeading: {
     margin: 0,
-    fontSize: 22,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.35,
-  },
-  metaRow: {
-    display: "flex",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  metaItem: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  metaLabel: {
-    fontSize: 13,
-    fontWeight: 400,
+    fontFamily: "var(--font-sans)",
+    fontSize: 16, fontWeight: 600, letterSpacing: "0.25px", lineHeight: "22px",
     color: "var(--color-text-medium)",
   },
-  metaValue: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
+  sectionBody: { padding: 24, display: "flex", flexDirection: "column", gap: 24 },
+  sectionIntro: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px", lineHeight: "22px",
+    color: "var(--color-text-medium)",
   },
-  metaSep: {
-    fontSize: 13,
+  emptyLine: {
+    margin: 0,
+    fontSize: 13, color: "var(--color-text-tertiary)", fontStyle: "italic",
+  },
+
+  // Overview
+  overviewBody: {
+    padding: 24,
+    display: "flex", flexDirection: "column", gap: 16,
+  },
+  overviewHeadline: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 24, fontWeight: 600, lineHeight: "34px", letterSpacing: "0.17px",
     color: "var(--color-text-tertiary)",
   },
-  sampleSize: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--color-text-deep)",
-  },
-
-  kpiGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 24,
-  },
-  kpiTile: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  kpiLabel: {
-    fontSize: 13,
-    fontWeight: 500,
+  overviewSummary: {
+    margin: 0,
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px", lineHeight: "22px",
     color: "var(--color-text-medium)",
   },
-  kpiValue: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.2,
+  chipRow: { display: "flex", flexWrap: "wrap", gap: 8 },
+  chipNeutral: {
+    display: "inline-flex", alignItems: "center",
+    padding: "4px 12px",
+    background: "var(--color-icon-tertiary-bg)",
+    color: "var(--color-text-medium)",
+    borderRadius: 4,
+    fontSize: 12, fontWeight: 400, letterSpacing: "0.4px",
   },
-  kpiTrend: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: 500,
+  overviewSplit: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    paddingTop: 24,
+    borderTop: "1px solid var(--color-border-card-soft)",
   },
-
-  editable: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
+  overviewHalf: {
+    paddingInline: "0 16px",
+    display: "flex", flexDirection: "column", gap: 8,
   },
-  editableHead: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    minHeight: 20,
+  overviewHalfRight: {
+    paddingInline: "16px 0",
+    borderLeft: "1px solid var(--color-border-card-soft)",
   },
-  editableLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
+  subLabel: {
+    fontFamily: '"JetBrains Mono", monospace',
+    fontSize: 14, fontWeight: 500, lineHeight: "22px", letterSpacing: "0.1px",
+    color: "var(--color-text-tertiary)",
+  },
+  subLabelLavender: {
+    fontFamily: '"JetBrains Mono", monospace',
+    fontSize: 11, fontWeight: 500, lineHeight: "17px", letterSpacing: "0.1px",
+    color: "var(--color-icon-tertiary-fg)",
     textTransform: "uppercase",
   },
-  editLink: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    background: "transparent",
-    border: "none",
-    padding: 0,
-    cursor: "pointer",
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    fontWeight: 500,
-  },
-  editBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  editActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  proseStack: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    maxWidth: 720,
-  },
-  prose: {
+  overviewPara: {
     margin: 0,
-    fontSize: 14,
-    fontWeight: 400,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px", lineHeight: "22px",
     color: "var(--color-text-medium)",
-    lineHeight: 1.6,
   },
-  bulletList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    maxWidth: 720,
+  keyPattern: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 600, letterSpacing: "0.17px", lineHeight: "19px",
+    color: "var(--color-text-tertiary)",
   },
-  bulletItem: {
-    display: "flex",
-    gap: 8,
-    alignItems: "flex-start",
-  },
-  bulletDot: {
-    fontSize: 14,
-    lineHeight: 1.55,
-    flexShrink: 0,
-  },
-  bulletText: {
-    fontSize: 14,
-    fontWeight: 400,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.55,
+  emotionalBlock: {
+    background: "#FCFBFF",
+    borderRadius: 12,
+    padding: 24,
+    display: "flex", flexDirection: "column", gap: 8,
   },
 
-  subHeading: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    marginBottom: 16,
+  // Accordion
+  accordionList: { display: "flex", flexDirection: "column", gap: 16 },
+  accRow: {
+    border: "1px solid var(--color-border-card-soft)",
+    borderRadius: 8,
+    overflow: "hidden",
+    transition: "background 120ms ease",
   },
+  accHead: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    width: "100%", gap: 16,
+    padding: "12px 24px",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    textAlign: "left",
+  },
+  accHeadLeft: {
+    flex: 1, minWidth: 0,
+    display: "inline-flex", alignItems: "center", gap: 16, justifyContent: "space-between",
+  },
+  accordionTitle: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 500, letterSpacing: "0.1px", lineHeight: "22px",
+    color: "var(--color-text-medium)",
+  },
+  stepChip: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 400, letterSpacing: "0.1px",
+    color: "var(--color-text-tertiary)",
+    flexShrink: 0,
+  },
+  tagChip: {
+    display: "inline-flex", alignItems: "center",
+    padding: "3px 10px",
+    borderRadius: 4,
+    fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 400, letterSpacing: "0.4px",
+    flexShrink: 0,
+  },
+  accBody: {
+    padding: "0 24px 24px",
+    display: "flex", flexDirection: "column", gap: 12,
+  },
+  accordionBody: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px", lineHeight: "22px",
+    color: "var(--color-text-tertiary)",
+  },
+
+  // Example block under approach step
+  exampleBlock: {
+    paddingLeft: 16,
+    borderLeft: "1px solid var(--color-icon-tertiary-fg)",
+    display: "flex", flexDirection: "column", gap: 8,
+  },
+  exampleLabel: {
+    fontFamily: '"JetBrains Mono", monospace',
+    fontSize: 11, fontWeight: 500, letterSpacing: "0.1px",
+    color: "var(--color-icon-tertiary-fg)",
+    textTransform: "uppercase",
+  },
+  exampleQuote: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px", lineHeight: "22px",
+    color: "var(--color-text-tertiary)",
+  },
+
+  // Competitor body
+  competitorMeta: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px",
+    color: "var(--color-text-tertiary)",
+  },
+  competitorGuidance: {
+    paddingLeft: 16,
+    borderLeft: "1px solid var(--color-success)",
+  },
+  competitorGuidanceText: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontStyle: "italic", fontWeight: 500, letterSpacing: "0.17px", lineHeight: "22px",
+    color: "var(--color-text-tertiary)",
+  },
+
+  // Pitfalls
+  pitfallList: { display: "flex", flexDirection: "column", gap: 16 },
+  pitfallRow: {
+    paddingLeft: 16,
+    borderLeft: "1px solid var(--color-error)",
+    display: "flex", flexDirection: "column", gap: 8,
+  },
+  pitfallLabel: {
+    fontFamily: '"JetBrains Mono", monospace',
+    fontSize: 11, fontWeight: 500, lineHeight: "17px",
+    color: "var(--color-error)",
+    textTransform: "uppercase",
+  },
+  pitfallBody: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 500, letterSpacing: "0.17px", lineHeight: "22px",
+    color: "var(--color-text-tertiary)",
+  },
+
+  // Why it works
+  whyWorksBlock: {
+    position: "relative",
+    overflow: "hidden",
+    background: "linear-gradient(104deg, rgba(36, 91, 255, 0.08) 30%, rgba(198, 25, 92, 0.08) 100%)",
+    borderRadius: 12,
+    padding: 24,
+  },
+  whyWorksBody: {
+    margin: 0,
+    position: "relative",
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px", lineHeight: "22px",
+    color: "var(--color-text-medium)",
+  },
+
+  // Source Evidence table
+  tableScroll: { width: "100%", overflowX: "auto", margin: "-24px -24px 0", padding: "0 24px" },
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    tableLayout: "fixed",
-    fontFamily: "var(--font-sans)",
-  },
-  headRow: {
-    borderBottom: "1px solid var(--color-divider-card)",
+    background: "#FFFFFF",
   },
   th: {
-    padding: "10px 12px 10px 0",
     textAlign: "left",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--color-text-medium)",
+    padding: "10px 12px",
+    background: "#FCFBFF",
+    fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 600, lineHeight: "20px", letterSpacing: "0.4px",
+    color: "var(--color-text-tertiary)",
   },
-  bRow: {},
-  bCell: {
-    padding: "14px 12px 14px 0",
+  thTopic: { paddingLeft: 24 },
+  td: {
+    padding: "16px 12px",
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.17px",
+    color: "var(--color-text-medium)",
     verticalAlign: "middle",
   },
-  bArea: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-deep)",
+  tdTopic: {
+    paddingLeft: 24,
+    fontWeight: 500, letterSpacing: "0.1px",
   },
-  bAgent: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-deep)",
-  },
-  bMuted: {
-    fontSize: 14,
-    fontWeight: 400,
-    color: "var(--color-text-medium)",
-  },
-  bDelta: {
-    fontSize: 14,
-    fontWeight: 500,
-  },
-
-  chipRow: {
-    display: "flex",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  sourceChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    flexWrap: "wrap",
-    background: "var(--color-card-emoji-bg)",
-    borderRadius: 6,
-    padding: "8px 12px",
-  },
-  sourceChipLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    color: "var(--color-text-tertiary)",
-  },
-  sourceChipValue: {
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    fontFamily: "var(--font-mono)",
-  },
-
-  sectionIntro: {
-    margin: 0,
-    fontSize: 14,
-    fontWeight: 400,
-    color: "var(--color-text-medium)",
-    lineHeight: 1.6,
-    maxWidth: 720,
-  },
-  areaList: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  areaRow: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  areaHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "16px 0",
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
+  agentAvatar: {
+    display: "inline-grid", placeItems: "center",
+    width: 24, height: 24, borderRadius: 999,
+    background: "#DDE1FF",
     fontFamily: "var(--font-sans)",
-    textAlign: "left",
-    width: "100%",
+    fontSize: 11, fontWeight: 700, letterSpacing: "0.5px",
+    color: "var(--color-icon-tertiary-fg)",
   },
-  areaName: {
-    fontSize: 15,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
+  sentimentChip: {
+    display: "inline-flex", alignItems: "center",
+    padding: "3px 12px",
+    borderRadius: 4,
+    fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 400, lineHeight: "18px", letterSpacing: "0.4px",
   },
-  areaScore: {
-    fontSize: 14,
-    fontWeight: 600,
-    flexShrink: 0,
+  adherenceCell: {
+    display: "inline-flex", alignItems: "center", gap: 8,
+    padding: "2px 8px",
+    background: "#F8FAFC",
+    borderRadius: 4,
   },
-  statusChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "4px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 500,
-    whiteSpace: "nowrap",
-    flexShrink: 0,
+  adherenceDot: {
+    width: 8, height: 8, borderRadius: 999,
   },
-  areaBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    paddingBottom: 20,
+  adherenceValue: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 600, letterSpacing: "0.5px",
+    color: "#424659",
   },
-  insightCard: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    padding: "20px 24px",
-    borderRadius: 8,
-  },
-  insightLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-  },
-  insightEmpty: {
-    margin: 0,
-    fontSize: 14,
-    fontWeight: 400,
-    color: "var(--color-text-medium)",
-    lineHeight: 1.6,
-    maxWidth: 720,
-  },
-  sampleChip: {
-    alignSelf: "flex-start",
-    background: "var(--surface-white)",
-    borderRadius: 6,
-    padding: "6px 10px",
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    fontFamily: "var(--font-mono)",
+  openBtn: {
+    width: 24, height: 24, borderRadius: 4,
+    border: "none", background: "transparent", cursor: "pointer",
+    display: "inline-grid", placeItems: "center",
+    padding: 0,
   },
 
-  updatedBy: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    flexShrink: 0,
+  // Pagination
+  tableFooter: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    borderTop: "1px solid var(--color-border-card-soft)",
+    margin: "16px -24px -24px",
+    padding: "16px 24px",
   },
-  updatedByLabel: {
-    fontSize: 12,
-    fontWeight: 400,
+  tableTotal: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, lineHeight: "22px", letterSpacing: "0.25px",
     color: "var(--color-text-tertiary)",
   },
-  updatedByName: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
+  pagination: {
+    display: "inline-flex", alignItems: "center", gap: 12,
   },
-  updatedByInfo: {
-    display: "inline-flex",
-    alignItems: "center",
-    background: "transparent",
-    border: "none",
+  pageLabel: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 14, fontWeight: 400, letterSpacing: "0.25px",
+    color: "var(--color-text-tertiary)",
+  },
+  pageBtn: {
+    width: 24, height: 24, borderRadius: 4,
+    border: "none", background: "transparent", cursor: "pointer",
+    display: "inline-grid", placeItems: "center",
     padding: 0,
-    marginLeft: -2,
-    cursor: "pointer",
-  },
-
-  actionList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 24,
-  },
-  actionItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  actionTitleRow: {
-    display: "flex",
-    gap: 12,
-    alignItems: "baseline",
-  },
-  actionNumber: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-  },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.4,
-  },
-  actionDesc: {
-    margin: 0,
-    marginLeft: 28,
-    fontSize: 14,
-    fontWeight: 400,
-    color: "var(--color-text-medium)",
-    lineHeight: 1.6,
-    maxWidth: 720,
-  },
-  impactCallout: {
-    marginLeft: 28,
-    borderLeft: "3px solid var(--color-secondary-500)",
-    padding: "8px 12px",
-    background: "var(--color-card-emoji-bg)",
-  },
-  impactText: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    fontFamily: "var(--font-mono)",
   },
 };

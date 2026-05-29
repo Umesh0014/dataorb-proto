@@ -11,7 +11,6 @@ import NewRoleplayContextPage from "../../components/NewRoleplayContextPage";
 import InteractionsPage from "../../components/InteractionsPage";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
-import MissionsPage from "../../components/MissionsPage";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
 import MissionDetailPage from "../../components/MissionDetailPage";
 import MissionWizardPage, {
@@ -27,6 +26,11 @@ import TasksPage from "../../components/TasksPage";
 import TaskRecordPage from "../../components/TaskRecordPage";
 import SettingsPage from "../../components/SettingsPage";
 import CreditsUsagePage from "../../components/CreditsUsagePage";
+import GuidePage from "../../components/GuidePage";
+import GuideSessionPage from "../../components/GuideSessionPage";
+import CreateGuideWizardPage, {
+  EMPTY_GUIDE_DRAFT,
+} from "../../components/CreateGuideWizardPage";
 import CreateTaskWizardPage, {
   EMPTY_TASK_DRAFT,
   SKILL_CATALOGUE,
@@ -81,7 +85,8 @@ const LEARNING_PAGES = {
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
-  "missions":     { Component: MissionsPage,    pageName: "Missions" },
+  "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
+  "guide":        { Component: GuidePage,       pageName: "Guide" },
 };
 
 const MIRA_PAGES = {
@@ -337,6 +342,13 @@ export default function Page() {
   // means the wizard is mounted.
   const [missionWizardStep, setMissionWizardStep] = React.useState(null);
   const [missionDraft, setMissionDraft] = React.useState(EMPTY_MISSION_DRAFT);
+  // Create Guide wizard — null means closed (GuidePage renders); any
+  // step id ('knowledge-base' | 'define' | 'preview') means the wizard
+  // is mounted.
+  const [guideWizardStep, setGuideWizardStep] = React.useState(null);
+  const [guideDraft, setGuideDraft] = React.useState(EMPTY_GUIDE_DRAFT);
+  // Guide AI Tutor session — null = list view; a guide id = runtime mounted.
+  const [guideSessionId, setGuideSessionId] = React.useState(null);
   const appMenuTriggerRef = React.useRef(null);
 
   const cancelRoleplay = () => {
@@ -351,6 +363,30 @@ export default function Page() {
   const closeMissionWizard = () => {
     setMissionWizardStep(null);
     setMissionDraft(EMPTY_MISSION_DRAFT);
+  };
+
+  const openGuideWizard = () => {
+    setGuideDraft(EMPTY_GUIDE_DRAFT);
+    setGuideWizardStep("knowledge-base");
+  };
+  const closeGuideWizard = () => {
+    setGuideWizardStep(null);
+    setGuideDraft(EMPTY_GUIDE_DRAFT);
+  };
+  const openGuideSession = (id) => setGuideSessionId(id);
+  const closeGuideSession = () => setGuideSessionId(null);
+  const saveGuideDraft = (draft) => {
+    // TODO: persist draft guide server-side; logging for prototype.
+    // eslint-disable-next-line no-console
+    console.log("save guide draft", draft);
+  };
+  const publishGuide = (mode) => {
+    // mode is "calibration" or "publish" — picked in PublishGuideModal.
+    // Post-confirm destinations (calibration workspace vs. live publish
+    // success) still pending product spec; closing the wizard for now.
+    // eslint-disable-next-line no-console
+    console.log("publish guide", { mode, draft: guideDraft });
+    closeGuideWizard();
   };
 
   const openTaskWizard = () => {
@@ -563,10 +599,23 @@ export default function Page() {
     const onDrill = learningNav === "drill";
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
+    const onGuide = learningNav === "guide";
     const missionsPopulated = onMissions && !missionWizardStep;
 
     let drillContent;
-    if (onMissions && missionWizardStep) {
+    if (onGuide && guideWizardStep) {
+      drillContent = (
+        <CreateGuideWizardPage
+          step={guideWizardStep}
+          draft={guideDraft}
+          onChange={setGuideDraft}
+          onStepChange={setGuideWizardStep}
+          onCancel={closeGuideWizard}
+          onSave={saveGuideDraft}
+          onPublish={publishGuide}
+        />
+      );
+    } else if (onMissions && missionWizardStep) {
       drillContent = (
         <MissionWizardPage
           step={missionWizardStep}
@@ -627,6 +676,8 @@ export default function Page() {
             setRoleplayStep("persona");
           }}
           onCreateMission={openMissionWizard}
+          onCreateGuide={openGuideWizard}
+          onOpenGuide={openGuideSession}
           onOpenAgent={(id) => setAgentProfileId(id)}
         />
       );
@@ -640,6 +691,8 @@ export default function Page() {
       setSelectedMissionId(null);
       cancelRoleplay();
       closeMissionWizard();
+      closeGuideWizard();
+      closeGuideSession();
       router.push(pathForLearning(id));
     };
     handleAppSelectPage = (page) => {
@@ -647,22 +700,31 @@ export default function Page() {
       setAgentProfileId(null);
       cancelRoleplay();
       closeMissionWizard();
+      closeGuideWizard();
+      closeGuideSession();
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
-    if (onMissions && missionDetailId && !missionWizardStep) {
+    if (onGuide && guideSessionId && !guideWizardStep) {
+      // Guide session bypasses PageLayout — owns its own 32px outer
+      // gutter so the chrome diverges from other module pages (spec §3).
+      moduleContent = (
+        <GuideSessionPage
+          guide={{ id: guideSessionId }}
+          onEnd={closeGuideSession}
+        />
+      );
+    } else if (onMissions && missionDetailId && !missionWizardStep) {
       moduleContent = (
         <MissionDetailPage
           missionId={missionDetailId}
           onBack={() => router.push("/learning/missions")}
-          onSelectLayout={() => router.push("/learning/missions")}
         />
       );
     } else if (missionsPopulated) {
       moduleContent = (
         <MissionsLandingShell
           onCreateMission={openMissionWizard}
-          initialMissionId={selectedMissionId}
           onOpenMission={(id) => router.push(`/learning/missions/${id}`)}
         />
       );

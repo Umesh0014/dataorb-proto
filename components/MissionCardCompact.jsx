@@ -94,12 +94,30 @@ export function missionStatusAffordance(mission) {
 // consumers that need the sub-state label (analytics, sort, future
 // surfaces). The card no longer renders an inline badge — title gets the
 // full content width and any state cue stays in the footer chip.
-export default function MissionCardCompact({ mission, onClick, selected = false }) {
+// daysUntilStart — positive integer count of days from today to the
+// mission's start date. Used by the Upcoming sub-section (Part B) so
+// the date row reads "Starts in N days" instead of "X days left".
+// Returns null when startDate is missing or already in the past.
+function daysUntilStart(mission) {
+  if (!mission || !mission.startDate) return null;
+  const start = Date.parse(mission.startDate);
+  if (Number.isNaN(start)) return null;
+  const now = Date.now();
+  const diff = Math.ceil((start - now) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : null;
+}
+
+export default function MissionCardCompact({ mission, onClick, selected = false, hideAgentCount = false }) {
   const [hover, setHover] = React.useState(false);
   const completed = mission.state === "completed";
+  const upcoming = mission.state === "upcoming";
   const pct = Math.max(0, Math.min(100, mission.progress ?? 0));
   const tone = progressTone(pct);
   const status = missionStatusAffordance(mission);
+  // Upcoming cards override the running-state affordance with a
+  // forward-looking "Starts in N days" line. Reuses the same inline
+  // status footer slot so no new component branch is needed.
+  const startsIn = upcoming ? daysUntilStart(mission) : null;
 
   const tags = mission.tags || [];
   const extraTags = tags.length - 1;
@@ -125,11 +143,15 @@ export default function MissionCardCompact({ mission, onClick, selected = false 
       <div style={kcStyles.divider} aria-hidden="true" />
 
       <div style={kcStyles.chipRow}>
-        <span style={kcStyles.countBadge}>{mission.agentCount}</span>
-        <span style={kcStyles.chipLabel}>Agents</span>
+        {!hideAgentCount && (
+          <>
+            <span style={kcStyles.countBadge}>{mission.agentCount}</span>
+            <span style={kcStyles.chipLabel}>Agents</span>
+          </>
+        )}
         {tags.length > 0 && (
           <>
-            <span style={kcStyles.dot} aria-hidden="true">·</span>
+            {!hideAgentCount && <span style={kcStyles.dot} aria-hidden="true">·</span>}
             <span style={kcStyles.tagChip} title={tags[0]}>
               {truncate(tags[0], TAG_MAX)}
             </span>
@@ -142,7 +164,7 @@ export default function MissionCardCompact({ mission, onClick, selected = false 
         )}
       </div>
 
-      {!completed && (
+      {!completed && !upcoming && (
         <div style={kcStyles.progressRow}>
           <span style={kcStyles.progressTrack}>
             <span style={{ ...kcStyles.progressFill, width: `${pct}%`, background: tone }} />
@@ -155,9 +177,17 @@ export default function MissionCardCompact({ mission, onClick, selected = false 
         <span style={kcStyles.dateRange}>
           {formatDateRange(mission.startDate, mission.endDate)}
         </span>
-        <InlineStatusAffordance tone={status.tone} icon={status.icon}>
-          {status.label}
-        </InlineStatusAffordance>
+        {upcoming
+          ? (
+            <span style={kcStyles.upcomingStatus}>
+              {startsIn != null ? `Starts in ${startsIn} days` : "Starts soon"}
+            </span>
+          ) : (
+            <InlineStatusAffordance tone={status.tone} icon={status.icon}>
+              {status.label}
+            </InlineStatusAffordance>
+          )
+        }
       </div>
     </button>
   );
@@ -268,6 +298,11 @@ const kcStyles = {
     fontSize: 12,
     fontWeight: 600,
     flexShrink: 0,
+  },
+  upcomingStatus: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 500, letterSpacing: "0.4px",
+    color: "var(--color-text-tertiary)",
   },
   progressRow: {
     display: "flex",
