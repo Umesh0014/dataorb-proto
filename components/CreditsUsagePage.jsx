@@ -53,11 +53,6 @@ export default function CreditsUsagePage({ onBack }) {
   return (
     <div style={styles.column}>
       <PageHeader
-        breadcrumb={[
-          { label: "Settings", onClick: onBack },
-          { label: "Learning Hub" },
-          { label: "Credits & Usage" },
-        ]}
         back={onBack}
         identifier={{
           icon: <Gauge size={16} color="var(--color-icon-tertiary-fg)" />,
@@ -68,8 +63,10 @@ export default function CreditsUsagePage({ onBack }) {
         subtitle="Set the total practice capacity for your tenant and the weekly quota per agent."
       />
 
-      <TenantCapacitySection />
-      <AgentWeeklyQuotaSection value={weeklyQuota} onChange={setWeeklyQuota} />
+      <div style={styles.topRow}>
+        <TenantCapacitySection />
+        <AgentWeeklyQuotaSection value={weeklyQuota} onChange={setWeeklyQuota} />
+      </div>
       <RequestRoutingSection
         value={routingEmail}
         onChange={setRoutingEmail}
@@ -98,6 +95,7 @@ function TenantCapacitySection() {
     <Section
       title="Tenant capacity"
       description="The total practice capacity provisioned for this tenant at deployment."
+      style={styles.topRowCard}
     >
       <div style={styles.statTile}>
         <span style={styles.statTileLabel}>Tenant capacity</span>
@@ -120,6 +118,7 @@ function AgentWeeklyQuotaSection({ value, onChange }) {
     <Section
       title="Agent weekly quota"
       description="Set how many practice minutes each agent can use per week across Roleplay, Guide, and Probe."
+      style={styles.topRowCard}
     >
       <Field label="Default quota">
         <NumberInput
@@ -200,9 +199,9 @@ function EmailInput({ value, onChange, placeholder, ariaLabel, hasError }) {
 
 // ---- Shared primitives -------------------------------------------------
 
-function Section({ title, description, children }) {
+function Section({ title, description, children, style }) {
   return (
-    <Card padX={0} padY={0} style={styles.sectionCard}>
+    <Card padX={0} padY={0} style={{ ...styles.sectionCard, ...style }}>
       <header style={styles.sectionHeader}>
         <div style={styles.sectionTitleBlock}>
           <h2 style={styles.sectionTitle}>{title}</h2>
@@ -240,6 +239,18 @@ const styles = {
     gap: 16,
     width: "100%",
     fontFamily: "var(--font-sans)",
+  },
+
+  // Tenant capacity + Agent weekly quota sit side by side; align-items
+  // stretch keeps both cards the same height regardless of content.
+  topRow: {
+    display: "flex",
+    gap: 16,
+    alignItems: "stretch",
+  },
+  topRowCard: {
+    flex: 1,
+    minWidth: 0,
   },
 
   // Section / card
