@@ -134,8 +134,10 @@ export default function CreditsUsagePage({ onBack }) {
         onSetLimit={setAgentLimit}
       />
 
-      <BillingBehaviorSection mode={billingMode} onChange={setBillingMode} />
-      <UsageReportSection />
+      <div style={styles.pairRow}>
+        <BillingBehaviorSection mode={billingMode} onChange={setBillingMode} />
+        <UsageReportSection />
+      </div>
 
       <div style={styles.actionRow}>
         <Button
@@ -402,6 +404,7 @@ function BillingBehaviorSection({ mode, onChange }) {
       title="Billing behavior"
       description="Choose how the platform responds when the tenant's contracted capacity is reached."
       headerRight={<P1Badge />}
+      style={styles.pairCard}
     >
       <div style={styles.segmentedWrap}>
         <SegmentedOption
@@ -456,6 +459,7 @@ function UsageReportSection() {
       title="Usage report"
       description="Per-agent and per-activity consumption over a selectable period, exportable as CSV."
       headerRight={<P1Badge />}
+      style={styles.pairCard}
     >
       <div style={styles.reportPreview}>
         <div style={styles.reportColumns}>
