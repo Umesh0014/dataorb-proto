@@ -1,54 +1,103 @@
 "use client";
 
 import React from "react";
-import { Gauge } from "lucide-react";
+import { Gauge, Search, Download, Info } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
+import Toggle from "./Toggle";
 import PageHeader from "./PageHeader";
 import { CREDITS_USAGE_SAMPLE } from "./SettingsPage";
 
-// CreditsUsagePage — Credits & Usage admin surface, streamlined per the
-// Jun 2 call (Patch 6). The model locked down to three things, so the
-// page is now three small section cards stacked:
+// CreditsUsagePage — Credits & Usage admin surface.
 //
-//   1. Tenant capacity   — read-only hard cap, set by Ops at deployment.
-//   2. Agent weekly quota — the only configurable number; one general
-//      pool of minutes per agent per week, spent across Roleplay / Guide
-//      / Probe (not split per activity).
-//   3. Quota-exceeded requests — a single email address that out-of-quota
-//      requests route to until Teams-based routing ships.
+// Page order (Patch 8 roadmap):
+//   0. Contract-terms info banner
+//   1. Tenant usage — observability only (P0.3). NOT a governance pool;
+//      no thresholds, no block-at-100%, no forecast.
+//   2. Agent weekly quota — configurable default (P0.1)
+//   3. Quota-exceeded request routing
+//   4. Agent limits — per-agent override table (P0.2)
+//   5. Billing behavior — P1 scaffold (hard-stop vs continue-overage)
+//   6. Usage report — P1 scaffold (CSV export concept)
 //
-// Everything from the prior design (tenant-pool consumption %, forecast,
-// soft threshold, alert levels + recipients, per-roleplay cap, per-agent
-// daily/monthly frequency, pool-increase banner, audit log) was stripped
-// — without pooling those framings are meaningless. See the patch spec
-// §2 for the full removal list; do not reintroduce any of them here.
-//
-// Wiring scope: presentational with local state so each control shows its
-// state. Real persistence lands in a follow-up. The tenant capacity number
-// reads from CREDITS_USAGE_SAMPLE.poolMinutes so it stays in sync with the
-// Settings card. With a single required field, there's no setup gate, so
-// the header carries no setup-complete badge.
+// Enforcement model: consumption is *shown* at tenant level, *enforced*
+// at agent level via the weekly quota + per-agent overrides. Billing is
+// contractual. Partner-level pooling is a separate master-admin surface
+// (not built here).
 
-const DEFAULT_WEEKLY_QUOTA = 30; // ECI baseline from the Jun 2 call (§3.3)
-
-// Standard email shape — validation is format-only (spec §6 #5). Tenant-
-// domain restriction is a future call, not assumed here.
+const DEFAULT_WEEKLY_QUOTA = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// ---- Sample / stub data ---------------------------------------------------
+
+const TENANT_USAGE_SAMPLE = {
+  contractedMinutes: CREDITS_USAGE_SAMPLE.poolMinutes,
+  usedThisPeriod: 9100,
+  activeAgents: 18,
+  totalAgents: 22,
+  periodLabel: "This week",
+};
+
+const TREND_DATA = [
+  { label: "W1", value: 1200 },
+  { label: "W2", value: 1800 },
+  { label: "W3", value: 2100 },
+  { label: "W4", value: 1950 },
+  { label: "W5", value: 2400 },
+];
+
+const AGENTS_SAMPLE = [
+  { id: 1, name: "Priya Sharma", email: "priya.sharma@eci.com", hasCustom: false, limit: 30 },
+  { id: 2, name: "Rahul Verma", email: "rahul.verma@eci.com", hasCustom: true, limit: 45 },
+  { id: 3, name: "Anita Desai", email: "anita.desai@eci.com", hasCustom: false, limit: 30 },
+  { id: 4, name: "Vikram Patel", email: "vikram.patel@eci.com", hasCustom: true, limit: 60 },
+  { id: 5, name: "Meera Joshi", email: "meera.joshi@eci.com", hasCustom: false, limit: 30 },
+  { id: 6, name: "Arjun Nair", email: "arjun.nair@eci.com", hasCustom: false, limit: 30 },
+  { id: 7, name: "Kavita Singh", email: "kavita.singh@eci.com", hasCustom: true, limit: 20 },
+  { id: 8, name: "Deepak Gupta", email: "deepak.gupta@eci.com", hasCustom: false, limit: 30 },
+];
+
+// ---- Main component -------------------------------------------------------
 
 export default function CreditsUsagePage({ onBack }) {
   const [weeklyQuota, setWeeklyQuota] = React.useState(DEFAULT_WEEKLY_QUOTA);
   const [routingEmail, setRoutingEmail] = React.useState("");
+  const [agents, setAgents] = React.useState(AGENTS_SAMPLE);
+  const [agentSearch, setAgentSearch] = React.useState("");
+  const [billingMode, setBillingMode] = React.useState("continue");
 
-  const emailError = routingEmail.trim() && !EMAIL_RE.test(routingEmail.trim())
-    ? "Enter a valid email address."
-    : null;
+  const emailError =
+    routingEmail.trim() && !EMAIL_RE.test(routingEmail.trim())
+      ? "Enter a valid email address."
+      : null;
 
   const handleSave = () => {
     if (emailError) return;
-    // TODO: persist weekly quota + routing email. Stubbed for now.
     console.log("save credits & usage settings");
   };
+
+  const toggleAgentCustom = (id) => {
+    setAgents((prev) =>
+      prev.map((a) =>
+        a.id === id
+          ? { ...a, hasCustom: !a.hasCustom, limit: a.hasCustom ? weeklyQuota : a.limit }
+          : a,
+      ),
+    );
+  };
+
+  const setAgentLimit = (id, limit) => {
+    setAgents((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, limit: Number(limit) || 0 } : a)),
+    );
+  };
+
+  const filteredAgents = agents.filter(
+    (a) =>
+      !agentSearch ||
+      a.name.toLowerCase().includes(agentSearch.toLowerCase()) ||
+      a.email.toLowerCase().includes(agentSearch.toLowerCase()),
+  );
 
   return (
     <div style={styles.column}>
@@ -60,18 +109,33 @@ export default function CreditsUsagePage({ onBack }) {
           iconBg: "var(--color-icon-tertiary-bg)",
           iconColor: "var(--color-icon-tertiary-fg)",
         }}
-        subtitle="Set the total practice capacity for your tenant and the weekly quota per agent."
+        subtitle="Manage practice capacity, agent quotas, and usage visibility for your tenant."
       />
 
-      <div style={styles.topRow}>
-        <TenantCapacitySection />
+      <InfoBanner />
+      <TenantUsageSection />
+
+      <div style={styles.pairRow}>
         <AgentWeeklyQuotaSection value={weeklyQuota} onChange={setWeeklyQuota} />
+        <RequestRoutingSection
+          value={routingEmail}
+          onChange={setRoutingEmail}
+          error={emailError}
+        />
       </div>
-      <RequestRoutingSection
-        value={routingEmail}
-        onChange={setRoutingEmail}
-        error={emailError}
+
+      <AgentLimitsSection
+        agents={filteredAgents}
+        totalCount={agents.length}
+        search={agentSearch}
+        onSearchChange={setAgentSearch}
+        defaultQuota={weeklyQuota}
+        onToggleCustom={toggleAgentCustom}
+        onSetLimit={setAgentLimit}
       />
+
+      <BillingBehaviorSection mode={billingMode} onChange={setBillingMode} />
+      <UsageReportSection />
 
       <div style={styles.actionRow}>
         <Button
@@ -87,38 +151,119 @@ export default function CreditsUsagePage({ onBack }) {
   );
 }
 
-// ---- Section 1 — Tenant capacity (read-only) ---------------------------
+// ---- Contract-terms info banner -------------------------------------------
 
-function TenantCapacitySection() {
-  const pool = CREDITS_USAGE_SAMPLE.poolMinutes;
+function InfoBanner() {
+  return (
+    <div style={styles.infoBanner}>
+      <Info size={14} color="var(--color-icon-tertiary-fg)" style={{ flexShrink: 0, marginTop: 1 }} />
+      <span style={styles.infoBannerText}>
+        Practice minutes for this tenant are assigned and any over-usage is
+        governed as per your contract terms.
+      </span>
+    </div>
+  );
+}
+
+// ---- Section — Tenant usage (P0.3, observability only) --------------------
+
+function TenantUsageSection() {
+  const { contractedMinutes, usedThisPeriod, activeAgents, totalAgents, periodLabel } =
+    TENANT_USAGE_SAMPLE;
+  const hrs = Math.round(contractedMinutes / 60);
+
   return (
     <Section
-      title="Tenant capacity"
-      description="The total practice capacity provisioned for this tenant at deployment."
-      style={styles.topRowCard}
+      title="Tenant usage"
+      description="Practice minutes used across all agents this period."
     >
-      <div style={styles.statTile}>
-        <span style={styles.statTileLabel}>Tenant capacity</span>
-        <div style={styles.statTileValueRow}>
-          <span style={styles.statTileValue}>{pool.toLocaleString()} min</span>
-          <span style={styles.chip}>Contracted</span>
-        </div>
-        <span style={styles.statTileSub}>
-          Total practice minutes available to this tenant
-        </span>
+      <div style={styles.metricRow}>
+        <MetricTile
+          label="Contracted capacity"
+          value={`${contractedMinutes.toLocaleString()} min`}
+          sub={`${hrs.toLocaleString()} hrs · set by Ops`}
+          chipLabel="Contracted"
+        />
+        <MetricTile
+          label={`Used · ${periodLabel}`}
+          value={`${usedThisPeriod.toLocaleString()} min`}
+          sub="Across Roleplay, Guide, and Probe"
+        />
+        <MetricTile
+          label="Active agents"
+          value={`${activeAgents} of ${totalAgents}`}
+          sub={`Practiced ${periodLabel.toLowerCase()}`}
+        />
       </div>
+      <UsageTrendChart data={TREND_DATA} />
     </Section>
   );
 }
 
-// ---- Section 2 — Agent weekly quota (configurable) ---------------------
+function MetricTile({ label, value, sub, chipLabel }) {
+  return (
+    <div style={styles.metricTile}>
+      <span style={styles.metricTileLabel}>{label}</span>
+      <div style={styles.metricTileValueRow}>
+        <span style={styles.metricTileValue}>{value}</span>
+        {chipLabel && <span style={styles.chip}>{chipLabel}</span>}
+      </div>
+      {sub && <span style={styles.metricTileSub}>{sub}</span>}
+    </div>
+  );
+}
+
+function UsageTrendChart({ data }) {
+  const W = 600;
+  const H = 72;
+  const PAD_L = 24;
+  const PAD_R = 24;
+  const PAD_T = 8;
+  const PAD_B = 16;
+  const chartW = W - PAD_L - PAD_R;
+  const chartH = H - PAD_T - PAD_B;
+  const maxVal = Math.max(...data.map((d) => d.value));
+
+  const points = data.map((d, i) => ({
+    x: PAD_L + (i / (data.length - 1)) * chartW,
+    y: PAD_T + chartH - (d.value / maxVal) * chartH * 0.9,
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${PAD_T + chartH} L ${PAD_L} ${PAD_T + chartH} Z`;
+
+  return (
+    <div style={styles.trendWrap}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={styles.trendSvg} aria-label="Usage trend chart">
+        <defs>
+          <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-icon-tertiary-fg)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--color-icon-tertiary-fg)" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill="url(#trendFill)" />
+        <path d={linePath} fill="none" stroke="var(--color-icon-tertiary-fg)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={2.5} fill="#fff" stroke="var(--color-icon-tertiary-fg)" strokeWidth="1.5" />
+        ))}
+        {data.map((d, i) => (
+          <text key={i} x={points[i].x} y={H - 1} textAnchor="middle" style={{ fontSize: 7, fill: "var(--color-text-tertiary)", fontFamily: "var(--font-sans)" }}>
+            {d.label}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+// ---- Section — Agent weekly quota (P0.1, existing) ------------------------
 
 function AgentWeeklyQuotaSection({ value, onChange }) {
   return (
     <Section
       title="Agent weekly quota"
       description="Set how many practice minutes each agent can use per week across Roleplay, Guide, and Probe."
-      style={styles.topRowCard}
+      style={styles.pairCard}
     >
       <Field label="Default quota">
         <NumberInput
@@ -136,13 +281,14 @@ function AgentWeeklyQuotaSection({ value, onChange }) {
   );
 }
 
-// ---- Section 3 — Quota-exceeded request routing ------------------------
+// ---- Section — Quota-exceeded request routing (existing) ------------------
 
 function RequestRoutingSection({ value, onChange, error }) {
   return (
     <Section
       title="Quota-exceeded requests"
       description="When an agent exhausts their weekly quota, requests for additional minutes are routed here."
+      style={styles.pairCard}
     >
       <Field label="Email address">
         <EmailInput
@@ -162,7 +308,208 @@ function RequestRoutingSection({ value, onChange, error }) {
   );
 }
 
-// ---- Inputs ------------------------------------------------------------
+// ---- Section — Agent limits / per-agent overrides (P0.2) ------------------
+
+function AgentLimitsSection({
+  agents,
+  totalCount,
+  search,
+  onSearchChange,
+  defaultQuota,
+  onToggleCustom,
+  onSetLimit,
+}) {
+  return (
+    <Section
+      title="Agent limits"
+      description="Override the default weekly quota for individual agents."
+      headerRight={
+        <span style={styles.countBadge}>{totalCount} agents</span>
+      }
+    >
+      <div style={styles.searchRow}>
+        <label style={styles.searchWrap}>
+          <Search size={14} color="var(--color-text-tertiary)" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search by name or email…"
+            aria-label="Search agents"
+            style={styles.searchInput}
+          />
+        </label>
+      </div>
+
+      <div style={styles.tableWrap}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={{ ...styles.th, width: "28%" }}>Name</th>
+              <th style={{ ...styles.th, width: "32%" }}>Email</th>
+              <th style={{ ...styles.th, width: "16%", textAlign: "center" }}>Custom limit</th>
+              <th style={{ ...styles.th, width: "24%" }}>Limit (min/wk)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {agents.map((agent) => (
+              <tr key={agent.id} style={styles.tr}>
+                <td style={styles.td}>
+                  <span style={styles.agentName}>{agent.name}</span>
+                </td>
+                <td style={styles.td}>
+                  <span style={styles.agentEmail}>{agent.email}</span>
+                </td>
+                <td style={{ ...styles.td, textAlign: "center" }}>
+                  <Toggle
+                    enabled={agent.hasCustom}
+                    onChange={() => onToggleCustom(agent.id)}
+                    ariaLabel={`Override default quota for ${agent.name}`}
+                  />
+                </td>
+                <td style={styles.td}>
+                  {agent.hasCustom ? (
+                    <NumberInput
+                      value={agent.limit}
+                      onChange={(v) => onSetLimit(agent.id, v)}
+                      ariaLabel={`Custom limit for ${agent.name}`}
+                    />
+                  ) : (
+                    <span style={styles.defaultChip}>{defaultQuota} default</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {agents.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ ...styles.td, textAlign: "center", color: "var(--color-text-tertiary)" }}>
+                  No agents match your search.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Section>
+  );
+}
+
+// ---- Section — Billing behavior (P1.1 scaffold) --------------------------
+
+function BillingBehaviorSection({ mode, onChange }) {
+  return (
+    <Section
+      title="Billing behavior"
+      description="Choose how the platform responds when the tenant's contracted capacity is reached."
+      headerRight={<P1Badge />}
+    >
+      <div style={styles.segmentedWrap}>
+        <SegmentedOption
+          selected={mode === "hard_stop"}
+          onClick={() => onChange("hard_stop")}
+          label="Hard stop"
+          description="New practice sessions are blocked until renewal or top-up."
+        />
+        <SegmentedOption
+          selected={mode === "continue"}
+          onClick={() => onChange("continue")}
+          label="Continue & bill overage"
+          description="Sessions continue; overage is billed per contract terms."
+        />
+      </div>
+      <p style={styles.fieldNote}>
+        Enforcement wiring is a future build — this setting captures the
+        tenant's billing preference for dev handoff.
+      </p>
+    </Section>
+  );
+}
+
+function SegmentedOption({ selected, onClick, label, description }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      style={{
+        ...styles.segOption,
+        borderColor: selected ? "var(--color-icon-tertiary-fg)" : "var(--color-border-card-soft)",
+        background: selected ? "var(--color-icon-tertiary-bg)" : "#FFFFFF",
+      }}
+    >
+      <span style={styles.segDot}>
+        {selected && <span style={styles.segDotInner} />}
+      </span>
+      <div style={styles.segText}>
+        <span style={styles.segLabel}>{label}</span>
+        <span style={styles.segDesc}>{description}</span>
+      </div>
+    </button>
+  );
+}
+
+// ---- Section — Usage report (P1.3 scaffold) ------------------------------
+
+function UsageReportSection() {
+  return (
+    <Section
+      title="Usage report"
+      description="Per-agent and per-activity consumption over a selectable period, exportable as CSV."
+      headerRight={<P1Badge />}
+    >
+      <div style={styles.reportPreview}>
+        <div style={styles.reportColumns}>
+          {["Agent name", "Roleplay (min)", "Guide (min)", "Probe (min)", "Total (min)", "Period"].map(
+            (col) => (
+              <span key={col} style={styles.reportCol}>{col}</span>
+            ),
+          )}
+        </div>
+        <div style={styles.reportPlaceholder}>
+          Report data will populate here once wiring is connected.
+        </div>
+      </div>
+      <Button
+        variant="secondary"
+        disabled
+        style={{ height: 32, paddingInline: 14, fontSize: 12, opacity: 0.5 }}
+      >
+        <Download size={13} style={{ marginRight: 6 }} />
+        Export CSV
+      </Button>
+    </Section>
+  );
+}
+
+// ---- Shared primitives ----------------------------------------------------
+
+function P1Badge() {
+  return <span style={styles.p1Badge}>Coming soon</span>;
+}
+
+function Section({ title, description, children, style, headerRight }) {
+  return (
+    <Card padX={0} padY={0} style={{ ...styles.sectionCard, ...style }}>
+      <header style={styles.sectionHeader}>
+        <div style={styles.sectionTitleBlock}>
+          <h2 style={styles.sectionTitle}>{title}</h2>
+          {description && <p style={styles.sectionDescription}>{description}</p>}
+        </div>
+        {headerRight}
+      </header>
+      <div style={styles.sectionBody}>{children}</div>
+    </Card>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={styles.field}>
+      <span style={styles.fieldLabel}>{label}</span>
+      <div style={styles.fieldBody}>{children}</div>
+    </div>
+  );
+}
 
 function NumberInput({ value, onChange, suffix, ariaLabel }) {
   return (
@@ -197,31 +544,6 @@ function EmailInput({ value, onChange, placeholder, ariaLabel, hasError }) {
   );
 }
 
-// ---- Shared primitives -------------------------------------------------
-
-function Section({ title, description, children, style }) {
-  return (
-    <Card padX={0} padY={0} style={{ ...styles.sectionCard, ...style }}>
-      <header style={styles.sectionHeader}>
-        <div style={styles.sectionTitleBlock}>
-          <h2 style={styles.sectionTitle}>{title}</h2>
-          {description && <p style={styles.sectionDescription}>{description}</p>}
-        </div>
-      </header>
-      <div style={styles.sectionBody}>{children}</div>
-    </Card>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <div style={styles.field}>
-      <span style={styles.fieldLabel}>{label}</span>
-      <div style={styles.fieldBody}>{children}</div>
-    </div>
-  );
-}
-
 function InlineError({ message }) {
   return (
     <div style={styles.inlineError} role="alert">
@@ -230,7 +552,7 @@ function InlineError({ message }) {
   );
 }
 
-// ---- Styles ------------------------------------------------------------
+// ---- Styles ---------------------------------------------------------------
 
 const styles = {
   column: {
@@ -241,14 +563,13 @@ const styles = {
     fontFamily: "var(--font-sans)",
   },
 
-  // Tenant capacity + Agent weekly quota sit side by side; align-items
-  // stretch keeps both cards the same height regardless of content.
-  topRow: {
+  // Side-by-side pair (agent quota + request routing)
+  pairRow: {
     display: "flex",
     gap: 16,
     alignItems: "stretch",
   },
-  topRowCard: {
+  pairCard: {
     flex: 1,
     minWidth: 0,
   },
@@ -294,6 +615,84 @@ const styles = {
     padding: 20,
   },
 
+  // Info banner
+  infoBanner: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: "12px 16px",
+    borderRadius: 10,
+    background: "var(--color-icon-tertiary-bg)",
+    border: "1px solid rgba(102, 80, 165, 0.12)",
+  },
+  infoBannerText: {
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: "18px",
+    color: "var(--color-text-medium)",
+  },
+
+  // Metric tiles row
+  metricRow: {
+    display: "flex",
+    gap: 12,
+  },
+  metricTile: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: "12px 16px",
+    border: "1px solid var(--color-border-card-soft)",
+    borderRadius: 12,
+    background: "#FFFFFF",
+  },
+  metricTileLabel: {
+    fontSize: 11,
+    fontWeight: 500,
+    color: "var(--color-text-tertiary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.3px",
+  },
+  metricTileValueRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  metricTileValue: {
+    fontSize: 20,
+    fontWeight: 700,
+    lineHeight: "28px",
+    color: "var(--color-text-deep)",
+    fontVariantNumeric: "tabular-nums",
+  },
+  metricTileSub: {
+    fontSize: 11,
+    fontWeight: 400,
+    color: "var(--color-text-tertiary)",
+  },
+  chip: {
+    padding: "2px 8px",
+    borderRadius: 999,
+    background: "var(--color-icon-tertiary-bg)",
+    color: "var(--color-icon-tertiary-fg)",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.2px",
+  },
+
+  // Trend chart
+  trendWrap: {
+    width: "100%",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  trendSvg: {
+    width: "100%",
+    height: "auto",
+    display: "block",
+  },
+
   // Field row
   field: {
     display: "flex",
@@ -319,49 +718,7 @@ const styles = {
     color: "var(--color-text-tertiary)",
   },
 
-  // Tenant capacity stat tile
-  statTile: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-    padding: "12px 16px",
-    border: "1px solid var(--color-border-card-soft)",
-    borderRadius: 12,
-    background: "#FFFFFF",
-  },
-  statTileLabel: {
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--color-text-tertiary)",
-  },
-  statTileValueRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-  },
-  statTileValue: {
-    fontSize: 20,
-    fontWeight: 700,
-    lineHeight: "28px",
-    color: "var(--color-text-deep)",
-    fontVariantNumeric: "tabular-nums",
-  },
-  statTileSub: {
-    fontSize: 12,
-    fontWeight: 400,
-    color: "var(--color-text-tertiary)",
-  },
-  chip: {
-    padding: "2px 8px",
-    borderRadius: 999,
-    background: "var(--color-icon-tertiary-bg)",
-    color: "var(--color-icon-tertiary-fg)",
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: "0.2px",
-  },
-
-  // Number input (weekly quota)
+  // Number input
   numberInput: {
     display: "inline-flex",
     alignItems: "center",
@@ -370,6 +727,7 @@ const styles = {
     border: "1px solid var(--color-border-card-soft)",
     borderRadius: 8,
     background: "#FFFFFF",
+    cursor: "text",
   },
   numberInputField: {
     width: 80,
@@ -388,7 +746,7 @@ const styles = {
     whiteSpace: "nowrap",
   },
 
-  // Email input (request routing)
+  // Email input
   emailInput: {
     width: "100%",
     maxWidth: 360,
@@ -414,6 +772,187 @@ const styles = {
     fontSize: 12,
     fontWeight: 500,
     lineHeight: "18px",
+  },
+
+  // Agent limits — search
+  searchRow: {
+    display: "flex",
+    gap: 12,
+  },
+  searchWrap: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    maxWidth: 320,
+    padding: "7px 12px",
+    border: "1px solid var(--color-border-card-soft)",
+    borderRadius: 8,
+    background: "#FFFFFF",
+    cursor: "text",
+  },
+  searchInput: {
+    flex: 1,
+    border: "none",
+    outline: "none",
+    fontFamily: "inherit",
+    fontSize: 13,
+    fontWeight: 400,
+    color: "var(--color-text-deep)",
+    background: "transparent",
+  },
+  countBadge: {
+    padding: "3px 10px",
+    borderRadius: 999,
+    background: "#F3F4F6",
+    fontSize: 11,
+    fontWeight: 600,
+    color: "var(--color-text-tertiary)",
+    whiteSpace: "nowrap",
+  },
+
+  // Agent limits — table
+  tableWrap: {
+    borderRadius: 8,
+    border: "1px solid var(--color-border-card-soft)",
+    overflow: "hidden",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    fontSize: 13,
+  },
+  th: {
+    padding: "10px 14px",
+    fontWeight: 600,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: "0.3px",
+    color: "var(--color-text-tertiary)",
+    background: "#FAFBFC",
+    borderBottom: "1px solid var(--color-border-card-soft)",
+    textAlign: "left",
+  },
+  tr: {
+    borderBottom: "1px solid #F5F5F7",
+  },
+  td: {
+    padding: "10px 14px",
+    verticalAlign: "middle",
+  },
+  agentName: {
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    fontSize: 13,
+  },
+  agentEmail: {
+    fontWeight: 400,
+    color: "var(--color-text-tertiary)",
+    fontSize: 12,
+  },
+  defaultChip: {
+    display: "inline-block",
+    padding: "3px 10px",
+    borderRadius: 999,
+    background: "#F3F4F6",
+    color: "var(--color-text-tertiary)",
+    fontSize: 12,
+    fontWeight: 500,
+  },
+
+  // Billing behavior — segmented options
+  segmentedWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  },
+  segOption: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 12,
+    padding: "14px 16px",
+    borderRadius: 10,
+    border: "1.5px solid",
+    cursor: "pointer",
+    textAlign: "left",
+    fontFamily: "inherit",
+    transition: "border-color 120ms ease, background 120ms ease",
+  },
+  segDot: {
+    width: 18,
+    height: 18,
+    borderRadius: "50%",
+    border: "2px solid var(--color-icon-tertiary-fg)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  segDotInner: {
+    width: 9,
+    height: 9,
+    borderRadius: "50%",
+    background: "var(--color-icon-tertiary-fg)",
+  },
+  segText: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  segLabel: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  segDesc: {
+    fontSize: 12,
+    fontWeight: 400,
+    color: "var(--color-text-tertiary)",
+    lineHeight: "18px",
+  },
+
+  // Usage report scaffold
+  reportPreview: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    padding: 14,
+    borderRadius: 8,
+    border: "1px solid var(--color-border-card-soft)",
+    background: "#FAFBFC",
+  },
+  reportColumns: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  reportCol: {
+    padding: "3px 10px",
+    borderRadius: 6,
+    background: "#EEEEF2",
+    fontSize: 11,
+    fontWeight: 600,
+    color: "var(--color-text-tertiary)",
+    letterSpacing: "0.2px",
+  },
+  reportPlaceholder: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    fontStyle: "italic",
+    paddingTop: 4,
+  },
+
+  // P1 badge
+  p1Badge: {
+    padding: "3px 10px",
+    borderRadius: 999,
+    background: "#FFF3E0",
+    color: "#EF6C00",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.2px",
+    whiteSpace: "nowrap",
   },
 
   // Action row
