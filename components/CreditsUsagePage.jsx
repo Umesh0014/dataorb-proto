@@ -1,80 +1,52 @@
 "use client";
 
 import React from "react";
-import {
-  Check,
-  Download,
-  Gauge,
-  Info,
-} from "lucide-react";
+import { Gauge } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
-import Toggle from "./Toggle";
 import PageHeader from "./PageHeader";
-import Banner from "./Banner";
-import {
-  CREDITS_USAGE_SAMPLE,
-  poolBarTone,
-  poolPercentUsed,
-} from "./SettingsPage";
+import { CREDITS_USAGE_SAMPLE } from "./SettingsPage";
 
-// CreditsUsagePage — Surface B of the Credits & Usage feature (spec §4).
+// CreditsUsagePage — Credits & Usage admin surface, streamlined per the
+// Jun 2 call (Patch 6). The model locked down to three things, so the
+// page is now three small section cards stacked:
 //
-// Single config page reached from the Settings landing's Credits & Usage
-// card. Sections render top-to-bottom: Overview (4 metric tiles +
-// progress bar, with Consumption forecast as the 4th tile), Limits,
-// Alerts, Audit log. Edge-case banners surface above the section stack
-// when their trigger condition holds. The Pool exhaustion mode card was
-// removed in the revisions pass — with the only required setting gone,
-// the page header no longer carries a setup-complete badge.
+//   1. Tenant capacity   — read-only hard cap, set by Ops at deployment.
+//   2. Agent weekly quota — the only configurable number; one general
+//      pool of minutes per agent per week, spent across Roleplay / Guide
+//      / Probe (not split per activity).
+//   3. Quota-exceeded requests — a single email address that out-of-quota
+//      requests route to until Teams-based routing ships.
 //
-// Wiring scope (spec §2): the page is presentational with local state
-// so every control demonstrates its state. Real persistence, audit
-// emission, and CSV export wiring land in a follow-up. The pool stat
-// reads from the same CREDITS_USAGE_SAMPLE that powers the Settings
-// card so both surfaces stay in sync.
+// Everything from the prior design (tenant-pool consumption %, forecast,
+// soft threshold, alert levels + recipients, per-roleplay cap, per-agent
+// daily/monthly frequency, pool-increase banner, audit log) was stripped
+// — without pooling those framings are meaningless. See the patch spec
+// §2 for the full removal list; do not reintroduce any of them here.
+//
+// Wiring scope: presentational with local state so each control shows its
+// state. Real persistence lands in a follow-up. The tenant capacity number
+// reads from CREDITS_USAGE_SAMPLE.poolMinutes so it stays in sync with the
+// Settings card. With a single required field, there's no setup gate, so
+// the header carries no setup-complete badge.
 
-const ALERT_LEVELS = [75, 90, 100];
+const DEFAULT_WEEKLY_QUOTA = 30; // ECI baseline from the Jun 2 call (§3.3)
 
-const DEFAULT_RECIPIENTS = [
-  { id: "alice", name: "Alice Martin", email: "alice@dataorb.example" },
-  { id: "bilal", name: "Bilal Khan",   email: "bilal@dataorb.example" },
-  { id: "chiyo", name: "Chiyo Tanaka", email: "chiyo@dataorb.example" },
-  { id: "dawit", name: "Dawit Hailu",  email: "dawit@dataorb.example" },
-];
-
-const AUDIT_LOG_SAMPLE = [
-  { id: "a-1", at: "May 22, 2026 · 14:08", who: "Alice Martin", change: "Soft threshold raised 75% → 80%" },
-  { id: "a-2", at: "May 18, 2026 · 09:41", who: "Bilal Khan",   change: "Per-agent cap turned on (120 min / month)" },
-  { id: "a-3", at: "May 12, 2026 · 17:22", who: "Alice Martin", change: "Alert recipient added — Chiyo Tanaka" },
-  { id: "a-4", at: "May 02, 2026 · 11:05", who: "DataOrb Ops",  change: "Pool increased 18,000 → 24,000 min" },
-  { id: "a-5", at: "Apr 28, 2026 · 16:30", who: "Alice Martin", change: "Setup completed — Mode A selected" },
-];
-
-const FORECAST_TODAY = { d: 12, D: 30 };
+// Standard email shape — validation is format-only (spec §6 #5). Tenant-
+// domain restriction is a future call, not assumed here.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function CreditsUsagePage({ onBack }) {
-  // ---- Settings state (sample defaults from spec §4.2) -----------------
-  const [softThreshold, setSoftThreshold] = React.useState(80);
-  const [alertEnabled, setAlertEnabled] = React.useState({ 75: true, 90: true, 100: true });
-  const [recipients, setRecipients] = React.useState(DEFAULT_RECIPIENTS.map((r) => r.id));
-  const [perRoleplayEnabled, setPerRoleplayEnabled] = React.useState(false);
-  const [perRoleplayCap, setPerRoleplayCap] = React.useState(45);
-  const [perAgentEnabled, setPerAgentEnabled] = React.useState(false);
-  const [perAgentCap, setPerAgentCap] = React.useState(120);
-  const [perAgentFrequency, setPerAgentFrequency] = React.useState("monthly"); // "daily" | "monthly"
-  const [poolIncreaseDismissed, setPoolIncreaseDismissed] = React.useState(false);
+  const [weeklyQuota, setWeeklyQuota] = React.useState(DEFAULT_WEEKLY_QUOTA);
+  const [routingEmail, setRoutingEmail] = React.useState("");
 
-  // Per-roleplay cap inline error: cap < MTD consumed (spec §4.5).
-  const mtdConsumedRoleplayMinutes = 52; // sample
-  const perRoleplayError = perRoleplayEnabled && perRoleplayCap < mtdConsumedRoleplayMinutes
-    ? `Cap (${perRoleplayCap} min) is below already-consumed (${mtdConsumedRoleplayMinutes} min) for this month. Choose ≥${mtdConsumedRoleplayMinutes} or wait until the next cycle.`
+  const emailError = routingEmail.trim() && !EMAIL_RE.test(routingEmail.trim())
+    ? "Enter a valid email address."
     : null;
 
   const handleSave = () => {
-    if (perRoleplayError) return;
-    // TODO: persist settings + emit audit entries. Stubbed for now.
-    // eslint-disable-next-line no-console
+    if (emailError) return;
+    // TODO: persist weekly quota + routing email. Stubbed for now.
     console.log("save credits & usage settings");
   };
 
@@ -93,49 +65,22 @@ export default function CreditsUsagePage({ onBack }) {
           iconBg: "var(--color-icon-tertiary-bg)",
           iconColor: "var(--color-icon-tertiary-fg)",
         }}
-        subtitle="Manage Learning Hub credit allocation and usage limits."
+        subtitle="Set the total practice capacity for your tenant and the weekly quota per agent."
       />
 
-      {!poolIncreaseDismissed && (
-        <Banner
-          tone="info"
-          heading="Pool increased to 24,000 min"
-          body="Pool increased from 18,000 to 24,000 min on May 02. Review caps and thresholds."
-          actions={[{ label: "Dismiss", onClick: () => setPoolIncreaseDismissed(true) }]}
-        />
-      )}
-
-      <OverviewSection />
-      <LimitsSection
-        perRoleplayEnabled={perRoleplayEnabled}
-        onPerRoleplayToggle={setPerRoleplayEnabled}
-        perRoleplayCap={perRoleplayCap}
-        onPerRoleplayCapChange={setPerRoleplayCap}
-        perRoleplayError={perRoleplayError}
-        perAgentEnabled={perAgentEnabled}
-        onPerAgentToggle={setPerAgentEnabled}
-        perAgentCap={perAgentCap}
-        onPerAgentCapChange={setPerAgentCap}
-        perAgentFrequency={perAgentFrequency}
-        onPerAgentFrequencyChange={setPerAgentFrequency}
+      <TenantCapacitySection />
+      <AgentWeeklyQuotaSection value={weeklyQuota} onChange={setWeeklyQuota} />
+      <RequestRoutingSection
+        value={routingEmail}
+        onChange={setRoutingEmail}
+        error={emailError}
       />
-      <AlertsSection
-        softThreshold={softThreshold}
-        onSoftThresholdChange={setSoftThreshold}
-        alertEnabled={alertEnabled}
-        onAlertToggle={(level, next) =>
-          setAlertEnabled((cur) => ({ ...cur, [level]: next }))
-        }
-        recipients={recipients}
-        onRecipientsChange={setRecipients}
-      />
-      <AuditSection />
 
       <div style={styles.actionRow}>
         <Button
           variant="primary"
           onClick={handleSave}
-          disabled={Boolean(perRoleplayError)}
+          disabled={Boolean(emailError)}
           style={{ height: 36, paddingInline: 20 }}
         >
           Save changes
@@ -145,321 +90,84 @@ export default function CreditsUsagePage({ onBack }) {
   );
 }
 
-// ---- Overview ----------------------------------------------------------
+// ---- Section 1 — Tenant capacity (read-only) ---------------------------
 
-function OverviewSection() {
+function TenantCapacitySection() {
   const pool = CREDITS_USAGE_SAMPLE.poolMinutes;
-  const consumed = CREDITS_USAGE_SAMPLE.consumedMTD;
-  const pct = poolPercentUsed(CREDITS_USAGE_SAMPLE);
-  const tone = poolBarTone(pct);
-  const fillPct = Math.min(100, pct);
-  const consumedHrs = (consumed / 60).toFixed(1);
-  const poolHrs = (pool / 60).toFixed(0);
-  const forecast = computeForecast(pool, consumed, FORECAST_TODAY.d, FORECAST_TODAY.D);
-
   return (
-    <Section title="Overview" description="Tenant pool, consumption to date, and end-of-month forecast.">
-      <div style={styles.overviewGrid}>
-        <ReadonlyStat
-          label="Tenant pool"
-          value={`${pool.toLocaleString()} min`}
-          sub={`${poolHrs} hrs · contracted`}
-        />
-        <ReadonlyStat
-          label="Consumed this month"
-          value={`${consumed.toLocaleString()} min`}
-          sub={`${consumedHrs} hrs`}
-        />
-        <ReadonlyStat
-          label="% pool used"
-          value={`${pct}%`}
-          sub={pct >= 100 ? "Overage active" : pct >= 90 ? "Critical" : pct >= 80 ? "Warning" : "Healthy"}
-          tone={tone.fg}
-        />
-        <ReadonlyStat
-          label="Consumption forecast"
-          value={forecast.primary}
-          sub={forecast.tertiary}
-        />
-      </div>
-      <div style={styles.overviewBar}>
-        <span style={{ ...styles.barTrack, background: tone.bg }} aria-hidden="true">
-          <span
-            style={{
-              ...styles.barFill,
-              width: `${fillPct}%`,
-              background: tone.fg,
-            }}
-          />
+    <Section
+      title="Tenant capacity"
+      description="The total practice capacity provisioned for this tenant at deployment."
+    >
+      <div style={styles.statTile}>
+        <span style={styles.statTileLabel}>Tenant capacity</span>
+        <div style={styles.statTileValueRow}>
+          <span style={styles.statTileValue}>{pool.toLocaleString()} min</span>
+          <span style={styles.chip}>Contracted</span>
+        </div>
+        <span style={styles.statTileSub}>
+          Total practice minutes available to this tenant
         </span>
-        <span style={{ ...styles.barLabel, color: tone.fg }}>{pct}%</span>
       </div>
     </Section>
   );
 }
 
-// computeForecast — maps the four §1.3 forecast states onto the existing
-// ReadonlyStat tile's primary + tertiary slots. Returns plain strings so
-// the tile inherits its default color (no health tinting per spec §1.2 —
-// the "% pool used" tile already carries the color-coded health state).
-//
-//   d  — current day-of-month
-//   D  — last day of month
-//   Confidence band: ±15% for d 7–13, ±8% for d ≥ 14. Band omitted in
-//   the insufficient-data and pool-exceeded states.
-function computeForecast(pool, consumed, d, D) {
-  if (d < 7) {
-    return { primary: "—", tertiary: "Forecast available after Day 7" };
-  }
-  if (consumed >= pool) {
-    const overage = consumed - pool;
-    return { primary: `+${overage.toLocaleString()} min`, tertiary: "Overage active" };
-  }
-  const band = d >= 14 ? "±8%" : "±15%";
-  const dailyRate = consumed / Math.max(1, d);
-  const projectedMonthEnd = Math.round(consumed + dailyRate * (D - d));
-  const exhaustsDay = Math.ceil(d + (pool - consumed) / Math.max(1, dailyRate));
-  if (exhaustsDay >= D) {
-    return { primary: `${projectedMonthEnd.toLocaleString()} min`, tertiary: `On track · ${band}` };
-  }
-  return { primary: `Day ${exhaustsDay}`, tertiary: `Confidence band ${band}` };
-}
+// ---- Section 2 — Agent weekly quota (configurable) ---------------------
 
-// Tenant-pool read-only stat tile.
-function ReadonlyStat({ label, value, sub, tone }) {
-  return (
-    <div style={styles.statTile}>
-      <span style={styles.statTileLabel}>{label}</span>
-      <span style={{ ...styles.statTileValue, color: tone || "var(--color-text-deep)" }}>{value}</span>
-      {sub && <span style={styles.statTileSub}>{sub}</span>}
-    </div>
-  );
-}
-
-// ---- Alerts ------------------------------------------------------------
-
-function AlertsSection({
-  softThreshold,
-  onSoftThresholdChange,
-  alertEnabled,
-  onAlertToggle,
-  recipients,
-  onRecipientsChange,
-}) {
+function AgentWeeklyQuotaSection({ value, onChange }) {
   return (
     <Section
-      title="Alerts"
-      description="Warn admins as the pool approaches its cap and pick who hears about it."
+      title="Agent weekly quota"
+      description="Set how many practice minutes each agent can use per week across Roleplay, Guide, and Probe."
     >
-      <Field
-        label="Soft threshold"
-        helper={`Triggers a warning email when usage crosses ${softThreshold}%. Range 50–100%.`}
-      >
-        <div style={styles.sliderRow}>
-          <input
-            type="range"
-            min={50}
-            max={100}
-            step={5}
-            value={softThreshold}
-            onChange={(e) => onSoftThresholdChange(Number(e.target.value))}
-            aria-label="Soft threshold percent"
-            style={styles.slider}
-          />
-          <span style={styles.sliderValue}>{softThreshold}%</span>
-        </div>
-      </Field>
-
-      <Field
-        label="Alert levels"
-        helper="Each level fires an in-app notification and email when crossed for the first time this month."
-      >
-        <div style={styles.alertLevels}>
-          {ALERT_LEVELS.map((level) => (
-            <div key={level} style={styles.alertLevelRow}>
-              <div style={styles.alertLevelLabel}>
-                <span style={styles.alertLevelPct}>{level}%</span>
-                <span style={styles.alertLevelMeta}>
-                  {level === 100 ? "Pool exhausted" : level === 90 ? "Critical" : "Warning"}
-                </span>
-              </div>
-              <Toggle
-                enabled={alertEnabled[level]}
-                onChange={(next) => onAlertToggle(level, next)}
-                ariaLabel={`Alert at ${level}%`}
-              />
-            </div>
-          ))}
-        </div>
-      </Field>
-
-      <Field
-        label="Recipients"
-        helper="Defaults to all tenant admins. Pick a subset to limit who gets notified."
-      >
-        <RecipientList
-          options={DEFAULT_RECIPIENTS}
-          selected={recipients}
-          onChange={onRecipientsChange}
+      <Field label="Default quota">
+        <NumberInput
+          value={value}
+          onChange={onChange}
+          suffix="min / week per agent"
+          ariaLabel="Default weekly quota minutes"
         />
+        <p style={styles.fieldNote}>
+          This single quota covers all Learning Hub activities — Roleplay,
+          Guide, and Probe — for each agent.
+        </p>
       </Field>
     </Section>
   );
 }
 
-function RecipientList({ options, selected, onChange }) {
-  const toggle = (id) => {
-    if (selected.includes(id)) {
-      onChange(selected.filter((x) => x !== id));
-    } else {
-      onChange([...selected, id]);
-    }
-  };
-  return (
-    <div style={styles.recipientList}>
-      {options.map((opt) => {
-        const isSelected = selected.includes(opt.id);
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => toggle(opt.id)}
-            aria-pressed={isSelected}
-            style={{
-              ...styles.recipientChip,
-              background: isSelected ? "var(--color-info-bg)" : "#FFFFFF",
-              borderColor: isSelected ? "var(--color-info)" : "var(--color-border-card-soft)",
-            }}
-          >
-            <span style={styles.recipientCheck} aria-hidden="true">
-              {isSelected && <Check size={12} color="var(--color-info)" strokeWidth={3} />}
-            </span>
-            <span style={styles.recipientName}>{opt.name}</span>
-            <span style={styles.recipientEmail}>{opt.email}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+// ---- Section 3 — Quota-exceeded request routing ------------------------
 
-// ---- Limits ------------------------------------------------------------
-
-function LimitsSection({
-  perRoleplayEnabled,
-  onPerRoleplayToggle,
-  perRoleplayCap,
-  onPerRoleplayCapChange,
-  perRoleplayError,
-  perAgentEnabled,
-  onPerAgentToggle,
-  perAgentCap,
-  onPerAgentCapChange,
-  perAgentFrequency,
-  onPerAgentFrequencyChange,
-}) {
+function RequestRoutingSection({ value, onChange, error }) {
   return (
     <Section
-      title="Limits"
-      description="Optional caps that protect the pool from a single roleplay or agent over-consuming."
+      title="Quota-exceeded requests"
+      description="When an agent exhausts their weekly quota, requests for additional minutes are routed here."
     >
-      <Field
-        label="Per-roleplay minute cap"
-        helper="Maximum minutes a single roleplay can consume per month. Off by default."
-        action={(
-          <Toggle
-            enabled={perRoleplayEnabled}
-            onChange={onPerRoleplayToggle}
-            ariaLabel="Per-roleplay cap on"
-          />
-        )}
-      >
-        {perRoleplayEnabled && (
-          <div style={styles.limitRow}>
-            <NumberInput
-              value={perRoleplayCap}
-              onChange={onPerRoleplayCapChange}
-              suffix="min / month"
-              ariaLabel="Per-roleplay cap minutes"
-              hasError={Boolean(perRoleplayError)}
-            />
-          </div>
-        )}
-        {perRoleplayError && <InlineError message={perRoleplayError} />}
-      </Field>
-
-      <Field
-        label="Per-agent cap"
-        helper="Maximum minutes any one agent can consume in the selected window. Off by default."
-        action={(
-          <Toggle
-            enabled={perAgentEnabled}
-            onChange={onPerAgentToggle}
-            ariaLabel="Per-agent cap on"
-          />
-        )}
-      >
-        {perAgentEnabled && (
-          <div style={styles.limitRow}>
-            <NumberInput
-              value={perAgentCap}
-              onChange={onPerAgentCapChange}
-              suffix="min"
-              ariaLabel="Per-agent cap minutes"
-            />
-            <FrequencySelect
-              value={perAgentFrequency}
-              onChange={onPerAgentFrequencyChange}
-            />
-          </div>
-        )}
+      <Field label="Email address">
+        <EmailInput
+          value={value}
+          onChange={onChange}
+          placeholder="admin@yourcompany.example"
+          ariaLabel="Request routing email address"
+          hasError={Boolean(error)}
+        />
+        {error && <InlineError message={error} />}
+        <p style={styles.fieldNote}>
+          Teams-based routing is coming — once you organize agents into Teams,
+          requests will route to the relevant team lead automatically.
+        </p>
       </Field>
     </Section>
   );
 }
 
-function FrequencySelect({ value, onChange }) {
-  // Phase 1 ships Daily + Monthly. Weekly flagged for stakeholder
-  // confirmation (spec §10 #2) — rendered disabled with a note for now.
-  return (
-    <div style={styles.segmented} role="radiogroup" aria-label="Per-agent cap frequency">
-      {[
-        { id: "daily",   label: "Daily" },
-        { id: "weekly",  label: "Weekly", disabled: true },
-        { id: "monthly", label: "Monthly" },
-      ].map((opt) => {
-        const selected = value === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            disabled={opt.disabled}
-            role="radio"
-            aria-checked={selected}
-            onClick={() => !opt.disabled && onChange(opt.id)}
-            title={opt.disabled ? "Weekly cap — pending stakeholder confirmation" : undefined}
-            style={{
-              ...styles.segmentedBtn,
-              background: selected ? "var(--do-brand-blue)" : "transparent",
-              color: selected
-                ? "#FFFFFF"
-                : opt.disabled
-                  ? "var(--color-text-placeholder)"
-                  : "var(--color-text-medium)",
-              cursor: opt.disabled ? "not-allowed" : "pointer",
-            }}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+// ---- Inputs ------------------------------------------------------------
 
-function NumberInput({ value, onChange, suffix, ariaLabel, hasError }) {
+function NumberInput({ value, onChange, suffix, ariaLabel }) {
   return (
-    <label style={{ ...styles.numberInput, borderColor: hasError ? "var(--color-error)" : "var(--color-border-card-soft)" }}>
+    <label style={styles.numberInput}>
       <input
         type="number"
         min={1}
@@ -473,82 +181,44 @@ function NumberInput({ value, onChange, suffix, ariaLabel, hasError }) {
   );
 }
 
-// ---- Audit -------------------------------------------------------------
-
-function AuditSection() {
-  const handleExport = () => {
-    // TODO: wire CSV export — stubbed for now.
-    // eslint-disable-next-line no-console
-    console.log("export audit log csv");
-  };
+function EmailInput({ value, onChange, placeholder, ariaLabel, hasError }) {
   return (
-    <Section
-      title="Audit log"
-      description="Every settings change for the last 30 days. Export the full log as CSV."
-      action={(
-        <Button
-          variant="text"
-          onClick={handleExport}
-          leadingIcon={<Download size={14} />}
-          style={{ height: 32, paddingInline: 12 }}
-        >
-          Export CSV
-        </Button>
-      )}
-    >
-      <table style={styles.auditTable}>
-        <thead>
-          <tr>
-            <th style={{ ...styles.auditTh, width: "26%" }}>When</th>
-            <th style={{ ...styles.auditTh, width: "22%" }}>Who</th>
-            <th style={styles.auditTh}>Change</th>
-          </tr>
-        </thead>
-        <tbody>
-          {AUDIT_LOG_SAMPLE.map((row) => (
-            <tr key={row.id}>
-              <td style={styles.auditTd}>{row.at}</td>
-              <td style={styles.auditTd}>{row.who}</td>
-              <td style={styles.auditTd}>{row.change}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Section>
+    <input
+      type="email"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      aria-invalid={hasError || undefined}
+      style={{
+        ...styles.emailInput,
+        borderColor: hasError ? "var(--color-error)" : "var(--color-border-card-soft)",
+      }}
+    />
   );
 }
 
 // ---- Shared primitives -------------------------------------------------
 
-function Section({ title, description, required, action, children }) {
+function Section({ title, description, children }) {
   return (
     <Card padX={0} padY={0} style={styles.sectionCard}>
       <header style={styles.sectionHeader}>
         <div style={styles.sectionTitleBlock}>
-          <div style={styles.sectionTitleRow}>
-            <h2 style={styles.sectionTitle}>{title}</h2>
-            {required && <span style={styles.requiredBadge}>Required</span>}
-          </div>
+          <h2 style={styles.sectionTitle}>{title}</h2>
           {description && <p style={styles.sectionDescription}>{description}</p>}
         </div>
-        {action}
       </header>
       <div style={styles.sectionBody}>{children}</div>
     </Card>
   );
 }
 
-function Field({ label, helper, action, children }) {
+function Field({ label, children }) {
   return (
     <div style={styles.field}>
-      <div style={styles.fieldHead}>
-        <div style={styles.fieldHeadText}>
-          <span style={styles.fieldLabel}>{label}</span>
-          {helper && <span style={styles.fieldHelper}>{helper}</span>}
-        </div>
-        {action}
-      </div>
-      {children && <div style={styles.fieldBody}>{children}</div>}
+      <span style={styles.fieldLabel}>{label}</span>
+      <div style={styles.fieldBody}>{children}</div>
     </div>
   );
 }
@@ -556,8 +226,7 @@ function Field({ label, helper, action, children }) {
 function InlineError({ message }) {
   return (
     <div style={styles.inlineError} role="alert">
-      <Info size={14} color="var(--color-error)" aria-hidden="true" />
-      <span>{message}</span>
+      {message}
     </div>
   );
 }
@@ -572,6 +241,7 @@ const styles = {
     width: "100%",
     fontFamily: "var(--font-sans)",
   },
+
   // Section / card
   sectionCard: {
     border: "1px solid var(--color-border-card-soft)",
@@ -592,27 +262,12 @@ const styles = {
     gap: 4,
     minWidth: 0,
   },
-  sectionTitleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
   sectionTitle: {
     margin: 0,
     fontSize: 14,
     fontWeight: 600,
     lineHeight: "22px",
     color: "var(--color-text-deep)",
-  },
-  requiredBadge: {
-    padding: "2px 8px",
-    borderRadius: 999,
-    background: "var(--color-warning-bg)",
-    color: "var(--color-warning)",
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: "0.2px",
-    textTransform: "uppercase",
   },
   sectionDescription: {
     margin: 0,
@@ -634,43 +289,26 @@ const styles = {
     flexDirection: "column",
     gap: 10,
   },
-  fieldHead: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 16,
-  },
-  fieldHeadText: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    minWidth: 0,
-  },
   fieldLabel: {
     fontSize: 13,
     fontWeight: 600,
     color: "var(--color-text-deep)",
   },
-  fieldHelper: {
-    fontSize: 12,
-    fontWeight: 400,
-    color: "var(--color-text-tertiary)",
-    lineHeight: "18px",
-  },
   fieldBody: {
     display: "flex",
     flexDirection: "column",
     gap: 8,
+    alignItems: "flex-start",
+  },
+  fieldNote: {
+    margin: 0,
+    fontSize: 12,
+    fontWeight: 400,
+    lineHeight: "18px",
+    color: "var(--color-text-tertiary)",
   },
 
-  // Overview stats + bar. Auto-fit handles 4-at-desktop → 2×2 → 1
-  // wrapping without bespoke breakpoints (minmax floor 180px clamps the
-  // tile so labels stay legible before they wrap).
-  overviewGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: 12,
-  },
+  // Tenant capacity stat tile
   statTile: {
     display: "flex",
     flexDirection: "column",
@@ -685,10 +323,16 @@ const styles = {
     fontWeight: 500,
     color: "var(--color-text-tertiary)",
   },
+  statTileValueRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
   statTileValue: {
     fontSize: 20,
     fontWeight: 700,
     lineHeight: "28px",
+    color: "var(--color-text-deep)",
     fontVariantNumeric: "tabular-nums",
   },
   statTileSub: {
@@ -696,128 +340,17 @@ const styles = {
     fontWeight: 400,
     color: "var(--color-text-tertiary)",
   },
-  overviewBar: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  barTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-    display: "block",
-  },
-  barFill: {
-    display: "block",
-    height: "100%",
-    borderRadius: 3,
-    transition: "width 200ms ease",
-  },
-  barLabel: {
-    fontSize: 13,
-    fontWeight: 600,
-    fontVariantNumeric: "tabular-nums",
-    minWidth: 44,
-    textAlign: "right",
-  },
-
-  // Alerts
-  sliderRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    maxWidth: 360,
-  },
-  slider: {
-    flex: 1,
-    accentColor: "var(--do-brand-blue)",
-  },
-  sliderValue: {
-    fontSize: 13,
-    fontWeight: 600,
-    fontVariantNumeric: "tabular-nums",
-    minWidth: 44,
-    textAlign: "right",
-    color: "var(--color-text-deep)",
-  },
-  alertLevels: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  alertLevelRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: "10px 14px",
-    borderRadius: 8,
-    background: "var(--color-card-emoji-bg)",
-  },
-  alertLevelLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  alertLevelPct: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-    fontVariantNumeric: "tabular-nums",
-  },
-  alertLevelMeta: {
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--color-text-tertiary)",
-  },
-
-  // Recipients
-  recipientList: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  recipientChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "8px 12px",
+  chip: {
+    padding: "2px 8px",
     borderRadius: 999,
-    border: "1px solid var(--color-border-card-soft)",
-    background: "#FFFFFF",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    transition: "background 120ms ease, border-color 120ms ease",
-  },
-  recipientCheck: {
-    width: 14,
-    height: 14,
-    borderRadius: 4,
-    border: "1px solid var(--color-border-card-soft)",
-    background: "#FFFFFF",
-    display: "inline-grid",
-    placeItems: "center",
-    flexShrink: 0,
-  },
-  recipientName: {
-    fontSize: 13,
+    background: "var(--color-icon-tertiary-bg)",
+    color: "var(--color-icon-tertiary-fg)",
+    fontSize: 11,
     fontWeight: 600,
-    color: "var(--color-text-deep)",
-  },
-  recipientEmail: {
-    fontSize: 12,
-    fontWeight: 400,
-    color: "var(--color-text-tertiary)",
+    letterSpacing: "0.2px",
   },
 
-  // Limits
-  limitRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    flexWrap: "wrap",
-  },
+  // Number input (weekly quota)
   numberInput: {
     display: "inline-flex",
     alignItems: "center",
@@ -826,7 +359,6 @@ const styles = {
     border: "1px solid var(--color-border-card-soft)",
     borderRadius: 8,
     background: "#FFFFFF",
-    transition: "border-color 120ms ease",
   },
   numberInputField: {
     width: 80,
@@ -844,31 +376,26 @@ const styles = {
     color: "var(--color-text-tertiary)",
     whiteSpace: "nowrap",
   },
-  segmented: {
-    display: "inline-flex",
-    padding: 2,
-    background: "var(--color-card-emoji-bg)",
+
+  // Email input (request routing)
+  emailInput: {
+    width: "100%",
+    maxWidth: 360,
+    padding: "8px 12px",
     border: "1px solid var(--color-border-card-soft)",
     borderRadius: 8,
-  },
-  segmentedBtn: {
-    appearance: "none",
-    border: "none",
-    background: "transparent",
-    padding: "6px 12px",
-    borderRadius: 6,
+    background: "#FFFFFF",
     fontFamily: "inherit",
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "background 120ms ease, color 120ms ease",
+    fontSize: 14,
+    fontWeight: 500,
+    color: "var(--color-text-deep)",
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "border-color 120ms ease",
   },
 
   // Inline error
   inlineError: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 8,
     padding: "8px 12px",
     borderRadius: 8,
     background: "var(--color-error-bg)",
@@ -876,30 +403,6 @@ const styles = {
     fontSize: 12,
     fontWeight: 500,
     lineHeight: "18px",
-  },
-
-  // Audit
-  auditTable: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  auditTh: {
-    textAlign: "left",
-    padding: "10px 12px",
-    fontSize: 11,
-    fontWeight: 600,
-    color: "var(--color-text-tertiary)",
-    textTransform: "uppercase",
-    letterSpacing: "0.4px",
-    borderBottom: "1px solid var(--color-border-card-soft)",
-  },
-  auditTd: {
-    padding: "12px",
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    borderBottom: "1px solid var(--color-border-card-soft)",
-    verticalAlign: "top",
   },
 
   // Action row
