@@ -48,16 +48,11 @@ const TILE = {
   lavender: { bg: "var(--color-icon-tertiary-bg)", fg: "var(--color-icon-tertiary-fg)" },
 };
 
-// poolBarTone — green < 80%, amber 80–90%, red > 90% / overage. Keeps the
-// Settings card's stat bar in sync with the Credits & Usage page widget.
-export function poolBarTone(percent) {
-  if (percent >= 90) return { fg: "var(--color-error)",   bg: "var(--color-error-bg)" };
-  if (percent >= 80) return { fg: "var(--color-warning)", bg: "var(--color-warning-bg)" };
-  return { fg: "var(--color-success)", bg: "var(--color-success-bg)" };
-}
-
-// CREDITS_USAGE_SAMPLE — single source for the % stat shown on both the
-// Settings card and the Credits & Usage page so they stay in sync.
+// CREDITS_USAGE_SAMPLE — tenant capacity sample. Drives the read-only
+// capacity number on the Credits & Usage page and the pool check inside
+// the roleplay session-start gate (evaluateRoleplayGate). No longer
+// surfaces a "% pool used" stat anywhere — that framing was removed with
+// the Jun 2 streamline.
 export const CREDITS_USAGE_SAMPLE = {
   poolMinutes: 24000,
   consumedMTD: 14880, // ~62%
@@ -149,13 +144,9 @@ const SECTIONS = [
       {
         id: "credits-usage",
         title: "Credits & Usage",
-        description: "View credit balance, set usage thresholds, and configure roleplay and agent limits.",
+        description: "Set your tenant's practice capacity and configure weekly quotas per agent.",
         Icon: Gauge,
         tone: "lavender",
-        // Stat slot — the Settings card extends the base pastel-tile
-        // template with a single % + thin progress bar (spec §3). The
-        // tone follows poolBarTone() so card + page agree.
-        stat: { kind: "poolUsage", sample: CREDITS_USAGE_SAMPLE },
       },
       {
         id: "scorecards",
@@ -367,33 +358,8 @@ function SettingsCard({ card, onClick }) {
           </div>
         </div>
         <p style={styles.cardDescription}>{card.description}</p>
-        {card.stat?.kind === "poolUsage" && <PoolUsageStat sample={card.stat.sample} />}
       </div>
     </button>
-  );
-}
-
-// PoolUsageStat — "{N}% pool used this month" + thin tinted progress bar.
-// Tone tracks poolBarTone (success / warning / danger). Shared with the
-// Credits & Usage page widget; both read the same sample so they stay in
-// sync.
-function PoolUsageStat({ sample }) {
-  const pct = poolPercentUsed(sample);
-  const tone = poolBarTone(pct);
-  const fillPct = Math.min(100, pct);
-  return (
-    <div style={styles.statBlock}>
-      <span style={styles.statLabel}>{pct}% pool used this month</span>
-      <span style={{ ...styles.statTrack, background: tone.bg }} aria-hidden="true">
-        <span
-          style={{
-            ...styles.statFill,
-            width: `${fillPct}%`,
-            background: tone.fg,
-          }}
-        />
-      </span>
-    </div>
   );
 }
 
@@ -555,30 +521,5 @@ const styles = {
     WebkitLineClamp: 2,
     WebkitBoxOrient: "vertical",
     overflow: "hidden",
-  },
-  statBlock: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    fontVariantNumeric: "tabular-nums",
-  },
-  statTrack: {
-    width: "100%",
-    height: 4,
-    borderRadius: 2,
-    overflow: "hidden",
-    display: "block",
-  },
-  statFill: {
-    display: "block",
-    height: "100%",
-    borderRadius: 2,
-    transition: "width 200ms ease",
   },
 };
