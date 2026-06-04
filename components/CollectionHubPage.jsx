@@ -11,7 +11,7 @@ import {
   SENTIMENT, OBJECTIONS,
   CONTACT_OUTCOME, QUALITY_ADHERENCE, PAGE_FILTERS,
   KPI_V1_MASTERS, KPI_STATUS_LEGEND, KPI_V1_NBAS,
-  KPI_V2_ALL,
+  KPI_V2_ALL, KPI_V3_ATTENTION,
 } from "./mocks/collectionHub";
 
 // CollectionHubPage — Collection Insights hub (Experience B).
@@ -136,6 +136,7 @@ const KPI_VERSIONS = [
   { id: "v0", label: "V0", title: "Current — paginated KPI tiles" },
   { id: "v1", label: "V1", title: "Master KPI grouping view" },
   { id: "v2", label: "V2", title: "Attention-ranked triage" },
+  { id: "v3", label: "V3", title: "Activity rings + attention cards" },
 ];
 
 function KPIsAndGoalsCard() {
@@ -146,6 +147,7 @@ function KPIsAndGoalsCard() {
         {version === "v0" && <KPIsV0 />}
         {version === "v1" && <KPIsV1 />}
         {version === "v2" && <KPIsV2 />}
+        {version === "v3" && <KPIsV3 />}
       </div>
       <div style={kpiSectionStyles.railMount}>
         <div style={kpiSectionStyles.railSticky}>
@@ -656,6 +658,280 @@ const arS = {
   },
   ndName: { fontSize: 13, fontWeight: 500, color: "#64748B", letterSpacing: "0.1px" },
   ndNote: { fontSize: 11, fontWeight: 400, color: "#94A3B8", letterSpacing: "0.4px" },
+};
+
+// ---- V3: Activity rings + attention cards --------------------------------
+// Left ~1/3: concentric three-ring donut (Reach/Recovery/QC) + legend.
+// Right ~2/3: six at-risk attention cards with typed fix + Assign.
+// On-track children rolled into rings; expandable via legend click.
+
+// Ring config — outer to inner. Colours from existing severity ramp.
+const RING_DEFS = [
+  { masterId: "reach", label: "Reach", stroke: 14 },
+  { masterId: "recovery", label: "Recovery", stroke: 12 },
+  { masterId: "quality-compliance", label: "Quality & Compliance", stroke: 10 },
+];
+
+function statusRingColor(statusLabel) {
+  const map = {
+    "On Track": "#10B981", "Nearly There": "#F59E0B",
+    "Needs Attention": "#EF4444", "Critical": "#DC2626",
+  };
+  return map[statusLabel] || "#94A3B8";
+}
+
+function KPIsV3() {
+  const [expandedMaster, setExpandedMaster] = React.useState(null);
+  const masters = KPI_V1_MASTERS;
+  const onTrackTotal = masters.reduce((n, m) =>
+    n + m.children.filter((c) => c.status.label === "On Track").length, 0);
+  const totalChildren = masters.reduce((n, m) => n + m.children.length, 0);
+
+  return (
+    <Card padX={0} padY={0} style={chStyles.sectionCard}>
+      <div style={chStyles.sectionHeader}>
+        <div style={chStyles.sectionTitleBlock}>
+          <span style={chStyles.sectionTitle}>KPI's and Goals</span>
+          <span style={chStyles.sectionSubtitle}>Activity rings + attention cards</span>
+        </div>
+      </div>
+      <div style={v3S.twoCol}>
+        {/* Left — rings + legend */}
+        <div style={v3S.leftCol}>
+          <ConcentricRings masters={masters} onTrackTotal={onTrackTotal} totalChildren={totalChildren} />
+          <RingLegend
+            masters={masters}
+            expandedMaster={expandedMaster}
+            onToggle={(id) => setExpandedMaster((prev) => (prev === id ? null : id))}
+          />
+        </div>
+        {/* Right — attention cards */}
+        <div style={v3S.rightCol}>
+          <span style={v3S.rightLabel}>Needs attention</span>
+          <div style={v3S.cardsGrid}>
+            {KPI_V3_ATTENTION.map((kpi) => (
+              <V3AttentionCard key={kpi.id} kpi={kpi} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// Concentric three-ring donut — SVG, Apple Health style
+function ConcentricRings({ masters, onTrackTotal, totalChildren }) {
+  const SIZE = 180;
+  const cx = SIZE / 2;
+  const cy = SIZE / 2;
+  const GAP = 4; // gap between rings
+
+  return (
+    <div style={v3S.ringContainer}>
+      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+        {RING_DEFS.map((def, i) => {
+          const master = masters.find((m) => m.id === def.masterId);
+          if (!master) return null;
+          const r = (SIZE / 2) - (def.stroke / 2) - i * (def.stroke + GAP);
+          const circ = 2 * Math.PI * r;
+          const pct = master.score / 100;
+          const dash = pct * circ;
+          const { status } = rollup(master);
+          const color = statusRingColor(status.label);
+          return (
+            <g key={def.masterId}>
+              {/* Track */}
+              <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F1F5F9" strokeWidth={def.stroke} />
+              {/* Fill */}
+              <circle
+                cx={cx} cy={cy} r={r} fill="none"
+                stroke={color} strokeWidth={def.stroke}
+                strokeDasharray={`${dash} ${circ - dash}`}
+                strokeLinecap="round"
+                transform={`rotate(-90 ${cx} ${cy})`}
+              />
+            </g>
+          );
+        })}
+      </svg>
+      <div style={v3S.ringCenterLabel}>
+        <span style={v3S.ringCenterBig}>{onTrackTotal}/{totalChildren}</span>
+        <span style={v3S.ringCenterSub}>on track</span>
+      </div>
+    </div>
+  );
+}
+
+// Ring legend — maps ring → master → score → status, clickable to expand children
+function RingLegend({ masters, expandedMaster, onToggle }) {
+  return (
+    <div style={v3S.legendWrap}>
+      {RING_DEFS.map((def) => {
+        const master = masters.find((m) => m.id === def.masterId);
+        if (!master) return null;
+        const { status, onTrack, zone } = rollup(master);
+        const color = statusRingColor(status.label);
+        const isOpen = expandedMaster === master.id;
+        return (
+          <div key={master.id} style={v3S.legendGroup}>
+            <button
+              type="button"
+              style={v3S.legendRow}
+              onClick={() => onToggle(master.id)}
+              aria-expanded={isOpen}
+            >
+              <span style={{ ...v3S.legendDot, background: color }} />
+              <span style={v3S.legendName}>{master.name}</span>
+              <span style={v3S.legendScore}>{master.score}/100</span>
+              <span style={{ ...v3S.legendStatus, color: status.color }}>{status.label}</span>
+              <ChevronRight size={14} color="#5B5E6F" style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 150ms ease" }} />
+            </button>
+            {isOpen && (
+              <div style={v3S.legendChildren}>
+                {master.children.map((child) => {
+                  const childZone = KPI_STATUS_LEGEND.find((s) => s.label === child.status.label);
+                  return (
+                    <div key={child.id} style={v3S.legendChildRow}>
+                      <span style={{ ...v3S.legendChildDot, background: childZone?.zone || "#94A3B8" }} />
+                      <span style={v3S.legendChildLabel}>{child.label}</span>
+                      <span style={v3S.legendChildValue}>{child.value}</span>
+                      <span style={{ ...v3S.legendChildStatus, color: child.status.color }}>
+                        {child.status.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// V3 Attention card — at-risk child with area tag, value, gap, typed fix + Assign
+function V3AttentionCard({ kpi }) {
+  const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
+  const FixIcon = FIX_ICONS[kpi.fix?.type] || Target;
+
+  return (
+    <div style={v3S.attCard}>
+      <div style={v3S.attHeader}>
+        <span style={{ ...v3S.attDot, background: statusMeta.zone }} />
+        <span style={v3S.attName}>{kpi.label}</span>
+        <span style={v3S.attArea}>{kpi.area}</span>
+      </div>
+      <span style={v3S.attValue}>{kpi.value}</span>
+      <span style={v3S.attTarget}>
+        target {kpi.target}% · <span style={{ fontWeight: 600, color: "#BA1A1A" }}>{kpi.gapLabel}</span>
+      </span>
+      {kpi.fix && (
+        <div style={v3S.attFixWrap}>
+          <div style={v3S.attFixRow}>
+            <FixIcon size={13} style={{ flexShrink: 0, color: "#5B5E6F" }} />
+            <span style={v3S.attFixType}>{kpi.fix.type}</span>
+            <span style={{ fontSize: 11, color: "#94A3B8" }}>·</span>
+            <span style={v3S.attFixAsset}>{kpi.fix.asset}</span>
+          </div>
+          {kpi.fix.cohort && <span style={v3S.attFixCohort}>{kpi.fix.cohort}</span>}
+          <button type="button" style={v3S.attAssignBtn}>
+            Assign {kpi.fix.type.toLowerCase()}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// V3 styles
+const v3S = {
+  twoCol: {
+    display: "flex", gap: 32, padding: "20px 24px",
+  },
+  // Left column — rings
+  leftCol: {
+    flex: "0 0 280px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
+  },
+  ringContainer: { position: "relative", width: 180, height: 180 },
+  ringCenterLabel: {
+    position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center",
+  },
+  ringCenterBig: {
+    fontSize: 22, fontWeight: 700, color: "#171B2C", lineHeight: 1,
+    fontFamily: "var(--font-sans)",
+  },
+  ringCenterSub: {
+    fontSize: 11, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.4px", marginTop: 2,
+  },
+
+  // Legend
+  legendWrap: { width: "100%", display: "flex", flexDirection: "column", gap: 4 },
+  legendGroup: { display: "flex", flexDirection: "column" },
+  legendRow: {
+    appearance: "none", width: "100%", display: "flex", alignItems: "center", gap: 8,
+    padding: "8px 10px", border: "none", background: "transparent", borderRadius: 8,
+    cursor: "pointer", fontFamily: "var(--font-sans)",
+  },
+  legendDot: { width: 10, height: 10, borderRadius: 999, flexShrink: 0 },
+  legendName: { flex: 1, fontSize: 13, fontWeight: 600, color: "#171B2C", textAlign: "left" },
+  legendScore: { fontSize: 12, fontWeight: 600, color: "#424659", letterSpacing: "0.1px" },
+  legendStatus: { fontSize: 11, fontWeight: 600, letterSpacing: "0.4px" },
+  legendChildren: {
+    display: "flex", flexDirection: "column", gap: 2, padding: "4px 10px 8px 28px",
+  },
+  legendChildRow: { display: "flex", alignItems: "center", gap: 8, padding: "4px 0" },
+  legendChildDot: { width: 6, height: 6, borderRadius: 999, flexShrink: 0 },
+  legendChildLabel: { flex: 1, fontSize: 12, fontWeight: 500, color: "#424659" },
+  legendChildValue: { fontSize: 12, fontWeight: 600, color: "#171B2C" },
+  legendChildStatus: { fontSize: 11, fontWeight: 600, letterSpacing: "0.4px" },
+
+  // Right column — attention cards
+  rightCol: { flex: 1, display: "flex", flexDirection: "column", gap: 10 },
+  rightLabel: {
+    fontSize: 12, fontWeight: 700, color: "#5A5D72", letterSpacing: "0.5px",
+    textTransform: "uppercase",
+  },
+  cardsGrid: { display: "flex", flexWrap: "wrap", gap: 12 },
+
+  // Attention card
+  attCard: {
+    flex: "1 1 calc(50% - 6px)", minWidth: 220, display: "flex", flexDirection: "column",
+    gap: 6, padding: 16, borderRadius: 12, background: "#FFFFFF",
+    border: "1px solid #EFEFFF",
+  },
+  attHeader: { display: "flex", alignItems: "center", gap: 8 },
+  attDot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
+  attName: { fontSize: 13, fontWeight: 600, color: "#171B2C", flex: 1 },
+  attArea: {
+    fontSize: 10, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px",
+    padding: "2px 6px", background: "#F8F7FF", borderRadius: 4,
+  },
+  attValue: {
+    fontSize: 22, fontWeight: 700, color: "#000", lineHeight: 1.1,
+    fontFamily: "var(--font-sans)",
+  },
+  attTarget: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+
+  // Fix block
+  attFixWrap: {
+    marginTop: 4, padding: "10px 12px", background: "#FCFBFF", borderRadius: 8,
+    display: "flex", flexDirection: "column", gap: 6,
+  },
+  attFixRow: { display: "flex", alignItems: "center", gap: 6 },
+  attFixType: { fontSize: 12, fontWeight: 700, color: "#424659", letterSpacing: "0.4px" },
+  attFixAsset: {
+    fontSize: 12, fontWeight: 500, color: "#171B2C",
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  attFixCohort: { fontSize: 11, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  attAssignBtn: {
+    alignSelf: "flex-start", display: "inline-flex", alignItems: "center",
+    height: 30, padding: "0 12px", border: "none", borderRadius: 999,
+    background: "#004BEF", color: "#FFFFFF", fontFamily: "var(--font-sans)",
+    fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", cursor: "pointer",
+  },
 };
 
 // KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.

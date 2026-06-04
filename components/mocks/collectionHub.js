@@ -530,6 +530,86 @@ export const KPI_V2_ALL = [
   },
 ];
 
+// ---- V3: Activity rings + attention cards ----
+// Six at-risk children (worst-first by absolute gap) with area tag, typed
+// fix, and causing cohort. Derived from V1 masters' children; on-track
+// children (Rescheduled Call, Compliance Score, Point of Sale) are rolled
+// into the ring and reachable via expand.
+export const KPI_V3_ATTENTION = [
+  {
+    id: "v3-efficiency",
+    label: "Efficiency",
+    area: "Reach",
+    value: "10%",
+    descriptor: "POS per useful contact",
+    target: 43,
+    gapLabel: "33 pts below",
+    trend: { direction: "up", delta: "4%", tone: "success" },
+    status: { label: "Needs Attention", color: "#BA1A1A" },
+    fix: { type: "Mission", asset: "POS Conversion Uplift", cohort: "12 agents below 15% POS" },
+  },
+  {
+    id: "v3-contactability",
+    label: "Contactability",
+    area: "Reach",
+    value: "42%",
+    descriptor: "of total dials",
+    target: 55,
+    gapLabel: "13 pts below",
+    trend: { direction: "up", delta: "5%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12" },
+    fix: { type: "Guide", asset: "Right-Party Contact Playbook", cohort: "8 agents below 40%" },
+  },
+  {
+    id: "v3-effective-comm",
+    label: "Effective Communication",
+    area: "Quality & Compliance",
+    value: "72%",
+    descriptor: "of scored interactions",
+    target: 80,
+    gapLabel: "8 pts below",
+    trend: { direction: "up", delta: "2%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12" },
+    fix: { type: "Drill", asset: "Objection Handling", cohort: "18 agents below 75%" },
+  },
+  {
+    id: "v3-effort",
+    label: "Effort",
+    area: "Reach",
+    value: "3.2",
+    descriptor: "avg attempts per contact",
+    target: 2.5,
+    gapLabel: "0.7 above target",
+    trend: { direction: "down", delta: "0.4", tone: "success" },
+    status: { label: "Needs Attention", color: "#BA1A1A" },
+    fix: { type: "Guide", asset: "Efficient Dialing Patterns", cohort: "14 agents above 3.0" },
+  },
+  {
+    id: "v3-negotiation",
+    label: "Negotiation",
+    area: "Recovery",
+    value: "34%",
+    descriptor: "successful outcomes",
+    target: 40,
+    gapLabel: "6 pts below",
+    trend: { direction: "up", delta: "6%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12" },
+    fix: { type: "Probe", asset: "Negotiation Barrier Diagnostic", cohort: "9 agents below 30%" },
+  },
+  {
+    id: "v3-failed-comm",
+    label: "Failed Communication",
+    area: "Quality & Compliance",
+    value: "8%",
+    descriptor: "of total attempts",
+    target: 5,
+    gapLabel: "3 pts above",
+    trend: { direction: "down", delta: "1%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12" },
+    fix: { type: "Drill", asset: "Communication Quality Essentials", cohort: "11 agents above 7%" },
+  },
+];
+
 // ---- Page-level filters (header pills) ----
 export const PAGE_FILTERS = {
   date: { label: "Date", value: "Last 12 Months" },
