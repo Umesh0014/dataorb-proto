@@ -393,6 +393,131 @@ export const KPI_V1_NBAS = [
   },
 ];
 
+// ---- V2: Attention-ranked triage ----
+// All 9 KPIs in one flat list. Promotion logic splits them into Tier 1
+// (action cards) vs Tier 2 (muted cards) by status. Cap = 3 for Tier 1.
+// Promotion threshold + cap are open product decisions (Akash).
+export const KPI_V2_ALL = [
+  {
+    id: "v2-effort",
+    label: "Effort",
+    value: "3.2",
+    descriptor: "avg attempts per contact",
+    target: 2.5,
+    gap: 0.7,
+    gapLabel: "0.7 above target",
+    trend: { direction: "down", delta: "0.4", tone: "success" },
+    status: { label: "Needs Attention", color: "#BA1A1A", tier: "critical" },
+    fix: {
+      action: { type: "Assign drill", asset: "Efficient Dialing Patterns", duration: "12 min" },
+      outcome: "+4 pts · ~2 wks",
+      basis: "Based on 142-agent cohort over 30 days",
+    },
+  },
+  {
+    id: "v2-efficiency",
+    label: "POS Efficiency",
+    value: "10%",
+    descriptor: "POS per useful contact",
+    target: 43,
+    gap: -33,
+    gapLabel: "33 pts below target",
+    trend: { direction: "up", delta: "4%", tone: "success" },
+    status: { label: "Needs Attention", color: "#BA1A1A", tier: "critical" },
+    fix: {
+      action: { type: "Assign drill", asset: "Closing Techniques for Collections", duration: "15 min" },
+      outcome: "+6 pts · ~3 wks",
+      basis: "Based on top-performer playbook analysis",
+    },
+  },
+  {
+    id: "v2-pos",
+    label: "Point of Sale",
+    value: "18%",
+    descriptor: "of verified contacts",
+    target: 25,
+    gap: -7,
+    gapLabel: "7 pts below target",
+    trend: { direction: "down", delta: "7%", tone: "error" },
+    status: { label: "Needs Attention", color: "#BA1A1A", tier: "critical" },
+    fix: {
+      action: { type: "Assign drill", asset: "Debt Communication Mastery", duration: "15 min" },
+      outcome: "+8 pts · ~2 wks",
+      basis: "Based on rescheduled-call conversion patterns",
+    },
+  },
+  {
+    id: "v2-contactability",
+    label: "Contactability",
+    value: "42%",
+    descriptor: "of total dials",
+    target: 55,
+    gap: -13,
+    gapLabel: "13 pts below target",
+    trend: { direction: "up", delta: "5%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12", tier: "watch" },
+  },
+  {
+    id: "v2-negotiation",
+    label: "Negotiation",
+    value: "34%",
+    descriptor: "successful outcomes",
+    target: 40,
+    gap: -6,
+    gapLabel: "6 pts below target",
+    trend: { direction: "up", delta: "6%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12", tier: "watch" },
+  },
+  {
+    id: "v2-effective-comm",
+    label: "Effective Communication",
+    value: "72%",
+    descriptor: "of scored interactions",
+    target: 80,
+    gap: -8,
+    gapLabel: "8 pts below target",
+    trend: { direction: "up", delta: "2%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12", tier: "watch" },
+  },
+  {
+    id: "v2-failed-comm",
+    label: "Failed Communication",
+    value: "8%",
+    descriptor: "of total attempts",
+    target: 5,
+    gap: 3,
+    gapLabel: "3 pts above target",
+    trend: { direction: "down", delta: "1%", tone: "success" },
+    status: { label: "Nearly There", color: "#B57E12", tier: "watch" },
+  },
+  {
+    id: "v2-rescheduled",
+    label: "Rescheduled Call Success",
+    value: "51%",
+    descriptor: "of rescheduled contacts",
+    target: 45,
+    gap: 6,
+    gapLabel: "6 pts above target",
+    trend: { direction: "up", delta: "3%", tone: "success" },
+    status: { label: "On Track", color: "#00711D", tier: "ok" },
+  },
+  {
+    id: "v2-compliance",
+    label: "Compliance Score",
+    value: "91%",
+    descriptor: "weighted avg",
+    target: 85,
+    gap: 6,
+    gapLabel: "6 pts above target",
+    trend: { direction: "up", delta: "1%", tone: "success" },
+    status: { label: "On Track", color: "#00711D", tier: "ok" },
+  },
+];
+
+// Promotion: Critical + Needs Attention → Tier 1, capped at 3, sorted by
+// absolute gap descending. Everything else → Tier 2.
+export const KPI_V2_TIER1_CAP = 3;
+
 // ---- Page-level filters (header pills) ----
 export const PAGE_FILTERS = {
   date: { label: "Date", value: "Last 12 Months" },

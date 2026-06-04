@@ -11,6 +11,7 @@ import {
   SENTIMENT, OBJECTIONS,
   CONTACT_OUTCOME, QUALITY_ADHERENCE, PAGE_FILTERS,
   KPI_V1_MASTERS, KPI_STATUS_LEGEND, KPI_V1_NBAS,
+  KPI_V2_ALL, KPI_V2_TIER1_CAP,
 } from "./mocks/collectionHub";
 
 // CollectionHubPage — Collection Insights hub (Experience B).
@@ -134,6 +135,7 @@ function MiniSparkline({ data, width, height, color }) {
 const KPI_VERSIONS = [
   { id: "v0", label: "V0", title: "Current — paginated KPI tiles" },
   { id: "v1", label: "V1", title: "Master KPI grouping view" },
+  { id: "v2", label: "V2", title: "Attention-ranked triage" },
 ];
 
 function KPIsAndGoalsCard() {
@@ -141,7 +143,9 @@ function KPIsAndGoalsCard() {
   return (
     <div style={kpiSectionStyles.wrap}>
       <div style={kpiSectionStyles.cardArea}>
-        {version === "v0" ? <KPIsV0 /> : <KPIsV1 />}
+        {version === "v0" && <KPIsV0 />}
+        {version === "v1" && <KPIsV1 />}
+        {version === "v2" && <KPIsV2 />}
       </div>
       <div style={kpiSectionStyles.railMount}>
         <div style={kpiSectionStyles.railSticky}>
@@ -416,6 +420,186 @@ function KpiNbaCard({ card }) {
     </Card>
   );
 }
+
+// ---- V2: Attention-ranked triage -----------------------------------------
+// Tier 1 = critical action cards (promoted, capped at 3).
+// Tier 2 = muted awareness cards (everything else).
+function KPIsV2() {
+  // Promote Critical + Needs Attention, sort by absolute gap, cap
+  const promoted = KPI_V2_ALL
+    .filter((k) => k.status.tier === "critical")
+    .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))
+    .slice(0, KPI_V2_TIER1_CAP);
+  const promotedIds = new Set(promoted.map((k) => k.id));
+  const rest = KPI_V2_ALL.filter((k) => !promotedIds.has(k.id));
+
+  return (
+    <Card padX={0} padY={0} style={chStyles.sectionCard}>
+      <div style={chStyles.sectionHeader}>
+        <div style={chStyles.sectionTitleBlock}>
+          <span style={chStyles.sectionTitle}>KPI's and Goals</span>
+          <span style={chStyles.sectionSubtitle}>Attention-ranked triage — critical first</span>
+        </div>
+      </div>
+      <div style={chStyles.sectionBody}>
+        <span style={t2S.tierLabel}>Needs action now</span>
+        <div style={t2S.tier1Row}>
+          {promoted.map((kpi) => (
+            <Tier1Card key={kpi.id} kpi={kpi} />
+          ))}
+        </div>
+        <span style={{ ...t2S.tierLabel, marginTop: 8 }}>On track &amp; watch</span>
+        <div style={t2S.tier2Row}>
+          {rest.map((kpi) => (
+            <Tier2Card key={kpi.id} kpi={kpi} />
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// Tier 1 — critical action card with 2px accent, gap chip, and fix block
+function Tier1Card({ kpi }) {
+  const accentColor = kpi.status.color === "#7F1D1D" ? "#EF4444" : "#F87171";
+  const trendUp = kpi.trend.direction === "up";
+  const TrendIcon = trendUp ? ArrowUp : ArrowDown;
+  const trendBg = kpi.trend.tone === "success" ? "#F0FDF4" : "#FEF2F2";
+  const trendColor = kpi.trend.tone === "success" ? "#00711D" : "#BA1A1A";
+  const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
+  const Icon = NBA_ICON[kpi.fix?.action?.type] || Target;
+
+  return (
+    <div style={{ ...t2S.t1Card, border: `2px solid ${accentColor}` }}>
+      <div style={t2S.t1Header}>
+        <span style={t2S.t1Name}>{kpi.label}</span>
+        <span style={{ ...t2S.t1StatusPill, background: statusMeta.bg, color: kpi.status.color }}>
+          {kpi.status.label}
+        </span>
+      </div>
+      <div style={t2S.t1ValueRow}>
+        <span style={t2S.t1Value}>{kpi.value}</span>
+        {kpi.descriptor && <span style={t2S.t1Desc}>{kpi.descriptor}</span>}
+        <span style={t2S.t1GapChip}>{kpi.gapLabel}</span>
+      </div>
+      <div style={t2S.t1SubLine}>
+        <span style={t2S.t1Target}>Target: {kpi.target}%</span>
+        <span style={{ ...chStyles.trendPill, background: trendBg }}>
+          <TrendIcon size={12} color={trendColor} />
+          <span style={{ ...chStyles.trendDelta, color: trendColor }}>{kpi.trend.delta}</span>
+        </span>
+      </div>
+      {kpi.fix && (
+        <>
+          <div style={t2S.t1Divider} />
+          <span style={t2S.t1FixLabel}>How to improve</span>
+          <div style={t2S.t1FixBlock}>
+            <div style={t2S.t1FixRow}>
+              <Icon size={14} style={{ flexShrink: 0, color: "#5B5E6F" }} />
+              <span style={t2S.t1FixAsset}>{kpi.fix.action.asset}</span>
+              <span style={t2S.t1FixDuration}>{kpi.fix.action.duration}</span>
+            </div>
+            <div style={t2S.t1FixImpact}>
+              <TrendingUp size={12} style={{ flexShrink: 0, color: "#60A5FA" }} />
+              <span style={t2S.t1FixOutcome}>{kpi.fix.outcome}</span>
+            </div>
+          </div>
+          <div style={t2S.t1CtaRow}>
+            <button type="button" style={nbaS.assignBtn}>Assign</button>
+            <button type="button" style={nbaS.kebabBtn} aria-label="More actions">
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Tier 2 — muted awareness card
+function Tier2Card({ kpi }) {
+  const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[0];
+  const gapSign = kpi.gap >= 0 ? "above" : "below";
+  const gapAbs = Math.abs(kpi.gap);
+  const statusLine = `${kpi.status.label} · ${gapAbs} pts ${gapSign}`;
+
+  return (
+    <div style={t2S.t2Card}>
+      <div style={t2S.t2Header}>
+        <span style={{ ...t2S.t2Dot, background: statusMeta.zone }} />
+        <span style={t2S.t2Name}>{kpi.label}</span>
+      </div>
+      <span style={t2S.t2Value}>{kpi.value}</span>
+      <span style={{ ...t2S.t2StatusLine, color: statusMeta.color }}>{statusLine}</span>
+    </div>
+  );
+}
+
+// V2 triage styles
+const t2S = {
+  tierLabel: {
+    fontSize: 12, fontWeight: 700, color: "#5A5D72", letterSpacing: "0.5px",
+    textTransform: "uppercase", fontFamily: "var(--font-sans)",
+  },
+  // Tier 1
+  tier1Row: { display: "flex", gap: 16 },
+  t1Card: {
+    flex: 1, display: "flex", flexDirection: "column", gap: 10,
+    padding: 20, borderRadius: 12, background: "#FFFFFF",
+  },
+  t1Header: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+  },
+  t1Name: { fontSize: 14, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px" },
+  t1StatusPill: {
+    display: "inline-flex", padding: "3px 10px", borderRadius: 4,
+    fontSize: 11, fontWeight: 700, letterSpacing: "0.4px", flexShrink: 0,
+  },
+  t1ValueRow: { display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" },
+  t1Value: { fontSize: 28, fontWeight: 700, color: "#000", lineHeight: 1.1, fontFamily: "var(--font-sans)" },
+  t1Desc: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  t1GapChip: {
+    display: "inline-flex", padding: "3px 8px", borderRadius: 4,
+    background: "#FEF2F2", fontSize: 11, fontWeight: 600, color: "#BA1A1A",
+    letterSpacing: "0.4px",
+  },
+  t1SubLine: { display: "flex", alignItems: "center", gap: 10 },
+  t1Target: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  t1Divider: { height: 1, background: "#EFEFFF", margin: "2px 0" },
+  t1FixLabel: {
+    fontSize: 11, fontWeight: 700, color: "#5A5D72", letterSpacing: "0.5px",
+    textTransform: "uppercase",
+  },
+  t1FixBlock: {
+    background: "#F8F7FF", borderRadius: 10, padding: 12,
+    display: "flex", flexDirection: "column", gap: 6,
+  },
+  t1FixRow: { display: "flex", alignItems: "center", gap: 8 },
+  t1FixAsset: {
+    flex: 1, fontSize: 13, fontWeight: 600, color: "#171B2C",
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  t1FixDuration: {
+    flexShrink: 0, display: "inline-flex", padding: "2px 6px", borderRadius: 4,
+    background: "#FFFFFF", border: "1px solid #EFEFFF", color: "#5B5E6F",
+    fontSize: 11, fontWeight: 500,
+  },
+  t1FixImpact: { display: "flex", alignItems: "center", gap: 6 },
+  t1FixOutcome: { fontSize: 12, fontWeight: 600, color: "#171B2C" },
+  t1CtaRow: { display: "flex", alignItems: "center", gap: 8 },
+
+  // Tier 2
+  tier2Row: { display: "flex", gap: 12, flexWrap: "wrap" },
+  t2Card: {
+    flex: "1 1 calc(33.333% - 8px)", minWidth: 160, display: "flex", flexDirection: "column",
+    gap: 4, padding: "14px 16px", borderRadius: 10, background: "#FCFBFF",
+  },
+  t2Header: { display: "flex", alignItems: "center", gap: 8 },
+  t2Dot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
+  t2Name: { fontSize: 13, fontWeight: 500, color: "#424659", letterSpacing: "0.1px" },
+  t2Value: { fontSize: 18, fontWeight: 600, color: "#424659", lineHeight: 1.2 },
+  t2StatusLine: { fontSize: 11, fontWeight: 500, letterSpacing: "0.4px" },
+};
 
 // KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.
 // Uses same dimensions, colors, radius, shadow, and chip sizing.
