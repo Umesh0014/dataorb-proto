@@ -135,7 +135,7 @@ export const KPI_V1_MASTERS = [
   },
   {
     id: "quality-compliance",
-    name: "Quality & Compliance",
+    name: "Quality",
     description: "How well agents handle calls, and whether they stay within the rules.",
     score: 74,
     children: [
@@ -377,7 +377,7 @@ export const KPI_V1_NBAS = [
     title: "Strengthen GDPR notice delivery",
     evidence: "GDPR Notice at 62% on-target — 16% in Needs Attention zone.",
     action: { type: "Assign course", asset: "GDPR Compliance Training", duration: "20 min" },
-    outcome: "+4 pts · Quality & Compliance",
+    outcome: "+4 pts · Quality",
     basis: "Based on 89-agent cohort with similar gap",
     master: "quality-compliance",
   },

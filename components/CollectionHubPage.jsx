@@ -669,7 +669,7 @@ const arS = {
 const RING_DEFS = [
   { masterId: "reach", label: "Reach", stroke: 14 },
   { masterId: "recovery", label: "Recovery", stroke: 12 },
-  { masterId: "quality-compliance", label: "Quality & Compliance", stroke: 10 },
+  { masterId: "quality-compliance", label: "Quality", stroke: 10 },
 ];
 
 function statusRingColor(statusLabel) {
