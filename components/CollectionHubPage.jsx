@@ -11,7 +11,7 @@ import {
   SENTIMENT, OBJECTIONS,
   CONTACT_OUTCOME, QUALITY_ADHERENCE, PAGE_FILTERS,
   KPI_V1_MASTERS, KPI_STATUS_LEGEND, KPI_V1_NBAS,
-  KPI_V2_ALL, KPI_V3_ATTENTION,
+  KPI_V2_ALL, KPI_V3_ATTENTION, KPI_V3_CALM,
 } from "./mocks/collectionHub";
 
 // CollectionHubPage — Collection Insights hub (Experience B).
@@ -682,6 +682,7 @@ function statusRingColor(statusLabel) {
 
 function KPIsV3() {
   const [expandedMaster, setExpandedMaster] = React.useState(null);
+  const [showMore, setShowMore] = React.useState(false);
   const masters = KPI_V1_MASTERS;
   const onTrackTotal = masters.reduce((n, m) =>
     n + m.children.filter((c) => c.status.label === "On Track").length, 0);
@@ -705,14 +706,31 @@ function KPIsV3() {
             onToggle={(id) => setExpandedMaster((prev) => (prev === id ? null : id))}
           />
         </div>
-        {/* Right — attention cards */}
+        {/* Right — attention + calm cards */}
         <div style={v3S.rightCol}>
           <span style={v3S.rightLabel}>Needs attention</span>
           <div style={v3S.cardsGrid}>
             {KPI_V3_ATTENTION.map((kpi) => (
-              <V3AttentionCard key={kpi.id} kpi={kpi} />
+              <V3Card key={kpi.id} kpi={kpi} hue="red" />
             ))}
           </div>
+          {showMore && (
+            <>
+              <span style={{ ...v3S.rightLabel, marginTop: 8 }}>On track</span>
+              <div style={v3S.cardsGrid}>
+                {KPI_V3_CALM.map((kpi) => (
+                  <V3Card key={kpi.id} kpi={kpi} hue="green" />
+                ))}
+              </div>
+            </>
+          )}
+          <button
+            type="button"
+            style={v3S.showMoreBtn}
+            onClick={() => setShowMore((s) => !s)}
+          >
+            {showMore ? "Show fewer" : "Show more"} ({KPI_V3_CALM.length})
+          </button>
         </div>
       </div>
     </Card>
@@ -810,45 +828,50 @@ function RingLegend({ masters, expandedMaster, onToggle }) {
   );
 }
 
-// V3 Attention card — metric left + trend sparkline right, no action
-function V3AttentionCard({ kpi }) {
+// V3 Card — used for both need-attention (red hue) and calm (green hue)
+function V3Card({ kpi, hue }) {
   const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
   const lineColor = statusRingColor(kpi.status.label);
+  const cardBg = hue === "green" ? "#F0FDF4" : "#FEF2F2";
+  const gapTagBg = hue === "green" ? "#DCFCE7" : "#FEE2E2";
+  const gapTagColor = hue === "green" ? "#00711D" : kpi.status.color;
 
   return (
-    <div style={v3S.attCard}>
-      {/* Left — metric */}
-      <div style={v3S.attLeft}>
-        <div style={v3S.attHeader}>
-          <span style={{ ...v3S.attDot, background: statusMeta.zone }} />
-          <span style={v3S.attName}>{kpi.label}</span>
-        </div>
-        <span style={v3S.attArea}>{kpi.area}</span>
-        <span style={v3S.attValue}>{kpi.value}</span>
-        <span style={v3S.attTarget}>
-          target {kpi.target}% · <span style={{ fontWeight: 600, color: kpi.status.color }}>{kpi.gapLabel}</span>
+    <div style={{ ...v3S.card, background: cardBg }}>
+      {/* Top row: dot + name … area pill */}
+      <div style={v3S.cardTopRow}>
+        <span style={{ ...v3S.cardDot, background: statusMeta.zone }} />
+        <span style={v3S.cardName}>{kpi.label}</span>
+        <span style={v3S.cardAreaPill}>{kpi.area}</span>
+      </div>
+      {/* Value */}
+      <span style={v3S.cardValue}>{kpi.value}</span>
+      {/* Target + gap tag */}
+      <div style={v3S.cardTargetRow}>
+        <span style={v3S.cardTargetText}>target {kpi.target}%</span>
+        <span style={{ ...v3S.cardGapTag, background: gapTagBg, color: gapTagColor }}>
+          {kpi.gapTag}
         </span>
       </div>
-      {/* Right — sparkline */}
+      {/* Area-fill trend chart below */}
       {kpi.sparkline && (
-        <div style={v3S.attRight}>
-          <TrendSparkline data={kpi.sparkline} target={kpi.targetLine} color={lineColor} />
+        <div style={v3S.cardChartWrap}>
+          <AreaSparkline data={kpi.sparkline} target={kpi.targetLine} color={lineColor} />
         </div>
       )}
     </div>
   );
 }
 
-// Trend sparkline with dashed target reference line — reuses existing
-// hand-rolled SVG approach (like AdherenceRateChart / MiniSparkline).
-function TrendSparkline({ data, target, color }) {
-  const W = 100;
-  const H = 48;
-  const PAD = { t: 4, b: 4, l: 2, r: 2 };
+// Area-fill sparkline with dashed target line — hand-rolled SVG.
+// Reuses existing trend-line approach + adds area fill under the line.
+function AreaSparkline({ data, target, color }) {
+  const W = 160;
+  const H = 52;
+  const PAD = { t: 6, b: 4, l: 2, r: 2 };
   const chartW = W - PAD.l - PAD.r;
   const chartH = H - PAD.t - PAD.b;
 
-  // Scale to include both data range and target
   const allVals = [...data, target];
   const min = Math.min(...allVals);
   const max = Math.max(...allVals);
@@ -863,13 +886,16 @@ function TrendSparkline({ data, target, color }) {
     y: toY(v),
   }));
   const line = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const area = `${line} L ${points[points.length - 1].x} ${H} L ${points[0].x} ${H} Z`;
   const targetY = toY(target);
   const lastPt = points[points.length - 1];
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "100%", display: "block" }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
+      {/* Area fill */}
+      <path d={area} fill={color} fillOpacity="0.12" />
       {/* Target dashed line */}
-      <line x1={PAD.l} x2={W - PAD.r} y1={targetY} y2={targetY} stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 2" />
+      <line x1={PAD.l} x2={W - PAD.r} y1={targetY} y2={targetY} stroke="#94A3B8" strokeWidth="1" strokeDasharray="4 3" />
       {/* Trend line */}
       <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       {/* Last-point dot */}
@@ -921,7 +947,7 @@ const v3S = {
   legendChildValue: { fontSize: 12, fontWeight: 600, color: "#171B2C" },
   legendChildStatus: { fontSize: 11, fontWeight: 600, letterSpacing: "0.4px" },
 
-  // Right column — attention cards
+  // Right column
   rightCol: { flex: 1, display: "flex", flexDirection: "column", gap: 10 },
   rightLabel: {
     fontSize: 12, fontWeight: 700, color: "#5A5D72", letterSpacing: "0.5px",
@@ -931,27 +957,42 @@ const v3S = {
     display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12,
   },
 
-  // Attention card — metric left + sparkline right
-  attCard: {
-    display: "flex", gap: 12, padding: 14, borderRadius: 12,
-    background: "#FFFFFF", border: "1px solid #EFEFFF",
+  // V3 card — stacked: top row, value, gap tag, chart below
+  card: {
+    display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 12,
+    border: "1px solid rgba(0,0,0,0.04)",
   },
-  attLeft: { flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
-  attRight: { flex: "0 0 90px", height: 48, alignSelf: "center" },
-  attHeader: { display: "flex", alignItems: "center", gap: 6 },
-  attDot: { width: 7, height: 7, borderRadius: 999, flexShrink: 0 },
-  attName: {
-    fontSize: 12, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px",
+  cardTopRow: { display: "flex", alignItems: "center", gap: 6 },
+  cardDot: { width: 7, height: 7, borderRadius: 999, flexShrink: 0 },
+  cardName: {
+    flex: 1, fontSize: 12, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px",
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
   },
-  attArea: {
-    fontSize: 10, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px",
+  cardAreaPill: {
+    flexShrink: 0, fontSize: 10, fontWeight: 600, color: "#5B5E6F",
+    letterSpacing: "0.5px", padding: "2px 6px", background: "rgba(255,255,255,0.7)",
+    borderRadius: 4,
   },
-  attValue: {
-    fontSize: 20, fontWeight: 700, color: "#000", lineHeight: 1.1,
+  cardValue: {
+    fontSize: 22, fontWeight: 700, color: "#000", lineHeight: 1.1,
     fontFamily: "var(--font-sans)",
   },
-  attTarget: { fontSize: 11, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  cardTargetRow: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  cardTargetText: { fontSize: 11, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  cardGapTag: {
+    display: "inline-flex", padding: "2px 7px", borderRadius: 4,
+    fontSize: 10, fontWeight: 700, letterSpacing: "0.4px",
+  },
+  cardChartWrap: { marginTop: 2 },
+
+  // Show more
+  showMoreBtn: {
+    alignSelf: "flex-start", appearance: "none", display: "inline-flex",
+    alignItems: "center", padding: "6px 14px", border: "1px solid #EFEFFF",
+    borderRadius: 8, background: "#FFFFFF", cursor: "pointer",
+    fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600,
+    color: "#424659", letterSpacing: "0.1px",
+  },
 };
 
 // KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.

@@ -535,6 +535,8 @@ export const KPI_V2_ALL = [
 // fix, and causing cohort. Derived from V1 masters' children; on-track
 // children (Rescheduled Call, Compliance Score, Point of Sale) are rolled
 // into the ring and reachable via expand.
+// Need-attention (red hue) — six at-risk children, worst-first.
+// gapTag: "Below X%" / "Above X%" — wording flagged for Umesh/Akash.
 export const KPI_V3_ATTENTION = [
   {
     id: "v3-efficiency",
@@ -542,7 +544,7 @@ export const KPI_V3_ATTENTION = [
     area: "Reach",
     value: "10%",
     target: 43,
-    gapLabel: "33 pts below",
+    gapTag: "Below 43%",
     status: { label: "Needs Attention", color: "#BA1A1A" },
     sparkline: [4, 5, 6, 7, 6, 8, 9, 10],
     targetLine: 43,
@@ -553,7 +555,7 @@ export const KPI_V3_ATTENTION = [
     area: "Reach",
     value: "42%",
     target: 55,
-    gapLabel: "13 pts below",
+    gapTag: "Below 55%",
     status: { label: "Nearly There", color: "#B57E12" },
     sparkline: [30, 33, 36, 35, 38, 40, 39, 42],
     targetLine: 55,
@@ -564,7 +566,7 @@ export const KPI_V3_ATTENTION = [
     area: "Quality",
     value: "72%",
     target: 80,
-    gapLabel: "8 pts below",
+    gapTag: "Below 80%",
     status: { label: "Nearly There", color: "#B57E12" },
     sparkline: [62, 65, 64, 68, 70, 69, 71, 72],
     targetLine: 80,
@@ -575,7 +577,7 @@ export const KPI_V3_ATTENTION = [
     area: "Reach",
     value: "3.2",
     target: 2.5,
-    gapLabel: "0.7 above target",
+    gapTag: "Above 2.5",
     status: { label: "Needs Attention", color: "#BA1A1A" },
     sparkline: [4.1, 3.9, 3.8, 3.7, 3.5, 3.4, 3.3, 3.2],
     targetLine: 2.5,
@@ -586,7 +588,7 @@ export const KPI_V3_ATTENTION = [
     area: "Recovery",
     value: "34%",
     target: 40,
-    gapLabel: "6 pts below",
+    gapTag: "Below 40%",
     status: { label: "Nearly There", color: "#B57E12" },
     sparkline: [22, 24, 26, 28, 30, 31, 33, 34],
     targetLine: 40,
@@ -597,10 +599,47 @@ export const KPI_V3_ATTENTION = [
     area: "Quality",
     value: "8%",
     target: 5,
-    gapLabel: "3 pts above",
+    gapTag: "Above 5%",
     status: { label: "Nearly There", color: "#B57E12" },
     sparkline: [12, 11, 10, 10, 9, 9, 8, 8],
     targetLine: 5,
+  },
+];
+
+// Calm (green hue) — three on-track children behind "Show more".
+export const KPI_V3_CALM = [
+  {
+    id: "v3-rescheduled",
+    label: "Rescheduled Call Success",
+    area: "Recovery",
+    value: "51%",
+    target: 45,
+    gapTag: "Above 45%",
+    status: { label: "On Track", color: "#00711D" },
+    sparkline: [40, 42, 44, 45, 47, 48, 50, 51],
+    targetLine: 45,
+  },
+  {
+    id: "v3-compliance",
+    label: "Compliance Score",
+    area: "Quality",
+    value: "91%",
+    target: 85,
+    gapTag: "Above 85%",
+    status: { label: "On Track", color: "#00711D" },
+    sparkline: [82, 84, 85, 87, 88, 89, 90, 91],
+    targetLine: 85,
+  },
+  {
+    id: "v3-pos",
+    label: "Point of Sale",
+    area: "Recovery",
+    value: "18%",
+    target: 25,
+    gapTag: "Below 25%",
+    status: { label: "Needs Attention", color: "#BA1A1A" },
+    sparkline: [10, 11, 12, 13, 14, 15, 17, 18],
+    targetLine: 25,
   },
 ];
 
