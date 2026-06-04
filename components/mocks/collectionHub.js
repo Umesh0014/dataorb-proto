@@ -44,6 +44,129 @@ export const KPIS = [
 
 export const KPI_PAGINATION = { total: 5, current: 1, perPage: 2 };
 
+// ---- V1: Master KPI grouping ----
+// Draft taxonomy — flag for Akash/Sandeep, not locked.
+// Status rollup = worst-child (not average). A single below-target child
+// turns the master red so failing KPIs cannot hide.
+// Status levels: flag wording for Neil/Akash.
+export const KPI_STATUS_LEGEND = [
+  { label: "On Track", color: "#00711D", bg: "#F0FDF4", zone: "#34D399" },
+  { label: "Nearly There", color: "#B57E12", bg: "#FFFBEB", zone: "#FBBF24" },
+  { label: "Needs Attention", color: "#BA1A1A", bg: "#FEF2F2", zone: "#F87171" },
+  { label: "Critical", color: "#7F1D1D", bg: "#FEF2F2", zone: "#EF4444" },
+];
+
+export const KPI_V1_MASTERS = [
+  {
+    id: "reach",
+    name: "Reach",
+    children: [
+      {
+        id: "contactability",
+        label: "Contactability",
+        value: "42%",
+        descriptor: "of total dials",
+        trend: { direction: "up", delta: "5%", tone: "success" },
+        target: 55,
+        gap: -13,
+        status: { label: "Nearly There", color: "#B57E12" },
+      },
+      {
+        id: "effort",
+        label: "Effort",
+        value: "3.2",
+        descriptor: "avg attempts per contact",
+        trend: { direction: "down", delta: "0.4", tone: "success" },
+        target: 2.5,
+        gap: 0.7,
+        status: { label: "Needs Attention", color: "#BA1A1A" },
+      },
+      {
+        id: "efficiency",
+        label: "Efficiency",
+        value: "10%",
+        descriptor: "POS per useful contact",
+        trend: { direction: "up", delta: "4%", tone: "success" },
+        target: 43,
+        gap: -33,
+        status: { label: "Needs Attention", color: "#BA1A1A" },
+      },
+    ],
+  },
+  {
+    id: "recovery",
+    name: "Recovery",
+    children: [
+      {
+        id: "negotiation",
+        label: "Negotiation",
+        value: "34%",
+        descriptor: "successful outcomes",
+        trend: { direction: "up", delta: "6%", tone: "success" },
+        target: 40,
+        gap: -6,
+        status: { label: "Nearly There", color: "#B57E12" },
+      },
+      {
+        id: "rescheduled-call",
+        label: "Rescheduled Call Success Rate",
+        value: "51%",
+        descriptor: "of rescheduled contacts",
+        trend: { direction: "up", delta: "3%", tone: "success" },
+        target: 45,
+        gap: 6,
+        status: { label: "On Track", color: "#00711D" },
+      },
+      {
+        id: "point-of-sale",
+        label: "Point of Sale",
+        value: "18%",
+        descriptor: "of verified contacts",
+        trend: { direction: "down", delta: "7%", tone: "error" },
+        target: 25,
+        gap: -7,
+        status: { label: "Needs Attention", color: "#BA1A1A" },
+      },
+    ],
+  },
+  {
+    id: "quality-compliance",
+    name: "Quality & Compliance",
+    children: [
+      {
+        id: "effective-comm",
+        label: "Effective Communication Rate",
+        value: "72%",
+        descriptor: "of scored interactions",
+        trend: { direction: "up", delta: "2%", tone: "success" },
+        target: 80,
+        gap: -8,
+        status: { label: "Nearly There", color: "#B57E12" },
+      },
+      {
+        id: "failed-comm",
+        label: "Failed Communication Rate",
+        value: "8%",
+        descriptor: "of total attempts",
+        trend: { direction: "down", delta: "1%", tone: "success" },
+        target: 5,
+        gap: 3,
+        status: { label: "Nearly There", color: "#B57E12" },
+      },
+      {
+        id: "compliance-score",
+        label: "Compliance Score",
+        value: "91%",
+        descriptor: "weighted avg",
+        trend: { direction: "up", delta: "1%", tone: "success" },
+        target: 85,
+        gap: 6,
+        status: { label: "On Track", color: "#00711D" },
+      },
+    ],
+  },
+];
+
 // ---- AI Artifacts ----
 export const AI_ARTIFACTS = [
   {

@@ -9,6 +9,7 @@ import {
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
   SENTIMENT, OBJECTIONS,
   CONTACT_OUTCOME, QUALITY_ADHERENCE, PAGE_FILTERS,
+  KPI_V1_MASTERS, KPI_STATUS_LEGEND,
 } from "./mocks/collectionHub";
 
 // CollectionHubPage — Collection Insights hub (Experience B).
@@ -123,8 +124,35 @@ function MiniSparkline({ data, width, height, color }) {
 }
 
 // ---- 2. KPIs and Goals ----------------------------------------------------
+// Version switcher: V0 = original 3-up tiles + pagination (untouched),
+// V1 = master-KPI grouping (no pagination, worst-child rollup).
+// KpiVersionRail mirrors MilestoneSideRail visuals exactly — same dark
+// pill, yellow active chip, info icon. Separate component because
+// MilestoneSideRail has hardcoded milestone data; flag for Umesh.
+
+const KPI_VERSIONS = [
+  { id: "v0", label: "V0", title: "Current — paginated KPI tiles" },
+  { id: "v1", label: "V1", title: "Master KPI grouping view" },
+];
 
 function KPIsAndGoalsCard() {
+  const [version, setVersion] = React.useState("v0");
+  return (
+    <div style={kpiSectionStyles.wrap}>
+      <div style={kpiSectionStyles.cardArea}>
+        {version === "v0" ? <KPIsV0 /> : <KPIsV1 />}
+      </div>
+      <div style={kpiSectionStyles.railMount}>
+        <div style={kpiSectionStyles.railSticky}>
+          <KpiVersionRail value={version} onChange={setVersion} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// V0 — untouched original
+function KPIsV0() {
   return (
     <SectionCard title="KPI's and Goals" subtitle="Track how agents and system performs">
       <div style={chStyles.kpiRow}>
@@ -142,6 +170,284 @@ function KPIsAndGoalsCard() {
     </SectionCard>
   );
 }
+
+// V1 — master-KPI grouping (all on one screen, no pagination)
+function KPIsV1() {
+  // Sort worst-first: count children with Needs Attention / Critical
+  const sorted = [...KPI_V1_MASTERS].sort((a, b) => {
+    const worstRank = (children) => {
+      const ranks = { "On Track": 0, "Nearly There": 1, "Needs Attention": 2, "Critical": 3 };
+      return Math.max(...children.map((c) => ranks[c.status.label] ?? 0));
+    };
+    return worstRank(b.children) - worstRank(a.children);
+  });
+
+  return (
+    <Card padX={0} padY={0} style={chStyles.sectionCard}>
+      <div style={chStyles.sectionHeader}>
+        <div style={chStyles.sectionTitleBlock}>
+          <span style={chStyles.sectionTitle}>KPI's and Goals</span>
+          <span style={chStyles.sectionSubtitle}>Master KPI grouping — worst-child rollup</span>
+        </div>
+      </div>
+      <div style={chStyles.sectionBody}>
+        <StatusLegend />
+        <div style={v1Styles.mastersCol}>
+          {sorted.map((master) => (
+            <MasterKPICard key={master.id} master={master} />
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// Status legend — shows the 4 status levels
+function StatusLegend() {
+  return (
+    <div style={v1Styles.legendRow}>
+      <span style={v1Styles.legendLabel}>Status:</span>
+      {KPI_STATUS_LEGEND.map((s) => (
+        <span key={s.label} style={v1Styles.legendChip}>
+          <span style={{ ...v1Styles.legendDot, background: s.zone }} />
+          <span style={{ ...v1Styles.legendText, color: s.color }}>{s.label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Master KPI card — collapsed/expanded, zone-colored left border
+function MasterKPICard({ master }) {
+  const [expanded, setExpanded] = React.useState(false);
+
+  // Worst-child rollup
+  const STATUS_RANKS = { "On Track": 0, "Nearly There": 1, "Needs Attention": 2, "Critical": 3 };
+  const worstChild = master.children.reduce((worst, c) =>
+    (STATUS_RANKS[c.status.label] ?? 0) > (STATUS_RANKS[worst.status.label] ?? 0) ? c : worst
+  , master.children[0]);
+  const rollupStatus = worstChild.status;
+  const onTrackCount = master.children.filter((c) => c.status.label === "On Track").length;
+  const zoneMeta = KPI_STATUS_LEGEND.find((s) => s.label === rollupStatus.label) || KPI_STATUS_LEGEND[0];
+  const ChevronIcon = expanded ? ChevronDown : ChevronRight;
+
+  return (
+    <div style={{ ...v1Styles.masterCard, borderLeft: `4px solid ${zoneMeta.zone}` }}>
+      <button
+        type="button"
+        style={v1Styles.masterHeader}
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+      >
+        <div style={v1Styles.masterLeft}>
+          <ChevronIcon size={20} color="#5B5E6F" />
+          <span style={v1Styles.masterName}>{master.name}</span>
+        </div>
+        <div style={v1Styles.masterRight}>
+          <span style={{ ...v1Styles.masterStatusBadge, background: zoneMeta.bg, color: rollupStatus.color }}>
+            {rollupStatus.label}
+          </span>
+          <span style={v1Styles.masterSummary}>
+            {onTrackCount} of {master.children.length} on track
+          </span>
+        </div>
+      </button>
+      {expanded && (
+        <div style={v1Styles.childrenWrap}>
+          <div style={v1Styles.childHeader}>
+            <span style={{ ...v1Styles.childHeaderCell, flex: "1 1 0" }}>KPI</span>
+            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 80px" }}>Value</span>
+            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 68px" }}>Trend</span>
+            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 120px" }}>Target / Gap</span>
+            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 110px" }}>Status</span>
+          </div>
+          {master.children.map((child) => (
+            <ChildKPIRow key={child.id} child={child} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Child KPI row — value + descriptor, trend chip, target + gap, status
+function ChildKPIRow({ child }) {
+  const trendUp = child.trend.direction === "up";
+  const TrendIcon = trendUp ? ArrowUp : ArrowDown;
+  const trendBg = child.trend.tone === "success" ? "#F0FDF4" : "#FEF2F2";
+  const trendColor = child.trend.tone === "success" ? "#00711D" : "#BA1A1A";
+  const gapSign = child.gap > 0 ? "+" : "";
+  const gapColor = child.gap >= 0 ? "#00711D" : "#BA1A1A";
+
+  return (
+    <div style={v1Styles.childRow}>
+      <div style={{ ...v1Styles.childCell, flex: "1 1 0" }}>
+        <span style={v1Styles.childLabel}>{child.label}</span>
+        {child.descriptor && <span style={v1Styles.childDesc}>{child.descriptor}</span>}
+      </div>
+      <span style={{ ...v1Styles.childCell, flex: "0 0 80px", fontWeight: 600, color: "#000" }}>
+        {child.value}
+      </span>
+      <div style={{ ...v1Styles.childCell, flex: "0 0 68px" }}>
+        <span style={{ ...chStyles.trendPill, background: trendBg }}>
+          <TrendIcon size={12} color={trendColor} />
+          <span style={{ ...chStyles.trendDelta, color: trendColor }}>{child.trend.delta}</span>
+        </span>
+      </div>
+      <div style={{ ...v1Styles.childCell, flex: "0 0 120px" }}>
+        <span style={v1Styles.targetText}>{child.target}%</span>
+        <span style={{ ...v1Styles.gapText, color: gapColor }}>{gapSign}{child.gap}pp</span>
+      </div>
+      <div style={{ ...v1Styles.childCell, flex: "0 0 110px" }}>
+        <span style={{ ...v1Styles.childStatusBadge, color: child.status.color }}>
+          {child.status.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.
+// Uses same dimensions, colors, radius, shadow, and chip sizing.
+// Cannot reuse MilestoneSideRail directly (hardcoded milestone data).
+function KpiVersionRail({ value, onChange }) {
+  const [hovered, setHovered] = React.useState(null);
+  return (
+    <div style={railS.rail}>
+      <span style={railS.railLabel}>V</span>
+      <span style={railS.railDivider} />
+      <div style={railS.btnGroup}>
+        {KPI_VERSIONS.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            title={b.title}
+            aria-pressed={value === b.id}
+            onClick={() => onChange(b.id)}
+            onMouseEnter={() => setHovered(b.id)}
+            onMouseLeave={() => setHovered(null)}
+            style={kpiRailBtnStyle(value === b.id, hovered === b.id)}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <div style={railS.infoBtn}>
+        <Info size={14} />
+      </div>
+    </div>
+  );
+}
+
+function kpiRailBtnStyle(active, isHover) {
+  if (active) {
+    return { ...railS.btn, background: "#FDE047", color: "#171717", border: "none" };
+  }
+  if (isHover) {
+    return { ...railS.btn, background: "#404040", color: "#F5F5F5", border: "1px solid #525252" };
+  }
+  return { ...railS.btn, background: "#262626", color: "#D4D4D4", border: "1px solid #404040" };
+}
+
+// Rail styles — mirrors MilestoneSideRail railStyles exactly
+const railS = {
+  rail: {
+    position: "relative", flexShrink: 0, width: 48,
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+    padding: "8px 0", background: "#171717", border: "1px solid #404040",
+    borderRadius: 10, boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
+  },
+  railLabel: {
+    fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
+    letterSpacing: "0.12em", color: "#737373",
+  },
+  railDivider: { width: 24, height: 1, background: "#262626" },
+  btnGroup: { display: "flex", flexDirection: "column", gap: 4 },
+  btn: {
+    width: 36, height: 36, display: "inline-flex", alignItems: "center",
+    justifyContent: "center", padding: 0, borderRadius: 6,
+    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
+    cursor: "pointer", transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
+  },
+  infoBtn: {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    width: 28, height: 28, padding: 0, border: "none", background: "transparent",
+    borderRadius: 6, color: "#737373",
+  },
+};
+
+// KPI section layout — card + rail side-by-side
+const kpiSectionStyles = {
+  wrap: { position: "relative", width: "100%" },
+  cardArea: { width: "100%" },
+  railMount: {
+    position: "absolute", top: 0, bottom: 0, left: "100%",
+    marginLeft: 12, width: 48, zIndex: 30,
+  },
+  railSticky: { position: "sticky", top: "50vh", transform: "translateY(-50%)" },
+};
+
+// V1 master-KPI styles
+const v1Styles = {
+  mastersCol: { display: "flex", flexDirection: "column", gap: 12 },
+  legendRow: {
+    display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+    padding: "4px 0", marginBottom: 4,
+  },
+  legendLabel: {
+    fontSize: 12, fontWeight: 600, color: "#5A5D72", letterSpacing: "0.5px",
+    fontFamily: "var(--font-sans)",
+  },
+  legendChip: { display: "flex", alignItems: "center", gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
+  legendText: { fontSize: 12, fontWeight: 500, letterSpacing: "0.4px", fontFamily: "var(--font-sans)" },
+
+  // Master card
+  masterCard: {
+    border: "1px solid #EFEFFF", borderRadius: 12, background: "#FFFFFF",
+    overflow: "hidden",
+  },
+  masterHeader: {
+    appearance: "none", width: "100%", display: "flex", alignItems: "center",
+    justifyContent: "space-between", padding: "16px 20px", gap: 12,
+    border: "none", background: "transparent", cursor: "pointer",
+    fontFamily: "var(--font-sans)",
+  },
+  masterLeft: { display: "flex", alignItems: "center", gap: 8 },
+  masterName: { fontSize: 16, fontWeight: 600, color: "#171B2C", lineHeight: "24px" },
+  masterRight: { display: "flex", alignItems: "center", gap: 12 },
+  masterStatusBadge: {
+    display: "inline-flex", padding: "4px 10px", borderRadius: 6,
+    fontSize: 12, fontWeight: 600, letterSpacing: "0.4px",
+  },
+  masterSummary: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+
+  // Children table
+  childrenWrap: {
+    borderTop: "1px solid #EFEFFF", padding: "0 20px 12px",
+  },
+  childHeader: {
+    display: "flex", alignItems: "center", gap: 8, padding: "10px 0",
+    borderBottom: "1px solid #F5F5F7",
+  },
+  childHeaderCell: {
+    fontSize: 11, fontWeight: 600, color: "#5A5D72", letterSpacing: "0.5px",
+    fontFamily: "var(--font-sans)",
+  },
+  childRow: {
+    display: "flex", alignItems: "center", gap: 8, padding: "10px 0",
+    borderBottom: "1px solid #F5F5F7",
+  },
+  childCell: {
+    display: "flex", flexDirection: "column", gap: 2, fontSize: 14,
+    fontWeight: 400, color: "#2C2F42", letterSpacing: "0.25px",
+  },
+  childLabel: { fontSize: 14, fontWeight: 500, color: "#171B2C", lineHeight: "20px" },
+  childDesc: { fontSize: 11, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  targetText: { fontSize: 13, fontWeight: 500, color: "#424659", letterSpacing: "0.1px" },
+  gapText: { fontSize: 12, fontWeight: 600, letterSpacing: "0.4px" },
+  childStatusBadge: { fontSize: 12, fontWeight: 600, letterSpacing: "0.4px" },
+};
 
 function KPITile({ kpi }) {
   const trendUp = kpi.trend.direction === "up";
