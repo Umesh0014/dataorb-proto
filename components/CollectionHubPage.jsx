@@ -11,7 +11,7 @@ import {
   SENTIMENT, OBJECTIONS,
   CONTACT_OUTCOME, QUALITY_ADHERENCE, PAGE_FILTERS,
   KPI_V1_MASTERS, KPI_STATUS_LEGEND, KPI_V1_NBAS,
-  KPI_V2_ALL, KPI_V2_TIER1_CAP,
+  KPI_V2_ALL,
 } from "./mocks/collectionHub";
 
 // CollectionHubPage — Collection Insights hub (Experience B).
@@ -421,184 +421,241 @@ function KpiNbaCard({ card }) {
   );
 }
 
-// ---- V2: Attention-ranked triage -----------------------------------------
-// Tier 1 = critical action cards (promoted, capped at 3).
-// Tier 2 = muted awareness cards (everything else).
+// ---- V2: At risk / On track categories -----------------------------------
+// Two named category groups with colour washes. At-risk = below target
+// (red wash), On track = meeting/above (green wash), No data = neutral.
+// Critical at-risk cards get 2px accent; rest get standard 0.5px border.
+// Fix uses typed Learning Hub assets: Mission / Guide / Probe / Drill.
+
+const FIX_ICONS = { Mission: Target, Guide: Target, Probe: Target, Drill: Target };
+
 function KPIsV2() {
-  // Promote Critical + Needs Attention, sort by absolute gap, cap
-  const promoted = KPI_V2_ALL
-    .filter((k) => k.status.tier === "critical")
-    .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))
-    .slice(0, KPI_V2_TIER1_CAP);
-  const promotedIds = new Set(promoted.map((k) => k.id));
-  const rest = KPI_V2_ALL.filter((k) => !promotedIds.has(k.id));
+  const atRisk = KPI_V2_ALL.filter((k) => k.category === "at-risk");
+  const onTrack = KPI_V2_ALL.filter((k) => k.category === "on-track");
+  const noData = KPI_V2_ALL.filter((k) => k.category === "no-data");
 
   return (
     <Card padX={0} padY={0} style={chStyles.sectionCard}>
       <div style={chStyles.sectionHeader}>
         <div style={chStyles.sectionTitleBlock}>
           <span style={chStyles.sectionTitle}>KPI's and Goals</span>
-          <span style={chStyles.sectionSubtitle}>Attention-ranked triage — critical first</span>
+          <span style={chStyles.sectionSubtitle}>At risk / On track — all 9 metrics</span>
         </div>
       </div>
-      <div style={chStyles.sectionBody}>
-        <span style={t2S.tierLabel}>Needs action now</span>
-        <div style={t2S.tier1Row}>
-          {promoted.map((kpi) => (
-            <Tier1Card key={kpi.id} kpi={kpi} />
-          ))}
+      <div style={{ ...chStyles.sectionBody, gap: 20 }}>
+        {/* At risk — red wash */}
+        <div style={arS.categoryWrap}>
+          <div style={arS.catHeader}>
+            <span style={arS.catDot("#F87171")} />
+            <span style={arS.catLabel}>At risk</span>
+            <span style={arS.catCount}>{atRisk.length} metrics</span>
+          </div>
+          <div style={arS.atRiskWash}>
+            <div style={arS.cardsGrid}>
+              {atRisk.map((kpi) => (
+                <AtRiskCard key={kpi.id} kpi={kpi} />
+              ))}
+            </div>
+          </div>
         </div>
-        <span style={{ ...t2S.tierLabel, marginTop: 8 }}>On track &amp; watch</span>
-        <div style={t2S.tier2Row}>
-          {rest.map((kpi) => (
-            <Tier2Card key={kpi.id} kpi={kpi} />
-          ))}
+
+        {/* On track — green wash */}
+        <div style={arS.categoryWrap}>
+          <div style={arS.catHeader}>
+            <span style={arS.catDot("#34D399")} />
+            <span style={arS.catLabel}>On track</span>
+            <span style={arS.catCount}>{onTrack.length} metrics</span>
+          </div>
+          <div style={arS.onTrackWash}>
+            <div style={arS.cardsGrid}>
+              {onTrack.map((kpi) => (
+                <OnTrackCard key={kpi.id} kpi={kpi} />
+              ))}
+            </div>
+          </div>
         </div>
+
+        {/* No data — neutral */}
+        {noData.length > 0 && (
+          <div style={arS.categoryWrap}>
+            <div style={arS.catHeader}>
+              <span style={arS.catDot("#94A3B8")} />
+              <span style={arS.catLabel}>No data</span>
+            </div>
+            <div style={arS.noDataWash}>
+              <div style={arS.cardsGrid}>
+                {noData.map((kpi) => (
+                  <NoDataCard key={kpi.id} kpi={kpi} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );
 }
 
-// Tier 1 — critical action card with 2px accent, gap chip, and fix block
-function Tier1Card({ kpi }) {
-  const accentColor = kpi.status.color === "#7F1D1D" ? "#EF4444" : "#F87171";
-  const trendUp = kpi.trend.direction === "up";
-  const TrendIcon = trendUp ? ArrowUp : ArrowDown;
-  const trendBg = kpi.trend.tone === "success" ? "#F0FDF4" : "#FEF2F2";
-  const trendColor = kpi.trend.tone === "success" ? "#00711D" : "#BA1A1A";
-  const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
-  const Icon = NBA_ICON[kpi.fix?.action?.type] || Target;
+// At-risk card — value + gap + typed fix + Assign
+function AtRiskCard({ kpi }) {
+  const border = kpi.critical
+    ? "2px solid #F87171"
+    : "0.5px solid rgba(248,113,113,0.3)";
+  const FixIcon = FIX_ICONS[kpi.fix?.type] || Target;
 
   return (
-    <div style={{ ...t2S.t1Card, border: `2px solid ${accentColor}` }}>
-      <div style={t2S.t1Header}>
-        <span style={t2S.t1Name}>{kpi.label}</span>
-        <span style={{ ...t2S.t1StatusPill, background: statusMeta.bg, color: kpi.status.color }}>
-          {kpi.status.label}
-        </span>
+    <div style={{ ...arS.card, border }}>
+      <div style={arS.cardHeader}>
+        <span style={arS.cardName}>{kpi.label}</span>
+        <span style={arS.atRiskStatus}>Needs attention</span>
       </div>
-      <div style={t2S.t1ValueRow}>
-        <span style={t2S.t1Value}>{kpi.value}</span>
-        {kpi.descriptor && <span style={t2S.t1Desc}>{kpi.descriptor}</span>}
-        <span style={t2S.t1GapChip}>{kpi.gapLabel}</span>
-      </div>
-      <div style={t2S.t1SubLine}>
-        <span style={t2S.t1Target}>Target: {kpi.target}%</span>
-        <span style={{ ...chStyles.trendPill, background: trendBg }}>
-          <TrendIcon size={12} color={trendColor} />
-          <span style={{ ...chStyles.trendDelta, color: trendColor }}>{kpi.trend.delta}</span>
-        </span>
-      </div>
+      <span style={arS.cardValue}>{kpi.value}</span>
+      <span style={arS.cardTargetLine}>
+        target {kpi.target}% · <span style={arS.gapText}>{kpi.gapLabel}</span>
+      </span>
+      {kpi.trend && (
+        <div style={arS.trendRow}>
+          {kpi.trend.direction === "up"
+            ? <ArrowUp size={12} color={kpi.trend.tone === "success" ? "#00711D" : "#BA1A1A"} />
+            : <ArrowDown size={12} color={kpi.trend.tone === "success" ? "#00711D" : "#BA1A1A"} />}
+          <span style={{ fontSize: 11, fontWeight: 600, color: kpi.trend.tone === "success" ? "#00711D" : "#BA1A1A" }}>
+            {kpi.trend.delta}
+          </span>
+        </div>
+      )}
       {kpi.fix && (
-        <>
-          <div style={t2S.t1Divider} />
-          <span style={t2S.t1FixLabel}>How to improve</span>
-          <div style={t2S.t1FixBlock}>
-            <div style={t2S.t1FixRow}>
-              <Icon size={14} style={{ flexShrink: 0, color: "#5B5E6F" }} />
-              <span style={t2S.t1FixAsset}>{kpi.fix.action.asset}</span>
-              <span style={t2S.t1FixDuration}>{kpi.fix.action.duration}</span>
-            </div>
-            <div style={t2S.t1FixImpact}>
-              <TrendingUp size={12} style={{ flexShrink: 0, color: "#60A5FA" }} />
-              <span style={t2S.t1FixOutcome}>{kpi.fix.outcome}</span>
-            </div>
+        <div style={arS.fixWrap}>
+          <div style={arS.fixTypeRow}>
+            <FixIcon size={13} style={{ flexShrink: 0, color: "#5B5E6F" }} />
+            <span style={arS.fixType}>{kpi.fix.type}</span>
+            <span style={arS.fixSep}>·</span>
+            <span style={arS.fixAsset}>{kpi.fix.asset}</span>
           </div>
-          <div style={t2S.t1CtaRow}>
-            <button type="button" style={nbaS.assignBtn}>Assign</button>
-            <button type="button" style={nbaS.kebabBtn} aria-label="More actions">
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-        </>
+          {kpi.fix.cohort && <span style={arS.fixCohort}>{kpi.fix.cohort}</span>}
+          <button type="button" style={arS.assignBtn}>
+            Assign {kpi.fix.type.toLowerCase()}
+          </button>
+        </div>
       )}
     </div>
   );
 }
 
-// Tier 2 — muted awareness card
-function Tier2Card({ kpi }) {
-  const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[0];
-  const gapSign = kpi.gap >= 0 ? "above" : "below";
-  const gapAbs = Math.abs(kpi.gap);
-  const statusLine = `${kpi.status.label} · ${gapAbs} pts ${gapSign}`;
-
+// On-track card — calm, confirmatory
+function OnTrackCard({ kpi }) {
   return (
-    <div style={t2S.t2Card}>
-      <div style={t2S.t2Header}>
-        <span style={{ ...t2S.t2Dot, background: statusMeta.zone }} />
-        <span style={t2S.t2Name}>{kpi.label}</span>
+    <div style={arS.okCard}>
+      <div style={arS.cardHeader}>
+        <span style={arS.cardName}>{kpi.label}</span>
+        <span style={arS.onTrackStatus}>On track</span>
       </div>
-      <span style={t2S.t2Value}>{kpi.value}</span>
-      <span style={{ ...t2S.t2StatusLine, color: statusMeta.color }}>{statusLine}</span>
+      <span style={arS.okValue}>{kpi.value}</span>
+      <span style={arS.okTargetLine}>
+        target {kpi.target}% · {kpi.gapLabel}
+      </span>
     </div>
   );
 }
 
-// V2 triage styles
-const t2S = {
-  tierLabel: {
-    fontSize: 12, fontWeight: 700, color: "#5A5D72", letterSpacing: "0.5px",
-    textTransform: "uppercase", fontFamily: "var(--font-sans)",
+// No-data card — neutral
+function NoDataCard({ kpi }) {
+  return (
+    <div style={arS.ndCard}>
+      <span style={arS.ndName}>{kpi.label}</span>
+      <span style={arS.ndNote}>No data this period</span>
+    </div>
+  );
+}
+
+// V2 At-risk / On-track styles
+// Washes use lightest existing ramp tints — no new tokens.
+const arS = {
+  categoryWrap: { display: "flex", flexDirection: "column", gap: 8 },
+  catHeader: { display: "flex", alignItems: "center", gap: 8 },
+  catDot: (color) => ({
+    width: 10, height: 10, borderRadius: 999, background: color, flexShrink: 0,
+  }),
+  catLabel: {
+    fontSize: 14, fontWeight: 700, color: "#171B2C", letterSpacing: "0.1px",
+    fontFamily: "var(--font-sans)",
   },
-  // Tier 1
-  tier1Row: { display: "flex", gap: 16 },
-  t1Card: {
-    flex: 1, display: "flex", flexDirection: "column", gap: 10,
-    padding: 20, borderRadius: 12, background: "#FFFFFF",
+  catCount: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+
+  // Red wash — lightest existing error ramp
+  atRiskWash: {
+    background: "#FEF2F2", borderRadius: 14, padding: 16,
   },
-  t1Header: {
-    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+  cardsGrid: {
+    display: "flex", flexWrap: "wrap", gap: 12,
   },
-  t1Name: { fontSize: 14, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px" },
-  t1StatusPill: {
-    display: "inline-flex", padding: "3px 10px", borderRadius: 4,
-    fontSize: 11, fontWeight: 700, letterSpacing: "0.4px", flexShrink: 0,
+
+  // At-risk card
+  card: {
+    flex: "1 1 calc(33.333% - 8px)", minWidth: 200, display: "flex", flexDirection: "column",
+    gap: 6, padding: 16, borderRadius: 12, background: "#FFFFFF",
   },
-  t1ValueRow: { display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" },
-  t1Value: { fontSize: 28, fontWeight: 700, color: "#000", lineHeight: 1.1, fontFamily: "var(--font-sans)" },
-  t1Desc: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
-  t1GapChip: {
-    display: "inline-flex", padding: "3px 8px", borderRadius: 4,
-    background: "#FEF2F2", fontSize: 11, fontWeight: 600, color: "#BA1A1A",
-    letterSpacing: "0.4px",
+  cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 },
+  cardName: { fontSize: 13, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px" },
+  atRiskStatus: {
+    fontSize: 11, fontWeight: 700, color: "#BA1A1A", letterSpacing: "0.4px",
   },
-  t1SubLine: { display: "flex", alignItems: "center", gap: 10 },
-  t1Target: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
-  t1Divider: { height: 1, background: "#EFEFFF", margin: "2px 0" },
-  t1FixLabel: {
-    fontSize: 11, fontWeight: 700, color: "#5A5D72", letterSpacing: "0.5px",
-    textTransform: "uppercase",
+  cardValue: {
+    fontSize: 24, fontWeight: 700, color: "#000", lineHeight: 1.1,
+    fontFamily: "var(--font-sans)",
   },
-  t1FixBlock: {
-    background: "#F8F7FF", borderRadius: 10, padding: 12,
+  cardTargetLine: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  gapText: { fontWeight: 600, color: "#BA1A1A" },
+  trendRow: { display: "flex", alignItems: "center", gap: 4 },
+
+  // Fix block
+  fixWrap: {
+    marginTop: 4, padding: "10px 12px", background: "#FEF2F2", borderRadius: 8,
     display: "flex", flexDirection: "column", gap: 6,
   },
-  t1FixRow: { display: "flex", alignItems: "center", gap: 8 },
-  t1FixAsset: {
-    flex: 1, fontSize: 13, fontWeight: 600, color: "#171B2C",
+  fixTypeRow: { display: "flex", alignItems: "center", gap: 6 },
+  fixType: { fontSize: 12, fontWeight: 700, color: "#424659", letterSpacing: "0.4px" },
+  fixSep: { fontSize: 12, color: "#94A3B8" },
+  fixAsset: {
+    fontSize: 12, fontWeight: 500, color: "#171B2C", letterSpacing: "0.1px",
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
   },
-  t1FixDuration: {
-    flexShrink: 0, display: "inline-flex", padding: "2px 6px", borderRadius: 4,
-    background: "#FFFFFF", border: "1px solid #EFEFFF", color: "#5B5E6F",
-    fontSize: 11, fontWeight: 500,
+  fixCohort: { fontSize: 11, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  assignBtn: {
+    alignSelf: "flex-start", display: "inline-flex", alignItems: "center",
+    height: 32, padding: "0 14px", border: "none", borderRadius: 999,
+    background: "#004BEF", color: "#FFFFFF", fontFamily: "var(--font-sans)",
+    fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
+    cursor: "pointer",
   },
-  t1FixImpact: { display: "flex", alignItems: "center", gap: 6 },
-  t1FixOutcome: { fontSize: 12, fontWeight: 600, color: "#171B2C" },
-  t1CtaRow: { display: "flex", alignItems: "center", gap: 8 },
 
-  // Tier 2
-  tier2Row: { display: "flex", gap: 12, flexWrap: "wrap" },
-  t2Card: {
-    flex: "1 1 calc(33.333% - 8px)", minWidth: 160, display: "flex", flexDirection: "column",
-    gap: 4, padding: "14px 16px", borderRadius: 10, background: "#FCFBFF",
+  // Green wash
+  onTrackWash: {
+    background: "#F0FDF4", borderRadius: 14, padding: 16,
   },
-  t2Header: { display: "flex", alignItems: "center", gap: 8 },
-  t2Dot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
-  t2Name: { fontSize: 13, fontWeight: 500, color: "#424659", letterSpacing: "0.1px" },
-  t2Value: { fontSize: 18, fontWeight: 600, color: "#424659", lineHeight: 1.2 },
-  t2StatusLine: { fontSize: 11, fontWeight: 500, letterSpacing: "0.4px" },
+  okCard: {
+    flex: "1 1 calc(50% - 6px)", minWidth: 200, display: "flex", flexDirection: "column",
+    gap: 4, padding: 16, borderRadius: 12, background: "#FFFFFF",
+  },
+  onTrackStatus: {
+    fontSize: 11, fontWeight: 700, color: "#00711D", letterSpacing: "0.4px",
+  },
+  okValue: {
+    fontSize: 20, fontWeight: 600, color: "#424659", lineHeight: 1.2,
+    fontFamily: "var(--font-sans)",
+  },
+  okTargetLine: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+
+  // No data — neutral
+  noDataWash: {
+    background: "#F8FAFC", borderRadius: 14, padding: 16,
+  },
+  ndCard: {
+    flex: "1 1 auto", minWidth: 200, display: "flex", flexDirection: "column",
+    gap: 4, padding: 14, borderRadius: 10, background: "#FFFFFF",
+    border: "0.5px solid #E2E8F0",
+  },
+  ndName: { fontSize: 13, fontWeight: 500, color: "#64748B", letterSpacing: "0.1px" },
+  ndNote: { fontSize: 11, fontWeight: 400, color: "#94A3B8", letterSpacing: "0.4px" },
 };
 
 // KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.
