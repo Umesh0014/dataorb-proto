@@ -14,28 +14,57 @@ import ResolutionRateCard from "./ResolutionRateCard";
 import ContactReasonCard from "./ContactReasonCard";
 import ManualEvalCard from "./ManualEvalCard";
 import FilterPanel from "./FilterPanel";
+import DarkPillSwitcher from "./DarkPillSwitcher";
+import CollectionHubPage from "./CollectionHubPage";
 
-// InsightsHubPage owns filter open state. The panel itself is hosted by
-// PageLayout via the rightPanel prop, which decides dock vs overlay.
-// We expose openFilters / panel via context so this component still
-// reads as a flat list of cards.
+// InsightsHubPage owns filter open state + experience switcher.
+// The dark pill at bottom-right toggles between Experience A
+// (Contact Center, default) and Experience B (Collection Hub).
+// Only the content region swaps; SideNav + PageLayout persist.
+// Switcher state is React-only — no localStorage / sessionStorage.
+
+const EXPERIENCES = ["Contact Center", "Collection Hub"];
+
 export default function InsightsHubPage({ filtersOpen, onToggleFilters }) {
+  const [experience, setExperience] = React.useState(EXPERIENCES[0]);
+
   return (
     <>
-      <HeaderCard onFilterToggle={onToggleFilters} />
-      <TotalInteractionsCard />
-      <SkillProficiencyCard />
-      <ChannelEngagementCard />
-      <PerformanceCard />
-      <SentimentCard />
-      <SalesOutcomesCard />
-      <ChurnRiskCard />
-      <AdherenceCard />
-      <ResolutionRateCard />
-      <ContactReasonCard />
-      <ManualEvalCard />
+      {experience === "Contact Center" ? (
+        <>
+          <HeaderCard onFilterToggle={onToggleFilters} />
+          <TotalInteractionsCard />
+          <SkillProficiencyCard />
+          <ChannelEngagementCard />
+          <PerformanceCard />
+          <SentimentCard />
+          <SalesOutcomesCard />
+          <ChurnRiskCard />
+          <AdherenceCard />
+          <ResolutionRateCard />
+          <ContactReasonCard />
+          <ManualEvalCard />
+        </>
+      ) : (
+        <CollectionHubPage />
+      )}
+      <div style={switcherWrap}>
+        <DarkPillSwitcher
+          ariaLabel="Experience switcher"
+          value={experience}
+          options={EXPERIENCES}
+          onChange={setExperience}
+        />
+      </div>
     </>
   );
 }
 
 InsightsHubPage.FilterPanel = FilterPanel;
+
+const switcherWrap = {
+  position: "fixed",
+  bottom: 24,
+  right: 24,
+  zIndex: 1000,
+};

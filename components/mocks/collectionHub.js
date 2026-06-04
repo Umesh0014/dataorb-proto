@@ -1,0 +1,225 @@
+// collectionHub.js — Collection Insights hub mock data.
+// All values transcribed from the Figma "Collection Insights" frame.
+// Consumed by CollectionHubPage; no component logic here.
+
+// ---- Hero stat ----
+export const HERO = {
+  label: "Total Calls",
+  value: "50,000",
+  sparkline: [18, 22, 20, 28, 35, 30, 38, 42, 36, 44, 40, 48],
+};
+
+// ---- KPIs and Goals ----
+export const KPIS = [
+  {
+    id: "pos-efficiency",
+    label: "POS Efficiency",
+    value: "10%",
+    trend: { direction: "up", delta: "4%", tone: "success" },
+    status: { label: "Needs Attention", color: "#BA1A1A" },
+    target: { label: "Target: 43%", pct: 9 },
+    bar: { fill: "#F87171", checkpoint: 44 },
+  },
+  {
+    id: "recovery-rate",
+    label: "Recovery Rate Conversion",
+    value: "18%",
+    sub: "of verified contacts",
+    trend: { direction: "down", delta: "7%", tone: "error" },
+    status: { label: "Nearly There", color: "#B57E12" },
+    target: { label: "Target: 25%", pct: 22 },
+    bar: { fill: "#FBBF24", checkpoint: 22 },
+  },
+  {
+    id: "useful-contact-rate",
+    label: "Useful Contact Rate",
+    value: "28%",
+    sub: "of total dials",
+    trend: { direction: "up", delta: "3%", tone: "success" },
+    status: { label: "On Track", color: "#00711D" },
+    target: { label: "Target: 35%", pct: 37 },
+    bar: { fill: "#34D399", checkpoint: 37 },
+  },
+];
+
+export const KPI_PAGINATION = { total: 5, current: 1, perPage: 2 };
+
+// ---- AI Artifacts ----
+export const AI_ARTIFACTS = [
+  {
+    id: "rebuttal-scripts",
+    title: "Rebuttal Script Library",
+    description: "Provide agents with proven, effective responses to each objection type",
+    frequency: "Weekly or on demand per obj. category",
+    gradient: "linear-gradient(180deg, #E0C3FC 0%, #8EC5FC 100%)",
+  },
+  {
+    id: "top-performer",
+    title: "Top Performer Playbook",
+    description: "Codify what top agents do differently so it can be taught to others",
+    frequency: "Monthly or when onboarding new agents",
+    gradient: "linear-gradient(180deg, #FFDEE9 0%, #B5FFFC 100%)",
+  },
+  {
+    id: "objection-recovery",
+    title: "Objection Recovery Analysis",
+    description: "Deep dive into how successful agents recover from specific objection types",
+    frequency: "Weekly, prioritised by Coaching Priority score",
+    gradient: "linear-gradient(180deg, #A1C4FD 0%, #C2E9FB 100%)",
+  },
+];
+
+// ---- Conversation Flow Analysis ----
+export const CONVERSATION_FLOW = {
+  tabs: ["Core Collection Path", "Interaction Events", "Coaching Priority"],
+  activeTab: "Core Collection Path",
+  subtitle: "Stage presence patterns and outcome correlation across useful contacts.",
+  compliance: "Full Compliance: All 5 mandatory stages present",
+  legend: [
+    { label: "On Target (> 90%)", color: "#10B981" },
+    { label: "Meets Expectations (70–90%)", color: "#FBBF24" },
+    { label: "Needs Attention (< 70%)", color: "#FB7185" },
+  ],
+  stages: [
+    { label: "Agent\nPresentation", green: 78, amber: 16, pink: 6 },
+    { label: "Identity\nVerification", green: 94, amber: 4, pink: 2 },
+    { label: "GDPR\nNotice", green: 62, amber: 22, pink: 16 },
+    { label: "Debt\nCommunication", green: 78, amber: 10, pink: 12 },
+    { label: "Call\nConclusion", green: 73, amber: 16, pink: 11 },
+  ],
+};
+
+// ---- Conversation Flow — Tab 2: Interaction Events ----
+export const INTERACTION_EVENTS = {
+  subtitle: "Stage adherence and outcome correlation across useful contacts.",
+  chartLabel: "Interaction event frequency across call stages — resistance vs standard process.",
+  legend: [
+    { label: "Resistance", color: "#FBBF24", hasToggle: true },
+    { label: "Standard Process", color: "#818CF8" },
+  ],
+  stages: [
+    { label: "Resistance\nEncountered", resistance: 88, standard: 12 },
+    { label: "Standard\nProcess", resistance: 57, standard: 43 },
+  ],
+};
+
+// ---- Conversation Flow — Tab 3: Coaching Priority ----
+export const COACHING_PRIORITY = {
+  subtitle: "Stage adherence and outcome correlation across useful contacts.",
+  columns: ["Call Stage", "Adherence", "Coaching Opportunity Score", "Priority Score"],
+  rows: [
+    { stage: "Opening Greetings", adherence: "92%", opportunity: 74, priority: "-8%", priorityColor: "#BA1A1A" },
+    { stage: "Identity Verification", adherence: "63%", opportunity: 62, priority: "-9%", priorityColor: "#BA1A1A" },
+    { stage: "GDPR Notice", adherence: "89%", opportunity: 90, priority: "-9%", priorityColor: "#BA1A1A" },
+    { stage: "Debt Communication", adherence: "28%", opportunity: 33, priority: "-8%", priorityColor: "#BA1A1A" },
+    { stage: "Call Conclusion", adherence: "27%", opportunity: 93, priority: "-5%", priorityColor: "#BA1A1A" },
+  ],
+  pagination: { total: 5, current: 1, totalPages: 22 },
+};
+
+// ---- Customer Sentiment Analysis ----
+export const SENTIMENT = {
+  tabs: ["By Outcome", "Critical Stages", "Sentiment Breakdown"],
+  activeTab: "By Outcome",
+  subtitle: "Sentiment impact on Collection Outcomes",
+  chartLabel: "Shows % of calls with positive sentiment at each stage",
+  legend: [
+    { label: "Payment secured", color: "#34D399", style: "pill-filled" },
+    { label: "Pipeline", color: "#60A5FA", style: "pill-outline" },
+    { label: "Refused", color: "#FB7185", style: "pill-outline" },
+  ],
+  series: {
+    "Payment secured": [35, 50, 55, 48, 30],
+    Pipeline: [28, 32, 42, 38, 22],
+    Refused: [20, 25, 18, 22, 8],
+  },
+  xLabels: [
+    "Agent\nPresentation",
+    "Identity\nVerification",
+    "GDPR\nNotice",
+    "Debt\nCommunication",
+    "Call\nConclusion",
+  ],
+  yLabels: ["100%", "75%", "50%", "25%", "0%"],
+};
+
+// ---- Customer Objections ----
+export const OBJECTIONS = {
+  tabs: ["By Category", "By Outcome", "Coaching Priority"],
+  activeTab: "By Category",
+  subtitle: "Objection patterns and rebuttal effectiveness",
+  stats: [
+    { label: "Objection Rate", value: "29%", sub: "(14,400)" },
+    { label: "Resistance Intensity", value: "1.4", sub: "avg per disputed call" },
+    { label: "Rebuttal Success", value: "43%", sub: "rated effective" },
+    { label: "Objection Recovery", value: "34%", sub: "ending in payment" },
+  ],
+  chartLabel: "Effectiveness of agent responses by objection type",
+  legend: [
+    { label: "Effective", color: "#34D399" },
+    { label: "Neutral", color: "#60A5FA" },
+    { label: "Ineffective", color: "#FB7185" },
+  ],
+  categories: [
+    { label: "Dispute", effective: 34, neutral: 25, ineffective: 41 },
+    { label: "Non Recog.", effective: 44, neutral: 22, ineffective: 34 },
+    { label: "Financial", effective: 34, neutral: 32, ineffective: 34 },
+    { label: "Timing", effective: 44, neutral: 22, ineffective: 34 },
+    { label: "3rd Party", effective: 69, neutral: 21, ineffective: 10 },
+    { label: "Channel", effective: 35, neutral: 29, ineffective: 36 },
+    { label: "Hard Refuse", effective: 3, neutral: 5, ineffective: 92 },
+    { label: "Already Paid", effective: 93, neutral: 4, ineffective: 3 },
+    { label: "Other", effective: 39, neutral: 22, ineffective: 39 },
+  ],
+};
+
+// ---- Contact Outcome ----
+export const CONTACT_OUTCOME = {
+  tabs: ["By Outcome", "By Disposition", "Outcome Trends"],
+  activeTab: "By Outcome",
+  subtitle: "Call disposition and conversion rates",
+  summary: [
+    { label: "Useful Outcome", value: "55%", sub: "(21,500 calls)" },
+    { label: "Not Useful Outcome", value: "45%", sub: "(22,000 calls)" },
+  ],
+  donut: [
+    { label: "Payment Secured", count: 12500, pct: 30, color: "#34D399" },
+    { label: "Pipeline", count: 15000, pct: 36, color: "#60A5FA" },
+    { label: "Refused", count: 14000, pct: 34, color: "#F87171" },
+    { label: "Contact Failed", count: 14000, pct: 34, color: "#9CA3AF" },
+  ],
+  tableHeader: "Useful Call Outcomes",
+  tableColumns: ["", "Distribution", "% Distribution"],
+};
+
+// ---- Quality Adherence ----
+export const QUALITY_ADHERENCE = {
+  tabs: ["Trend", "By Scorecard", "By Category", "By Metric"],
+  activeTab: "Trend",
+  subtitle:
+    "Track how every interaction measures up against your quality, process, and performance standards.",
+  toggleOptions: ["Trend", "Compare"],
+  activeToggle: "Trend",
+  legend: [
+    { label: "Sales Scorecard", color: "#2DD4BF", style: "solid" },
+    { label: "Select Scorecard 2", color: "#E879F9", style: "dropdown" },
+    { label: "Select Scorecard 3", color: "#22D3EE", style: "dropdown" },
+    { label: "Target", color: "#004BEF", style: "dashed" },
+  ],
+  xLabels: [
+    "Jan 25", "Feb 25", "Mar 25", "Apr 25", "May 25", "Jun 25",
+    "Jul 25", "Aug 25", "Sep 25", "Oct 25", "Nov 25", "Dec 25",
+  ],
+  yLabels: ["100%", "80%", "60%", "40%", "20%", "0%"],
+  series: {
+    "Sales Scorecard": [30, 35, 38, 32, 36, 40, 55, 48, 58, 64, 78, 70],
+  },
+  targetLine: 60,
+};
+
+// ---- Page-level filters (header pills) ----
+export const PAGE_FILTERS = {
+  date: { label: "Date", value: "Last 12 Months" },
+  workspaces: { label: "Workspaces", value: "All" },
+  teams: { label: "Teams", value: "All" },
+};
