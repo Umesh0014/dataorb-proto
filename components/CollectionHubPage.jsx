@@ -810,37 +810,71 @@ function RingLegend({ masters, expandedMaster, onToggle }) {
   );
 }
 
-// V3 Attention card — at-risk child with area tag, value, gap, typed fix + Assign
+// V3 Attention card — metric left + trend sparkline right, no action
 function V3AttentionCard({ kpi }) {
   const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
-  const FixIcon = FIX_ICONS[kpi.fix?.type] || Target;
+  const lineColor = statusRingColor(kpi.status.label);
 
   return (
     <div style={v3S.attCard}>
-      <div style={v3S.attHeader}>
-        <span style={{ ...v3S.attDot, background: statusMeta.zone }} />
-        <span style={v3S.attName}>{kpi.label}</span>
+      {/* Left — metric */}
+      <div style={v3S.attLeft}>
+        <div style={v3S.attHeader}>
+          <span style={{ ...v3S.attDot, background: statusMeta.zone }} />
+          <span style={v3S.attName}>{kpi.label}</span>
+        </div>
         <span style={v3S.attArea}>{kpi.area}</span>
+        <span style={v3S.attValue}>{kpi.value}</span>
+        <span style={v3S.attTarget}>
+          target {kpi.target}% · <span style={{ fontWeight: 600, color: kpi.status.color }}>{kpi.gapLabel}</span>
+        </span>
       </div>
-      <span style={v3S.attValue}>{kpi.value}</span>
-      <span style={v3S.attTarget}>
-        target {kpi.target}% · <span style={{ fontWeight: 600, color: "#BA1A1A" }}>{kpi.gapLabel}</span>
-      </span>
-      {kpi.fix && (
-        <div style={v3S.attFixWrap}>
-          <div style={v3S.attFixRow}>
-            <FixIcon size={13} style={{ flexShrink: 0, color: "#5B5E6F" }} />
-            <span style={v3S.attFixType}>{kpi.fix.type}</span>
-            <span style={{ fontSize: 11, color: "#94A3B8" }}>·</span>
-            <span style={v3S.attFixAsset}>{kpi.fix.asset}</span>
-          </div>
-          {kpi.fix.cohort && <span style={v3S.attFixCohort}>{kpi.fix.cohort}</span>}
-          <button type="button" style={v3S.attAssignBtn}>
-            Assign {kpi.fix.type.toLowerCase()}
-          </button>
+      {/* Right — sparkline */}
+      {kpi.sparkline && (
+        <div style={v3S.attRight}>
+          <TrendSparkline data={kpi.sparkline} target={kpi.targetLine} color={lineColor} />
         </div>
       )}
     </div>
+  );
+}
+
+// Trend sparkline with dashed target reference line — reuses existing
+// hand-rolled SVG approach (like AdherenceRateChart / MiniSparkline).
+function TrendSparkline({ data, target, color }) {
+  const W = 100;
+  const H = 48;
+  const PAD = { t: 4, b: 4, l: 2, r: 2 };
+  const chartW = W - PAD.l - PAD.r;
+  const chartH = H - PAD.t - PAD.b;
+
+  // Scale to include both data range and target
+  const allVals = [...data, target];
+  const min = Math.min(...allVals);
+  const max = Math.max(...allVals);
+  const range = max - min || 1;
+
+  function toY(v) {
+    return PAD.t + chartH - ((v - min) / range) * chartH;
+  }
+
+  const points = data.map((v, i) => ({
+    x: PAD.l + (i / (data.length - 1)) * chartW,
+    y: toY(v),
+  }));
+  const line = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const targetY = toY(target);
+  const lastPt = points[points.length - 1];
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "100%", display: "block" }}>
+      {/* Target dashed line */}
+      <line x1={PAD.l} x2={W - PAD.r} y1={targetY} y2={targetY} stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 2" />
+      {/* Trend line */}
+      <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Last-point dot */}
+      <circle cx={lastPt.x} cy={lastPt.y} r={2.5} fill={color} />
+    </svg>
   );
 }
 
@@ -893,45 +927,31 @@ const v3S = {
     fontSize: 12, fontWeight: 700, color: "#5A5D72", letterSpacing: "0.5px",
     textTransform: "uppercase",
   },
-  cardsGrid: { display: "flex", flexWrap: "wrap", gap: 12 },
+  cardsGrid: {
+    display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12,
+  },
 
-  // Attention card
+  // Attention card — metric left + sparkline right
   attCard: {
-    flex: "1 1 calc(50% - 6px)", minWidth: 220, display: "flex", flexDirection: "column",
-    gap: 6, padding: 16, borderRadius: 12, background: "#FFFFFF",
-    border: "1px solid #EFEFFF",
+    display: "flex", gap: 12, padding: 14, borderRadius: 12,
+    background: "#FFFFFF", border: "1px solid #EFEFFF",
   },
-  attHeader: { display: "flex", alignItems: "center", gap: 8 },
-  attDot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
-  attName: { fontSize: 13, fontWeight: 600, color: "#171B2C", flex: 1 },
-  attArea: {
-    fontSize: 10, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px",
-    padding: "2px 6px", background: "#F8F7FF", borderRadius: 4,
-  },
-  attValue: {
-    fontSize: 22, fontWeight: 700, color: "#000", lineHeight: 1.1,
-    fontFamily: "var(--font-sans)",
-  },
-  attTarget: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
-
-  // Fix block
-  attFixWrap: {
-    marginTop: 4, padding: "10px 12px", background: "#FCFBFF", borderRadius: 8,
-    display: "flex", flexDirection: "column", gap: 6,
-  },
-  attFixRow: { display: "flex", alignItems: "center", gap: 6 },
-  attFixType: { fontSize: 12, fontWeight: 700, color: "#424659", letterSpacing: "0.4px" },
-  attFixAsset: {
-    fontSize: 12, fontWeight: 500, color: "#171B2C",
+  attLeft: { flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
+  attRight: { flex: "0 0 90px", height: 48, alignSelf: "center" },
+  attHeader: { display: "flex", alignItems: "center", gap: 6 },
+  attDot: { width: 7, height: 7, borderRadius: 999, flexShrink: 0 },
+  attName: {
+    fontSize: 12, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px",
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
   },
-  attFixCohort: { fontSize: 11, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
-  attAssignBtn: {
-    alignSelf: "flex-start", display: "inline-flex", alignItems: "center",
-    height: 30, padding: "0 12px", border: "none", borderRadius: 999,
-    background: "#004BEF", color: "#FFFFFF", fontFamily: "var(--font-sans)",
-    fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", cursor: "pointer",
+  attArea: {
+    fontSize: 10, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px",
   },
+  attValue: {
+    fontSize: 20, fontWeight: 700, color: "#000", lineHeight: 1.1,
+    fontFamily: "var(--font-sans)",
+  },
+  attTarget: { fontSize: 11, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
 };
 
 // KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.
