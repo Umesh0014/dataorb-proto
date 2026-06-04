@@ -666,10 +666,12 @@ const arS = {
 // On-track children rolled into rings; expandable via legend click.
 
 // Ring config — outer to inner. Colours from existing severity ramp.
+// Ring colours: fixed blue shades (darkest outer → lightest inner).
+// Status reads from legend, not ring colour.
 const RING_DEFS = [
-  { masterId: "reach", label: "Reach", stroke: 14 },
-  { masterId: "recovery", label: "Recovery", stroke: 12 },
-  { masterId: "quality-compliance", label: "Quality", stroke: 10 },
+  { masterId: "reach", label: "Reach", stroke: 14, color: "#1D4ED8" },
+  { masterId: "recovery", label: "Recovery", stroke: 12, color: "#3B82F6" },
+  { masterId: "quality-compliance", label: "Quality", stroke: 10, color: "#93C5FD" },
 ];
 
 function statusRingColor(statusLabel) {
@@ -754,16 +756,14 @@ function ConcentricRings({ masters, onTrackTotal, totalChildren }) {
           const circ = 2 * Math.PI * r;
           const pct = master.score / 100;
           const dash = pct * circ;
-          const { status } = rollup(master);
-          const color = statusRingColor(status.label);
           return (
             <g key={def.masterId}>
               {/* Track */}
               <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F1F5F9" strokeWidth={def.stroke} />
-              {/* Fill */}
+              {/* Fill — fixed blue shade per ring */}
               <circle
                 cx={cx} cy={cy} r={r} fill="none"
-                stroke={color} strokeWidth={def.stroke}
+                stroke={def.color} strokeWidth={def.stroke}
                 strokeDasharray={`${dash} ${circ - dash}`}
                 strokeLinecap="round"
                 transform={`rotate(-90 ${cx} ${cy})`}
@@ -788,7 +788,6 @@ function RingLegend({ masters, expandedMaster, onToggle }) {
         const master = masters.find((m) => m.id === def.masterId);
         if (!master) return null;
         const { status, onTrack, zone } = rollup(master);
-        const color = statusRingColor(status.label);
         const isOpen = expandedMaster === master.id;
         return (
           <div key={master.id} style={v3S.legendGroup}>
@@ -798,7 +797,7 @@ function RingLegend({ masters, expandedMaster, onToggle }) {
               onClick={() => onToggle(master.id)}
               aria-expanded={isOpen}
             >
-              <span style={{ ...v3S.legendDot, background: color }} />
+              <span style={{ ...v3S.legendDot, background: def.color }} />
               <span style={v3S.legendName}>{master.name}</span>
               <span style={v3S.legendScore}>{master.score}/100</span>
               <span style={{ ...v3S.legendStatus, color: status.color }}>{status.label}</span>
@@ -832,9 +831,9 @@ function RingLegend({ masters, expandedMaster, onToggle }) {
 function V3Card({ kpi, hue }) {
   const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
   const lineColor = statusRingColor(kpi.status.label);
-  const cardBg = hue === "green" ? "#F0FDF4" : "#FEF2F2";
-  const gapTagBg = hue === "green" ? "#DCFCE7" : "#FEE2E2";
-  const gapTagColor = hue === "green" ? "#00711D" : kpi.status.color;
+  const cardBg = "#F8FAFC"; // light grey — status via dot/tag/trend, not card fill
+  const gapTagBg = kpi.status.label === "On Track" ? "#DCFCE7" : "#FEE2E2";
+  const gapTagColor = kpi.status.color;
 
   return (
     <div style={{ ...v3S.card, background: cardBg }}>
