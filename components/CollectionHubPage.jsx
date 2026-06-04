@@ -1,15 +1,16 @@
 "use client";
 
 import React from "react";
-import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle } from "lucide-react";
+import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp } from "lucide-react";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
+import CircularProgress from "./CircularProgress";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
   SENTIMENT, OBJECTIONS,
   CONTACT_OUTCOME, QUALITY_ADHERENCE, PAGE_FILTERS,
-  KPI_V1_MASTERS, KPI_STATUS_LEGEND,
+  KPI_V1_MASTERS, KPI_STATUS_LEGEND, KPI_V1_NBAS,
 } from "./mocks/collectionHub";
 
 // CollectionHubPage — Collection Insights hub (Experience B).
@@ -171,9 +172,12 @@ function KPIsV0() {
   );
 }
 
-// V1 — master-KPI grouping (all on one screen, no pagination)
+// V1 — master-KPI grouping: 3-up cards with radial ring, shared detail
+// region below, and Next Best Actions section.
 function KPIsV1() {
-  // Sort worst-first: count children with Needs Attention / Critical
+  const [expandedId, setExpandedId] = React.useState(null);
+
+  // Sort worst-first
   const sorted = [...KPI_V1_MASTERS].sort((a, b) => {
     const worstRank = (children) => {
       const ranks = { "On Track": 0, "Nearly There": 1, "Needs Attention": 2, "Critical": 3 };
@@ -181,6 +185,8 @@ function KPIsV1() {
     };
     return worstRank(b.children) - worstRank(a.children);
   });
+
+  const expandedMaster = sorted.find((m) => m.id === expandedId);
 
   return (
     <Card padX={0} padY={0} style={chStyles.sectionCard}>
@@ -192,17 +198,24 @@ function KPIsV1() {
       </div>
       <div style={chStyles.sectionBody}>
         <StatusLegend />
-        <div style={v1Styles.mastersCol}>
+        <div style={v1Styles.mastersRow}>
           {sorted.map((master) => (
-            <MasterKPICard key={master.id} master={master} />
+            <MasterKPICard
+              key={master.id}
+              master={master}
+              expanded={expandedId === master.id}
+              onToggle={() => setExpandedId((prev) => (prev === master.id ? null : master.id))}
+            />
           ))}
         </div>
+        {expandedMaster && <MasterDetailRegion master={expandedMaster} />}
+        <KpiNbaSection />
       </div>
     </Card>
   );
 }
 
-// Status legend — shows the 4 status levels
+// Status legend
 function StatusLegend() {
   return (
     <div style={v1Styles.legendRow}>
@@ -217,55 +230,89 @@ function StatusLegend() {
   );
 }
 
-// Master KPI card — collapsed/expanded, zone-colored left border
-function MasterKPICard({ master }) {
-  const [expanded, setExpanded] = React.useState(false);
-
-  // Worst-child rollup
-  const STATUS_RANKS = { "On Track": 0, "Nearly There": 1, "Needs Attention": 2, "Critical": 3 };
-  const worstChild = master.children.reduce((worst, c) =>
-    (STATUS_RANKS[c.status.label] ?? 0) > (STATUS_RANKS[worst.status.label] ?? 0) ? c : worst
+// Helpers — worst-child rollup
+const STATUS_RANKS = { "On Track": 0, "Nearly There": 1, "Needs Attention": 2, "Critical": 3 };
+function rollup(master) {
+  const worst = master.children.reduce((w, c) =>
+    (STATUS_RANKS[c.status.label] ?? 0) > (STATUS_RANKS[w.status.label] ?? 0) ? c : w
   , master.children[0]);
-  const rollupStatus = worstChild.status;
-  const onTrackCount = master.children.filter((c) => c.status.label === "On Track").length;
-  const zoneMeta = KPI_STATUS_LEGEND.find((s) => s.label === rollupStatus.label) || KPI_STATUS_LEGEND[0];
+  const status = worst.status;
+  const onTrack = master.children.filter((c) => c.status.label === "On Track").length;
+  const zone = KPI_STATUS_LEGEND.find((s) => s.label === status.label) || KPI_STATUS_LEGEND[0];
+  return { status, onTrack, zone };
+}
+
+// Ring color mapped from zone — reuses severity palette
+function ringColorForZone(zone) {
+  const map = { "#34D399": "#10B981", "#FBBF24": "#F59E0B", "#F87171": "#EF4444", "#EF4444": "#DC2626" };
+  return map[zone.zone] || "#94A3B8";
+}
+
+// Master KPI card — 3-up, radial ring + status + description + chevron
+function MasterKPICard({ master, expanded, onToggle }) {
+  const { status, onTrack, zone } = rollup(master);
   const ChevronIcon = expanded ? ChevronDown : ChevronRight;
 
   return (
-    <div style={{ ...v1Styles.masterCard, borderLeft: `4px solid ${zoneMeta.zone}` }}>
+    <div style={{ ...v1Styles.masterCard, borderLeft: `4px solid ${zone.zone}` }}>
+      <div style={v1Styles.masterTop}>
+        <div style={v1Styles.ringCol}>
+          <div style={v1Styles.ringWrap}>
+            <CircularProgress
+              pct={master.score}
+              size={64}
+              stroke={6}
+              ringColor={ringColorForZone(zone)}
+              trackColor="#F1F5F9"
+              label={false}
+            />
+            <div style={v1Styles.ringCenter}>
+              <span style={v1Styles.ringScore}>{master.score}</span>
+            </div>
+          </div>
+        </div>
+        <div style={v1Styles.masterMeta}>
+          <span style={v1Styles.masterName}>{master.name}</span>
+          <span style={v1Styles.masterDesc}>{master.description}</span>
+        </div>
+      </div>
+      <div style={v1Styles.masterBottom}>
+        <span style={{ ...v1Styles.masterStatusBadge, background: zone.bg, color: status.color }}>
+          {status.label}
+        </span>
+        <span style={v1Styles.masterSummary}>
+          {onTrack} of {master.children.length} on track
+        </span>
+      </div>
       <button
         type="button"
-        style={v1Styles.masterHeader}
-        onClick={() => setExpanded((e) => !e)}
+        style={v1Styles.expandBtn}
+        onClick={onToggle}
         aria-expanded={expanded}
+        aria-label={`${expanded ? "Collapse" : "Expand"} ${master.name} detail`}
       >
-        <div style={v1Styles.masterLeft}>
-          <ChevronIcon size={20} color="#5B5E6F" />
-          <span style={v1Styles.masterName}>{master.name}</span>
-        </div>
-        <div style={v1Styles.masterRight}>
-          <span style={{ ...v1Styles.masterStatusBadge, background: zoneMeta.bg, color: rollupStatus.color }}>
-            {rollupStatus.label}
-          </span>
-          <span style={v1Styles.masterSummary}>
-            {onTrackCount} of {master.children.length} on track
-          </span>
-        </div>
+        <ChevronIcon size={18} color="#5B5E6F" />
       </button>
-      {expanded && (
-        <div style={v1Styles.childrenWrap}>
-          <div style={v1Styles.childHeader}>
-            <span style={{ ...v1Styles.childHeaderCell, flex: "1 1 0" }}>KPI</span>
-            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 80px" }}>Value</span>
-            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 68px" }}>Trend</span>
-            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 120px" }}>Target / Gap</span>
-            <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 110px" }}>Status</span>
-          </div>
-          {master.children.map((child) => (
-            <ChildKPIRow key={child.id} child={child} />
-          ))}
-        </div>
-      )}
+    </div>
+  );
+}
+
+// Detail region — child KPIs shown below the 3-up row when a master is expanded
+function MasterDetailRegion({ master }) {
+  const { zone } = rollup(master);
+  return (
+    <div style={{ ...v1Styles.detailRegion, borderLeft: `4px solid ${zone.zone}` }}>
+      <span style={v1Styles.detailTitle}>{master.name} — Detail</span>
+      <div style={v1Styles.childHeader}>
+        <span style={{ ...v1Styles.childHeaderCell, flex: "1 1 0" }}>KPI</span>
+        <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 80px" }}>Value</span>
+        <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 68px" }}>Trend</span>
+        <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 120px" }}>Target / Gap</span>
+        <span style={{ ...v1Styles.childHeaderCell, flex: "0 0 110px" }}>Status</span>
+      </div>
+      {master.children.map((child) => (
+        <ChildKPIRow key={child.id} child={child} />
+      ))}
     </div>
   );
 }
@@ -304,6 +351,69 @@ function ChildKPIRow({ child }) {
         </span>
       </div>
     </div>
+  );
+}
+
+// NBA section — mirrors NextBestActions NbaCard visual pattern with
+// collection-hub-specific data. Not importing NextBestActions directly
+// (hardcoded to Agent Profile mock); matching the pattern inline instead.
+function KpiNbaSection() {
+  return (
+    <div style={nbaS.wrap}>
+      <div style={nbaS.header}>
+        <span style={nbaS.headerLabel}>Next best actions</span>
+      </div>
+      <div style={nbaS.rail}>
+        {KPI_V1_NBAS.map((card) => (
+          <KpiNbaCard key={card.id} card={card} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Action icon mapping — matches NextBestActions ACTION_ICON
+const NBA_ICON = { "Assign drill": Target, "Assign course": Target };
+
+function KpiNbaCard({ card }) {
+  const Icon = NBA_ICON[card.action.type] || Target;
+  const PRIORITY_TONES = {
+    critical: { bg: "#FEF2F2", fg: "#BA1A1A" },
+    recommended: { bg: "#FFFBEB", fg: "#B57E12" },
+    opportunity: { bg: "#EFF6FF", fg: "#1D4ED8" },
+  };
+  const pr = PRIORITY_TONES[card.priority] || PRIORITY_TONES.recommended;
+
+  return (
+    <Card padX={20} padY={20} shadow style={nbaS.card}>
+      <div style={nbaS.topGroup}>
+        <span style={{ ...nbaS.chip, background: pr.bg, color: pr.fg }}>
+          {card.priority.charAt(0).toUpperCase() + card.priority.slice(1)}
+        </span>
+        <div style={nbaS.cardTitle}>{card.title}</div>
+        <div style={nbaS.evidence}>{card.evidence}</div>
+      </div>
+      <div style={nbaS.drillBlock}>
+        <div style={nbaS.drillRow}>
+          <span style={nbaS.drillTitle}>
+            <Icon size={14} style={{ flexShrink: 0, color: "#5B5E6F" }} />
+            <span style={nbaS.assetName}>{card.action.asset}</span>
+          </span>
+          <span style={nbaS.durationChip}>{card.action.duration}</span>
+        </div>
+        <span style={nbaS.drillDesc}>
+          <TrendingUp size={12} style={{ flexShrink: 0, marginTop: 2, color: "#60A5FA" }} />
+          {card.outcome}
+        </span>
+        <span style={nbaS.basisText}>{card.basis}</span>
+      </div>
+      <div style={nbaS.ctaRow}>
+        <button type="button" style={nbaS.assignBtn}>Assign</button>
+        <button type="button" style={nbaS.kebabBtn} aria-label="More actions">
+          <MoreHorizontal size={16} />
+        </button>
+      </div>
+    </Card>
   );
 }
 
@@ -389,7 +499,7 @@ const kpiSectionStyles = {
 
 // V1 master-KPI styles
 const v1Styles = {
-  mastersCol: { display: "flex", flexDirection: "column", gap: 12 },
+  mastersRow: { display: "flex", gap: 16 },
   legendRow: {
     display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
     padding: "4px 0", marginBottom: 4,
@@ -402,29 +512,50 @@ const v1Styles = {
   legendDot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
   legendText: { fontSize: 12, fontWeight: 500, letterSpacing: "0.4px", fontFamily: "var(--font-sans)" },
 
-  // Master card
+  // Master card — 3-up
   masterCard: {
-    border: "1px solid #EFEFFF", borderRadius: 12, background: "#FFFFFF",
-    overflow: "hidden",
+    flex: 1, position: "relative", display: "flex", flexDirection: "column", gap: 12,
+    padding: "20px 20px 16px", border: "1px solid #EFEFFF", borderRadius: 12,
+    background: "#FFFFFF", overflow: "hidden",
   },
-  masterHeader: {
-    appearance: "none", width: "100%", display: "flex", alignItems: "center",
-    justifyContent: "space-between", padding: "16px 20px", gap: 12,
-    border: "none", background: "transparent", cursor: "pointer",
-    fontFamily: "var(--font-sans)",
+  masterTop: { display: "flex", alignItems: "flex-start", gap: 14 },
+  ringCol: { flexShrink: 0 },
+  ringWrap: { position: "relative", width: 64, height: 64 },
+  ringCenter: {
+    position: "absolute", inset: 0, display: "flex", alignItems: "center",
+    justifyContent: "center",
   },
-  masterLeft: { display: "flex", alignItems: "center", gap: 8 },
-  masterName: { fontSize: 16, fontWeight: 600, color: "#171B2C", lineHeight: "24px" },
-  masterRight: { display: "flex", alignItems: "center", gap: 12 },
+  ringScore: {
+    fontSize: 18, fontWeight: 700, color: "#171B2C", fontFamily: "var(--font-sans)",
+    lineHeight: 1,
+  },
+  masterMeta: { flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 },
+  masterName: { fontSize: 16, fontWeight: 600, color: "#171B2C", lineHeight: "22px" },
+  masterDesc: {
+    fontSize: 12, fontWeight: 400, color: "#5B5E6F", lineHeight: "16px",
+    letterSpacing: "0.4px",
+  },
+  masterBottom: { display: "flex", alignItems: "center", gap: 10 },
   masterStatusBadge: {
     display: "inline-flex", padding: "4px 10px", borderRadius: 6,
     fontSize: 12, fontWeight: 600, letterSpacing: "0.4px",
   },
   masterSummary: { fontSize: 12, fontWeight: 400, color: "#5B5E6F", letterSpacing: "0.4px" },
+  expandBtn: {
+    position: "absolute", top: 16, right: 16, appearance: "none", display: "inline-flex",
+    alignItems: "center", justifyContent: "center", width: 28, height: 28,
+    padding: 0, border: "none", background: "transparent", borderRadius: 6,
+    cursor: "pointer",
+  },
 
-  // Children table
-  childrenWrap: {
-    borderTop: "1px solid #EFEFFF", padding: "0 20px 12px",
+  // Detail region — shared below 3-up row
+  detailRegion: {
+    padding: "16px 20px", borderRadius: 12, background: "#FCFBFF",
+    border: "1px solid #EFEFFF", display: "flex", flexDirection: "column", gap: 8,
+  },
+  detailTitle: {
+    fontSize: 14, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px",
+    marginBottom: 4,
   },
   childHeader: {
     display: "flex", alignItems: "center", gap: 8, padding: "10px 0",
@@ -447,6 +578,73 @@ const v1Styles = {
   targetText: { fontSize: 13, fontWeight: 500, color: "#424659", letterSpacing: "0.1px" },
   gapText: { fontSize: 12, fontWeight: 600, letterSpacing: "0.4px" },
   childStatusBadge: { fontSize: 12, fontWeight: 600, letterSpacing: "0.4px" },
+};
+
+// NBA section styles — mirrors NextBestActions nbaStyles
+const nbaS = {
+  wrap: { display: "flex", flexDirection: "column", gap: 8, marginTop: 8 },
+  header: { display: "flex", alignItems: "center", gap: 16 },
+  headerLabel: { fontSize: 13, fontWeight: 700, color: "#171B2C" },
+  rail: {
+    display: "flex", gap: 16, overflowX: "auto", scrollSnapType: "x mandatory",
+    scrollbarWidth: "none", paddingBottom: 4,
+  },
+  card: {
+    width: 280, flexShrink: 0, scrollSnapAlign: "start", borderRadius: 16,
+    border: "1px solid #EFEFFF", display: "flex", flexDirection: "column", gap: 20,
+  },
+  chip: {
+    alignSelf: "flex-start", display: "inline-flex", alignItems: "center",
+    padding: "3px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700,
+  },
+  topGroup: { display: "flex", flexDirection: "column" },
+  cardTitle: {
+    marginTop: 6, fontSize: 15, fontWeight: 600, color: "#171B2C", lineHeight: 1.3,
+    display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden",
+  },
+  evidence: {
+    marginTop: 4, fontSize: 13, fontWeight: 400, color: "#5B5E6F", lineHeight: 1.4,
+    display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden",
+  },
+  drillBlock: {
+    flex: 1, background: "#F8F7FF", borderRadius: 12, padding: 12,
+    display: "flex", flexDirection: "column",
+  },
+  drillRow: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+  },
+  drillTitle: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 },
+  assetName: {
+    fontSize: 13, fontWeight: 600, color: "#171B2C", minWidth: 0,
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  durationChip: {
+    flexShrink: 0, display: "inline-flex", alignItems: "center", padding: "2px 6px",
+    borderRadius: 4, background: "#FFFFFF", border: "1px solid #EFEFFF",
+    color: "#5B5E6F", fontSize: 11, fontWeight: 500,
+  },
+  drillDesc: {
+    marginTop: 8, display: "flex", alignItems: "flex-start", gap: 6,
+    fontSize: 12, fontWeight: 600, color: "#171B2C", lineHeight: 1.4,
+  },
+  basisText: {
+    marginTop: 4, fontSize: 11, fontWeight: 400, color: "#5B5E6F",
+    letterSpacing: "0.4px", lineHeight: 1.4,
+  },
+  ctaRow: { display: "flex", alignItems: "center", gap: 8 },
+  assignBtn: {
+    flex: 1, height: 38, display: "inline-flex", alignItems: "center",
+    justifyContent: "center", border: "none", borderRadius: 999,
+    background: "#004BEF", color: "#FFFFFF", fontFamily: "var(--font-sans)",
+    fontSize: 13, fontWeight: 700, letterSpacing: "0.05em",
+    textTransform: "uppercase", cursor: "pointer",
+  },
+  kebabBtn: {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    width: 38, height: 38, padding: 0, borderRadius: 999,
+    border: "1px solid #EFEFFF", background: "#FFFFFF", color: "#5B5E6F",
+    cursor: "pointer",
+  },
 };
 
 function KPITile({ kpi }) {

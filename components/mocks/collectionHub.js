@@ -60,6 +60,8 @@ export const KPI_V1_MASTERS = [
   {
     id: "reach",
     name: "Reach",
+    description: "How reliably we connect with the right party — and how much effort it takes.",
+    score: 38,
     children: [
       {
         id: "contactability",
@@ -96,6 +98,8 @@ export const KPI_V1_MASTERS = [
   {
     id: "recovery",
     name: "Recovery",
+    description: "How effectively those contacts convert into payment.",
+    score: 52,
     children: [
       {
         id: "negotiation",
@@ -132,6 +136,8 @@ export const KPI_V1_MASTERS = [
   {
     id: "quality-compliance",
     name: "Quality & Compliance",
+    description: "How well agents handle calls, and whether they stay within the rules.",
+    score: 74,
     children: [
       {
         id: "effective-comm",
@@ -339,6 +345,53 @@ export const QUALITY_ADHERENCE = {
   },
   targetLine: 60,
 };
+
+// ---- V1: Next Best Actions ----
+// Collection-hub NBA cards — each targets a specific metric/master with
+// estimated point uplift. Basis = cohort/model estimate (Akash to define).
+// Shape mirrors Agent Profile NBA_CARDS for visual consistency.
+export const KPI_V1_NBAS = [
+  {
+    id: "kpi-nba-1",
+    priority: "critical",
+    title: "Reinforce call opening protocol",
+    evidence: "Opening Greetings adherence dropped 8% — dragging Reach score down.",
+    action: { type: "Assign drill", asset: "Proper Greeting Protocol", duration: "10 min" },
+    outcome: "+5 pts · Reach",
+    basis: "Based on 142-agent cohort over 30 days",
+    master: "reach",
+  },
+  {
+    id: "kpi-nba-2",
+    priority: "critical",
+    title: "Improve debt communication scripts",
+    evidence: "Debt Communication at 28% adherence — lowest stage across all teams.",
+    action: { type: "Assign drill", asset: "Debt Communication Mastery", duration: "15 min" },
+    outcome: "+8 pts · Recovery",
+    basis: "Based on top-performer playbook analysis",
+    master: "recovery",
+  },
+  {
+    id: "kpi-nba-3",
+    priority: "recommended",
+    title: "Strengthen GDPR notice delivery",
+    evidence: "GDPR Notice at 62% on-target — 16% in Needs Attention zone.",
+    action: { type: "Assign course", asset: "GDPR Compliance Training", duration: "20 min" },
+    outcome: "+4 pts · Quality & Compliance",
+    basis: "Based on 89-agent cohort with similar gap",
+    master: "quality-compliance",
+  },
+  {
+    id: "kpi-nba-4",
+    priority: "recommended",
+    title: "Target POS conversion uplift",
+    evidence: "POS Efficiency at 10% vs 43% target — biggest gap-to-target in portfolio.",
+    action: { type: "Assign drill", asset: "Closing Techniques for Collections", duration: "12 min" },
+    outcome: "+6 pts · Reach",
+    basis: "Based on rescheduled-call conversion patterns",
+    master: "reach",
+  },
+];
 
 // ---- Page-level filters (header pills) ----
 export const PAGE_FILTERS = {
