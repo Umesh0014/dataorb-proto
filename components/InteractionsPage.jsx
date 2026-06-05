@@ -25,6 +25,14 @@ import {
   Search,
   X,
 } from "lucide-react";
+// 🚩 FLAG — Phosphor introduced solely for the WhatsApp brand mark
+// (lucide lacks a real WhatsApp logo). Other channel icons stay on
+// lucide. Two follow-ups for Akash: (A — built) only WhatsApp moves to
+// Phosphor, sized to sit next to the lucide icons; (B — not done)
+// standardise all channel icons on one library if mixing reads
+// inconsistent. Weight="fill" picked to match the solid brand mark in
+// the reference — confirm against Figma if outline is preferred.
+import { WhatsappLogo } from "@phosphor-icons/react";
 import Card from "./Card";
 import Button from "./Button";
 import { formatDateTime } from "./formatDate";
@@ -513,7 +521,7 @@ function ChannelIcon({ channel }) {
         aria-label="WhatsApp"
         style={{ display: "inline-flex", alignItems: "center", color: "#25D366" }}
       >
-        <MessageCircle size={18} fill="#25D366" stroke="#FFFFFF" strokeWidth={1.5} />
+        <WhatsappLogo size={18} weight="fill" />
       </span>
     );
   }
