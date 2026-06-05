@@ -6,14 +6,23 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  Info,
   Phone,
   MessageCircle,
-  Target,
+  MessageSquare,
+  Mail,
+  Settings,
+  ClipboardList,
+  Radar,
+  Trophy,
   SlidersHorizontal,
 } from "lucide-react";
 import Card from "./Card";
 import { formatDateTime } from "./formatDate";
+
+// ⚠️ You said "don't rename" but the reference header reads "Quality".
+// Default below follows the image. If you meant keep the proto label,
+// change this single string to "Adherence".
+const QUALITY_HEADER = "Quality";
 
 const TOTAL = 6811;
 const PAGE_SIZE = 20;
@@ -25,38 +34,37 @@ const SEARCH_ATTRS = [
 ];
 
 const ROWS = [
-  { customerId: "1CFEA2", channel: "voice",    date: "2026-05-07T16:50:00Z", agent: { initials: "G",  name: "G Agent" },          duration: { h: 0, m: 1, s: 51 }, sentiment: "negative", adherence: null,   coachingCount: 0  },
-  { customerId: "EB236D", channel: "whatsapp", date: "2026-05-07T04:40:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 19 }, sentiment: "neutral",  adherence: 78,     coachingCount: 0  },
-  { customerId: "CA1484", channel: "voice",    date: "2026-05-05T17:25:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 44 }, sentiment: "positive", adherence: 91,     coachingCount: 0  },
-  { customerId: "53611D", channel: "whatsapp", date: "2026-04-30T06:35:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 5 },  sentiment: "mixed",    adherence: 69,     coachingCount: 4  },
-  { customerId: "CACA53", channel: "voice",    date: "2026-04-30T06:33:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 1 },  sentiment: "negative", adherence: null,   coachingCount: 0  },
-  { customerId: "020A31", channel: "voice",    date: "2026-04-29T18:44:00Z", agent: { initials: "G",  name: "G Agent" },          duration: { h: 0, m: 2, s: 17 }, sentiment: "positive", adherence: 92,     coachingCount: 1  },
-  { customerId: "9492B2", channel: "whatsapp", date: "2026-04-28T14:12:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 56 }, sentiment: "neutral",  adherence: 28,     coachingCount: 10 },
-  { customerId: "1EA06C", channel: "voice",    date: "2026-04-22T21:18:00Z", agent: { initials: "AK", name: "Akash Trainee" },    duration: { h: 0, m: 2, s: 26 }, sentiment: "positive", adherence: 70,     coachingCount: 6  },
-  { customerId: "A85CF1", channel: "whatsapp", date: "2026-04-22T17:30:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 0, s: 28 }, sentiment: "neutral",  adherence: null,   coachingCount: 0  },
-  { customerId: "300C85", channel: "voice",    date: "2026-04-17T17:22:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 2, s: 0 },  sentiment: "positive", adherence: 92,     coachingCount: 1  },
-  { customerId: "B61007", channel: "whatsapp", date: "2026-04-17T17:20:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 15 }, sentiment: "negative", adherence: null,   coachingCount: 0  },
-  { customerId: "23F1F4", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "G",  name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "neutral",  adherence: null,   coachingCount: 0  },
-  { customerId: "FC5A2C", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "G",  name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "mixed",    adherence: null,   coachingCount: 0  },
-  { customerId: "A92F18", channel: "whatsapp", date: "2026-04-15T10:11:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 32 }, sentiment: "positive", adherence: 84,     coachingCount: 2  },
-  { customerId: "DE3422", channel: "voice",    date: "2026-04-13T09:05:00Z", agent: { initials: "G",  name: "G Agent" },          duration: { h: 0, m: 0, s: 47 }, sentiment: "neutral",  adherence: null,   coachingCount: 0  },
-  { customerId: "FF7A09", channel: "whatsapp", date: "2026-04-12T11:48:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 3, s: 18 }, sentiment: "positive", adherence: 84,     coachingCount: 3  },
-  { customerId: "60AAB2", channel: "voice",    date: "2026-04-09T13:21:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 54 }, sentiment: "negative", adherence: 33,     coachingCount: 7  },
-  { customerId: "112233", channel: "voice",    date: "2026-04-08T15:00:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 2, s: 1 },  sentiment: "neutral",  adherence: null,   coachingCount: 0  },
-  { customerId: "B7C9D0", channel: "whatsapp", date: "2026-04-05T19:33:00Z", agent: { initials: "AK", name: "Akash Trainee" },    duration: { h: 0, m: 1, s: 28 }, sentiment: "mixed",    adherence: 65,     coachingCount: 2  },
-  { customerId: "5510EF", channel: "voice",    date: "2026-04-03T08:15:00Z", agent: { initials: "G",  name: "G Agent" },          duration: { h: 0, m: 2, s: 12 }, sentiment: "positive", adherence: null,   coachingCount: 0  },
+  { customerId: "1CFEA2", channel: "voice",    date: "2026-05-07T16:50:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 1, s: 51 }, sentiment: "negative", adherence: null, skills: null      },
+  { customerId: "EB236D", channel: "whatsapp", date: "2026-05-07T04:40:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 19 }, sentiment: "neutral",  adherence: 78,   skills: "tracked" },
+  { customerId: "CA1484", channel: "voice",    date: "2026-05-05T17:25:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 44 }, sentiment: "positive", adherence: 91,   skills: "tracked" },
+  { customerId: "53611D", channel: "whatsapp", date: "2026-04-30T06:35:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 5 },  sentiment: "mixed",    adherence: 69,   skills: "top"     },
+  { customerId: "CACA53", channel: "sms",      date: "2026-04-30T06:33:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 1 },  sentiment: "mixed",    adherence: 58,   skills: null      },
+  { customerId: "020A31", channel: "voice",    date: "2026-04-29T18:44:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 2, s: 17 }, sentiment: "positive", adherence: 92,   skills: "tracked" },
+  { customerId: "9492B2", channel: "whatsapp", date: "2026-04-28T14:12:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 56 }, sentiment: "negative", adherence: 28,   skills: null      },
+  { customerId: "1EA06C", channel: "sms",      date: "2026-04-22T21:18:00Z", agent: { initials: "AT", name: "Akash Trainee" },    duration: { h: 0, m: 2, s: 26 }, sentiment: "positive", adherence: 70,   skills: null      },
+  { customerId: "A85CF1", channel: "email",    date: "2026-04-22T17:30:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 0, s: 28 }, sentiment: "positive", adherence: 81,   skills: null      },
+  { customerId: "300C85", channel: "voice",    date: "2026-04-17T17:22:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 2, s: 0 },  sentiment: "negative", adherence: 83,   skills: "top"     },
+  { customerId: "B61007", channel: "whatsapp", date: "2026-04-17T17:20:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 15 }, sentiment: "negative", adherence: 40,   skills: null      },
+  { customerId: "23F1F4", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "negative", adherence: null, skills: null      },
+  { customerId: "FC5A2C", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "negative", adherence: null, skills: null      },
+  { customerId: "A92F18", channel: "whatsapp", date: "2026-04-15T10:11:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 32 }, sentiment: "positive", adherence: 84,   skills: "tracked" },
+  { customerId: "DE3422", channel: "voice",    date: "2026-04-13T09:05:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 47 }, sentiment: "neutral",  adherence: null, skills: null      },
+  { customerId: "FF7A09", channel: "whatsapp", date: "2026-04-12T11:48:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 3, s: 18 }, sentiment: "positive", adherence: 84,   skills: "tracked" },
+  { customerId: "60AAB2", channel: "voice",    date: "2026-04-09T13:21:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 54 }, sentiment: "negative", adherence: 33,   skills: "top"     },
+  { customerId: "112233", channel: "sms",      date: "2026-04-08T15:00:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 2, s: 1 },  sentiment: "neutral",  adherence: 68,   skills: null      },
+  { customerId: "B7C9D0", channel: "whatsapp", date: "2026-04-05T19:33:00Z", agent: { initials: "AT", name: "Akash Trainee" },    duration: { h: 0, m: 1, s: 28 }, sentiment: "mixed",    adherence: 65,   skills: null      },
+  { customerId: "5510EF", channel: "voice",    date: "2026-04-03T08:15:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 2, s: 12 }, sentiment: "positive", adherence: null, skills: null      },
 ];
 
 const COLS = [
-  { key: "customerId", label: "Customer ID", width: "11%", align: "left" },
-  { key: "channel",    label: "Channel",     width: "8%",  align: "left" },
-  { key: "date",       label: "Date",        width: "16%", align: "left", sorted: true },
-  { key: "agent",      label: "Agent",       width: "18%", align: "left" },
-  { key: "duration",   label: "Duration",    width: "10%", align: "left" },
-  { key: "sentiment",  label: "Sentiment",   width: "12%", align: "left" },
-  { key: "adherence",  label: "Adherence",   width: "11%", align: "left" },
-  { key: "coaching",   label: "Coaching",    width: "9%",  align: "left" },
-  { key: "info",       label: "",            width: "5%",  align: "right" },
+  { key: "customerId", label: "Customer ID",    width: "13%", align: "left" },
+  { key: "channel",    label: "Channel",        width: "9%",  align: "left" },
+  { key: "date",       label: "Date",           width: "18%", align: "left", sorted: true },
+  { key: "agent",      label: "Agent",          width: "9%",  align: "left" },
+  { key: "duration",   label: "Duration",       width: "11%", align: "left" },
+  { key: "sentiment",  label: "Sentiment",      width: "13%", align: "left" },
+  { key: "adherence",  label: QUALITY_HEADER,   width: "13%", align: "left" },
+  { key: "skills",     label: "Skills",         width: "14%", align: "left" },
 ];
 
 export default function InteractionsPage() {
@@ -278,35 +286,17 @@ function Row({ row, isLast }) {
         <SentimentTag value={row.sentiment} />
       </Cell>
       <Cell>
-        <AdherenceCell value={row.adherence} />
+        <QualityCell value={row.adherence} channel={row.channel} />
       </Cell>
       <Cell>
-        <CoachingCell count={row.coachingCount} />
-      </Cell>
-      <Cell align="right">
-        {hover ? (
-          <button
-            type="button"
-            aria-label="View details"
-            onClick={(e) => e.stopPropagation()}
-            className="cursor-pointer"
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              border: "none",
-              background: "transparent",
-              display: "inline-grid",
-              placeItems: "center",
-              color: "var(--color-text-tertiary)",
-            }}
-          >
-            <Info size={18} />
-          </button>
-        ) : null}
+        <SkillsCell skills={row.skills} onClick={() => onSkillsClick(row)} />
       </Cell>
     </tr>
   );
+}
+
+function onSkillsClick(row) {
+  // TODO: open skills detail. Target TBD (side curtain vs modal vs route) — confirm with Akash.
 }
 
 function Cell({ children, align = "left" }) {
@@ -338,6 +328,28 @@ function ChannelIcon({ channel }) {
       </span>
     );
   }
+  if (channel === "sms" || channel === "chat") {
+    return (
+      <span
+        title="SMS"
+        aria-label="SMS"
+        style={{ display: "inline-flex", alignItems: "center", color: "var(--color-text-medium)" }}
+      >
+        <MessageSquare size={18} />
+      </span>
+    );
+  }
+  if (channel === "email") {
+    return (
+      <span
+        title="Email"
+        aria-label="Email"
+        style={{ display: "inline-flex", alignItems: "center", color: "var(--color-text-medium)" }}
+      >
+        <Mail size={18} />
+      </span>
+    );
+  }
   return (
     <span
       title="Voice call"
@@ -351,38 +363,24 @@ function ChannelIcon({ channel }) {
 
 function AgentCell({ agent }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-      <div
-        style={{
-          width: 26,
-          height: 26,
-          borderRadius: 13,
-          background: "#E0DEEC",
-          color: "var(--color-icon-tertiary-fg)",
-          display: "grid",
-          placeItems: "center",
-          fontSize: 11,
-          fontWeight: 700,
-          flexShrink: 0,
-          textTransform: "uppercase",
-        }}
-        aria-hidden="true"
-      >
-        {agent.initials.charAt(0)}
-      </div>
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--do-ink)",
-          overflow: "hidden",
-          whiteSpace: "nowrap",
-          textOverflow: "ellipsis",
-          minWidth: 0,
-        }}
-      >
-        {agent.name}
-      </span>
+    <div
+      title={agent.name}
+      aria-label={agent.name}
+      style={{
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        background: "#E0DEEC",
+        color: "var(--color-icon-tertiary-fg)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 11,
+        fontWeight: 700,
+        flexShrink: 0,
+        textTransform: "uppercase",
+      }}
+    >
+      {agent.initials.slice(0, 2)}
     </div>
   );
 }
@@ -413,40 +411,55 @@ function SentimentTag({ value }) {
   );
 }
 
-function AdherenceCell({ value }) {
+function QualityCell({ value, channel }) {
   if (value === null || value === undefined) {
     return <span style={{ color: "var(--color-text-placeholder)", fontSize: 13 }}>--</span>;
   }
+  // 🚩 FLAG for Akash: gear/clipboard split is keyed to channel (text vs. non-text)
+  // because that's what the reference shows. Confirm it isn't actually keyed to
+  // evaluation method (auto/AI vs. manual QA). If it's eval-method, this mapping
+  // moves off `channel` onto a new field.
+  const isText = channel === "sms" || channel === "chat";
+  const Icon = isText ? ClipboardList : Settings;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      <AdherenceIcon />
+      <Icon size={16} color="var(--color-icon-tertiary-fg)" strokeWidth={2} />
       <span style={{ fontSize: 13, fontWeight: 600, color: "var(--do-ink)" }}>{value}%</span>
     </span>
   );
 }
 
-function AdherenceIcon() {
-  return (
-    <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx={8} cy={8} r={6} stroke="var(--color-icon-tertiary-fg)" strokeWidth={1.4} />
-      <path d="M5 8.5l2 2 4-4" stroke="var(--color-icon-tertiary-fg)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CoachingCell({ count }) {
-  if (!count) {
-    return <span aria-label="No coaching" style={{ color: "var(--color-text-placeholder)", fontSize: 13 }}>--</span>;
+function SkillsCell({ skills, onClick }) {
+  // 🚩 FLAG for Akash: (a) The meaning of radar vs. trophy isn't derivable from
+  // the reference — confirm semantics (e.g. radar = skills tracked on the call,
+  // trophy = top-performer / appreciation moment). (b) Confirm the detail target
+  // so the stub can be wired to the house pattern.
+  if (skills !== "tracked" && skills !== "top") {
+    return <span style={{ color: "var(--color-text-placeholder)", fontSize: 13 }}>--</span>;
   }
+  const Icon = skills === "top" ? Trophy : Radar;
+  const label = skills === "top" ? "Top skill" : "Skills tracked";
   return (
-    <span
-      aria-label={`${count} coaching session${count === 1 ? "" : "s"}`}
-      title={`${count} coaching session${count === 1 ? "" : "s"}`}
-      style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className="cursor-pointer"
+      style={{
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        border: "none",
+        background: "transparent",
+        display: "inline-grid",
+        placeItems: "center",
+        padding: 0,
+        color: "var(--color-icon-tertiary-fg)",
+      }}
     >
-      <Target size={16} color="var(--color-icon-tertiary-fg)" strokeWidth={2} />
-      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--do-ink)" }}>{count}</span>
-    </span>
+      <Icon size={16} strokeWidth={2} />
+    </button>
   );
 }
 
