@@ -72,7 +72,7 @@ const INSIGHTS_PAGES = {
   "contact-center":     { Component: InsightsHubPage,  pageName: "Contact Center" },
   "reports":            { Component: ComingSoon,        pageName: "Reports" },
   // direct
-  "interaction":        { Component: ComingSoon,        pageName: "Interaction" },
+  "interaction":        { Component: InteractionsPage,  pageName: "Interactions" },
   // headset → children
   "agent-performance":  { Component: ComingSoon,        pageName: "Agent Performance" },
   "session":            { Component: ComingSoon,        pageName: "Session" },
