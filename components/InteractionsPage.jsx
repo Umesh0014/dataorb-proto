@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
+  ChevronUp,
   Phone,
   MessageCircle,
   MessageSquare,
@@ -21,8 +22,11 @@ import {
   Unlock,
   Volume2,
   Quote,
+  Search,
+  X,
 } from "lucide-react";
 import Card from "./Card";
+import Button from "./Button";
 import { formatDateTime } from "./formatDate";
 
 // ⚠️ You said "don't rename" but the reference header reads "Quality".
@@ -45,6 +49,59 @@ const SKILL_REGISTRY = {
   communicating_clearly:   { label: "Communicating clearly",         Icon: Volume2,       gradient: "linear-gradient(133deg, #6366F1, #3B82F6)" },
   problem_solving:         { label: "Problem solving",               Icon: Lightbulb,     gradient: "linear-gradient(133deg, #F59E0B, #F43F5E)" },
 };
+
+// Filters drawer config. Render is driven from this list — no bespoke
+// markup per section. Two control types are implemented: single-select
+// (Date) and multi-select (Coaching recommendation).
+//
+// 🚩 FLAG for Akash — section content. Only Date (single-select presets)
+// and Coaching recommendation (Yes/No checkboxes) are visible in the
+// reference. Every other section is collapsed, so its control type and
+// option set is unknown. The TODO entries below are config stubs only —
+// do NOT invent options without confirmation.
+//
+// 🚩 FLAG for Akash — "Filter name" section. There's already a "Search by
+// filter name" field at the top, so a separate "Filter name" accordion
+// row is ambiguous: is it a saved-filter feature (name + save the
+// current filter set) or a real interaction attribute? Confirm before
+// wiring; left as a stub.
+//
+// 🚩 FLAG — Date control placement. Reference shows Date with its value
+// inline on the row ("Last 12 months ⌄"), unlike the accordion-expand
+// checkbox sections. Built as a row-level inline dropdown rather than an
+// expand-to-list accordion. Confirm against Figma.
+const FILTER_SECTIONS = [
+  {
+    id: "date",
+    label: "Date",
+    type: "single-select",
+    options: [
+      { value: "today",        label: "Today" },
+      { value: "last_7_days",  label: "Last 7 days" },
+      { value: "last_30_days", label: "Last 30 days" },
+      { value: "last_90_days", label: "Last 90 days" },
+      { value: "last_12_months", label: "Last 12 months" },
+    ],
+    defaultValue: "last_12_months",
+  },
+  {
+    id: "coaching_recommendation",
+    label: "Coaching recommendation",
+    type: "multi-select",
+    options: [
+      { value: "yes", label: "Yes" },
+      { value: "no",  label: "No"  },
+    ],
+  },
+  // TODO: confirm options + control type with Akash before building.
+  { id: "business_category", label: "Business category", type: "todo" },
+  { id: "strengths",         label: "Strengths",         type: "todo" },
+  { id: "filter_name",       label: "Filter name",       type: "todo" }, // see FLAG above
+  { id: "channel",           label: "Channel",           type: "todo" },
+  { id: "direction",         label: "Direction",         type: "todo" },
+  { id: "workspaces",        label: "Workspaces",        type: "todo" },
+  { id: "human_eval",        label: "Human Eval",        type: "todo" },
+];
 
 const TOTAL = 6811;
 const PAGE_SIZE = 20;
@@ -114,13 +171,35 @@ const COLS = [
   { key: "skills",     label: "Skills",         width: "14%", align: "left" },
 ];
 
+// Initial applied filter state — empty selections, plus the Date default
+// preset so the row already shows its inline summary on first open.
+const INITIAL_FILTERS = { date: "last_12_months" };
+
+function onApplyFilters(_draft) {
+  // TODO: apply filters to the interactions query. Do NOT wire fetch here —
+  // stub only; confirm the query/handler contract with Akash.
+}
+
 export default function InteractionsPage() {
   const [page, setPage] = React.useState(1);
   const totalPages = Math.ceil(TOTAL / PAGE_SIZE);
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [appliedFilters, setAppliedFilters] = React.useState(INITIAL_FILTERS);
+  const filterBtnRef = React.useRef(null);
+
+  const handleApply = (draft) => {
+    setAppliedFilters(draft);
+    onApplyFilters(draft);
+    setFiltersOpen(false);
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <InteractionsHeader />
+      <InteractionsHeader
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen((o) => !o)}
+        filterBtnRef={filterBtnRef}
+      />
       <Card padX={0} padY={0}>
         <Table rows={ROWS} />
         <Pagination
@@ -130,11 +209,22 @@ export default function InteractionsPage() {
           onPageChange={setPage}
         />
       </Card>
+      {filtersOpen && (
+        <FiltersPanel
+          appliedFilters={appliedFilters}
+          onApply={handleApply}
+          onClose={() => {
+            setFiltersOpen(false);
+            // Return focus to the trigger per drawer a11y conventions.
+            if (filterBtnRef.current) filterBtnRef.current.focus();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function InteractionsHeader() {
+function InteractionsHeader({ filtersOpen, onToggleFilters, filterBtnRef }) {
   const [attr, setAttr] = React.useState("customer");
   const [query, setQuery] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -229,9 +319,13 @@ function InteractionsHeader() {
         </div>
         <div className="flex items-center pl-2 border-l border-border-tab self-stretch">
           <button
+            ref={filterBtnRef}
             type="button"
+            onClick={onToggleFilters}
+            aria-label="Filters"
+            aria-expanded={filtersOpen}
+            aria-haspopup="dialog"
             className="w-8 h-8 flex items-center justify-center bg-transparent border-none cursor-pointer text-text-medium"
-            aria-label="Filter"
           >
             <SlidersHorizontal size={20} />
           </button>
@@ -744,6 +838,414 @@ const popStyles = {
     fontWeight: 700,
     color: "var(--color-text-deep)",
     letterSpacing: "0.25px",
+  },
+};
+
+// FiltersPanel — right drawer mirroring the PreviewStep precedent
+// (fixed, --shadow-drawer, divider border, --surface-white). Non-modal,
+// no scrim: the table stays visible behind it.
+//
+// 🚩 FLAG — width / scrim. Built at 400px (PreviewStep precedent). Figma
+// shows 320px and no scrim; confirm the exact width and the no-scrim
+// behavior against the latest spec.
+//
+// 🚩 FLAG — Apply / Deselect-all enable rules. Apply is enabled when the
+// draft differs from applied; Deselect-all is enabled when the draft has
+// any selection. Confirm exact rules + Apply emphasis styling against
+// Figma.
+//
+// 🚩 FLAG — search scope. Search filters by section LABEL only. Confirm
+// whether it should also match option labels inside sections.
+function FiltersPanel({ appliedFilters, onApply, onClose }) {
+  const [draft, setDraft] = React.useState(appliedFilters);
+  const [query, setQuery] = React.useState("");
+  const [expanded, setExpanded] = React.useState(() => new Set());
+  const panelRef = React.useRef(null);
+
+  // Focus enters the panel on mount only — don't re-focus on every render
+  // or it would steal focus back from the input/checkboxes the user clicks.
+  React.useEffect(() => {
+    if (panelRef.current) panelRef.current.focus();
+  }, []);
+
+  // Escape closes (discards draft).
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const setValue = (sectionId, value) => {
+    setDraft((d) => ({ ...d, [sectionId]: value }));
+  };
+
+  const toggleMulti = (sectionId, value) => {
+    setDraft((d) => {
+      const current = new Set(d[sectionId] || []);
+      if (current.has(value)) current.delete(value);
+      else current.add(value);
+      return { ...d, [sectionId]: Array.from(current) };
+    });
+  };
+
+  const toggleExpanded = (sectionId) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
+
+  const visibleSections = FILTER_SECTIONS.filter(
+    (s) => !query || s.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
+  const draftHasSelection = Object.entries(draft).some(([, v]) => {
+    if (Array.isArray(v)) return v.length > 0;
+    return v !== undefined && v !== null && v !== "";
+  });
+  const draftDirty = JSON.stringify(draft) !== JSON.stringify(appliedFilters);
+
+  const handleDeselectAll = () => setDraft({});
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-label="Filters"
+      tabIndex={-1}
+      style={fpStyles.panel}
+    >
+      {/* Header */}
+      <div style={fpStyles.header}>
+        <span style={fpStyles.title}>Filters</span>
+        <Button variant="icon" onClick={onClose} aria-label="Close filters">
+          <X size={18} />
+        </Button>
+      </div>
+
+      {/* Search by filter name — same treatment as the header search input. */}
+      <div style={fpStyles.searchRow}>
+        <Search size={16} color="var(--color-text-tertiary)" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by filter name"
+          style={fpStyles.searchInput}
+        />
+      </div>
+
+      {/* Section list — only this scrolls. */}
+      <div style={fpStyles.list}>
+        {visibleSections.map((section) => (
+          <FilterSection
+            key={section.id}
+            section={section}
+            value={draft[section.id]}
+            expanded={expanded.has(section.id)}
+            onToggleExpanded={() => toggleExpanded(section.id)}
+            onSetValue={(v) => setValue(section.id, v)}
+            onToggleMulti={(v) => toggleMulti(section.id, v)}
+          />
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={fpStyles.footer}>
+        <Button
+          variant="text"
+          uppercase={false}
+          disabled={!draftHasSelection}
+          onClick={handleDeselectAll}
+        >
+          Deselect all
+        </Button>
+        <div style={{ display: "inline-flex", gap: 8 }}>
+          <Button variant="text" uppercase={false} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            uppercase={false}
+            disabled={!draftDirty}
+            onClick={() => onApply(draft)}
+            style={{ minWidth: 0, height: 32, paddingInline: 16, fontSize: 13 }}
+          >
+            Apply
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FilterSection({ section, value, expanded, onToggleExpanded, onSetValue, onToggleMulti }) {
+  // Date renders inline (row-level dropdown showing current preset, per
+  // reference). Other types use the accordion-expand treatment.
+  if (section.type === "single-select" && section.id === "date") {
+    return (
+      <div style={fpStyles.sectionRow}>
+        <span style={fpStyles.sectionLabel}>{section.label}</span>
+        <SingleSelectDropdown
+          options={section.options}
+          value={value ?? section.defaultValue}
+          onChange={onSetValue}
+        />
+      </div>
+    );
+  }
+
+  if (section.type === "multi-select") {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <div style={fpStyles.accordion}>
+        <button
+          type="button"
+          onClick={onToggleExpanded}
+          aria-expanded={expanded}
+          style={fpStyles.accordionHead}
+        >
+          <span style={fpStyles.sectionLabel}>{section.label}</span>
+          {expanded
+            ? <ChevronUp size={16} color="var(--color-text-tertiary)" />
+            : <ChevronDown size={16} color="var(--color-text-tertiary)" />}
+        </button>
+        {expanded && (
+          <ul style={fpStyles.optionsList}>
+            {section.options.map((opt) => (
+              <li key={opt.value} style={fpStyles.optionRow}>
+                <label style={fpStyles.checkLabel}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(opt.value)}
+                    onChange={() => onToggleMulti(opt.value)}
+                    style={fpStyles.checkbox}
+                  />
+                  {opt.label}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
+  // type === "todo" — collapsed-only row, no control wired yet.
+  // 🚩 FLAG for Akash — see FILTER_SECTIONS comment block.
+  return (
+    <button
+      type="button"
+      onClick={onToggleExpanded}
+      style={{ ...fpStyles.sectionRow, cursor: "default" }}
+      aria-disabled="true"
+      title="Options pending"
+    >
+      <span style={fpStyles.sectionLabel}>{section.label}</span>
+      <ChevronDown size={16} color="var(--color-text-tertiary)" />
+    </button>
+  );
+}
+
+// SingleSelectDropdown — reuses the header attribute-dropdown treatment
+// (pill background, bordered, ChevronDown trigger; absolute-positioned
+// menu with hover-bg rows).
+function SingleSelectDropdown({ options, value, onChange }) {
+  const [open, setOpen] = React.useState(false);
+  const ddRef = React.useRef(null);
+  const selected = options.find((o) => o.value === value) || options[0];
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const handler = (e) => {
+      if (ddRef.current && !ddRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ddRef} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 h-7 px-2 rounded-md cursor-pointer"
+        style={{
+          background: "var(--pill-bg)",
+          border: "1px solid var(--color-border-tab)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 12,
+          color: "var(--color-text-medium)",
+          fontWeight: 500,
+        }}
+      >
+        {selected?.label}
+        <ChevronDown size={12} color="var(--color-text-tertiary)" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 mt-1 bg-white rounded-md overflow-hidden z-50"
+          style={{
+            top: "calc(100% + 4px)",
+            minWidth: 160,
+            boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
+            border: "1px solid var(--color-border-tab)",
+          }}
+        >
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className="block w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
+              style={{
+                fontFamily: "var(--font-sans)",
+                color: o.value === value ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
+                fontWeight: o.value === value ? 600 : 500,
+                background: o.value === value ? "var(--pill-bg)" : "transparent",
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const FILTERS_DRAWER_WIDTH = 400;
+
+const fpStyles = {
+  panel: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: FILTERS_DRAWER_WIDTH,
+    background: "var(--surface-white)",
+    borderLeft: "1px solid var(--color-divider-card)",
+    boxShadow: "var(--shadow-drawer)",
+    display: "flex",
+    flexDirection: "column",
+    zIndex: 40,
+    outline: "none",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingInline: 20,
+    height: 56,
+    borderBottom: "1px solid var(--color-divider-card)",
+    flexShrink: 0,
+  },
+  title: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 16,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  searchRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    paddingInline: 20,
+    height: 48,
+    borderBottom: "1px solid var(--color-divider-card)",
+    flexShrink: 0,
+  },
+  searchInput: {
+    flex: 1,
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    fontFamily: "var(--font-sans)",
+    fontSize: 14,
+    color: "var(--color-text-medium)",
+  },
+  list: {
+    flex: 1,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+  },
+  sectionRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingInline: 20,
+    height: 54,
+    background: "transparent",
+    border: "none",
+    borderBottom: "1px solid var(--color-divider-card)",
+    width: "100%",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+  sectionLabel: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    fontWeight: 500,
+    color: "var(--color-text-medium)",
+  },
+  accordion: {
+    display: "flex",
+    flexDirection: "column",
+    borderBottom: "1px solid var(--color-divider-card)",
+  },
+  accordionHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingInline: 20,
+    height: 54,
+    background: "transparent",
+    border: "none",
+    width: "100%",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+  optionsList: {
+    listStyle: "none",
+    margin: 0,
+    padding: 0,
+    background: "var(--pill-bg)",
+  },
+  optionRow: {
+    display: "flex",
+    alignItems: "center",
+    paddingInline: 20,
+    height: 44,
+  },
+  checkLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 12,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    color: "var(--color-text-deep)",
+    cursor: "pointer",
+  },
+  // 🚩 Reuses CoverageStep's native-checkbox treatment (16px,
+  // accentColor = primary). No central Checkbox primitive exists yet;
+  // promotion candidate once a 3rd callsite appears.
+  checkbox: {
+    width: 16,
+    height: 16,
+    accentColor: "var(--color-button-primary-bg)",
+  },
+  footer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingInline: 16,
+    height: 56,
+    borderTop: "1px solid var(--color-divider-card)",
+    background: "var(--surface-white)",
+    flexShrink: 0,
   },
 };
 
