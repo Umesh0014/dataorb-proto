@@ -122,6 +122,7 @@ const SEARCH_ATTRS = [
 
 // Skills payloads reused across rows — keeps mock concise and means the
 // popover renders the reference layout for both variants.
+// Mock cache-buster: v2 (forces a new bundle hash on Vercel).
 const SKILLS_FULL = {
   variant: "tracked",
   strengths: [
