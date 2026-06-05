@@ -187,6 +187,31 @@ export default function InteractionsPage() {
   const [appliedFilters, setAppliedFilters] = React.useState(INITIAL_FILTERS);
   const filterBtnRef = React.useRef(null);
 
+  // Lifted from InteractionsHeader so the empty-state branch and the
+  // header's X-clear button share one source of truth + handler.
+  const [query, setQuery] = React.useState("");
+  const [attr, setAttr] = React.useState("customer");
+
+  // 🚩 FLAG — clearSearch scope. Clears query only by default; confirm
+  // whether it should also reset the search attribute and applied filters.
+  const clearSearch = () => setQuery("");
+
+  // Client-side filter against the chosen attribute. The mock has no
+  // reason field, so for "reason" the filter degrades to a no-op match
+  // until a real field lands — keeps the empty state reachable for the
+  // two attributes the mock supports.
+  const filteredRows = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return ROWS;
+    return ROWS.filter((row) => {
+      if (attr === "agent") return row.agent.name.toLowerCase().includes(q);
+      // default: customer id
+      return row.customerId.toLowerCase().includes(q);
+    });
+  }, [query, attr]);
+
+  const isSearchEmpty = query.trim() !== "" && filteredRows.length === 0;
+
   const handleApply = (draft) => {
     setAppliedFilters(draft);
     onApplyFilters(draft);
@@ -199,15 +224,26 @@ export default function InteractionsPage() {
         filtersOpen={filtersOpen}
         onToggleFilters={() => setFiltersOpen((o) => !o)}
         filterBtnRef={filterBtnRef}
+        query={query}
+        onQueryChange={setQuery}
+        onClearSearch={clearSearch}
+        attr={attr}
+        onAttrChange={setAttr}
       />
       <Card padX={0} padY={0}>
-        <Table rows={ROWS} />
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          totalCount={TOTAL}
-          onPageChange={setPage}
-        />
+        {isSearchEmpty ? (
+          <SearchEmptyState onClear={clearSearch} />
+        ) : (
+          <>
+            <Table rows={filteredRows} />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalCount={TOTAL}
+              onPageChange={setPage}
+            />
+          </>
+        )}
       </Card>
       {filtersOpen && (
         <FiltersPanel
@@ -224,9 +260,10 @@ export default function InteractionsPage() {
   );
 }
 
-function InteractionsHeader({ filtersOpen, onToggleFilters, filterBtnRef }) {
-  const [attr, setAttr] = React.useState("customer");
-  const [query, setQuery] = React.useState("");
+function InteractionsHeader({
+  filtersOpen, onToggleFilters, filterBtnRef,
+  query, onQueryChange, onClearSearch, attr, onAttrChange,
+}) {
   const [open, setOpen] = React.useState(false);
   const ddRef = React.useRef(null);
   const selected = SEARCH_ATTRS.find((a) => a.id === attr) || SEARCH_ATTRS[0];
@@ -292,7 +329,7 @@ function InteractionsHeader({ filtersOpen, onToggleFilters, filterBtnRef }) {
                   <button
                     key={a.id}
                     type="button"
-                    onClick={() => { setAttr(a.id); setOpen(false); }}
+                    onClick={() => { onAttrChange(a.id); setOpen(false); }}
                     className="block w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
                     style={{
                       fontFamily: "var(--font-sans)",
@@ -312,10 +349,21 @@ function InteractionsHeader({ filtersOpen, onToggleFilters, filterBtnRef }) {
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => onQueryChange(e.target.value)}
             placeholder={`Search by ${selected.label}`}
             className="flex-1 bg-transparent border-none outline-none font-sans text-[14px] leading-[22px] text-text-medium placeholder:text-text-placeholder"
           />
+          {/* Clear (X) — visible only when the query is non-empty. */}
+          {query !== "" && (
+            <button
+              type="button"
+              onClick={onClearSearch}
+              aria-label="Clear search"
+              className="w-8 h-8 flex items-center justify-center bg-transparent border-none cursor-pointer text-text-medium"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
         <div className="flex items-center pl-2 border-l border-border-tab self-stretch">
           <button
@@ -1248,6 +1296,88 @@ const fpStyles = {
     borderTop: "1px solid var(--color-divider-card)",
     background: "var(--surface-white)",
     flexShrink: 0,
+  },
+};
+
+// SearchEmptyState — shown in place of Table + footer when the user has a
+// query and the filtered set is empty. Centered illustration + message +
+// primary CTA. Layout mirrors the existing empty-state pattern in
+// GuidePage (column-centered, text-center, gap 12).
+//
+// 🚩 FLAG — promote <EmptyState illustration heading body cta?>. This is
+// the right shape for a shared primitive; do it once a 3rd page consumes
+// the same layout. For now the illustration + container live here so the
+// promotion is a copy-paste away.
+//
+// 🚩 FLAG — referenced precedent missing. The spec called for reusing
+// `EmptyStateIllustration` from `components/MissionsPage.jsx`, but that
+// file doesn't exist in this repo (closest matches: SkillsPage / TasksPage
+// / GuidePage empty-state, none of which use this document+magnifier
+// illustration). Drawing it inline here to match the Figma; promote when
+// a 2nd consumer appears.
+//
+// 🚩 FLAG — other empty variants. This is the search-empty case only.
+// Filter-empty ("Clear filters") and first-run no-data states need
+// different copy + CTAs and aren't built here.
+function SearchEmptyState({ onClear }) {
+  return (
+    <div style={emptyStyles.wrap}>
+      <EmptyStateIllustration />
+      <p style={emptyStyles.message}>No Interactions matched your search criteria.</p>
+      <Button variant="primary" uppercase={false} onClick={onClear}>
+        Clear search
+      </Button>
+    </div>
+  );
+}
+
+function EmptyStateIllustration() {
+  // Document + magnifier in muted greys, matching the Figma reference.
+  // Colors mirror the spec (slate document + lens). No design token for
+  // illustration fills today — left as-is per spec instruction.
+  return (
+    <svg
+      width={120}
+      height={120}
+      viewBox="0 0 120 120"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      {/* document */}
+      <rect x={32} y={20} width={56} height={68} rx={4} fill="#F1F3F9" stroke="#D6DCE8" strokeWidth={2} />
+      {/* text lines */}
+      <rect x={40} y={30} width={32} height={4} rx={1} fill="#D6DCE8" />
+      <rect x={40} y={40} width={40} height={4} rx={1} fill="#D6DCE8" />
+      <rect x={40} y={50} width={24} height={4} rx={1} fill="#D6DCE8" />
+      {/* magnifier circle */}
+      <circle cx={74} cy={72} r={16} fill="#FFFFFF" stroke="#AAB2C5" strokeWidth={3} />
+      {/* magnifier handle */}
+      <line x1={86} y1={84} x2={96} y2={94} stroke="#AAB2C5" strokeWidth={4} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const emptyStyles = {
+  wrap: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    gap: 16,
+    paddingBlock: 64,
+    paddingInline: 24,
+    minHeight: 320,
+  },
+  message: {
+    margin: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    fontWeight: 500,
+    color: "var(--color-text-medium)",
+    maxWidth: 280,
+    lineHeight: 1.5,
   },
 };
 
