@@ -1116,7 +1116,9 @@ function SingleSelectDropdown({ options, value, onChange }) {
   );
 }
 
-const FILTERS_DRAWER_WIDTH = 400;
+// Figma reference shows 320px; PreviewStep precedent is 400px. Latest
+// Figma is explicit — using 320 here. Flip back to 400 if Akash confirms.
+const FILTERS_DRAWER_WIDTH = 320;
 
 const fpStyles = {
   panel: {
