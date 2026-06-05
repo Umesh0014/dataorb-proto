@@ -219,6 +219,22 @@ export default function InteractionsPage() {
   }, [query, attr]);
 
   const isSearchEmpty = query.trim() !== "" && filteredRows.length === 0;
+  const isSearchActive = query.trim() !== "";
+
+  // Count + pagination reflect the filtered set when a search is active.
+  // (When inactive, fall back to TOTAL — the mock represents a server-side
+  // count that ROWS only samples.) Clamp totalPages to at least 1 so the
+  // "Page 1 of 1" footer renders correctly for the single-result case.
+  const effectiveCount = isSearchActive ? filteredRows.length : TOTAL;
+  const effectiveTotalPages = isSearchActive
+    ? Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
+    : totalPages;
+
+  // Reset to page 1 when the query changes so a deep page (e.g. p.5) doesn't
+  // strand the user on an out-of-range page after filtering down to <20 rows.
+  React.useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   const handleApply = (draft) => {
     setAppliedFilters(draft);
@@ -246,8 +262,8 @@ export default function InteractionsPage() {
             <Table rows={filteredRows} />
             <Pagination
               page={page}
-              totalPages={totalPages}
-              totalCount={TOTAL}
+              totalPages={effectiveTotalPages}
+              totalCount={effectiveCount}
               onPageChange={setPage}
             />
           </>
@@ -1402,8 +1418,11 @@ function Pagination({ page, totalPages, totalCount, onPageChange }) {
         borderTop: "1px solid var(--color-border-tab)",
       }}
     >
-      <div style={{ color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 500 }}>
-        Total {totalCount.toLocaleString()} Interactions
+      <div
+        aria-live="polite"
+        style={{ color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 500 }}
+      >
+        Total {totalCount.toLocaleString()} interactions
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <PageBtn ariaLabel="First page" disabled={!canPrev} onClick={() => onPageChange(1)}>
