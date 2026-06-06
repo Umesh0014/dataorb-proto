@@ -24,6 +24,15 @@ import {
   Quote,
   Search,
   X,
+  Layers,
+  BarChart3,
+  Tag,
+  Crosshair,
+  TrendingDown,
+  Smile,
+  Flag,
+  Award,
+  Info,
 } from "lucide-react";
 // 🚩 FLAG — Phosphor introduced solely for the WhatsApp brand mark
 // (lucide lacks a real WhatsApp logo). Other channel icons stay on
@@ -184,6 +193,168 @@ const COLS = [
 // preset so the row already shows its inline summary on first open.
 const INITIAL_FILTERS = { date: "last_12_months" };
 
+// Row-detail drawer config.
+// 🚩 FLAG for Akash — data source. DETAILS_SAMPLE is the mock payload from
+// the reference (customer 000028). It's attached to every row so any row
+// click demonstrates the drawer; in production confirm whether the row
+// fetch returns details inline or a separate on-click fetch.
+// 🚩 FLAG for Akash — section icons. Seeded from lucide as a starting
+// point; confirm canonical icons against Figma before locking.
+// 🚩 FLAG — collapsibility. Default is non-collapsible, single scroll
+// (matches the reference). If sections grow long, revisit.
+const DETAILS_SAMPLE = {
+  contactReason: {
+    hasSalesLead: false,
+    customerIntent: "Issue resolution",
+    issueType: "Account management issue",
+    journeyStage: "Account changes",
+    reasonForContact: "Retrieve account password",
+    businessAspect: "Account management",
+    hasActionItem: false,
+  },
+  interactionOutcome: { topic: "Retrieve account password", status: "Pending" },
+  commercialOffer: { salesAttempt: false, offerCategory: "Not applicable", offerStatus: "Not applicable" },
+  competitorMention: { competitor: "Jazztel" },
+  churnRisk: { status: "Moderate", driver: "Inconvenient password reset process", mentionedToSwitch: false },
+  customerSentiment: { initialSentiment: "Mixed", finalSentiment: "Negative", painPointDrivers: "Account access failure" },
+  predictedCsat: { satisfactionRating: "Very dissatisfied" },
+  flags: { agentFollowup: true },
+  skillProficiency: { coachingRecommendation: false },
+  interactionMetadata: {
+    customerId: "000028", source: "Zendesk", externalId: "653518", channel: "Email", direction: "Outbound",
+    lob: null, campaign: "FO_R_FIDE_RES", productType: "Convergente", service: "ATEN_RES_MASIVO_MOVIL",
+    subService: "POSPAGO", serviceProviderLocation: "KON_SEVILLA", customerSeniority: "INFANCIA",
+    lastAgentGroup: "Not available", group: "Generalista Guadalajara", callerId: "600000000",
+    customerLineTariff: "4G de Orang en casa", hasCommitmentActive: true, commitmentPeriodDurationMonths: 3,
+    agentSkill: "6440169", importedDate: "Dec 4, 2019 1:42 pm",
+  },
+};
+
+const DETAIL_SECTIONS = [
+  {
+    id: "contactReason",
+    title: "Contact reason insights",
+    Icon: Layers,
+    dataKey: "contactReason",
+    fields: [
+      { label: "Has sales lead",     key: "hasSalesLead",    format: "boolean" },
+      { label: "Customer Intent",    key: "customerIntent" },
+      { label: "Issue type",         key: "issueType" },
+      { label: "Journey stage",      key: "journeyStage" },
+      { label: "Reason for Contact", key: "reasonForContact" },
+      { label: "Business aspect",    key: "businessAspect" },
+      { label: "Has action item",    key: "hasActionItem",   format: "boolean" },
+    ],
+  },
+  {
+    id: "interactionOutcome",
+    title: "Interaction outcome overview",
+    Icon: BarChart3,
+    dataKey: "interactionOutcome",
+    fields: [
+      { label: "Topic",  key: "topic" },
+      { label: "Status", key: "status" },
+    ],
+  },
+  {
+    id: "commercialOffer",
+    title: "Commercial offer insights",
+    Icon: Tag,
+    dataKey: "commercialOffer",
+    fields: [
+      { label: "Sales attempt",  key: "salesAttempt", format: "boolean" },
+      { label: "Offer category", key: "offerCategory" },
+      { label: "Offer status",   key: "offerStatus" },
+    ],
+  },
+  {
+    id: "competitorMention",
+    title: "Competitor mention",
+    Icon: Crosshair,
+    dataKey: "competitorMention",
+    fields: [
+      { label: "Competitor", key: "competitor" },
+    ],
+  },
+  {
+    id: "churnRisk",
+    title: "Churn-risk Insights",
+    Icon: TrendingDown,
+    dataKey: "churnRisk",
+    fields: [
+      { label: "Churn-risk status",    key: "status" },
+      { label: "Churn risk driver",    key: "driver" },
+      { label: "Mentioned to switch",  key: "mentionedToSwitch", format: "boolean" },
+    ],
+  },
+  {
+    id: "customerSentiment",
+    title: "Customer sentiment",
+    Icon: Heart,
+    dataKey: "customerSentiment",
+    fields: [
+      { label: "Initial sentiment",   key: "initialSentiment" },
+      { label: "Final sentiment",     key: "finalSentiment" },
+      { label: "Pain point drivers",  key: "painPointDrivers" },
+    ],
+  },
+  {
+    id: "predictedCsat",
+    title: "Predicted CSAT",
+    Icon: Smile,
+    dataKey: "predictedCsat",
+    fields: [
+      { label: "Satisfaction Rating", key: "satisfactionRating" },
+    ],
+  },
+  {
+    id: "flags",
+    title: "Flags",
+    Icon: Flag,
+    dataKey: "flags",
+    fields: [
+      { label: "Agent Followup", key: "agentFollowup", format: "boolean" },
+    ],
+  },
+  {
+    id: "skillProficiency",
+    title: "Skill Proficiency",
+    Icon: Award,
+    dataKey: "skillProficiency",
+    fields: [
+      { label: "Coaching recommendation", key: "coachingRecommendation", format: "boolean" },
+    ],
+  },
+  {
+    id: "interactionMetadata",
+    title: "Interaction metadata",
+    Icon: Info,
+    dataKey: "interactionMetadata",
+    fields: [
+      { label: "Customer ID",                            key: "customerId" },
+      { label: "Source",                                 key: "source" },
+      { label: "External ID",                            key: "externalId" },
+      { label: "Channel",                                key: "channel" },
+      { label: "Direction",                              key: "direction" },
+      { label: "LOB",                                    key: "lob" },
+      { label: "Campaign",                               key: "campaign" },
+      { label: "Product type",                           key: "productType" },
+      { label: "Service",                                key: "service" },
+      { label: "Sub-service",                            key: "subService" },
+      { label: "Service provider location",              key: "serviceProviderLocation" },
+      { label: "Customer seniority",                     key: "customerSeniority" },
+      { label: "Last agent group",                       key: "lastAgentGroup" },
+      { label: "Group",                                  key: "group" },
+      { label: "Caller ID",                              key: "callerId" },
+      { label: "Customer line tariff",                   key: "customerLineTariff" },
+      { label: "Has commitment active",                  key: "hasCommitmentActive", format: "boolean" },
+      { label: "Commitment period duration in months",   key: "commitmentPeriodDurationMonths" },
+      { label: "Agent skill",                            key: "agentSkill" },
+      { label: "Imported date",                          key: "importedDate" },
+    ],
+  },
+];
+
 function onApplyFilters(_draft) {
   // TODO: apply filters to the interactions query. Do NOT wire fetch here —
   // stub only; confirm the query/handler contract with Akash.
@@ -243,6 +414,31 @@ export default function InteractionsPage() {
     setFiltersOpen(false);
   };
 
+  // Row-detail drawer state. Row click toggles selection; clicking the same
+  // row again closes the drawer. rowRefs lets us return focus to the
+  // originating row on close per drawer a11y conventions.
+  const [selectedRowId, setSelectedRowId] = React.useState(null);
+  const rowRefs = React.useRef({});
+
+  const handleRowClick = (rowId) => {
+    setSelectedRowId((current) => (current === rowId ? null : rowId));
+  };
+
+  const closeDetails = () => {
+    const lastId = selectedRowId;
+    setSelectedRowId(null);
+    // Restore focus to the row the drawer was opened from.
+    requestAnimationFrame(() => {
+      const el = lastId && rowRefs.current[lastId];
+      if (el && typeof el.focus === "function") el.focus();
+    });
+  };
+
+  const selectedRow = selectedRowId
+    ? filteredRows.find((r) => r.customerId === selectedRowId) ||
+      ROWS.find((r) => r.customerId === selectedRowId)
+    : null;
+
   return (
     <div className="flex flex-col gap-6 w-full">
       <InteractionsHeader
@@ -260,7 +456,12 @@ export default function InteractionsPage() {
           <SearchEmptyState onClear={clearSearch} />
         ) : (
           <>
-            <Table rows={filteredRows} />
+            <Table
+              rows={filteredRows}
+              selectedRowId={selectedRowId}
+              onRowClick={handleRowClick}
+              rowRefs={rowRefs}
+            />
             <Pagination
               page={page}
               totalPages={effectiveTotalPages}
@@ -280,6 +481,9 @@ export default function InteractionsPage() {
             if (filterBtnRef.current) filterBtnRef.current.focus();
           }}
         />
+      )}
+      {selectedRow && (
+        <DetailsPanel row={selectedRow} onClose={closeDetails} />
       )}
     </div>
   );
@@ -408,7 +612,7 @@ function InteractionsHeader({
   );
 }
 
-function Table({ rows }) {
+function Table({ rows, selectedRowId, onRowClick, rowRefs }) {
   return (
     <div className="overflow-x-auto">
       <table
@@ -453,7 +657,18 @@ function Table({ rows }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <Row key={row.customerId + i} row={row} isLast={i === rows.length - 1} />
+            <Row
+              key={row.customerId + i}
+              row={row}
+              isLast={i === rows.length - 1}
+              isSelected={selectedRowId === row.customerId}
+              onClick={() => onRowClick && onRowClick(row.customerId)}
+              rowRef={(el) => {
+                if (!rowRefs) return;
+                if (el) rowRefs.current[row.customerId] = el;
+                else delete rowRefs.current[row.customerId];
+              }}
+            />
           ))}
         </tbody>
       </table>
@@ -461,16 +676,36 @@ function Table({ rows }) {
   );
 }
 
-function Row({ row, isLast }) {
+function Row({ row, isLast, isSelected, onClick, rowRef }) {
   const [hover, setHover] = React.useState(false);
+  // Selected wins over hover for the tint. Use --pill-bg per spec for the
+  // selected state; keep the existing translucent hover token for hover.
+  const background = isSelected
+    ? "var(--pill-bg)"
+    : hover ? "rgba(0,0,0,0.02)" : "transparent";
   return (
     <tr
+      ref={rowRef}
+      tabIndex={0}
+      aria-selected={isSelected ? true : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        // Enter / Space activate the row, mirroring native button keys.
+        // Ignore events bubbling up from focused child controls (Skills
+        // button, etc.) so a Skills-button activation doesn't double-fire
+        // and also toggle the drawer.
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick && onClick();
+        }
+      }}
       style={{
         height: 56,
         borderBottom: isLast ? "none" : "1px solid #F0F2FA",
-        background: hover ? "rgba(0,0,0,0.02)" : "transparent",
+        background,
         cursor: "pointer",
         transition: "background 120ms ease",
       }}
@@ -1403,6 +1638,195 @@ const emptyStyles = {
     color: "var(--color-text-medium)",
     maxWidth: 280,
     lineHeight: 1.5,
+  },
+};
+
+// DetailsPanel — right drawer mirroring the FiltersPanel / PreviewStep
+// precedent (fixed, --shadow-drawer, divider border, --surface-white).
+// Non-modal, no scrim — the table behind stays interactive. Sticky
+// header; only the body scrolls. Sections render from DETAIL_SECTIONS;
+// missing values fall back to the DETAILS_SAMPLE mock so any row can
+// demo the drawer.
+//
+// 🚩 FLAG — width. 440px sits between the FiltersPanel (320) and the
+// Figma's 408, leaving comfortable room for the two-line field rows.
+// Confirm exact width against the latest Figma.
+// 🚩 FLAG — scrim. None today (matches FiltersPanel). Confirm whether the
+// page should dim when the drawer opens.
+// 🚩 FLAG — collapsibility. All sections render expanded in one scroll
+// (matches the reference). If panels get long in practice, sections
+// could become collapsible.
+function DetailsPanel({ row, onClose }) {
+  const panelRef = React.useRef(null);
+  const details = row?.details || DETAILS_SAMPLE;
+
+  // Focus into the panel on mount only — don't refocus on every render or
+  // the user's clicks inside the panel will get stolen back to the root.
+  React.useEffect(() => {
+    if (panelRef.current) panelRef.current.focus();
+  }, []);
+
+  // Escape closes (matches FiltersPanel).
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-label="Interaction details"
+      tabIndex={-1}
+      style={dpStyles.panel}
+    >
+      <div style={dpStyles.header}>
+        <span style={dpStyles.title}>View details</span>
+        <Button variant="icon" onClick={onClose} aria-label="Close details">
+          <X size={18} />
+        </Button>
+      </div>
+      <div style={dpStyles.body}>
+        {DETAIL_SECTIONS.map((section, idx) => (
+          <DetailSection
+            key={section.id}
+            section={section}
+            data={details?.[section.dataKey]}
+            isLast={idx === DETAIL_SECTIONS.length - 1}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DetailSection({ section, data, isLast }) {
+  const Icon = section.Icon;
+  return (
+    <div style={dpStyles.section}>
+      <div style={dpStyles.sectionHead}>
+        {Icon ? <Icon size={16} color="var(--color-text-medium)" strokeWidth={2} /> : null}
+        <span style={dpStyles.sectionTitle}>{section.title}</span>
+      </div>
+      <div style={dpStyles.fields}>
+        {section.fields.map((field) => (
+          <FieldRow
+            key={field.key}
+            label={field.label}
+            value={formatDetailValue(data?.[field.key], field.format)}
+          />
+        ))}
+      </div>
+      {!isLast && <div style={dpStyles.divider} />}
+    </div>
+  );
+}
+
+function FieldRow({ label, value }) {
+  const isPlaceholder = value === null;
+  return (
+    <div style={dpStyles.fieldRow}>
+      <span style={dpStyles.fieldLabel}>{label}</span>
+      <span
+        style={{
+          ...dpStyles.fieldValue,
+          color: isPlaceholder ? "var(--color-text-placeholder)" : "var(--color-text-deep)",
+        }}
+      >
+        {isPlaceholder ? "--" : value}
+      </span>
+    </div>
+  );
+}
+
+// Format helper: booleans → Yes/No, null/empty → placeholder marker
+// (caller renders "--"), everything else → String(value).
+function formatDetailValue(raw, format) {
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (format === "boolean") return raw ? "Yes" : "No";
+  return String(raw);
+}
+
+const DETAILS_DRAWER_WIDTH = 440;
+
+const dpStyles = {
+  panel: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: DETAILS_DRAWER_WIDTH,
+    background: "var(--surface-white)",
+    borderLeft: "1px solid var(--color-divider-card)",
+    boxShadow: "var(--shadow-drawer)",
+    display: "flex",
+    flexDirection: "column",
+    zIndex: 40,
+    outline: "none",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingInline: 20,
+    height: 56,
+    borderBottom: "1px solid var(--color-divider-card)",
+    flexShrink: 0,
+  },
+  title: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 16,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  body: {
+    flex: 1,
+    overflowY: "auto",
+    paddingBlock: 8,
+  },
+  section: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    paddingInline: 20,
+    paddingBlock: 16,
+  },
+  sectionHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionTitle: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  fields: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    paddingLeft: 24,
+  },
+  fieldRow: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  fieldLabel: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+  },
+  fieldValue: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 12,
+  },
+  divider: {
+    height: 1,
+    background: "var(--color-divider-card)",
+    marginTop: 8,
   },
 };
 
