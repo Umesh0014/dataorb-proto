@@ -157,14 +157,18 @@ function DateDropdown({ options, selected, onSelect, onApplyCustom, onApplyCompa
               (opt.type === "submenu" && activeFlyout === "custom") ||
               (opt.type === "special" && activeFlyout === "compare");
             const bg = isOpenFlyout
-              ? "var(--pill-bg)"
+              ? "#EFEFFF"
               : isHovered
               ? "#F6F5FA"
               : "transparent";
             return (
               <div
                 key={opt.label}
-                style={{ ...ddStyles.row, background: bg }}
+                style={{
+                  ...ddStyles.row,
+                  background: bg,
+                  borderRadius: isOpenFlyout || isHovered ? 100 : 0,
+                }}
                 onMouseEnter={() => setHoveredIdx(i)}
                 onMouseLeave={() => setHoveredIdx(-1)}
                 onClick={() => handleRowClick(opt)}
@@ -318,7 +322,7 @@ function ComparePeriodsFlyout({ onCancel, onApply }) {
 
 function PeriodCard({ label, range, active, disabled }) {
   const hasStart = !!range.start;
-  const valueText = hasStart ? formatPeriodCardLabel(range) : "Select dates";
+  const valueText = hasStart ? formatPeriodCardLabel(range) : "Select date";
   return (
     <div style={{
       ...ddStyles.periodCard,
@@ -380,7 +384,7 @@ const ddStyles = {
     boxShadow: "0px 5px 5px -3px rgba(0,0,0,0.20), 0px 8px 10px 1px rgba(0,0,0,0.14), 0px 3px 14px 2px rgba(0,0,0,0.12)",
     zIndex: 50, overflow: "hidden",
   },
-  list: { padding: "4px 0" },
+  list: { padding: 12, display: "flex", flexDirection: "column", gap: 4 },
   row: {
     display: "flex", alignItems: "center", gap: 16,
     padding: "14px 20px", cursor: "pointer", transition: "background 150ms",

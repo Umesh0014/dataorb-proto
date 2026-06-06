@@ -209,12 +209,12 @@ const cStyles = {
   bandLeft: {
     position: "absolute", left: 0, right: "50%", top: "50%",
     height: 28, transform: "translateY(-50%)",
-    background: "var(--pill-bg)",
+    background: "var(--color-border-tab)",
   },
   bandRight: {
     position: "absolute", left: "50%", right: 0, top: "50%",
     height: 28, transform: "translateY(-50%)",
-    background: "var(--pill-bg)",
+    background: "var(--color-border-tab)",
   },
   dayBtn: {
     position: "relative", zIndex: 1,
