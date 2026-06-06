@@ -28,6 +28,21 @@ function formatCustomLabel({ start, end }) {
   return `${startSeg} – ${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
 }
 
+// Period-card label collapses month/year when start and end share them.
+// Matches Figma spacing ("5 –17 Aug 2025") with no space after the en-dash.
+function formatPeriodCardLabel({ start, end }) {
+  if (!start || !end) return "";
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  const sameYear = start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    return `${start.getDate()} –${end.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()}`;
+  }
+  if (sameYear) {
+    return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} –${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+  }
+  return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()} –${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+}
+
 function formatCompareLabel(primary, compare) {
   const seg = (r) => `${MONTHS_SHORT[r.start.getMonth()]} ${r.start.getDate()}–${r.end.getDate()}`;
   return `${seg(primary)} vs ${seg(compare)}`;
@@ -252,7 +267,7 @@ function ComparePeriodsFlyout({ onCancel, onApply }) {
 
   const hintText = step === "primary"
     ? "Select your primary date range below."
-    : "Select your comparison date range below.";
+    : "Now select the period to compare against.";
 
   return (
     <div style={ddStyles.flyout}>
@@ -285,7 +300,7 @@ function ComparePeriodsFlyout({ onCancel, onApply }) {
       />
 
       <FlyoutFooter
-        primaryLabel={step === "primary" ? "Next" : "Apply"}
+        primaryLabel={step === "primary" ? "Next" : "Apply Comparison"}
         onPrimary={stepValid ? handlePrimary : undefined}
         primaryDisabled={!stepValid}
         onCancel={onCancel}
@@ -298,7 +313,7 @@ function ComparePeriodsFlyout({ onCancel, onApply }) {
 
 function PeriodCard({ label, range, active, disabled }) {
   const valueText = range.start && range.end
-    ? formatCustomLabel(range)
+    ? formatPeriodCardLabel(range)
     : "Select dates";
   return (
     <div style={{

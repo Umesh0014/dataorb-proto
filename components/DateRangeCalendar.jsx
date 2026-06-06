@@ -78,9 +78,12 @@ export default function DateRangeCalendar({
   return (
     <div style={cStyles.root}>
       <div style={cStyles.header}>
-        <span style={cStyles.monthLabel}>
-          {MONTHS_LONG[anchor.getMonth()]} {anchor.getFullYear()}
-        </span>
+        <div style={cStyles.monthLabelWrap}>
+          <span style={cStyles.monthLabel}>
+            {MONTHS_LONG[anchor.getMonth()]} {anchor.getFullYear()}
+          </span>
+          <span className="material-symbols-outlined" style={cStyles.monthChevron}>expand_more</span>
+        </div>
         <div style={cStyles.nav}>
           <button
             type="button"
@@ -128,15 +131,17 @@ function DayCell({ day, isStart, isEnd, isInRange, disabled, onClick }) {
   const [hover, setHover] = React.useState(false);
   if (!day) return <div style={cStyles.cell} />;
   const isEndpoint = isStart || isEnd;
-  const bandBg = isInRange || isEndpoint
-    ? "var(--color-primary-alpha-12)"
-    : "transparent";
+  const isSingleDay = isStart && isEnd;
+  const showLeftBand = isInRange || (isEnd && !isSingleDay);
+  const showRightBand = isInRange || (isStart && !isSingleDay);
   return (
     <div
-      style={{ ...cStyles.cell, background: bandBg }}
+      style={cStyles.cell}
       onMouseEnter={() => !disabled && setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
+      {showLeftBand && <div style={cStyles.bandLeft} />}
+      {showRightBand && <div style={cStyles.bandRight} />}
       <button
         type="button"
         disabled={disabled}
@@ -168,9 +173,14 @@ const cStyles = {
     display: "flex", alignItems: "center", justifyContent: "space-between",
     padding: "8px 12px",
   },
+  monthLabelWrap: { display: "flex", alignItems: "center", gap: 4 },
   monthLabel: {
     fontFamily: '"Mulish", sans-serif', fontSize: 13, fontWeight: 700,
     color: "var(--do-ink)", letterSpacing: "0.04em",
+  },
+  monthChevron: {
+    fontSize: 16, color: "var(--color-text-medium)",
+    fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20",
   },
   nav: { display: "flex", alignItems: "center", gap: 4 },
   navBtn: {
@@ -195,8 +205,19 @@ const cStyles = {
     display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
     padding: "0 12px 12px",
   },
-  cell: { height: 36, display: "grid", placeItems: "center" },
+  cell: { height: 36, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" },
+  bandLeft: {
+    position: "absolute", left: 0, right: "50%", top: "50%",
+    height: 28, transform: "translateY(-50%)",
+    background: "var(--pill-bg)",
+  },
+  bandRight: {
+    position: "absolute", left: "50%", right: 0, top: "50%",
+    height: 28, transform: "translateY(-50%)",
+    background: "var(--pill-bg)",
+  },
   dayBtn: {
+    position: "relative", zIndex: 1,
     width: 28, height: 28, borderRadius: 14, border: "none",
     padding: 0, cursor: "pointer",
     fontFamily: '"Mulish", sans-serif', fontSize: 12, fontWeight: 600,
