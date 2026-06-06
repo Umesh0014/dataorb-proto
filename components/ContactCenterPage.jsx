@@ -29,23 +29,55 @@ const SKILLS = [
 ];
 
 const PAGE_SIZE = 5;
+const DEFAULT_DATE = "Last 7 days";
+
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function rangeLabel({ start, end }) {
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  if (sameMonth) return `${start.getDate()}–${end.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${end.getFullYear()}`;
+  if (sameYear) return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} – ${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+  return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()} – ${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+}
 
 export default function ContactCenterPage({ onToggleFilters }) {
-  const [comparisonActive, setComparisonActive] = React.useState(true);
+  const [dateValue, setDateValue] = React.useState(DEFAULT_DATE);
+  const [comparison, setComparison] = React.useState(null);
   const [page, setPage] = React.useState(1);
 
   const totalPages = Math.max(1, Math.ceil(SKILLS.length / PAGE_SIZE));
   const pageRows = SKILLS.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const handleApplyCompare = (primary, compare) => {
+    setComparison({
+      primary: { label: rangeLabel(primary), count: 10000 },
+      compared: { label: rangeLabel(compare), count: 10400 },
+    });
+  };
+
+  const handleDismissCompare = () => {
+    setComparison(null);
+    setDateValue(DEFAULT_DATE);
+  };
+
   return (
     <>
-      <HeaderCard onFilterToggle={onToggleFilters} />
+      <HeaderCard
+        onFilterToggle={onToggleFilters}
+        dateValue={dateValue}
+        onDateChange={setDateValue}
+        onApplyCompare={handleApplyCompare}
+      />
 
-      {comparisonActive && (
+      {comparison && (
         <ComparisonBanner
-          primary={{ label: "5–17 Aug 2025", count: 10000 }}
-          compared={{ label: "5–17 Jul 2025", count: 10400 }}
-          onDismiss={() => setComparisonActive(false)}
+          primary={comparison.primary}
+          compared={comparison.compared}
+          onDismiss={handleDismissCompare}
         />
       )}
 

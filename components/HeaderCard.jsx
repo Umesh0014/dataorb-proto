@@ -53,8 +53,20 @@ function formatCompareLabel(primary, compare) {
   return `${seg(primary)} vs ${seg(compare)}`;
 }
 
-export default function HeaderCard({ onFilterToggle }) {
-  const [dateValue, setDateValue] = React.useState("Last 12 months");
+export default function HeaderCard({
+  onFilterToggle,
+  dateValue: dateValueProp,
+  onDateChange,
+  onApplyCompare,
+}) {
+  const [internalDateValue, setInternalDateValue] = React.useState("Last 12 months");
+  const isControlled = dateValueProp !== undefined;
+  const dateValue = isControlled ? dateValueProp : internalDateValue;
+  const setDateValue = (next) => {
+    if (!isControlled) setInternalDateValue(next);
+    onDateChange?.(next);
+  };
+
   const [dateOpen, setDateOpen] = React.useState(false);
   const dropdownRef = React.useRef(null);
 
@@ -73,7 +85,8 @@ export default function HeaderCard({ onFilterToggle }) {
     setDateOpen(false);
   };
   const handleApplyCompare = (primary, compare) => {
-    setDateValue(formatCompareLabel(primary, compare));
+    setDateValue("Compare Periods");
+    onApplyCompare?.(primary, compare);
     setDateOpen(false);
   };
 
