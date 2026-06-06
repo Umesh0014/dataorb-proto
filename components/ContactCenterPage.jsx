@@ -86,7 +86,10 @@ export default function ContactCenterPage({ onToggleFilters }) {
         label={
           <span style={pageStyles.kpiLabel}>
             Total Interactions
-            <InfoIcon tooltip="Total customer interactions in the selected period." />
+            <InfoIcon
+              tooltip="Total customer interactions in the selected period."
+              align="center"
+            />
           </span>
         }
         value={
@@ -116,7 +119,10 @@ function ComparisonBanner({ primary, compared, onDismiss }) {
         <div style={cbStyles.textCol}>
           <div style={cbStyles.label}>
             Compare Periods
-            <InfoIcon tooltip="Two periods being compared side by side." />
+            <InfoIcon
+              tooltip="Two periods being compared side by side."
+              align="right"
+            />
           </div>
           <div style={cbStyles.legendRow}>
             <span>
@@ -161,7 +167,10 @@ function SkillTable({ rows, totalCount, page, totalPages, onPageChange }) {
         </div>
         <div style={{ ...tStyles.th, ...tStyles.colChange }}>
           <span>Change %</span>
-          <InfoIcon tooltip="Period-over-period change in strength rate." />
+          <InfoIcon
+            tooltip="Period-over-period change in strength rate."
+            align="left"
+          />
         </div>
       </div>
       {rows.map((row) => (
@@ -252,16 +261,97 @@ function DeltaPill({ value, small = false }) {
   );
 }
 
-function InfoIcon({ tooltip }) {
+// InfoIcon — hoverable / focusable ⓘ that anchors a fixed-positioned tooltip.
+// Mirrors the ChartTooltip positioning approach from AdherenceRateChart.jsx
+// (also reused by InteractionsPage's SkillsPopover): tooltip is rendered
+// in a fixed layer, placed from the trigger's getBoundingClientRect.
+//
+// align controls horizontal anchoring relative to the trigger:
+//   "center" — under the trigger, centered (Total Interactions)
+//   "right"  — under the trigger, growing right (Compare Periods)
+//   "left"   — under the trigger, growing left  (Change %)
+let infoTipSeq = 0;
+function InfoIcon({ tooltip, align = "center" }) {
+  const [open, setOpen] = React.useState(false);
+  const [rect, setRect] = React.useState(null);
+  const triggerRef = React.useRef(null);
+  const openTimer = React.useRef(null);
+  const tipId = React.useMemo(() => `info-tip-${++infoTipSeq}`, []);
+
+  const show = React.useCallback(() => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+    openTimer.current = setTimeout(() => {
+      if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect());
+      setOpen(true);
+    }, 150);
+  }, []);
+
+  const hide = React.useCallback(() => {
+    if (openTimer.current) { clearTimeout(openTimer.current); openTimer.current = null; }
+    setOpen(false);
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  React.useEffect(() => () => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+  }, []);
+
   return (
-    <span
-      className="material-symbols-outlined"
-      title={tooltip}
-      aria-label={tooltip}
-      style={iconStyles.info}
+    <>
+      <span
+        ref={triggerRef}
+        role="button"
+        tabIndex={0}
+        aria-label={tooltip}
+        aria-describedby={open ? tipId : undefined}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+        className="material-symbols-outlined"
+        style={iconStyles.info}
+      >
+        info
+      </span>
+      {open && rect && <InfoTooltip id={tipId} rect={rect} align={align}>{tooltip}</InfoTooltip>}
+    </>
+  );
+}
+
+function InfoTooltip({ id, rect, align, children }) {
+  const TIP_W = 240;
+  const GUTTER = 8;
+  const viewportW = typeof window !== "undefined" ? window.innerWidth : 1440;
+  let left;
+  if (align === "right") left = rect.left;
+  else if (align === "left") left = rect.right - TIP_W;
+  else left = rect.left + rect.width / 2 - TIP_W / 2;
+  left = Math.max(GUTTER, Math.min(left, viewportW - TIP_W - GUTTER));
+  const top = rect.bottom + GUTTER;
+
+  return (
+    <div
+      id={id}
+      role="tooltip"
+      style={{
+        position: "fixed",
+        left,
+        top,
+        width: TIP_W,
+        zIndex: 1000,
+        pointerEvents: "none",
+      }}
     >
-      info
-    </span>
+      <Card shadow padX={12} padY={10}>
+        <div style={iconStyles.tipText}>{children}</div>
+      </Card>
+    </div>
   );
 }
 
@@ -365,6 +455,15 @@ const iconStyles = {
     fontSize: 12,
     color: "var(--color-text-tertiary)",
     cursor: "help",
+    display: "inline-flex",
+    alignItems: "center",
+    outline: "none",
     fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20",
+  },
+  tipText: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 12,
+    lineHeight: 1.45,
+    color: "var(--color-text-medium)",
   },
 };
