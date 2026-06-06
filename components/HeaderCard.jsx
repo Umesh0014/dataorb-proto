@@ -30,8 +30,13 @@ function formatCustomLabel({ start, end }) {
 
 // Period-card label collapses month/year when start and end share them.
 // Matches Figma spacing ("5 –17 Aug 2025") with no space after the en-dash.
+// When only the start endpoint is set, shows a trailing dash so the user
+// gets immediate feedback after the first click while the end is awaited.
 function formatPeriodCardLabel({ start, end }) {
-  if (!start || !end) return "";
+  if (!start) return "";
+  if (!end) {
+    return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()} –`;
+  }
   const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   const sameYear = start.getFullYear() === end.getFullYear();
   if (sameMonth) {
@@ -312,9 +317,8 @@ function ComparePeriodsFlyout({ onCancel, onApply }) {
 }
 
 function PeriodCard({ label, range, active, disabled }) {
-  const valueText = range.start && range.end
-    ? formatPeriodCardLabel(range)
-    : "Select dates";
+  const hasStart = !!range.start;
+  const valueText = hasStart ? formatPeriodCardLabel(range) : "Select dates";
   return (
     <div style={{
       ...ddStyles.periodCard,
@@ -324,9 +328,7 @@ function PeriodCard({ label, range, active, disabled }) {
       <div style={ddStyles.periodLabel}>{label}</div>
       <div style={{
         ...ddStyles.periodValue,
-        color: range.start && range.end
-          ? "var(--color-text-deep)"
-          : "var(--color-text-tertiary)",
+        color: hasStart ? "var(--color-text-deep)" : "var(--color-text-tertiary)",
       }}>
         {valueText}
       </div>
