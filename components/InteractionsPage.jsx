@@ -3,9 +3,6 @@
 import React from "react";
 import {
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
   ChevronUp,
   Phone,
   MessageCircle,
@@ -27,6 +24,7 @@ import {
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
+import Pagination from "./Pagination";
 import { formatDateTime } from "./formatDate";
 
 // ⚠️ You said "don't rename" but the reference header reads "Quality".
@@ -1381,71 +1379,6 @@ const emptyStyles = {
   },
 };
 
-function Pagination({ page, totalPages, totalCount, onPageChange }) {
-  const canPrev = page > 1;
-  const canNext = page < totalPages;
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "14px 20px",
-        borderTop: "1px solid var(--color-border-tab)",
-      }}
-    >
-      <div style={{ color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 500 }}>
-        Total {totalCount.toLocaleString()} Interactions
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <PageBtn ariaLabel="First page" disabled={!canPrev} onClick={() => onPageChange(1)}>
-          <ChevronsLeft size={16} />
-        </PageBtn>
-        <span
-          aria-live="polite"
-          style={{ color: "var(--do-ink)", fontSize: 13, fontWeight: 500, padding: "0 4px" }}
-        >
-          Page {page} of {totalPages}
-        </span>
-        <PageBtn ariaLabel="Previous page" disabled={!canPrev} onClick={() => canPrev && onPageChange(page - 1)}>
-          <ChevronLeft size={16} />
-        </PageBtn>
-        <PageBtn ariaLabel="Next page" disabled={!canNext} onClick={() => canNext && onPageChange(page + 1)}>
-          <ChevronRight size={16} />
-        </PageBtn>
-      </div>
-    </div>
-  );
-}
-
-function PageBtn({ children, onClick, disabled, ariaLabel }) {
-  const [hover, setHover] = React.useState(false);
-  return (
-    <button
-      type="button"
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      aria-label={ariaLabel}
-      style={{
-        width: 28,
-        height: 28,
-        borderRadius: 6,
-        border: "none",
-        background: !disabled && hover ? "var(--pill-bg)" : "transparent",
-        color: disabled ? "var(--color-text-placeholder)" : "var(--do-ink)",
-        cursor: disabled ? "default" : "pointer",
-        display: "grid",
-        placeItems: "center",
-        padding: 0,
-        transition: "background 120ms ease",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 function ChatBubbleIcon({ size = 16 }) {
   return (
