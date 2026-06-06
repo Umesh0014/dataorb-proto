@@ -325,14 +325,14 @@ function InfoIcon({ tooltip, align = "center" }) {
 }
 
 function InfoTooltip({ id, rect, align, children }) {
-  const TIP_W = 240;
+  const MAX_W = 240;
   const GUTTER = 8;
   const viewportW = typeof window !== "undefined" ? window.innerWidth : 1440;
   let left;
   if (align === "right") left = rect.left;
-  else if (align === "left") left = rect.right - TIP_W;
-  else left = rect.left + rect.width / 2 - TIP_W / 2;
-  left = Math.max(GUTTER, Math.min(left, viewportW - TIP_W - GUTTER));
+  else if (align === "left") left = rect.right - MAX_W;
+  else left = rect.left + rect.width / 2 - MAX_W / 2;
+  left = Math.max(GUTTER, Math.min(left, viewportW - MAX_W - GUTTER));
   const top = rect.bottom + GUTTER;
 
   return (
@@ -340,17 +340,13 @@ function InfoTooltip({ id, rect, align, children }) {
       id={id}
       role="tooltip"
       style={{
-        position: "fixed",
+        ...iconStyles.tipBubble,
         left,
         top,
-        width: TIP_W,
-        zIndex: 1000,
-        pointerEvents: "none",
+        maxWidth: MAX_W,
       }}
     >
-      <Card shadow padX={12} padY={10}>
-        <div style={iconStyles.tipText}>{children}</div>
-      </Card>
+      {children}
     </div>
   );
 }
@@ -460,10 +456,21 @@ const iconStyles = {
     outline: "none",
     fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20",
   },
-  tipText: {
+  // Dark Material-style bubble per Figma. 🚩 FLAG for design:
+  // #616161 isn't in the token set — flagging for promotion to a
+  // --color-tooltip-bg token. Roboto in Figma swapped to Poppins
+  // (codebase font) since Roboto isn't loaded.
+  tipBubble: {
+    position: "fixed",
+    zIndex: 1000,
+    pointerEvents: "none",
+    padding: "4px 8px",
+    background: "#616161",
+    borderRadius: 4,
+    color: "#FFFFFF",
     fontFamily: '"Poppins", sans-serif',
-    fontSize: 12,
-    lineHeight: 1.45,
-    color: "var(--color-text-medium)",
+    fontSize: 10,
+    fontWeight: 500,
+    lineHeight: "14px",
   },
 };
