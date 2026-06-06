@@ -946,8 +946,12 @@ function KPIsV3I2() {
     });
   }, []);
   const overflow = ranked.length > 6;
-  const visible = overflow && !showMore ? ranked.slice(0, 6) : ranked;
-  const hiddenCount = ranked.length - 6;
+  const baseVisible = overflow && !showMore ? ranked.slice(0, 6) : ranked;
+  const overflowCount = Math.max(0, ranked.length - 6);
+  // Rev 1: Show more CTA always present. When >6 attention KPIs, it first
+  // reveals the overflow; otherwise (and after overflow is exposed) it
+  // reveals the on-track ("calm") KPIs in a second section, mirroring V3.
+  const showCalm = showMore && !overflow;
 
   return (
     <Card padX={0} padY={0} style={chStyles.sectionCard}>
@@ -960,19 +964,29 @@ function KPIsV3I2() {
       <div style={v3I2S.wall}>
         <span style={v3S.rightLabel}>Needs attention</span>
         <div style={v3S.cardsGrid}>
-          {visible.map((kpi) => (
+          {baseVisible.map((kpi) => (
             <V3I2Card key={kpi.id} kpi={kpi} />
           ))}
         </div>
-        {overflow && (
-          <button
-            type="button"
-            style={v3S.showMoreBtn}
-            onClick={() => setShowMore((s) => !s)}
-          >
-            {showMore ? "Show fewer" : `Show more (${hiddenCount})`}
-          </button>
+        {showCalm && (
+          <>
+            <span style={{ ...v3S.rightLabel, marginTop: 8 }}>On track</span>
+            <div style={v3S.cardsGrid}>
+              {KPI_V3_CALM.map((kpi) => (
+                <V3I2Card key={kpi.id} kpi={kpi} />
+              ))}
+            </div>
+          </>
         )}
+        <button
+          type="button"
+          style={v3S.showMoreBtn}
+          onClick={() => setShowMore((s) => !s)}
+        >
+          {showMore
+            ? "Show fewer"
+            : `Show more (${overflow ? overflowCount : KPI_V3_CALM.length})`}
+        </button>
       </div>
     </Card>
   );
@@ -1032,25 +1046,26 @@ function V3I2Card({ kpi }) {
 }
 
 const v3I2S = {
-  wall: { padding: "20px 24px", display: "flex", flexDirection: "column", gap: 10 },
+  wall: { padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 },
+  // Rev 1: chunkier cards — more padding, larger metric, taller min-height.
   card: {
-    display: "flex", flexDirection: "row", alignItems: "stretch", gap: 10,
-    padding: 14, borderRadius: 12,
+    display: "flex", flexDirection: "row", alignItems: "stretch", gap: 14,
+    padding: 18, borderRadius: 14,
     border: "1px solid rgba(0,0,0,0.04)",
-    minHeight: 96,
+    minHeight: 124,
   },
   left: {
-    flex: "0 0 50%", display: "flex", flexDirection: "column", gap: 8,
+    flex: "0 0 50%", display: "flex", flexDirection: "column", gap: 10,
     justifyContent: "center", minWidth: 0,
   },
-  topRow: { display: "flex", alignItems: "center", gap: 6, minWidth: 0 },
+  topRow: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 },
   title: {
-    flex: 1, fontSize: 12, fontWeight: 600, color: "#171B2C",
+    flex: 1, fontSize: 13, fontWeight: 600, color: "#171B2C",
     letterSpacing: "0.1px",
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
   },
   value: {
-    fontSize: 22, fontWeight: 700, color: "#000", lineHeight: 1.1,
+    fontSize: 28, fontWeight: 700, color: "#000", lineHeight: 1.1,
     fontFamily: "var(--font-sans)",
   },
   right: { flex: 1, display: "flex", alignItems: "center", minWidth: 0 },
@@ -1270,9 +1285,9 @@ const kpiSectionStyles = {
     marginLeft: 12, width: 48, zIndex: 30,
   },
   railSticky: { position: "sticky", top: "50vh", transform: "translateY(-50%)" },
-  // I-pill placement: sits flush to the LEFT of the V-pill with an 8px gap.
+  // I-pill placement: sits flush to the RIGHT of the V-pill with an 8px gap.
   // V-pill position unchanged; this is a sibling overlay only rendered on V3.
-  iRailWrap: { position: "absolute", right: "100%", top: 0, marginRight: 8 },
+  iRailWrap: { position: "absolute", left: "100%", top: 0, marginLeft: 8 },
 };
 
 // V1 master-KPI styles
