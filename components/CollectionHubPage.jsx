@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp } from "lucide-react";
+import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp, Gauge, PhoneCall, MessagesSquare, Handshake, PhoneOff, Activity, CalendarClock, ShieldCheck, ShoppingCart } from "lucide-react";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
 import CircularProgress from "./CircularProgress";
@@ -1004,6 +1004,21 @@ function v3I2StateOf(kpi, force) {
   return "severe";
 }
 
+// Leading icon map (lucide-react, monochrome — inherits card text color).
+// FLAG: first pass; reconfirm after Alex's Reach/Recovery/Quality
+// classification — icons may group by bucket instead of by KPI.
+const V3I2_ICONS = {
+  "Efficiency": Gauge,
+  "Contactability": PhoneCall,
+  "Effective Comms": MessagesSquare,
+  "Negotiation": Handshake,
+  "Failed Comms": PhoneOff,
+  "Effort": Activity,
+  "Rescheduled Call Success": CalendarClock,
+  "Compliance Score": ShieldCheck,
+  "Point of Sale": ShoppingCart,
+};
+
 function KPIsV3I2() {
   const [showMore, setShowMore] = React.useState(false);
   const ranked = React.useMemo(() => {
@@ -1069,6 +1084,7 @@ function V3I2Card({ kpi, forceState }) {
   const palette = V3I2_STATES[state];
   const statusLine = statusRingColor(kpi.status.label);
   const lineColor = palette.lineColor || statusLine;
+  const Icon = V3I2_ICONS[kpi.label] || Target;
 
   // Target tag vertical position — mirrors AreaSparkline math (W=160, H=52,
   // PAD t=6 b=4). Expressed as a fraction of chart height so the absolute
@@ -1090,6 +1106,10 @@ function V3I2Card({ kpi, forceState }) {
 
   return (
     <div style={{ ...v3I2S.card, background: palette.cardBg }}>
+      {/* Leading icon — monochrome, inherits text color via currentColor. */}
+      <div style={{ ...v3I2S.iconCol, color: palette.text }}>
+        <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+      </div>
       <div style={v3I2S.left}>
         <div style={v3I2S.topRow}>
           {/* Status dot removed in Rev 2 — severity carried by card bg. */}
@@ -1126,14 +1146,19 @@ function V3I2Card({ kpi, forceState }) {
 const v3I2S = {
   wall: { padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 },
   // Rev 1: chunkier cards — more padding, larger metric, taller min-height.
+  // Rev 3: leading icon column added; gap=12 satisfies ~12px icon→title gap.
   card: {
-    display: "flex", flexDirection: "row", alignItems: "stretch", gap: 14,
+    display: "flex", flexDirection: "row", alignItems: "stretch", gap: 12,
     padding: 18, borderRadius: 14,
     border: "1px solid rgba(0,0,0,0.04)",
     minHeight: 124,
   },
+  iconCol: {
+    display: "flex", alignItems: "center", justifyContent: "center",
+    flexShrink: 0,
+  },
   left: {
-    flex: "0 0 50%", display: "flex", flexDirection: "column", gap: 10,
+    flex: 1, display: "flex", flexDirection: "column", gap: 10,
     justifyContent: "center", minWidth: 0,
   },
   topRow: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 },
