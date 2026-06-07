@@ -994,7 +994,15 @@ const V3I2_STATES = {
     lineColor: null,
   },
   "severe": {
-    cardBg: "var(--color-error-dark)",   // #BA1A1A — 6.5:1 white text, passes AA
+    // Patch (borrow): subtle depth — radial gradient across three steps of
+    // the error ramp creates a soft focal bloom at left (where metric sits)
+    // without inventing colors or using white overlays. Light-tint cards
+    // (on-track, moderate) stay flat.
+    cardBg:
+      "radial-gradient(ellipse at 28% 45%, " +
+      "var(--color-error) 0%, " +
+      "var(--color-error-dark) 55%, " +
+      "var(--color-error-text) 110%)",
     text: "var(--surface-white)",
     pillText: "var(--surface-white)",
     pillBorder: "rgba(255,255,255,0.35)",
@@ -1163,10 +1171,12 @@ const v3I2S = {
   wall: { padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 },
   // Rev 1: chunkier cards — more padding, larger metric, taller min-height.
   // Rev 3: leading icon column added; gap=12 satisfies ~12px icon→title gap.
+  // Patch (borrow): polished elevation/radius via existing tokens.
   card: {
     display: "flex", flexDirection: "row", alignItems: "stretch", gap: 12,
-    padding: 18, borderRadius: 14,
+    padding: 18, borderRadius: "var(--radius-lg)",
     border: "1px solid rgba(0,0,0,0.04)",
+    boxShadow: "var(--shadow-card)",
     minHeight: 124,
   },
   iconCol: {
@@ -1182,8 +1192,10 @@ const v3I2S = {
     justifyContent: "center", minWidth: 0,
   },
   topRow: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 },
+  // Patch (borrow): demote title — smaller size + lighter weight so the
+  // metric below reads as the clear anchor on every card.
   title: {
-    flex: 1, fontSize: 13, fontWeight: 600, color: "#171B2C",
+    flex: 1, fontSize: 12, fontWeight: 500, color: "var(--color-text-deep)",
     letterSpacing: "0.1px",
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
   },
