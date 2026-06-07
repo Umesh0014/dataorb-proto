@@ -937,6 +937,73 @@ function v3i2NumericValue(raw) {
   return Number.isFinite(n) ? n : 0;
 }
 
+// ---- Rev 2 — progress-driven card state ----------------------------------
+// FLAG: no explicit polarity field on KPI mocks. Inferring from value vs
+// target + status label: if value > target, On Track means higher-better,
+// not-on-track means lower-better; mirror for value < target. Akash to
+// confirm and add a `polarity` field on the mock so this stops being a
+// derivation.
+function v3I2Polarity(kpi) {
+  const cur = v3i2NumericValue(kpi.value);
+  const onTrack = kpi.status.label === "On Track";
+  if (cur > kpi.target) return onTrack ? "higher" : "lower";
+  if (cur < kpi.target) return onTrack ? "lower" : "higher";
+  return "higher";
+}
+
+// progress = (current − baseline) / (target − baseline) in the good direction.
+// Baseline = first sparkline point (start of measurement window).
+function v3I2Progress(kpi) {
+  const cur = v3i2NumericValue(kpi.value);
+  const baseline = kpi.sparkline?.[0] ?? cur;
+  const polarity = v3I2Polarity(kpi);
+  const denom = polarity === "higher" ? (kpi.target - baseline) : (baseline - kpi.target);
+  if (denom === 0) return 1;
+  const num = polarity === "higher" ? (cur - baseline) : (baseline - cur);
+  return num / denom;
+}
+
+// State palette — reuses existing KPI_STATUS_LEGEND tokens.
+// FLAG: no dedicated "bright red surface" or pill-on-card-bg token in
+// globals.css today. Using KPI_STATUS_LEGEND[3].color (#DC2626) as the
+// severe bg because it carries enough contrast for white text (≈4.75:1,
+// passes AA normal). Promote to a named surface token when the system
+// grows tints.
+const V3I2_STATES = {
+  "on-track": {
+    cardBg: "#F0FDF4",  // KPI_STATUS_LEGEND[On Track].bg
+    text: "#00711D",     // KPI_STATUS_LEGEND[On Track].color — 6.5:1 on #F0FDF4
+    pillText: "#00711D",
+    pillBorder: "rgba(0,113,29,0.18)",
+    lineColor: null,     // keep chart line as status-derived
+  },
+  "moderate": {
+    cardBg: "#FEF2F2",  // KPI_STATUS_LEGEND[Needs Attention].bg
+    text: "#BA1A1A",     // KPI_STATUS_LEGEND[Needs Attention].color — 5.6:1 on #FEF2F2
+    pillText: "#BA1A1A",
+    pillBorder: "rgba(186,26,26,0.18)",
+    lineColor: null,
+  },
+  "severe": {
+    cardBg: "#DC2626",  // KPI_STATUS_LEGEND[Critical].color — used as bright surface
+    text: "#FFFFFF",     // 4.75:1 on #DC2626 — passes AA normal
+    pillText: "#FFFFFF",
+    pillBorder: "rgba(255,255,255,0.35)",
+    // Severe bg is a red surface; status-derived red trend line disappears.
+    // Override to white. Dashed target line (#94A3B8 hardcoded inside
+    // AreaSparkline) stays per "do not restyle chart" rule — FLAG.
+    lineColor: "#FFFFFF",
+  },
+};
+
+function v3I2StateOf(kpi, force) {
+  if (force) return force;
+  const p = v3I2Progress(kpi);
+  if (p >= 1) return "on-track";
+  if (p >= 0.5) return "moderate";
+  return "severe";
+}
+
 function KPIsV3I2() {
   const [showMore, setShowMore] = React.useState(false);
   const ranked = React.useMemo(() => {
@@ -973,7 +1040,7 @@ function KPIsV3I2() {
             <span style={{ ...v3S.rightLabel, marginTop: 8 }}>On track</span>
             <div style={v3S.cardsGrid}>
               {KPI_V3_CALM.map((kpi) => (
-                <V3I2Card key={kpi.id} kpi={kpi} />
+                <V3I2Card key={kpi.id} kpi={kpi} forceState="on-track" />
               ))}
             </div>
           </>
@@ -997,9 +1064,11 @@ function KPIsV3I2() {
 // RIGHT: trend/area chart with a "Target {value}" chip anchored to the
 // right end of the dashed target line (default above — see FLAG 3).
 // Category tag, status pill, and standalone "target …" subtext removed.
-function V3I2Card({ kpi }) {
-  const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
-  const lineColor = statusRingColor(kpi.status.label);
+function V3I2Card({ kpi, forceState }) {
+  const state = v3I2StateOf(kpi, forceState);
+  const palette = V3I2_STATES[state];
+  const statusLine = statusRingColor(kpi.status.label);
+  const lineColor = palette.lineColor || statusLine;
 
   // Target tag vertical position — mirrors AreaSparkline math (W=160, H=52,
   // PAD t=6 b=4). Expressed as a fraction of chart height so the absolute
@@ -1020,21 +1089,30 @@ function V3I2Card({ kpi }) {
   const targetStr = String(kpi.value).includes("%") ? `${kpi.target}%` : `${kpi.target}`;
 
   return (
-    <div style={{ ...v3I2S.card, background: "#F8FAFC" }}>
+    <div style={{ ...v3I2S.card, background: palette.cardBg }}>
       <div style={v3I2S.left}>
         <div style={v3I2S.topRow}>
-          <span style={{ ...v3S.cardDot, background: statusMeta.zone }} />
-          <span style={v3I2S.title}>{kpi.label}</span>
+          {/* Status dot removed in Rev 2 — severity carried by card bg. */}
+          <span style={{ ...v3I2S.title, color: palette.text }}>{kpi.label}</span>
         </div>
-        <span style={v3I2S.value}>{kpi.value}</span>
+        <span style={{ ...v3I2S.value, color: palette.text }}>{kpi.value}</span>
       </div>
       <div style={v3I2S.right}>
         <div style={v3I2S.chartWrap}>
           <AreaSparkline data={kpi.sparkline} target={kpi.targetLine} color={lineColor} />
+          {/* Target pill centered ON the dotted line (Rev 2 rule 2):
+              vertically centered on the line; horizontally centered over
+              the chart; fill matches card bg so the line appears clipped. */}
           <span
             style={{
               ...v3I2S.targetTag,
               top: `${targetYPct * 100}%`,
+              left: "50%",
+              right: "auto",
+              transform: "translate(-50%, -50%)",
+              background: palette.cardBg,
+              color: palette.pillText,
+              borderColor: palette.pillBorder,
             }}
           >
             Target {targetStr}
