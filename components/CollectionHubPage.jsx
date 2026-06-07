@@ -139,19 +139,39 @@ const KPI_VERSIONS = [
   { id: "v3", label: "V3", title: "Activity rings + attention cards" },
 ];
 
+// Iteration variants — V3 only. I1 = current V3 layout (rings + cards).
+// I2 = full-width KPI wall (no rings, no legend list).
+const KPI_ITERATIONS = [
+  { id: "i1", label: "I1", title: "V3 — rings + attention cards" },
+  { id: "i2", label: "I2", title: "V3 — full-width KPI wall" },
+];
+
 function KPIsAndGoalsCard() {
   const [version, setVersion] = React.useState("v0");
+  // Iteration switcher state — only meaningful when version === "v3".
+  // Resets to "i1" each time the user enters V3. In-memory only.
+  const [iteration, setIteration] = React.useState("i1");
+  const handleVersionChange = (v) => {
+    setVersion(v);
+    if (v === "v3") setIteration("i1");
+  };
   return (
     <div style={kpiSectionStyles.wrap}>
       <div style={kpiSectionStyles.cardArea}>
         {version === "v0" && <KPIsV0 />}
         {version === "v1" && <KPIsV1 />}
         {version === "v2" && <KPIsV2 />}
-        {version === "v3" && <KPIsV3 />}
+        {version === "v3" && iteration === "i1" && <KPIsV3 />}
+        {version === "v3" && iteration === "i2" && <KPIsV3I2 />}
       </div>
       <div style={kpiSectionStyles.railMount}>
         <div style={kpiSectionStyles.railSticky}>
-          <KpiVersionRail value={version} onChange={setVersion} />
+          {version === "v3" && (
+            <div style={kpiSectionStyles.iRailWrap}>
+              <KpiIterationRail value={iteration} onChange={setIteration} />
+            </div>
+          )}
+          <KpiVersionRail value={version} onChange={handleVersionChange} />
         </div>
       </div>
     </div>
@@ -903,6 +923,168 @@ function AreaSparkline({ data, target, color }) {
   );
 }
 
+// ---- V3 / I2: Full-width KPI wall ----------------------------------------
+// I2 variant of the V3 layout. Rings + legend column removed entirely.
+// Cards form a full-width 3-col grid spanning the section. Only "needs
+// attention" KPIs shown; ≤6 → show all (no Show more); >6 → top 6 by
+// gap-to-target + Show more.
+// Per FLAG 1 default: section subtitle hidden in I2.
+
+// Numeric value extractor used for ranking and target formatting.
+// Strips "%" and parses to float. Falls back to NaN → 0 for sort safety.
+function v3i2NumericValue(raw) {
+  const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function KPIsV3I2() {
+  const [showMore, setShowMore] = React.useState(false);
+  const ranked = React.useMemo(() => {
+    return [...KPI_V3_ATTENTION].sort((a, b) => {
+      const gap = (k) => Math.abs(v3i2NumericValue(k.value) - k.target);
+      return gap(b) - gap(a);
+    });
+  }, []);
+  const overflow = ranked.length > 6;
+  const baseVisible = overflow && !showMore ? ranked.slice(0, 6) : ranked;
+  const overflowCount = Math.max(0, ranked.length - 6);
+  // Rev 1: Show more CTA always present. When >6 attention KPIs, it first
+  // reveals the overflow; otherwise (and after overflow is exposed) it
+  // reveals the on-track ("calm") KPIs in a second section, mirroring V3.
+  const showCalm = showMore && !overflow;
+
+  return (
+    <Card padX={0} padY={0} style={chStyles.sectionCard}>
+      <div style={chStyles.sectionHeader}>
+        <div style={chStyles.sectionTitleBlock}>
+          <span style={chStyles.sectionTitle}>KPI's and Goals</span>
+          {/* Subtitle intentionally hidden in I2 — see FLAG 1. */}
+        </div>
+      </div>
+      <div style={v3I2S.wall}>
+        <span style={v3S.rightLabel}>Needs attention</span>
+        <div style={v3S.cardsGrid}>
+          {baseVisible.map((kpi) => (
+            <V3I2Card key={kpi.id} kpi={kpi} />
+          ))}
+        </div>
+        {showCalm && (
+          <>
+            <span style={{ ...v3S.rightLabel, marginTop: 8 }}>On track</span>
+            <div style={v3S.cardsGrid}>
+              {KPI_V3_CALM.map((kpi) => (
+                <V3I2Card key={kpi.id} kpi={kpi} />
+              ))}
+            </div>
+          </>
+        )}
+        <button
+          type="button"
+          style={v3S.showMoreBtn}
+          onClick={() => setShowMore((s) => !s)}
+        >
+          {showMore
+            ? "Show fewer"
+            : `Show more (${overflow ? overflowCount : KPI_V3_CALM.length})`}
+        </button>
+      </div>
+    </Card>
+  );
+}
+
+// I2 card — true left/right split.
+// LEFT: status dot + KPI title, large metric value.
+// RIGHT: trend/area chart with a "Target {value}" chip anchored to the
+// right end of the dashed target line (default above — see FLAG 3).
+// Category tag, status pill, and standalone "target …" subtext removed.
+function V3I2Card({ kpi }) {
+  const statusMeta = KPI_STATUS_LEGEND.find((s) => s.label === kpi.status.label) || KPI_STATUS_LEGEND[2];
+  const lineColor = statusRingColor(kpi.status.label);
+
+  // Target tag vertical position — mirrors AreaSparkline math (W=160, H=52,
+  // PAD t=6 b=4). Expressed as a fraction of chart height so the absolute
+  // overlay tracks the SVG when it scales with container width.
+  const H = 52;
+  const PAD_T = 6;
+  const PAD_B = 4;
+  const chartH = H - PAD_T - PAD_B;
+  const allVals = [...kpi.sparkline, kpi.targetLine];
+  const min = Math.min(...allVals);
+  const max = Math.max(...allVals);
+  const range = max - min || 1;
+  const targetYPx = PAD_T + chartH - ((kpi.targetLine - min) / range) * chartH;
+  const targetYPct = targetYPx / H;
+
+  // Match target value formatting to the metric value units (e.g. 43 → "43%"
+  // when the metric is "10%"; otherwise plain "2.5").
+  const targetStr = String(kpi.value).includes("%") ? `${kpi.target}%` : `${kpi.target}`;
+
+  return (
+    <div style={{ ...v3I2S.card, background: "#F8FAFC" }}>
+      <div style={v3I2S.left}>
+        <div style={v3I2S.topRow}>
+          <span style={{ ...v3S.cardDot, background: statusMeta.zone }} />
+          <span style={v3I2S.title}>{kpi.label}</span>
+        </div>
+        <span style={v3I2S.value}>{kpi.value}</span>
+      </div>
+      <div style={v3I2S.right}>
+        <div style={v3I2S.chartWrap}>
+          <AreaSparkline data={kpi.sparkline} target={kpi.targetLine} color={lineColor} />
+          <span
+            style={{
+              ...v3I2S.targetTag,
+              top: `${targetYPct * 100}%`,
+            }}
+          >
+            Target {targetStr}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const v3I2S = {
+  wall: { padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 },
+  // Rev 1: chunkier cards — more padding, larger metric, taller min-height.
+  card: {
+    display: "flex", flexDirection: "row", alignItems: "stretch", gap: 14,
+    padding: 18, borderRadius: 14,
+    border: "1px solid rgba(0,0,0,0.04)",
+    minHeight: 124,
+  },
+  left: {
+    flex: "0 0 50%", display: "flex", flexDirection: "column", gap: 10,
+    justifyContent: "center", minWidth: 0,
+  },
+  topRow: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 },
+  title: {
+    flex: 1, fontSize: 13, fontWeight: 600, color: "#171B2C",
+    letterSpacing: "0.1px",
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  value: {
+    fontSize: 28, fontWeight: 700, color: "#000", lineHeight: 1.1,
+    fontFamily: "var(--font-sans)",
+  },
+  right: { flex: 1, display: "flex", alignItems: "center", minWidth: 0 },
+  chartWrap: { position: "relative", width: "100%" },
+  targetTag: {
+    position: "absolute", right: 4,
+    transform: "translateY(-100%) translateY(-2px)",
+    display: "inline-flex", alignItems: "center",
+    padding: "2px 6px",
+    fontSize: 10, fontWeight: 600, color: "#5B5E6F",
+    background: "rgba(255,255,255,0.9)",
+    border: "1px solid rgba(0,0,0,0.06)",
+    borderRadius: 4,
+    letterSpacing: "0.3px",
+    whiteSpace: "nowrap",
+    pointerEvents: "none",
+  },
+};
+
 // V3 styles
 const v3S = {
   twoCol: {
@@ -1026,6 +1208,37 @@ function KpiVersionRail({ value, onChange }) {
   );
 }
 
+// I1/I2 iteration rail — identical primitive to KpiVersionRail (same dark
+// pill, yellow active chip, info icon). Two segments, label "I".
+function KpiIterationRail({ value, onChange }) {
+  const [hovered, setHovered] = React.useState(null);
+  return (
+    <div style={railS.rail}>
+      <span style={railS.railLabel}>I</span>
+      <span style={railS.railDivider} />
+      <div style={railS.btnGroup}>
+        {KPI_ITERATIONS.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            title={b.title}
+            aria-pressed={value === b.id}
+            onClick={() => onChange(b.id)}
+            onMouseEnter={() => setHovered(b.id)}
+            onMouseLeave={() => setHovered(null)}
+            style={kpiRailBtnStyle(value === b.id, hovered === b.id)}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <div style={railS.infoBtn}>
+        <Info size={14} />
+      </div>
+    </div>
+  );
+}
+
 function kpiRailBtnStyle(active, isHover) {
   if (active) {
     return { ...railS.btn, background: "#FDE047", color: "#171717", border: "none" };
@@ -1072,6 +1285,9 @@ const kpiSectionStyles = {
     marginLeft: 12, width: 48, zIndex: 30,
   },
   railSticky: { position: "sticky", top: "50vh", transform: "translateY(-50%)" },
+  // I-pill placement: sits flush to the RIGHT of the V-pill with an 8px gap.
+  // V-pill position unchanged; this is a sibling overlay only rendered on V3.
+  iRailWrap: { position: "absolute", left: "100%", top: 0, marginLeft: 8 },
 };
 
 // V1 master-KPI styles
