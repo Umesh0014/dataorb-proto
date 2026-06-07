@@ -884,7 +884,7 @@ function V3Card({ kpi, hue }) {
 
 // Area-fill sparkline with dashed target line — hand-rolled SVG.
 // Reuses existing trend-line approach + adds area fill under the line.
-function AreaSparkline({ data, target, color }) {
+function AreaSparkline({ data, target, color, fillOpacity }) {
   const W = 160;
   const H = 52;
   const PAD = { t: 6, b: 4, l: 2, r: 2 };
@@ -911,8 +911,14 @@ function AreaSparkline({ data, target, color }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
-      {/* Area fill */}
-      <path d={area} fill={color} fillOpacity="0.12" />
+      {/* Area fill — default 0.12 preserves I1/V3. I2 passes a CSS-var
+          string (e.g. "var(--chart-area-opacity)" = 0.15) for a stronger
+          shade per Patch §3. */}
+      <path
+        d={area}
+        fill={color}
+        {...(fillOpacity ? { style: { fillOpacity } } : { fillOpacity: "0.12" })}
+      />
       {/* Target dashed line */}
       <line x1={PAD.l} x2={W - PAD.r} y1={targetY} y2={targetY} stroke="#94A3B8" strokeWidth="1" strokeDasharray="4 3" />
       {/* Trend line */}
@@ -963,36 +969,38 @@ function v3I2Progress(kpi) {
   return num / denom;
 }
 
-// State palette — reuses existing KPI_STATUS_LEGEND tokens.
-// FLAG: no dedicated "bright red surface" or pill-on-card-bg token in
-// globals.css today. Using KPI_STATUS_LEGEND[3].color (#DC2626) as the
-// severe bg because it carries enough contrast for white text (≈4.75:1,
-// passes AA normal). Promote to a named surface token when the system
-// grows tints.
+// State palette — references existing :root tokens in app/globals.css.
+// Patch: cardBg/text repointed to var() tokens; iconChipBg added.
+// FLAG (Akash): globals.css has no per-status "darker step" surface token
+// (no green-100/200, red-100/200, etc. on the severity ramps). Using
+// var(--overlay-selected) (rgba(0,0,0,0.08)) as a universal darken layer
+// for the icon chip — works on light cards and as a subtle deepening on
+// the severe red. Confirm or define a proper ramp step.
 const V3I2_STATES = {
   "on-track": {
-    cardBg: "#F0FDF4",  // KPI_STATUS_LEGEND[On Track].bg
-    text: "#00711D",     // KPI_STATUS_LEGEND[On Track].color — 6.5:1 on #F0FDF4
-    pillText: "#00711D",
-    pillBorder: "rgba(0,113,29,0.18)",
-    lineColor: null,     // keep chart line as status-derived
+    cardBg: "var(--color-success-bg)",   // #EDF7ED
+    text: "var(--color-success-text)",   // #1E4620 — 10:1 on #EDF7ED
+    pillText: "var(--color-success-text)",
+    pillBorder: "rgba(30,70,32,0.18)",
+    iconChipBg: "var(--overlay-selected)",
+    lineColor: null,
   },
   "moderate": {
-    cardBg: "#FEF2F2",  // KPI_STATUS_LEGEND[Needs Attention].bg
-    text: "#BA1A1A",     // KPI_STATUS_LEGEND[Needs Attention].color — 5.6:1 on #FEF2F2
-    pillText: "#BA1A1A",
+    cardBg: "var(--color-error-bg)",     // #FDEDED
+    text: "var(--color-error-dark)",     // #BA1A1A — 5.6:1 on #FDEDED
+    pillText: "var(--color-error-dark)",
     pillBorder: "rgba(186,26,26,0.18)",
+    iconChipBg: "var(--overlay-selected)",
     lineColor: null,
   },
   "severe": {
-    cardBg: "#DC2626",  // KPI_STATUS_LEGEND[Critical].color — used as bright surface
-    text: "#FFFFFF",     // 4.75:1 on #DC2626 — passes AA normal
-    pillText: "#FFFFFF",
+    cardBg: "var(--color-error-dark)",   // #BA1A1A — 6.5:1 white text, passes AA
+    text: "var(--surface-white)",
+    pillText: "var(--surface-white)",
     pillBorder: "rgba(255,255,255,0.35)",
-    // Severe bg is a red surface; status-derived red trend line disappears.
-    // Override to white. Dashed target line (#94A3B8 hardcoded inside
-    // AreaSparkline) stays per "do not restyle chart" rule — FLAG.
-    lineColor: "#FFFFFF",
+    iconChipBg: "var(--overlay-selected)",
+    // Red trend line on red surface disappears — override to white.
+    lineColor: "var(--surface-white)",
   },
 };
 
@@ -1106,9 +1114,12 @@ function V3I2Card({ kpi, forceState }) {
 
   return (
     <div style={{ ...v3I2S.card, background: palette.cardBg }}>
-      {/* Leading icon — monochrome, inherits text color via currentColor. */}
+      {/* Leading icon — monochrome chip, 8px padding all sides,
+          background one step darker than card via --overlay-selected. */}
       <div style={{ ...v3I2S.iconCol, color: palette.text }}>
-        <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+        <div style={{ ...v3I2S.iconChip, background: palette.iconChipBg }}>
+          <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+        </div>
       </div>
       <div style={v3I2S.left}>
         <div style={v3I2S.topRow}>
@@ -1119,7 +1130,12 @@ function V3I2Card({ kpi, forceState }) {
       </div>
       <div style={v3I2S.right}>
         <div style={v3I2S.chartWrap}>
-          <AreaSparkline data={kpi.sparkline} target={kpi.targetLine} color={lineColor} />
+          <AreaSparkline
+            data={kpi.sparkline}
+            target={kpi.targetLine}
+            color={lineColor}
+            fillOpacity="var(--chart-area-opacity)"
+          />
           {/* Target pill centered ON the dotted line (Rev 2 rule 2):
               vertically centered on the line; horizontally centered over
               the chart; fill matches card bg so the line appears clipped. */}
@@ -1156,6 +1172,10 @@ const v3I2S = {
   iconCol: {
     display: "flex", alignItems: "center", justifyContent: "center",
     flexShrink: 0,
+  },
+  iconChip: {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    padding: 8, borderRadius: "var(--radius-sm)",
   },
   left: {
     flex: 1, display: "flex", flexDirection: "column", gap: 10,
