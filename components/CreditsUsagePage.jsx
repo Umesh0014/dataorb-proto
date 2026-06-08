@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Gauge, Search, Download, Info } from "lucide-react";
+import { Gauge, Search, Download, Info, ChevronsLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import Toggle from "./Toggle";
@@ -27,6 +27,7 @@ import { CREDITS_USAGE_SAMPLE } from "./SettingsPage";
 // (not built here).
 
 const DEFAULT_WEEKLY_QUOTA = 30;
+const PAGE_SIZE = 10;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ---- Sample / stub data ---------------------------------------------------
@@ -56,6 +57,20 @@ const AGENTS_SAMPLE = [
   { id: 6, name: "Arjun Nair", email: "arjun.nair@eci.com", hasCustom: false, limit: 30 },
   { id: 7, name: "Kavita Singh", email: "kavita.singh@eci.com", hasCustom: true, limit: 20 },
   { id: 8, name: "Deepak Gupta", email: "deepak.gupta@eci.com", hasCustom: false, limit: 30 },
+  { id: 9, name: "Sneha Reddy", email: "sneha.reddy@eci.com", hasCustom: false, limit: 30 },
+  { id: 10, name: "Karan Mehta", email: "karan.mehta@eci.com", hasCustom: true, limit: 50 },
+  { id: 11, name: "Pooja Iyer", email: "pooja.iyer@eci.com", hasCustom: false, limit: 30 },
+  { id: 12, name: "Sanjay Rao", email: "sanjay.rao@eci.com", hasCustom: false, limit: 30 },
+  { id: 13, name: "Neha Kulkarni", email: "neha.kulkarni@eci.com", hasCustom: true, limit: 40 },
+  { id: 14, name: "Amit Choudhary", email: "amit.choudhary@eci.com", hasCustom: false, limit: 30 },
+  { id: 15, name: "Divya Menon", email: "divya.menon@eci.com", hasCustom: false, limit: 30 },
+  { id: 16, name: "Rohit Saxena", email: "rohit.saxena@eci.com", hasCustom: true, limit: 25 },
+  { id: 17, name: "Ananya Bose", email: "ananya.bose@eci.com", hasCustom: false, limit: 30 },
+  { id: 18, name: "Manish Agarwal", email: "manish.agarwal@eci.com", hasCustom: false, limit: 30 },
+  { id: 19, name: "Shreya Pillai", email: "shreya.pillai@eci.com", hasCustom: true, limit: 55 },
+  { id: 20, name: "Gaurav Bhat", email: "gaurav.bhat@eci.com", hasCustom: false, limit: 30 },
+  { id: 21, name: "Ritu Malhotra", email: "ritu.malhotra@eci.com", hasCustom: false, limit: 30 },
+  { id: 22, name: "Varun Khanna", email: "varun.khanna@eci.com", hasCustom: true, limit: 35 },
 ];
 
 // ---- Main component -------------------------------------------------------
@@ -344,6 +359,22 @@ function AgentLimitsSection({
   onToggleCustom,
   onSetLimit,
 }) {
+  const [page, setPage] = React.useState(1);
+
+  // Reset to the first page when the search term changes, so filtered
+  // results aren't hidden behind a stale page index. Adjusting state during
+  // render (rather than in an effect) avoids a cascading re-render.
+  const [prevSearch, setPrevSearch] = React.useState(search);
+  if (search !== prevSearch) {
+    setPrevSearch(search);
+    setPage(1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(agents.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = agents.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const goToPage = (next) => setPage(Math.min(Math.max(1, next), totalPages));
+
   return (
     <Section
       title="Agent limits"
@@ -377,7 +408,7 @@ function AgentLimitsSection({
             </tr>
           </thead>
           <tbody>
-            {agents.map((agent) => (
+            {pageRows.map((agent) => (
               <tr key={agent.id} style={styles.tr}>
                 <td style={styles.td}>
                   <span style={styles.agentName}>{agent.name}</span>
@@ -414,6 +445,25 @@ function AgentLimitsSection({
             )}
           </tbody>
         </table>
+
+        {agents.length > PAGE_SIZE && (
+          <div style={styles.pageFooter}>
+            <div style={styles.pageCtrls}>
+              <PageBtn ariaLabel="First page" disabled={safePage <= 1} onClick={() => goToPage(1)}>
+                <ChevronsLeft size={16} />
+              </PageBtn>
+              <span style={styles.pageLabel} aria-live="polite">
+                Page {safePage} of {totalPages}
+              </span>
+              <PageBtn ariaLabel="Previous page" disabled={safePage <= 1} onClick={() => goToPage(safePage - 1)}>
+                <ChevronLeft size={16} />
+              </PageBtn>
+              <PageBtn ariaLabel="Next page" disabled={safePage >= totalPages} onClick={() => goToPage(safePage + 1)}>
+                <ChevronRight size={16} />
+              </PageBtn>
+            </div>
+          </div>
+        )}
       </div>
     </Section>
   );
@@ -576,6 +626,14 @@ function InlineError({ message }) {
     <div style={styles.inlineError} role="alert">
       {message}
     </div>
+  );
+}
+
+function PageBtn({ children, onClick, disabled, ariaLabel }) {
+  return (
+    <Button variant="icon" size="sm" aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
+      {children}
+    </Button>
   );
 }
 
@@ -885,6 +943,27 @@ const styles = {
     color: "var(--color-text-tertiary)",
     fontSize: 12,
     fontWeight: 500,
+  },
+
+  // Agent limits — pagination footer
+  pageFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    padding: "10px 14px",
+    borderTop: "1px solid var(--color-border-card-soft)",
+  },
+  pageCtrls: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  pageLabel: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: "var(--color-text-deep)",
+    padding: "0 4px",
+    fontVariantNumeric: "tabular-nums",
   },
 
   // Billing behavior — segmented options
