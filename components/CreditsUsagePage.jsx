@@ -6,6 +6,7 @@ import Card from "./Card";
 import Button from "./Button";
 import Toggle from "./Toggle";
 import PageHeader from "./PageHeader";
+import DarkPillSwitcher from "./DarkPillSwitcher";
 import { CREDITS_USAGE_SAMPLE } from "./SettingsPage";
 
 // CreditsUsagePage — Credits & Usage admin surface.
@@ -59,7 +60,12 @@ const AGENTS_SAMPLE = [
 
 // ---- Main component -------------------------------------------------------
 
+const MODES = ["M1", "M2"];
+
 export default function CreditsUsagePage({ onBack }) {
+  // Demo-only variant: M1 is a strict subset of M2 (the current full page).
+  // Defaults to M1; M2-only blocks render conditionally below.
+  const [mode, setMode] = React.useState("M1");
   const [weeklyQuota, setWeeklyQuota] = React.useState(DEFAULT_WEEKLY_QUOTA);
   const [routingEmail, setRoutingEmail] = React.useState("");
   const [agents, setAgents] = React.useState(AGENTS_SAMPLE);
@@ -113,16 +119,20 @@ export default function CreditsUsagePage({ onBack }) {
       />
 
       <InfoBanner />
-      <TenantUsageSection />
+      <TenantUsageSection mode={mode} />
 
-      <div style={styles.pairRow}>
-        <AgentWeeklyQuotaSection value={weeklyQuota} onChange={setWeeklyQuota} />
-        <RequestRoutingSection
-          value={routingEmail}
-          onChange={setRoutingEmail}
-          error={emailError}
-        />
-      </div>
+      {mode === "M2" ? (
+        <div style={styles.pairRow}>
+          <AgentWeeklyQuotaSection value={weeklyQuota} onChange={setWeeklyQuota} />
+          <RequestRoutingSection
+            value={routingEmail}
+            onChange={setRoutingEmail}
+            error={emailError}
+          />
+        </div>
+      ) : (
+        <AgentWeeklyQuotaSection value={weeklyQuota} onChange={setWeeklyQuota} standalone />
+      )}
 
       <AgentLimitsSection
         agents={filteredAgents}
@@ -134,10 +144,12 @@ export default function CreditsUsagePage({ onBack }) {
         onSetLimit={setAgentLimit}
       />
 
-      <div style={styles.pairRow}>
-        <BillingBehaviorSection mode={billingMode} onChange={setBillingMode} />
-        <UsageReportSection />
-      </div>
+      {mode === "M2" && (
+        <div style={styles.pairRow}>
+          <BillingBehaviorSection mode={billingMode} onChange={setBillingMode} />
+          <UsageReportSection />
+        </div>
+      )}
 
       <div style={styles.actionRow}>
         <Button
@@ -148,6 +160,15 @@ export default function CreditsUsagePage({ onBack }) {
         >
           Save changes
         </Button>
+      </div>
+
+      <div style={styles.switcherWrap}>
+        <DarkPillSwitcher
+          ariaLabel="Credits & Usage variant switcher"
+          value={mode}
+          options={MODES}
+          onChange={setMode}
+        />
       </div>
     </div>
   );
@@ -169,7 +190,7 @@ function InfoBanner() {
 
 // ---- Section — Tenant usage (P0.3, observability only) --------------------
 
-function TenantUsageSection() {
+function TenantUsageSection({ mode }) {
   const { contractedMinutes, usedThisPeriod, activeAgents, totalAgents, periodLabel } =
     TENANT_USAGE_SAMPLE;
   const hrs = Math.round(contractedMinutes / 60);
@@ -186,18 +207,20 @@ function TenantUsageSection() {
           sub={`${hrs.toLocaleString()} hrs · set by Ops`}
           chipLabel="Contracted"
         />
-        <MetricTile
-          label={`Used · ${periodLabel}`}
-          value={`${usedThisPeriod.toLocaleString()} min`}
-          sub="Across Roleplay, Guide, and Probe"
-        />
+        {mode === "M2" && (
+          <MetricTile
+            label={`Used · ${periodLabel}`}
+            value={`${usedThisPeriod.toLocaleString()} min`}
+            sub="Across Roleplay, Guide, and Probe"
+          />
+        )}
         <MetricTile
           label="Active agents"
           value={`${activeAgents} of ${totalAgents}`}
           sub={`Practiced ${periodLabel.toLowerCase()}`}
         />
       </div>
-      <UsageTrendChart data={TREND_DATA} />
+      {mode === "M2" && <UsageTrendChart data={TREND_DATA} />}
     </Section>
   );
 }
@@ -260,12 +283,12 @@ function UsageTrendChart({ data }) {
 
 // ---- Section — Agent weekly quota (P0.1, existing) ------------------------
 
-function AgentWeeklyQuotaSection({ value, onChange }) {
+function AgentWeeklyQuotaSection({ value, onChange, standalone }) {
   return (
     <Section
       title="Agent weekly quota"
       description="Set how many practice minutes each agent can use per week across Roleplay, Guide, and Probe."
-      style={styles.pairCard}
+      style={standalone ? undefined : styles.pairCard}
     >
       <Field label="Default quota">
         <NumberInput
@@ -964,5 +987,13 @@ const styles = {
     display: "flex",
     justifyContent: "flex-end",
     paddingTop: 4,
+  },
+
+  // Floating M1/M2 variant switcher (matches InsightsHubPage placement)
+  switcherWrap: {
+    position: "fixed",
+    bottom: 24,
+    right: 24,
+    zIndex: 1000,
   },
 };
