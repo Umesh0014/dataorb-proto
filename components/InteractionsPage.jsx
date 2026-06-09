@@ -529,15 +529,37 @@ function InteractionsHeader({
   query, onQueryChange, onClearSearch, attr, onAttrChange,
 }) {
   const [open, setOpen] = React.useState(false);
+  const [menuRect, setMenuRect] = React.useState(null);
   const ddRef = React.useRef(null);
   const menuRef = React.useRef(null);
   const triggerRef = React.useRef(null);
   const selected = SEARCH_ATTRS.find((a) => a.id === attr) || SEARCH_ATTRS[0];
 
+  // The header card wraps everything in overflow-hidden + rounded corners,
+  // which clipped an absolutely-positioned menu's hit area. Use position:
+  // fixed and compute coords from the trigger's bounding rect so the menu
+  // escapes the wrapper entirely — same pattern as ChartTooltip /
+  // SkillsPopover.
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const sync = () => {
+      if (triggerRef.current) setMenuRect(triggerRef.current.getBoundingClientRect());
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [open]);
+
   React.useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (ddRef.current && !ddRef.current.contains(e.target)) setOpen(false);
+      const insideTrigger = ddRef.current && ddRef.current.contains(e.target);
+      const insideMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!insideTrigger && !insideMenu) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -608,7 +630,7 @@ function InteractionsHeader({
               The same inline pattern lives in FiltersPanel's
               SingleSelectDropdown. Promote to a shared primitive once a
               3rd consumer appears so all three sites stay in lock-step. */}
-          <div ref={ddRef} className="relative" onKeyDown={handleMenuKeyDown}>
+          <div ref={ddRef} onKeyDown={handleMenuKeyDown}>
             <button
               ref={triggerRef}
               type="button"
@@ -628,51 +650,51 @@ function InteractionsHeader({
               </span>
               <ChevronDown size={14} className="text-text-tertiary" />
             </button>
-            {open && (
-              <div
-                ref={menuRef}
-                role="menu"
-                aria-label="Search by"
-                className="absolute left-0 mt-1 bg-white rounded-md overflow-hidden z-50"
-                style={{
-                  top: "calc(100% + 4px)",
-                  minWidth: 200,
-                  boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
-                  border: "1px solid var(--color-border-tab)",
-                }}
-              >
-                {/* Plain list — every option styled identically. Selection
-                    state lives only in aria-checked and the trigger label;
-                    no visual highlight per the reference. Focus ring is
-                    suppressed in favour of a subtle hover/focus bg so
-                    keyboard nav still has a target without the harsh
-                    browser outline. */}
-                {SEARCH_ATTRS.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    role="menuitem"
-                    aria-checked={a.id === attr}
-                    onClick={() => {
-                      onAttrChange(a.id);
-                      setOpen(false);
-                      triggerRef.current?.focus();
-                    }}
-                    className="block w-full text-left px-3 py-2 text-[13px] cursor-pointer hover:bg-pill-bg focus:bg-pill-bg"
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      color: "var(--color-text-medium)",
-                      fontWeight: 500,
-                      background: "transparent",
-                      outline: "none",
-                    }}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
+          {open && menuRect && (
+            <div
+              ref={menuRef}
+              role="menu"
+              aria-label="Search by"
+              onKeyDown={handleMenuKeyDown}
+              className="bg-white rounded-md overflow-hidden"
+              style={{
+                position: "fixed",
+                top: menuRect.bottom + 4,
+                left: menuRect.left,
+                minWidth: 200,
+                zIndex: 1000,
+                boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
+                border: "1px solid var(--color-border-tab)",
+              }}
+            >
+              {/* Plain list — every option styled identically. Selection
+                  state lives only in aria-checked and the trigger label. */}
+              {SEARCH_ATTRS.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  role="menuitem"
+                  aria-checked={a.id === attr}
+                  onClick={() => {
+                    onAttrChange(a.id);
+                    setOpen(false);
+                    triggerRef.current?.focus();
+                  }}
+                  className="block w-full text-left px-3 py-2 text-[13px] cursor-pointer hover:bg-pill-bg focus:bg-pill-bg"
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    color: "var(--color-text-medium)",
+                    fontWeight: 500,
+                    background: "transparent",
+                    outline: "none",
+                  }}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Search input */}
           <input
