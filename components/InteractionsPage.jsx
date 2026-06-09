@@ -24,6 +24,7 @@ import {
   Quote,
   Search,
   X,
+  Check,
   Layers,
   BarChart3,
   Tag,
@@ -123,11 +124,28 @@ const FILTER_SECTIONS = [
 const TOTAL = 6811;
 const PAGE_SIZE = 20;
 
+// Search-by attributes. Each entry knows how to pluck its field off a row
+// — keeps the filter logic generic and lets new attributes land as a
+// single config row, not a switch-statement edit.
+//
+// 🚩 FLAG — Interaction ID source. The mock has no dedicated interactionId
+// field; using customerId as the proxy for now so the option is reachable
+// in the demo. Wire to the real field when it lands on the row.
+// 🚩 FLAG — Topic / Caller ID / External Conversation ID source. These
+// live under row.details in production; in the prototype mock, details
+// only lives on the selected row via DETAILS_SAMPLE fallback. The filter
+// here uses DETAILS_SAMPLE as a fallback so all five options are testable.
 const SEARCH_ATTRS = [
-  { id: "customer", label: "Customer ID" },
-  { id: "agent",    label: "Agent Name"  },
-  { id: "reason",   label: "Contact Reason" },
+  { id: "customer",    label: "Customer ID",              field: (row) => row.customerId },
+  { id: "topic",       label: "Topic",                    field: (row) => detailsOf(row).interactionOutcome?.topic },
+  { id: "caller",      label: "Caller ID",                field: (row) => detailsOf(row).interactionMetadata?.callerId },
+  { id: "interaction", label: "Interaction ID",           field: (row) => row.customerId },
+  { id: "external",    label: "External Conversation ID", field: (row) => detailsOf(row).interactionMetadata?.externalId },
 ];
+
+function detailsOf(row) {
+  return row.details || DETAILS_SAMPLE;
+}
 
 // Skills payloads reused across rows — keeps mock concise and means the
 // popover renders the reference layout for both variants.
@@ -368,30 +386,48 @@ export default function InteractionsPage() {
   const filterBtnRef = React.useRef(null);
 
   // Lifted from InteractionsHeader so the empty-state branch and the
-  // header's X-clear button share one source of truth + handler.
+  // header's X-clear button share one source of truth + handler. `query`
+  // tracks keystrokes; `debouncedQuery` lags by ~300ms and is what the
+  // filter actually runs against — matches the spec's "fire the query"
+  // debounce for when this is wired to a server-side fetch.
   const [query, setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [attr, setAttr] = React.useState("customer");
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
   // 🚩 FLAG — clearSearch scope. Clears query only by default; confirm
   // whether it should also reset the search attribute and applied filters.
-  const clearSearch = () => setQuery("");
+  const clearSearch = () => {
+    setQuery("");
+    setDebouncedQuery("");
+  };
 
-  // Client-side filter against the chosen attribute. The mock has no
-  // reason field, so for "reason" the filter degrades to a no-op match
-  // until a real field lands — keeps the empty state reachable for the
-  // two attributes the mock supports.
+  // Changing the search-by attribute clears whatever was typed for the
+  // previous field — the old query no longer makes sense against the
+  // new field. Debounced value is reset synchronously so the table
+  // doesn't briefly show stale matches.
+  const handleAttrChange = (id) => {
+    setAttr(id);
+    setQuery("");
+    setDebouncedQuery("");
+  };
+
+  // Client-side filter against the chosen attribute. The selected attr's
+  // `field` accessor pulls the value off the row; missing values are
+  // coerced to "" so they never match a non-empty query.
   const filteredRows = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (!q) return ROWS;
-    return ROWS.filter((row) => {
-      if (attr === "agent") return row.agent.name.toLowerCase().includes(q);
-      // default: customer id
-      return row.customerId.toLowerCase().includes(q);
-    });
-  }, [query, attr]);
+    const fieldOf = SEARCH_ATTRS.find((a) => a.id === attr)?.field || (() => "");
+    return ROWS.filter((row) => String(fieldOf(row) || "").toLowerCase().includes(q));
+  }, [debouncedQuery, attr]);
 
-  const isSearchEmpty = query.trim() !== "" && filteredRows.length === 0;
-  const isSearchActive = query.trim() !== "";
+  const isSearchEmpty = debouncedQuery.trim() !== "" && filteredRows.length === 0;
+  const isSearchActive = debouncedQuery.trim() !== "";
 
   // Count + pagination reflect the filtered set when a search is active.
   // (When inactive, fall back to TOTAL — the mock represents a server-side
@@ -449,7 +485,7 @@ export default function InteractionsPage() {
         onQueryChange={setQuery}
         onClearSearch={clearSearch}
         attr={attr}
-        onAttrChange={setAttr}
+        onAttrChange={handleAttrChange}
       />
       <Card padX={0} padY={0}>
         {isSearchEmpty ? (
@@ -495,6 +531,8 @@ function InteractionsHeader({
 }) {
   const [open, setOpen] = React.useState(false);
   const ddRef = React.useRef(null);
+  const menuRef = React.useRef(null);
+  const triggerRef = React.useRef(null);
   const selected = SEARCH_ATTRS.find((a) => a.id === attr) || SEARCH_ATTRS[0];
 
   React.useEffect(() => {
@@ -505,6 +543,49 @@ function InteractionsHeader({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  // Focus the currently-selected option when the menu opens so arrow keys
+  // navigate from a sensible starting point.
+  React.useEffect(() => {
+    if (!open || !menuRef.current) return;
+    const items = Array.from(menuRef.current.querySelectorAll('[role="menuitem"]'));
+    const activeIdx = Math.max(0, SEARCH_ATTRS.findIndex((a) => a.id === attr));
+    items[activeIdx]?.focus();
+  }, [open, attr]);
+
+  // Arrow-key navigation + Esc within the menu. Enter on a focused item
+  // fires the item's native onClick.
+  const handleMenuKeyDown = (e) => {
+    if (!open) return;
+    const items = Array.from(menuRef.current?.querySelectorAll('[role="menuitem"]') || []);
+    if (items.length === 0) return;
+    const currentIdx = items.indexOf(document.activeElement);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      items[(currentIdx + 1 + items.length) % items.length].focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      items[(currentIdx - 1 + items.length) % items.length].focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      items[0].focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      items[items.length - 1].focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+  };
+
+  const handleTriggerKeyDown = (e) => {
+    // Down arrow on a closed trigger opens the menu (standard combobox).
+    if (!open && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
 
   return (
     <div
@@ -527,11 +608,19 @@ function InteractionsHeader({
       {/* Search row */}
       <div className="h-12 flex items-center bg-white" style={{ padding: "0 12px 0 0" }}>
         <div className="flex-1 flex items-center gap-2" style={{ padding: "8px 0 8px 12px" }}>
-          {/* Attribute dropdown */}
-          <div ref={ddRef} className="relative">
+          {/* Attribute dropdown.
+              🚩 FLAG — no shared <Dropdown> primitive in this repo today.
+              The same inline pattern lives in FiltersPanel's
+              SingleSelectDropdown. Promote to a shared primitive once a
+              3rd consumer appears so all three sites stay in lock-step. */}
+          <div ref={ddRef} className="relative" onKeyDown={handleMenuKeyDown}>
             <button
+              ref={triggerRef}
               type="button"
               onClick={() => setOpen((o) => !o)}
+              onKeyDown={handleTriggerKeyDown}
+              aria-haspopup="menu"
+              aria-expanded={open}
               className="flex items-center gap-2 h-8 px-3 rounded-md cursor-pointer"
               style={{
                 background: "var(--pill-bg)",
@@ -546,30 +635,45 @@ function InteractionsHeader({
             </button>
             {open && (
               <div
+                ref={menuRef}
+                role="menu"
+                aria-label="Search by"
                 className="absolute left-0 mt-1 bg-white rounded-md overflow-hidden z-50"
                 style={{
                   top: "calc(100% + 4px)",
-                  minWidth: 160,
+                  minWidth: 200,
                   boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
                   border: "1px solid var(--color-border-tab)",
                 }}
               >
-                {SEARCH_ATTRS.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => { onAttrChange(a.id); setOpen(false); }}
-                    className="block w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      color: a.id === attr ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
-                      fontWeight: a.id === attr ? 600 : 500,
-                      background: a.id === attr ? "var(--pill-bg)" : "transparent",
-                    }}
-                  >
-                    {a.label}
-                  </button>
-                ))}
+                {SEARCH_ATTRS.map((a) => {
+                  const active = a.id === attr;
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      role="menuitem"
+                      aria-checked={active}
+                      onClick={() => {
+                        onAttrChange(a.id);
+                        setOpen(false);
+                        triggerRef.current?.focus();
+                      }}
+                      className="flex items-center justify-between w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        color: active ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
+                        fontWeight: active ? 600 : 500,
+                        background: active ? "var(--pill-bg)" : "transparent",
+                      }}
+                    >
+                      <span>{a.label}</span>
+                      {active && (
+                        <Check size={14} className="text-text-tab-active" aria-hidden="true" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
