@@ -24,7 +24,6 @@ import {
   Quote,
   Search,
   X,
-  Check,
   Layers,
   BarChart3,
   Tag,
@@ -544,14 +543,10 @@ function InteractionsHeader({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Focus the currently-selected option when the menu opens so arrow keys
-  // navigate from a sensible starting point.
-  React.useEffect(() => {
-    if (!open || !menuRef.current) return;
-    const items = Array.from(menuRef.current.querySelectorAll('[role="menuitem"]'));
-    const activeIdx = Math.max(0, SEARCH_ATTRS.findIndex((a) => a.id === attr));
-    items[activeIdx]?.focus();
-  }, [open, attr]);
+  // Don't auto-focus the active item on open — that triggers a focus
+  // background that reads as "selected" and clutters the plain list.
+  // Arrow-down on the menu container moves focus to the first item; see
+  // handleMenuKeyDown.
 
   // Arrow-key navigation + Esc within the menu. Enter on a focused item
   // fires the item's native onClick.
@@ -646,34 +641,35 @@ function InteractionsHeader({
                   border: "1px solid var(--color-border-tab)",
                 }}
               >
-                {SEARCH_ATTRS.map((a) => {
-                  const active = a.id === attr;
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      role="menuitem"
-                      aria-checked={active}
-                      onClick={() => {
-                        onAttrChange(a.id);
-                        setOpen(false);
-                        triggerRef.current?.focus();
-                      }}
-                      className="flex items-center justify-between w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        color: active ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
-                        fontWeight: active ? 600 : 500,
-                        background: active ? "var(--pill-bg)" : "transparent",
-                      }}
-                    >
-                      <span>{a.label}</span>
-                      {active && (
-                        <Check size={14} className="text-text-tab-active" aria-hidden="true" />
-                      )}
-                    </button>
-                  );
-                })}
+                {/* Plain list — every option styled identically. Selection
+                    state lives only in aria-checked and the trigger label;
+                    no visual highlight per the reference. Focus ring is
+                    suppressed in favour of a subtle hover/focus bg so
+                    keyboard nav still has a target without the harsh
+                    browser outline. */}
+                {SEARCH_ATTRS.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    role="menuitem"
+                    aria-checked={a.id === attr}
+                    onClick={() => {
+                      onAttrChange(a.id);
+                      setOpen(false);
+                      triggerRef.current?.focus();
+                    }}
+                    className="block w-full text-left px-3 py-2 text-[13px] cursor-pointer hover:bg-pill-bg focus:bg-pill-bg"
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      color: "var(--color-text-medium)",
+                      fontWeight: 500,
+                      background: "transparent",
+                      outline: "none",
+                    }}
+                  >
+                    {a.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
