@@ -698,14 +698,8 @@ function TimelineNode({ stage, activeAgent, onSetAgent }) {
 function PlaybookOptionB({ data, activeAgent, onSetAgent }) {
   return (
     <div style={pbStyles.optBody}>
-      <PlaybookHero
-        rightSlot={
-          <div style={pbStyles.heroInlineTags}>
-            <KeyTag>{data.keyTag}</KeyTag>
-            <span style={pbStyles.tag}>{data.secondaryTags.join(" · ")}</span>
-          </div>
-        }
-      />
+      <PlaybookHero />
+      <PlaybookTags data={data} />
       <WhyCallout data={data} />
       <EvidenceGrid data={data} activeAgent={activeAgent} onSetAgent={onSetAgent} />
       <div style={pbStyles.protocolLabel}>The protocol</div>
