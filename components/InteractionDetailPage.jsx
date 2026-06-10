@@ -471,10 +471,10 @@ function getInitials(code) {
 // DarkPillSwitcher chrome (mirrors the M1/M2 + Team Leader/Agent demo
 // switchers on the Missions shell). The labels A/B/C map to the
 // internal opt key. (Cache-buster: v1.)
-const PLAYBOOK_OPTS = ["A", "B", "C"];
+const PLAYBOOK_OPTS = ["O1", "O2", "O3"];
 
 function AgentPlaybookDetail({ data }) {
-  const [opt, setOpt] = React.useState("A");
+  const [opt, setOpt] = React.useState("O1");
   const [activeAgent, setActiveAgent] = React.useState(null);
 
   if (!data) return null;
@@ -493,9 +493,9 @@ function AgentPlaybookDetail({ data }) {
 
   return (
     <div style={pbStyles.detail}>
-      {opt === "A" && <PlaybookOptionA {...shared} />}
-      {opt === "B" && <PlaybookOptionB {...shared} />}
-      {opt === "C" && <PlaybookOptionC {...shared} />}
+      {opt === "O1" && <PlaybookOptionA {...shared} />}
+      {opt === "O2" && <PlaybookOptionB {...shared} />}
+      {opt === "O3" && <PlaybookOptionC {...shared} />}
       {/* Floating bottom-right demo switcher — same DarkPillSwitcher
           chrome as MissionsLandingShell's M1/M2 and Team Leader/Agent
           pills. Demo affordance, not product UI. */}
