@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Playbook — layout prototypes</title>
+<style>
+  :root {
+    --bg-page: #eef0f4;
+    --bg-app: #f6f7f9;
+    --bg-panel: #ffffff;
+    --bg-rail: #1a1f2c;
+    --bg-rail-tile: #2b3041;
+    --border: #ececf0;
+    --border-soft: #f1f2f5;
+    --text-1: #1f2433;
+    --text-2: #646b7a;
+    --text-3: #9aa0ac;
+    --indigo: #534ab7;
+    --indigo-soft: #eeedfe;
+    --blue: #185fa5;
+    --blue-soft: #eef4fb;
+    --why-bg: #f0f6ff;
+    --why-border: #d6e6ff;
+    --tag-bg: #eeedfe;
+    --tag-fg: #3c3489;
+
+    --face-amber-bg: #fbf0da;
+    --face-amber-fg: #c4901f;
+    --face-green-bg: #ebf3de;
+    --face-green-fg: #5c8c24;
+
+    /* Agent ramps */
+    --SI-bg: #e6f1fb; --SI-text: #0c447c; --SI-accent: #185fa5;
+    --AM-bg: #e1f5ee; --AM-text: #085041; --AM-accent: #0f6e56;
+    --RK-bg: #eeedfe; --RK-text: #3c3489; --RK-accent: #534ab7;
+    --TN-bg: #faece7; --TN-text: #712b13; --TN-accent: #993c1d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-page);
+    color: var(--text-1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 24px 16px 56px; }
+
+  /* ---- Switcher ---- */
+  .switcher-bar {
+    max-width: 1440px;
+    margin: 0 auto 16px;
+  }
+  .switcher-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-2);
+    margin-bottom: 8px;
+  }
+  .switcher {
+    display: inline-flex;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .switcher button {
+    background: transparent;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-2);
+  }
+  .switcher button.active {
+    background: var(--indigo);
+    color: #fff;
+  }
+  .switcher-helper {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 8px;
+  }
+
+  /* ---- App window ---- */
+  .app-window {
+    max-width: 1440px;
+    margin: 0 auto;
+    background: var(--bg-app);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 24px 48px rgba(31, 36, 51, 0.06), 0 4px 12px rgba(31, 36, 51, 0.04);
+    display: flex;
+    overflow: hidden;
+    min-height: 820px;
+  }
+
+  /* ---- Rail ---- */
+  .rail {
+    width: 62px;
+    background: var(--bg-rail);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 0 16px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .rail .logo-tile {
+    width: 36px;
+    height: 36px;
+    background: var(--bg-rail-tile);
+    border-radius: 9px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  .rail .nav-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7a8194;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  .rail .nav-icon.active {
+    background: #fff;
+    color: var(--text-1);
+  }
+  .rail .spacer { flex: 1; }
+  .rail .bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .rail .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--SI-accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  /* ---- Main column ---- */
+  .app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .topbar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .topbar .back {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--bg-app);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-2);
+  }
+  .topbar .title {
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .topbar .crumbs {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .topbar .crumbs .sep {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--text-3);
+    display: inline-block;
+  }
+  .crumb-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--SI-bg);
+    color: var(--SI-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .topbar .right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lang-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    cursor: pointer;
+    font: inherit;
+    color: var(--text-2);
+  }
+  .info-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- Content grid ---- */
+  .content-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.32fr 1fr;
+    gap: 18px;
+    padding: 18px;
+  }
+
+  /* ---- Email card ---- */
+  .emails-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+  }
+  .emails-card .header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .email {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-soft);
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 12px;
+    align-items: start;
+  }
+  .email:last-of-type { border-bottom: none; }
+  .email .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--face-amber-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--face-amber-fg);
+  }
+  .email .subject {
+    font-weight: 600;
+    color: var(--text-1);
+    font-size: 14px;
+  }
+  .email .to {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+  .email .timestamp {
+    font-size: 12px;
+    color: var(--text-3);
+    white-space: nowrap;
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .email .chevron {
+    grid-column: 3;
+    grid-row: 1;
+    color: var(--text-3);
+    margin-left: 8px;
+    display: none;
+  }
+  .email.collapsed .chevron { display: inline-flex; }
+  .email.collapsed .timestamp { padding-right: 4px; }
+  .email .body {
+    margin-top: 8px;
+    color: var(--text-1);
+    font-size: 13px;
+    grid-column: 2;
+    line-height: 1.6;
+    display: none;
+  }
+  .email.expanded .body { display: block; }
+  .email .see-more-link {
+    color: var(--blue);
+    font-size: 13px;
+    background: transparent;
+    border: none;
+    padding: 6px 0 0;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+  }
+  .thread-start {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-3);
+    padding: 16px 0 20px;
+    border-top: 1px solid var(--border-soft);
+    margin-top: auto;
+  }
+
+  /* ---- Playbook column ---- */
+  .playbook {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  .tabs {
+    display: flex;
+    gap: 24px;
+    padding: 0 20px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+  }
+  .tabs button {
+    border: none;
+    background: transparent;
+    padding: 14px 0 12px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text-3);
+    cursor: pointer;
+    position: relative;
+    font-size: 14px;
+  }
+  .tabs button.active {
+    color: var(--blue);
+  }
+  .tabs button.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--blue);
+    border-radius: 1px;
+  }
+  .playbook-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    padding: 20px;
+    flex: 1;
+  }
+  .opt { display: flex; flex-direction: column; gap: 16px; }
+  .opt[hidden] { display: none; }
+
+  /* ---- Hero ---- */
+  .hero {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .hero .back-crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-3);
+    background: transparent;
+    border: none;
+    padding: 4px 0;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .hero .tile {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--indigo-soft);
+    color: var(--indigo);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .hero h2 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+
+  /* ---- Tags ---- */
+  .tag-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tag-key {
+    background: var(--tag-bg);
+    color: var(--tag-fg);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .tag-quiet {
+    background: transparent;
+    color: var(--text-2);
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  /* ---- Why callout ---- */
+  .why {
+    background: var(--why-bg);
+    border: 1px solid var(--why-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .why-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--blue);
+    margin-bottom: 6px;
+  }
+  .why .text {
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .why .full { display: none; }
+  .why.expanded .short { display: none; }
+  .why.expanded .full { display: inline; }
+  .why .see-more {
+    margin-top: 8px;
+    background: transparent;
+    border: none;
+    color: var(--blue);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    font-size: 13px;
+  }
+
+  /* ---- Stages (shared timeline base) ---- */
+  .timeline {
+    position: relative;
+    padding-left: 26px;
+    margin-top: 4px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    background: var(--border);
+    border-radius: 1px;
+  }
+  .stage {
+    position: relative;
+    padding: 8px 0 14px;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+  }
+  .stage .face {
+    position: absolute;
+    left: -26px;
+    top: 8px;
+  }
+  .stage .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .stage .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--indigo);
+  }
+  .stage .ref {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--blue-soft);
+    color: var(--blue);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .stage ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  .stage li {
+    font-size: 13px;
+    color: var(--text-1);
+    padding-left: 14px;
+    position: relative;
+    margin-top: 2px;
+  }
+  .stage li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--text-3);
+  }
+
+  /* ---- Evidence grid ---- */
+  .evidence-block {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+  .evidence-block h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: 4px;
+  }
+  .evidence-block .sub {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 12px;
+  }
+  .agents-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .agent-card {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    align-items: flex-start;
+  }
+  .agent-card .av {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .agent-card .info { flex: 1; min-width: 0; }
+  .agent-card .name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-1);
+  }
+  .agent-card .meta {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 2px;
+    line-height: 1.45;
+  }
+
+  /* ---- O2 protocol list ---- */
+  .protocol-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-2);
+    margin-top: 4px;
+  }
+  .protocol {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .protocol-row {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    background: transparent;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+  .protocol-row:last-child { border-bottom: none; }
+  .protocol-row .pinfo { min-width: 0; }
+  .protocol-row .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--indigo);
+    margin-bottom: 2px;
+  }
+  .protocol-row .summary {
+    font-size: 13px;
+    color: var(--text-1);
+    line-height: 1.4;
+  }
+
+  /* ---- O3 compact ---- */
+  .compact-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .compact-hero .tile {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+  }
+  .compact-hero h2 { font-size: 15px; }
+  .lead-serif {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15px;
+    color: var(--text-1);
+    line-height: 1.6;
+    font-style: italic;
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .accordion {
+    display: flex;
+    flex-direction: column;
+  }
+  .acc-row {
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .acc-row:last-child { border-bottom: none; }
+  .acc-summary {
+    display: grid;
+    grid-template-columns: 16px 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 11px 0;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+  }
+  .acc-summary .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--indigo);
+  }
+  .acc-summary .chev {
+    color: var(--text-3);
+    transition: transform 180ms ease;
+    display: inline-flex;
+  }
+  .acc-row[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .acc-body {
+    padding: 0 0 12px 28px;
+    display: none;
+  }
+  .acc-row[aria-expanded="true"] .acc-body { display: block; }
+  .acc-body ul { list-style: none; }
+  .acc-body li {
+    font-size: 13px;
+    color: var(--text-1);
+    padding-left: 14px;
+    position: relative;
+    margin-top: 2px;
+  }
+  .acc-body li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--text-3);
+  }
+
+  .evidence-strip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .avatar-stack {
+    display: flex;
+    flex-shrink: 0;
+  }
+  .avatar-stack .av {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    border: 2px solid var(--bg-panel);
+    margin-left: -8px;
+    cursor: pointer;
+  }
+  .avatar-stack .av:first-child { margin-left: 0; }
+  .evidence-strip .summary {
+    color: var(--text-2);
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+  }
+  .evidence-strip .trace {
+    border: 1px solid var(--border);
+    background: transparent;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    color: var(--text-2);
+  }
+
+  /* ---- Cross-highlight dim state ---- */
+  .opt [data-agent] {
+    transition: opacity 200ms ease;
+  }
+  .opt.has-active [data-agent].dim {
+    opacity: 0.34;
+  }
+  .opt.has-active [data-agent].on {
+    opacity: 1;
+  }
+
+  /* ---- Focus + reduced motion ---- */
+  button:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--indigo);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0ms !important;
+      animation-duration: 0ms !important;
+    }
+  }
+
+  @media (max-width: 980px) {
+    body { padding: 16px 12px 36px; }
+    .app-window { min-height: 0; }
+    .content-grid {
+      grid-template-columns: 1fr;
+    }
+    .agents-grid {
+      grid-template-columns: 1fr;
+    }
+    .rail { width: 56px; }
+    .topbar { padding: 10px 14px; }
+    .topbar .crumbs { font-size: 12px; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="switcher-bar">
+  <span class="switcher-label">Agent Playbook layout</span>
+  <div class="switcher" role="tablist" aria-label="Layout option">
+    <button data-option="o1" class="active" role="tab" aria-selected="true">O1 · Editorial</button>
+    <button data-option="o2" role="tab" aria-selected="false">O2 · Evidence-first</button>
+    <button data-option="o3" role="tab" aria-selected="false">O3 · Compact</button>
+  </div>
+  <p class="switcher-helper">Only the playbook panel changes · tap a stage or agent to trace the link</p>
+</div>
+
+<div class="app-window">
+  <!-- ===== Left rail ===== -->
+  <aside class="rail" aria-label="App navigation">
+    <div class="logo-tile">a</div>
+    <button class="nav-icon active" aria-label="Insights" title="Insights">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M2 12a10 10 0 0 1 20 0c0 3.5-2 5-3 7H5c-1-2-3-3.5-3-7z"/></svg>
+    </button>
+    <button class="nav-icon" aria-label="Launch" title="Launch">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/></svg>
+    </button>
+    <button class="nav-icon" aria-label="Messages" title="Messages">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    </button>
+    <button class="nav-icon" aria-label="People" title="People">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </button>
+    <button class="nav-icon" aria-label="Targets" title="Targets">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    </button>
+    <button class="nav-icon" aria-label="Documents" title="Documents">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </button>
+    <div class="spacer"></div>
+    <div class="bottom">
+      <button class="nav-icon" aria-label="Settings" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <div class="avatar">A</div>
+    </div>
+  </aside>
+
+  <!-- ===== Main column ===== -->
+  <main class="app-main">
+    <header class="topbar">
+      <button class="back" aria-label="Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <span class="title">Customer ID</span>
+      <div class="crumbs">
+        <span>Interaction ID</span>
+        <span class="sep"></span>
+        <span class="crumb-avatar">A</span>
+        <span class="sep"></span>
+        <span>Dec 12, 2024</span>
+        <span class="sep"></span>
+        <span>2d 11h 12m</span>
+        <span class="sep"></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+          Outbound
+        </span>
+      </div>
+      <div class="right">
+        <button class="lang-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Es
+        </button>
+        <button class="info-btn" aria-label="Info">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="content-grid">
+      <!-- ===== Email card (static filler) ===== -->
+      <section class="emails-card" aria-label="Email conversations">
+        <div class="header">Email conversations</div>
+
+        <article class="email expanded">
+          <div class="avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div class="subject">Re: FB 12345 · Incidencia subject</div>
+            <div class="to">To: stark@avengers.com (Agent email)</div>
+            <div class="body">
+              Hola María. Nos ponemos en contacto contigo en relación a tu consulta a través de Facebook. Estamos analizando tu solicitud y volveremos lo antes posible con una respuesta. Mientras tanto, te facilitamos el número de seguimiento para futuras consultas y agradecemos tu paciencia.
+              <button class="see-more-link">See more</button>
+            </div>
+          </div>
+          <span class="timestamp">Dec 14, 2024 · 12:30 PM</span>
+        </article>
+
+        <article class="email collapsed">
+          <div class="avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div class="subject">Re: FB 12345 · Incidencia subject</div>
+            <div class="to">To: stark@avengers.com (Agent email)</div>
+          </div>
+          <span class="timestamp">Dec 14, 2024 · 12:20 PM</span>
+        </article>
+
+        <article class="email collapsed">
+          <div class="avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div class="subject">Re: FB 12345 · Incidencia subject</div>
+            <div class="to">To: stark@avengers.com (Agent email)</div>
+          </div>
+          <span class="timestamp">Dec 12, 2024 · 10:19 PM</span>
+        </article>
+
+        <article class="email collapsed">
+          <div class="avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div class="subject">El Corte Inglés Online Store · Request for Information</div>
+            <div class="to">To: capta@avengers.es (Customer email)</div>
+          </div>
+          <span class="timestamp">Dec 12, 2024 · 10:13 PM</span>
+        </article>
+
+        <p class="thread-start">Thread started</p>
+      </section>
+
+      <!-- ===== Playbook column ===== -->
+      <section class="playbook">
+        <div class="tabs" role="tablist">
+          <button class="active" role="tab" aria-selected="true">Insights</button>
+          <button role="tab" aria-selected="false">Quality</button>
+          <button role="tab" aria-selected="false">Feedback</button>
+        </div>
+        <div class="playbook-card">
+          <section class="opt" id="opt-o1" data-opt="o1"></section>
+          <section class="opt" id="opt-o2" data-opt="o2" hidden></section>
+          <section class="opt" id="opt-o3" data-opt="o3" hidden></section>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+// ===== Data ================================================================
+const AGENTS = {
+  SI: { name: 'Sara I.',  ramp: 'SI' },
+  AM: { name: 'Aditi M.', ramp: 'AM' },
+  RK: { name: 'Rohan K.', ramp: 'RK' },
+  TN: { name: 'Tarun N.', ramp: 'TN' },
+};
+
+const STAGES = [
+  { name: 'Initial greeting',        mood: 'smile',   refs: [1, 3],   agent: 'SI', bullets: ['Agent greeting and identification.'] },
+  { name: 'Authentication',          mood: 'smile',   refs: [11, 15], agent: 'AM', bullets: ['Customer provided name and address.'] },
+  { name: 'Discovery and probing',   mood: 'smile',   refs: [16, 19], agent: 'AM', bullets: ['Agent asked about light patterns.', 'Customer confirmed orange light.'] },
+  { name: 'Troubleshooting steps',   mood: 'neutral', refs: [44, 70], agent: 'RK', bullets: ['Customer performed power reset.', 'Agent guided reconfiguration.'] },
+  { name: 'Solution presentation',   mood: 'smile',   refs: [72, 78], agent: 'RK', bullets: ['Agent confirmed device back online.', 'Explained follow-up steps.'] },
+  { name: 'Resolution confirmation', mood: 'happy',   refs: [80, 83], agent: 'TN', bullets: ['Customer confirmed the issue was resolved.'] },
+  { name: 'Closing',                 mood: 'happy',   refs: [84, 86], agent: 'SI', bullets: ['Agent thanked customer and offered further help.'] },
+];
+
+const KEY_TAG = 'Device fault';
+const SECONDARY_TAGS = ['Single session', 'Troubleshooting'];
+
+const WHY_SHORT = 'The agent kept control of the flow, moving logically from authentication to diagnosis and solution…';
+const WHY_FULL  = 'The agent kept control of the flow, moving logically from authentication to diagnosis and solution. Each step built on the last, the customer was guided through troubleshooting without confusion, and the orange-light fault resolved in a single session with minimal back-and-forth.';
+
+// ===== Derived =============================================================
+function refCountFor(agentId) {
+  return STAGES.filter(s => s.agent === agentId).reduce((n, s) => n + s.refs.length, 0);
+}
+function stagesFor(agentId) {
+  return STAGES.filter(s => s.agent === agentId).map(s => s.name);
+}
+const TOTAL_REFS = Object.keys(AGENTS).reduce((n, id) => n + refCountFor(id), 0);
+const AGENT_COUNT = Object.keys(AGENTS).length;
+
+// ===== Icon helpers (inline SVG) ==========================================
+function faceSvg(mood) {
+  // smile / neutral → amber face, happy → green face
+  const amber = mood !== 'happy';
+  const bg = amber ? '#fbf0da' : '#ebf3de';
+  const fg = amber ? '#c4901f' : '#5c8c24';
+  let mouth = '';
+  if (mood === 'smile')   mouth = `<path d="M5.2 10 Q8 12 10.8 10" stroke="${fg}" stroke-width="0.9" fill="none" stroke-linecap="round"/>`;
+  if (mood === 'neutral') mouth = `<line x1="5.5" y1="10.5" x2="10.5" y2="10.5" stroke="${fg}" stroke-width="0.9" stroke-linecap="round"/>`;
+  if (mood === 'happy')   mouth = `<path d="M5 9.6 Q8 13.4 11 9.6 Z" fill="${fg}"/>`;
+  return `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <circle cx="8" cy="8" r="7" fill="${bg}" stroke="${fg}" stroke-width="0.7"/>
+    <circle cx="5.7" cy="6.6" r="0.75" fill="${fg}"/>
+    <circle cx="10.3" cy="6.6" r="0.75" fill="${fg}"/>
+    ${mouth}
+  </svg>`;
+}
+function chevronSvg() {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
+}
+function bookSvg() {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
+}
+function backSvg() {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`;
+}
+
+// ===== Render helpers =====================================================
+function refLabel(refs) {
+  // Show as "#a · #b" where a and b are the bounds. Spec uses #N · #N pairs.
+  return refs.map(r => `#${r}`).join(' · ');
+}
+function refChip(refs, agent) {
+  // <span role=button> not <button> — refs sit inside other buttons (stage,
+  // protocol-row), and nested <button>s are invalid HTML.
+  return `<span class="ref" role="button" tabindex="0" data-agent="${agent}" data-kind="ref">${refLabel(refs)}</span>`;
+}
+function rampStyle(agent) {
+  return `background:var(--${agent}-bg);color:var(--${agent}-text);`;
+}
+
+function heroHtml({ compact = false } = {}) {
+  return `
+    <div class="${compact ? 'compact-hero' : 'hero'}">
+      <button class="back-crumb" type="button" aria-label="Back to insights">
+        ${backSvg()}<span>Insights</span>
+      </button>
+      <span class="tile">${bookSvg()}</span>
+      <h2>Agent playbook</h2>
+      ${compact ? `<span class="tag-key" style="margin-left:auto;">${KEY_TAG}</span>` : ''}
+    </div>
+  `;
+}
+
+function tagRowHtml() {
+  return `
+    <div class="tag-row">
+      <span class="tag-key">${KEY_TAG}</span>
+      ${SECONDARY_TAGS.map(t => `<span class="tag-quiet">${t}</span>`).join('')}
+    </div>
+  `;
+}
+
+function whyHtml(id) {
+  return `
+    <div class="why" id="${id}">
+      <div class="why-eyebrow">Why this approach works</div>
+      <div class="text">
+        <span class="short">${WHY_SHORT}</span>
+        <span class="full">${WHY_FULL}</span>
+      </div>
+      <button class="see-more" type="button">See more</button>
+    </div>
+  `;
+}
+
+function agentsGridHtml() {
+  return `
+    <div class="evidence-block">
+      <h3>Built from ${AGENT_COUNT} agent interactions</h3>
+      <div class="sub">${TOTAL_REFS} referenced messages across the conversation</div>
+      <div class="agents-grid">
+        ${Object.keys(AGENTS).map(id => agentCardHtml(id)).join('')}
+      </div>
+    </div>
+  `;
+}
+function agentCardHtml(id) {
+  const a = AGENTS[id];
+  const count = refCountFor(id);
+  const stages = stagesFor(id).join(', ');
+  return `
+    <button class="agent-card" type="button" data-agent="${id}" data-kind="agent">
+      <span class="av" style="${rampStyle(id)}">${id}</span>
+      <span class="info">
+        <span class="name">${a.name}</span>
+        <span class="meta">${count} referenced message${count === 1 ? '' : 's'} · ${stages}</span>
+      </span>
+    </button>
+  `;
+}
+
+function stageTimelineHtml() {
+  return `
+    <div class="timeline">
+      ${STAGES.map(s => `
+        <button class="stage" type="button" data-agent="${s.agent}" data-kind="stage">
+          <span class="face">${faceSvg(s.mood)}</span>
+          <span class="head">
+            <span class="label">${s.name}</span>
+            ${refChip(s.refs, s.agent)}
+          </span>
+          <ul>
+            ${s.bullets.map(b => `<li>${b}</li>`).join('')}
+          </ul>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function protocolListHtml() {
+  return `
+    <div class="protocol-label">The protocol</div>
+    <div class="protocol">
+      ${STAGES.map(s => `
+        <button class="protocol-row" type="button" data-agent="${s.agent}" data-kind="stage">
+          <span class="face">${faceSvg(s.mood)}</span>
+          <span class="pinfo">
+            <div class="label">${s.name}</div>
+            <div class="summary">${s.bullets.join(' · ')}</div>
+          </span>
+          ${refChip(s.refs, s.agent)}
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function accordionHtml() {
+  return `
+    <div class="accordion">
+      ${STAGES.map((s, i) => `
+        <div class="acc-row" aria-expanded="${i === 0 ? 'true' : 'false'}" data-agent="${s.agent}" data-kind="stage" tabindex="0" role="button" aria-label="${s.name}">
+          <div class="acc-summary">
+            <span class="face">${faceSvg(s.mood)}</span>
+            <span class="label">${s.name}</span>
+            ${refChip(s.refs, s.agent)}
+            <span class="chev">${chevronSvg()}</span>
+          </div>
+          <div class="acc-body">
+            <ul>${s.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function evidenceStripHtml() {
+  return `
+    <div class="evidence-strip">
+      <div class="avatar-stack">
+        ${Object.keys(AGENTS).map(id => `
+          <button class="av" type="button" data-agent="${id}" data-kind="agent" style="${rampStyle(id)}" title="${AGENTS[id].name}">${id}</button>
+        `).join('')}
+      </div>
+      <span class="summary">Built from ${AGENT_COUNT} agents · ${TOTAL_REFS} referenced messages</span>
+      <button class="trace" type="button" id="o3-trace">Trace</button>
+    </div>
+  `;
+}
+
+// ===== Option renderers ====================================================
+function renderO1() {
+  document.getElementById('opt-o1').innerHTML = `
+    ${heroHtml()}
+    ${tagRowHtml()}
+    ${whyHtml('o1-why')}
+    ${stageTimelineHtml()}
+    ${agentsGridHtml()}
+  `;
+}
+function renderO2() {
+  document.getElementById('opt-o2').innerHTML = `
+    ${heroHtml({ compact: true })}
+    ${whyHtml('o2-why')}
+    ${agentsGridHtml()}
+    ${protocolListHtml()}
+  `;
+}
+function renderO3() {
+  document.getElementById('opt-o3').innerHTML = `
+    ${heroHtml({ compact: true })}
+    <div class="lead-serif">${WHY_SHORT}</div>
+    ${accordionHtml()}
+    ${evidenceStripHtml()}
+  `;
+}
+
+renderO1(); renderO2(); renderO3();
+
+// ===== Interactions =======================================================
+const playbookRoot = document.querySelector('.playbook-card');
+const switcher = document.querySelector('.switcher');
+const opts = ['o1', 'o2', 'o3'].reduce((m, id) => { m[id] = document.getElementById(`opt-${id}`); return m; }, {});
+let currentOpt = 'o1';
+opts.o1.classList.add('active');
+
+// Switcher
+switcher.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-option]');
+  if (!btn) return;
+  const next = btn.dataset.option;
+  if (next === currentOpt) return;
+  // Update buttons
+  switcher.querySelectorAll('button').forEach(b => {
+    const isNext = b === btn;
+    b.classList.toggle('active', isNext);
+    b.setAttribute('aria-selected', isNext ? 'true' : 'false');
+  });
+  // Swap visible option
+  Object.entries(opts).forEach(([id, el]) => {
+    const isNext = id === next;
+    el.hidden = !isNext;
+    el.classList.toggle('active', isNext);
+  });
+  currentOpt = next;
+  clearActiveAgent(); // reset cross-highlight on switch
+});
+
+// Email expanded "See more" (static)
+document.querySelector('.email.expanded .see-more-link')?.addEventListener('click', (e) => {
+  // Static prototype — no body wired here. Toggle text only.
+  const btn = e.currentTarget;
+  btn.textContent = btn.textContent === 'See more' ? 'See less' : 'See more';
+});
+
+// Why callouts (O1, O2)
+playbookRoot.addEventListener('click', (e) => {
+  const btn = e.target.closest('.why .see-more');
+  if (!btn) return;
+  e.stopPropagation();
+  const box = btn.closest('.why');
+  const open = box.classList.toggle('expanded');
+  btn.textContent = open ? 'See less' : 'See more';
+});
+
+// O3 accordion
+playbookRoot.addEventListener('click', (e) => {
+  const row = e.target.closest('#opt-o3 .acc-row');
+  if (!row) return;
+  if (e.target.closest('.ref')) return; // ref chip handled separately
+  const next = row.getAttribute('aria-expanded') !== 'true';
+  row.setAttribute('aria-expanded', next ? 'true' : 'false');
+});
+// Keyboard support for accordion rows + ref chips (both are role=button on
+// non-button elements, so the browser doesn't auto-click them on Enter/Space).
+playbookRoot.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest('#opt-o3 .acc-row');
+  if (row && e.target === row) {
+    e.preventDefault();
+    row.click();
+    return;
+  }
+  const ref = e.target.closest('.ref');
+  if (ref && e.target === ref) {
+    e.preventDefault();
+    ref.click();
+  }
+});
+
+// Cross-highlight (stages / refs / agents)
+let activeAgent = null;
+
+function clearActiveAgent() {
+  activeAgent = null;
+  Object.values(opts).forEach(opt => {
+    opt.classList.remove('has-active');
+    opt.querySelectorAll('[data-agent]').forEach(el => {
+      el.classList.remove('dim');
+      el.classList.remove('on');
+    });
+  });
+}
+
+function applyActiveAgent(agent) {
+  const opt = opts[currentOpt];
+  opt.classList.add('has-active');
+  opt.querySelectorAll('[data-agent]').forEach(el => {
+    const match = el.dataset.agent === agent;
+    el.classList.toggle('on', match);
+    el.classList.toggle('dim', !match);
+  });
+}
+
+function setActiveAgent(agent) {
+  if (activeAgent === agent) {
+    clearActiveAgent();
+    return;
+  }
+  activeAgent = agent;
+  applyActiveAgent(agent);
+}
+
+playbookRoot.addEventListener('click', (e) => {
+  const target = e.target.closest('[data-agent][data-kind]');
+  if (!target) return;
+  // Only react inside the visible option
+  if (!opts[currentOpt].contains(target)) return;
+  // Ref chip: stop accordion bubbling but still highlight
+  if (target.dataset.kind === 'ref') {
+    e.stopPropagation();
+  }
+  setActiveAgent(target.dataset.agent);
+});
+
+// O3 "Trace" reset
+document.body.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'o3-trace') {
+    clearActiveAgent();
+  }
+});
+</script>
+
+</body>
+</html>
