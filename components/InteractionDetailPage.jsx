@@ -14,8 +14,6 @@ import {
   Headphones,
   Smile,
   Meh,
-  Frown,
-  Quote,
   Activity,
   User,
 } from "lucide-react";
@@ -438,74 +436,405 @@ function CategoryBody({ categoryId, insights }) {
   );
 }
 
-// ---- Agent Playbook detail body -----------------------------------------
+// ---- Agent Playbook detail body — 3 layout switcher ---------------------
+//
+// 🚩 FLAG for Akash — three exploratory layouts share one data model.
+// Option A (Editorial timeline), Option B (Evidence-first), Option C
+// (Compact) are all rendered from data.stages + data.keyTag + data.why*.
+// Pick one for production; the switcher is itself a flag — review-only.
+// 🚩 FLAG — agent-attribution palette (SI / AM / TN / RK ramps) is a
+// brand-new visual element with no design-system tokens today. Inlined
+// here; lift into globals.css once the palette is approved.
+// 🚩 FLAG — mood palette (smile / neutral amber vs happy green) reuses
+// --color-warning / --color-success for the face icon, with raw hex on
+// the dot background until a sentiment-face token lands.
 
-// 🚩 FLAG — "Present Stages" semantics. Reading "Present" as stages that
-// occurred during the call. No "Missing Stages" sibling block today;
-// confirm whether one is intended.
+const PB_AGENTS = {
+  SI: { name: "Sara I.",   bg: "#E6F1FB", text: "#0C447C", accent: "#185FA5" },
+  AM: { name: "Aditi M.",  bg: "#E1F5EE", text: "#085041", accent: "#0F6E56" },
+  TN: { name: "Tarun N.",  bg: "#FAECE7", text: "#712B13", accent: "#993C1D" },
+  RK: { name: "Rohan K.",  bg: "var(--color-icon-tertiary-bg)", text: "var(--color-icon-tertiary-fg)", accent: "var(--color-icon-tertiary-fg)" },
+};
+
+const PB_MOODS = {
+  smile:   { Icon: Smile, color: "var(--color-warning)", dotBg: "#FBF0DA" },
+  neutral: { Icon: Meh,   color: "var(--color-warning)", dotBg: "#FBF0DA" },
+  happy:   { Icon: Smile, color: "var(--color-success)", dotBg: "#EBF3DE" },
+};
+
+function getInitials(code) {
+  return (PB_AGENTS[code]?.name || code).split(" ").map((s) => s[0]).join("").slice(0, 2);
+}
+
 function AgentPlaybookDetail({ data }) {
+  const [opt, setOpt] = React.useState("a");
+  const [activeAgent, setActiveAgent] = React.useState(null);
+
   if (!data) return null;
+
+  const toggleAgent = (agent) => {
+    setActiveAgent((cur) => (cur === agent ? null : agent));
+  };
+  const clearAgent = () => setActiveAgent(null);
+  const handleOptChange = (next) => {
+    if (next === opt) return;
+    clearAgent();
+    setOpt(next);
+  };
+
+  const shared = { data, activeAgent, onSetAgent: toggleAgent, onClearAgent: clearAgent };
+
   return (
-    <div style={pStyles.detailBody}>
-      <AssessmentCard assessment={data.assessment} />
-      <PresentStagesCard stages={data.presentStages} />
+    <div style={pbStyles.detail}>
+      <PlaybookSwitcher value={opt} onChange={handleOptChange} />
+      <p style={pbStyles.hint}>
+        Refs are colored by the agent who handled that stage. Tap a stage — or an agent — to trace the link.
+      </p>
+      {opt === "a" && <PlaybookOptionA {...shared} />}
+      {opt === "b" && <PlaybookOptionB {...shared} />}
+      {opt === "c" && <PlaybookOptionC {...shared} />}
     </div>
   );
 }
 
-function AssessmentCard({ assessment }) {
-  const [open, setOpen] = React.useState(false);
-  if (!assessment) return null;
+function PlaybookSwitcher({ value, onChange }) {
+  const opts = [
+    { id: "a", title: "Option A", sub: "Editorial timeline" },
+    { id: "b", title: "Option B", sub: "Evidence-first" },
+    { id: "c", title: "Option C", sub: "Compact" },
+  ];
   return (
-    <div style={pStyles.assessmentCard}>
-      <span style={pStyles.eyebrow}>ASSESSMENT</span>
-      <div style={pStyles.assessmentRow}>
-        <p style={open ? pStyles.assessmentBodyOpen : pStyles.assessmentBodyClamp}>
-          {renderTextWithCitations(assessment.text)}
-        </p>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          style={pStyles.linkBtn}
-          aria-expanded={open}
-        >
-          {open ? "See less" : "See more"}
-        </button>
-        <CitationBadge count={assessment.citationCount} />
+    <div style={pbStyles.switcher} role="tablist" aria-label="Playbook layout option">
+      {opts.map((o) => {
+        const active = value === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.id)}
+            style={active ? pbStyles.switcherBtnActive : pbStyles.switcherBtn}
+          >
+            <span style={pbStyles.switcherTitle}>{o.title}</span>
+            <span style={pbStyles.switcherSub}>{o.sub}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Hero (icon tile + title + subline) — shared across all options.
+function PlaybookHero({ sub, compact = false, rightSlot = null }) {
+  return (
+    <div style={compact ? pbStyles.heroCompact : pbStyles.hero}>
+      <span style={compact ? pbStyles.heroTileCompact : pbStyles.heroTile}>
+        <Headphones size={compact ? 18 : 22} color="var(--color-icon-tertiary-fg)" />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h3 style={compact ? pbStyles.heroTitleCompact : pbStyles.heroTitle}>Agent playbook</h3>
+        {sub && <div style={pbStyles.heroSub}>{sub}</div>}
       </div>
+      {rightSlot}
     </div>
   );
 }
 
-function PresentStagesCard({ stages = [] }) {
+function KeyTag({ children }) {
+  return <span style={pbStyles.keyTag}>{children}</span>;
+}
+
+function PlaybookTags({ data }) {
   return (
-    <div style={pStyles.stagesCard}>
-      <span style={pStyles.stagesHeading}>Present Stages</span>
-      <div style={pStyles.stagesList}>
-        {stages.map((s, i) => (
-          <StageRow key={s.id} stage={s} isLast={i === stages.length - 1} />
+    <div style={pbStyles.tagRow}>
+      <KeyTag>{data.keyTag}</KeyTag>
+      {data.secondaryTags.map((t) => (
+        <span key={t} style={pbStyles.tag}>{t}</span>
+      ))}
+    </div>
+  );
+}
+
+function WhyCallout({ data }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={pbStyles.why}>
+      <div style={pbStyles.whyEyebrow}>
+        <Smile size={14} color="#0C447C" />
+        <span>Why this approach works</span>
+      </div>
+      <p style={pbStyles.whyText}>{open ? data.whyFull : data.whyShort}</p>
+      <button type="button" onClick={() => setOpen((v) => !v)} style={pbStyles.whyMore} aria-expanded={open}>
+        {open ? "See less" : "See more"}
+      </button>
+    </div>
+  );
+}
+
+function MoodDot({ mood }) {
+  const cfg = PB_MOODS[mood] || PB_MOODS.smile;
+  const Icon = cfg.Icon;
+  return (
+    <span style={{ ...pbStyles.moodDot, background: cfg.dotBg }}>
+      <Icon size={14} color={cfg.color} aria-label={`${mood} sentiment`} />
+    </span>
+  );
+}
+
+function RefChip({ stage, activeAgent, onSetAgent, compact = false }) {
+  const ramp = PB_AGENTS[stage.agent];
+  const dim = activeAgent && activeAgent !== stage.agent;
+  const label = compact ? `#${stage.refs[0]}–${stage.refs[1]}` : `#${stage.refs[0]} · #${stage.refs[1]}`;
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onSetAgent(stage.agent); }}
+      style={{
+        ...pbStyles.ref,
+        background: ramp.bg,
+        color: ramp.text,
+        opacity: dim ? 0.42 : 1,
+      }}
+      aria-label={`Messages ${stage.refs[0]} to ${stage.refs[1]}, from ${ramp.name}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function AgentCard({ code, data, activeAgent, onSetAgent }) {
+  const ramp = PB_AGENTS[code];
+  const stages = data.stages.filter((s) => s.agent === code);
+  const msgs = stages.reduce((n, s) => n + s.refs.length, 0);
+  const stageList = stages
+    .map((s) => s.name.replace(" & probing", "").replace("Initial ", "").replace(" confirmation", "").replace(" presentation", ""))
+    .join(", ");
+  const dim = activeAgent && activeAgent !== code;
+  const on = activeAgent === code;
+  return (
+    <button
+      type="button"
+      onClick={() => onSetAgent(code)}
+      style={{
+        ...pbStyles.agentCard,
+        borderColor: on ? ramp.accent : "var(--color-divider-card)",
+        opacity: dim ? 0.42 : 1,
+      }}
+    >
+      <span style={pbStyles.agentCardHead}>
+        <span style={{ ...pbStyles.agentAvatar, background: ramp.bg, color: ramp.text }}>
+          {getInitials(code)}
+        </span>
+        <span style={pbStyles.agentName}>{ramp.name}</span>
+      </span>
+      <span style={pbStyles.agentMeta}>{msgs} messages · {stageList}</span>
+    </button>
+  );
+}
+
+function EvidenceGrid({ data, activeAgent, onSetAgent }) {
+  return (
+    <div>
+      <div style={pbStyles.sectLabel}>
+        <User size={14} color="var(--color-text-medium)" />
+        <span>Built from {Object.keys(PB_AGENTS).length} agent interactions</span>
+      </div>
+      <div style={pbStyles.evGrid}>
+        {Object.keys(PB_AGENTS).map((code) => (
+          <AgentCard key={code} code={code} data={data} activeAgent={activeAgent} onSetAgent={onSetAgent} />
         ))}
       </div>
     </div>
   );
 }
 
-function StageRow({ stage, isLast }) {
+// ---- Option A — Editorial timeline -----------------------------------
+function PlaybookOptionA({ data, activeAgent, onSetAgent }) {
   return (
-    <div style={{ ...pStyles.stageRow, borderBottom: isLast ? "none" : "1px solid var(--color-border-tab)" }}>
-      <div style={pStyles.stageTopRow}>
-        <span style={pStyles.stageLeft}>
-          <SentimentFace sentiment={stage.sentiment} />
-          <span style={pStyles.stageTitle}>{stage.title}</span>
-        </span>
-        <CitationRefs references={stage.references} />
+    <div style={pbStyles.optBody}>
+      <PlaybookHero sub={data.contextLine} />
+      <PlaybookTags data={data} />
+      <WhyCallout data={data} />
+      <div style={pbStyles.track}>
+        <span style={pbStyles.trackLine} aria-hidden="true" />
+        {data.stages.map((s) => (
+          <TimelineNode key={s.id} stage={s} activeAgent={activeAgent} onSetAgent={onSetAgent} />
+        ))}
       </div>
-      {stage.observations?.length > 0 && (
-        <ul style={pStyles.observationList}>
-          {stage.observations.map((obs, i) => (
-            <li key={i} style={pStyles.observationItem}>
-              <span style={pStyles.observationBullet}>•</span>
-              <span>{obs}</span>
+      <div style={pbStyles.evDivider}>
+        <EvidenceGrid data={data} activeAgent={activeAgent} onSetAgent={onSetAgent} />
+      </div>
+    </div>
+  );
+}
+
+function TimelineNode({ stage, activeAgent, onSetAgent }) {
+  const dim = activeAgent && activeAgent !== stage.agent;
+  const on = activeAgent === stage.agent;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSetAgent(stage.agent)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSetAgent(stage.agent);
+        }
+      }}
+      style={{
+        ...pbStyles.node,
+        background: on ? "#F3F6FB" : "transparent",
+        opacity: dim ? 0.42 : 1,
+      }}
+    >
+      <span style={pbStyles.nodeDot}>
+        <MoodDot mood={stage.mood} />
+      </span>
+      <div style={pbStyles.nodeHead}>
+        <span style={pbStyles.nodeName}>{stage.name}</span>
+        <RefChip stage={stage} activeAgent={activeAgent} onSetAgent={onSetAgent} />
+      </div>
+      <ul style={pbStyles.bullets}>
+        {stage.bullets.map((b, i) => (
+          <li key={i} style={pbStyles.bullet}>
+            <span aria-hidden="true" style={pbStyles.bulletDot}>•</span>
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ---- Option B — Evidence-first ---------------------------------------
+function PlaybookOptionB({ data, activeAgent, onSetAgent }) {
+  return (
+    <div style={pbStyles.optBody}>
+      <PlaybookHero
+        rightSlot={
+          <div style={pbStyles.heroInlineTags}>
+            <KeyTag>{data.keyTag}</KeyTag>
+            <span style={pbStyles.tag}>{data.secondaryTags.join(" · ")}</span>
+          </div>
+        }
+      />
+      <WhyCallout data={data} />
+      <EvidenceGrid data={data} activeAgent={activeAgent} onSetAgent={onSetAgent} />
+      <div style={pbStyles.protocolLabel}>The protocol</div>
+      <div style={pbStyles.list}>
+        {data.stages.map((s, i) => (
+          <ListRow
+            key={s.id}
+            stage={s}
+            isLast={i === data.stages.length - 1}
+            activeAgent={activeAgent}
+            onSetAgent={onSetAgent}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ListRow({ stage, isLast, activeAgent, onSetAgent }) {
+  const dim = activeAgent && activeAgent !== stage.agent;
+  const on = activeAgent === stage.agent;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSetAgent(stage.agent)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSetAgent(stage.agent);
+        }
+      }}
+      style={{
+        ...pbStyles.li,
+        borderBottom: isLast ? "none" : "1px solid var(--color-divider-card)",
+        background: on ? "#F3F6FB" : "transparent",
+        opacity: dim ? 0.42 : 1,
+      }}
+    >
+      <MoodDot mood={stage.mood} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={pbStyles.liTop}>
+          <span style={pbStyles.liName}>{stage.name}</span>
+          <RefChip stage={stage} activeAgent={activeAgent} onSetAgent={onSetAgent} />
+        </div>
+        <div style={pbStyles.liBody}>{stage.bullets.join(" ")}</div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Option C — Compact ----------------------------------------------
+function PlaybookOptionC({ data, activeAgent, onSetAgent, onClearAgent }) {
+  const [expanded, setExpanded] = React.useState({});
+  const toggle = (id) => setExpanded((m) => ({ ...m, [id]: !m[id] }));
+  return (
+    <div style={pbStyles.optBody}>
+      <PlaybookHero compact rightSlot={<KeyTag>{data.keyTag}</KeyTag>} />
+      <div style={pbStyles.lead}>{data.leadLine}</div>
+      <div style={pbStyles.cmp}>
+        {data.stages.map((s, i) => (
+          <CompactRow
+            key={s.id}
+            stage={s}
+            expanded={!!expanded[s.id]}
+            onToggle={() => toggle(s.id)}
+            activeAgent={activeAgent}
+            onSetAgent={onSetAgent}
+            isLast={i === data.stages.length - 1}
+          />
+        ))}
+      </div>
+      <EvidenceStrip
+        data={data}
+        activeAgent={activeAgent}
+        onSetAgent={onSetAgent}
+        onClearAgent={onClearAgent}
+      />
+    </div>
+  );
+}
+
+function CompactRow({ stage, expanded, onToggle, isLast, activeAgent, onSetAgent }) {
+  const dim = activeAgent && activeAgent !== stage.agent;
+  return (
+    <div style={{ opacity: dim ? 0.42 : 1 }}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        style={{
+          ...pbStyles.crow,
+          borderBottom: isLast ? "none" : "1px solid var(--color-divider-card)",
+        }}
+      >
+        <MoodDot mood={stage.mood} />
+        <span style={pbStyles.crowName}>{stage.name}</span>
+        <RefChip stage={stage} activeAgent={activeAgent} onSetAgent={onSetAgent} compact />
+        <span style={{ ...pbStyles.crowChev, transform: expanded ? "rotate(180deg)" : "rotate(0)" }}>
+          <ChevronDown size={16} color="var(--color-text-tertiary)" />
+        </span>
+      </div>
+      {expanded && (
+        <ul style={pbStyles.crowDetail}>
+          {stage.bullets.map((b, i) => (
+            <li key={i} style={pbStyles.bullet}>
+              <span aria-hidden="true" style={pbStyles.bulletDot}>•</span>
+              <span>{b}</span>
             </li>
           ))}
         </ul>
@@ -514,92 +843,43 @@ function StageRow({ stage, isLast }) {
   );
 }
 
-// 🚩 FLAG — sentiment-face icon source. The design system has no canonical
-// face icons today; using lucide Smile / Meh / Frown as placeholders.
-// 🚩 FLAG — face palette. Figma uses #00711D / #FFC24C / #C54600 which
-// don't have direct tokens. Mapping to the closest existing severity
-// tokens (--color-success / --color-warning / --color-error). Stage title
-// is purple (--color-icon-tertiary-fg) across all sentiments per the
-// Figma; only the face icon is sentiment-coloured.
-const SENTIMENT_FACES = {
-  positive: { Icon: Smile, color: "var(--color-success)" },
-  neutral:  { Icon: Meh,   color: "var(--color-warning)" },
-  negative: { Icon: Frown, color: "var(--color-error)" },
-};
-
-function SentimentFace({ sentiment }) {
-  const cfg = SENTIMENT_FACES[sentiment] || SENTIMENT_FACES.neutral;
-  const Icon = cfg.Icon;
-  return <Icon size={16} color={cfg.color} aria-label={`${sentiment} sentiment`} />;
-}
-
-function CitationRefs({ references = [] }) {
+function EvidenceStrip({ data, activeAgent, onSetAgent, onClearAgent }) {
+  const totalMsgs = data.stages.reduce((n, s) => n + s.refs.length, 0);
+  const agentCount = Object.keys(PB_AGENTS).length;
   return (
-    <span style={pStyles.citationRefs}>
-      {references.map((n, i) => (
-        <React.Fragment key={`${n}-${i}`}>
-          {i > 0 && <span style={pStyles.citationDot} aria-hidden="true" />}
-          <CitationLink n={n} label={`#${n}`} />
-        </React.Fragment>
-      ))}
-    </span>
+    <div style={pbStyles.evRow}>
+      <div style={pbStyles.evStack}>
+        {Object.keys(PB_AGENTS).map((code, i) => {
+          const ramp = PB_AGENTS[code];
+          const dim = activeAgent && activeAgent !== code;
+          return (
+            <button
+              key={code}
+              type="button"
+              onClick={() => onSetAgent(code)}
+              style={{
+                ...pbStyles.stackAvatar,
+                background: ramp.bg,
+                color: ramp.text,
+                marginLeft: i === 0 ? 0 : -8,
+                opacity: dim ? 0.42 : 1,
+              }}
+              aria-label={ramp.name}
+              title={ramp.name}
+            >
+              {getInitials(code)}
+            </button>
+          );
+        })}
+      </div>
+      <span style={pbStyles.evRowText}>
+        Built from {agentCount} agents · {totalMsgs} referenced messages
+      </span>
+      <button type="button" onClick={onClearAgent} style={pbStyles.evRowTrace}>
+        Trace
+      </button>
+    </div>
   );
-}
-
-function CitationLink({ n, label }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onCitationClick(n)}
-      style={pStyles.citationLink}
-    >
-      {label}
-    </button>
-  );
-}
-
-function CitationBadge({ count }) {
-  if (!count) return null;
-  return (
-    <span style={pStyles.citationBadge} aria-label={`${count} citations`}>
-      <Quote size={12} color="var(--color-text-tertiary)" />
-      <span style={pStyles.citationBadgeCount}>{count}</span>
-    </span>
-  );
-}
-
-// Inline citation parser — splits the assessment text on [N] / [N-N]
-// markers and renders each marker as a CitationLink. The non-marker
-// chunks render as plain text nodes.
-function renderTextWithCitations(text) {
-  if (!text) return null;
-  const parts = [];
-  const regex = /\[(\d+(?:-\d+)?)\]/g;
-  let lastIndex = 0;
-  let match;
-  let key = 0;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    parts.push(
-      <CitationLink key={`c-${key++}`} n={match[1]} label={match[0]} />,
-    );
-    lastIndex = regex.lastIndex;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
-}
-
-// 🚩 FLAG for Akash — citation behavior. Stub today: clicking a [N] in
-// the assessment or a #N on a stage row logs the target. Confirm:
-// (a) are [N] and #N the same index space? (b) target = scroll-to +
-// highlight on the left column? open the email card expanded? show a
-// popover? (c) does N point to a message id or a moment inside a
-// message?
-function onCitationClick(n) {
-  // eslint-disable-next-line no-console
-  console.log("citation click", n);
 }
 
 // ---- Mock data + helpers -------------------------------------------------
@@ -668,25 +948,22 @@ const MOCK_INTERACTION = {
     interactionOutcome: { status: "Moderate" },
     customerSentiment:  { status: "Positive" },
     agentPlaybook: {
-      assessment: {
-        text:
-          "The agent maintained control of the call flow, moving logically from authentication [11] to diagnosis [16] and solution presentation [44]. " +
-          "The interaction was efficient until standard troubleshooting (power reset) failed [59-69]. " +
-          "The agent successfully navigated an unscripted technical hurdle by suggesting a physical intervention (using a stick to clear the rotor) [93-102]. " +
-          "This step was critical and effective. The main friction point was the initial loop of failed standard steps. " +
-          "The agent missed a formal recap of the final steps (let it rest 10-15 mins) being explicitly confirmed by the customer, although the instruction was given [176].",
-        citationCount: 4,
-      },
-      presentStages: [
-        { id: "initial_greeting",   title: "Initial Greeting",      sentiment: "neutral",  references: [1, 3],     observations: ["Agent greeting and identification"] },
-        { id: "authentication",     title: "Authentication",        sentiment: "neutral",  references: [11, 15],   observations: ["Customer provided name and address"] },
-        { id: "discovery_probing",  title: "Discovery and Probing", sentiment: "neutral",  references: [16, 19],   observations: ["Agent asked about light patterns", "Customer confirmed orange light"] },
-        { id: "troubleshooting_a",  title: "Troubleshooting Steps", sentiment: "negative", references: [44, 70],   observations: ["Customer performed power reset", "Reset failed to clear error"] },
-        { id: "discovery_probing_b",title: "Discovery and Probing", sentiment: "neutral",  references: [70, 81],   observations: ["Agent confirmed prior cleaning efforts", "Agent inquired about machine temperature"] },
-        { id: "solution",           title: "Solution Presentation", sentiment: "neutral",  references: [93, 102],  observations: ["Agent suggested physical intervention (stick)"] },
-        { id: "troubleshooting_b",  title: "Troubleshooting Steps", sentiment: "positive", references: [102, 110], observations: ["Customer cleared internal path with stick", "Water flow confirmed"] },
-        { id: "recap",              title: "Recap",                 sentiment: "positive", references: [176, 180], observations: ["Agent instructed machine to rest 10-15 mins", "Customer confirmed understanding"] },
-        { id: "closing",            title: "Closing",               sentiment: "positive", references: [185, 190], observations: ["Mutual thanks and farewell"] },
+      contextLine: "Returns & cancellations · 6 stages",
+      keyTag: "Price pressure",
+      secondaryTags: ["Returns", "Marked urgent"],
+      whyShort:
+        "The agent followed a standard, efficient protocol: professional greeting, thorough authentication, clear discovery…",
+      whyFull:
+        "The agent followed a standard, efficient protocol — professional greeting, thorough authentication, clear discovery, a forwarded solution, confirmation of understanding, and a clean close. Full authentication up front and an early intent check kept the flow linear, so the price-driven cancellation resolved in a single pass with minimal customer effort.",
+      leadLine:
+        "Up-front authentication and an early intent check kept the flow linear — resolved in one pass, no repetition.",
+      stages: [
+        { id: "greeting",   name: "Initial greeting",        mood: "smile",   refs: [1, 2],   agent: "SI", bullets: ["Greeted customer and asked for name and concern."] },
+        { id: "auth",       name: "Authentication",          mood: "neutral", refs: [5, 12],  agent: "AM", bullets: ["Requested and received ID, full name, and last four of order number.", "System loading time noted."] },
+        { id: "discovery",  name: "Discovery & probing",     mood: "smile",   refs: [13, 18], agent: "TN", bullets: ["Confirmed customer had multiple returns.", "Identified specific handbag and price.", "Confirmed intent to cancel the return."] },
+        { id: "solution",   name: "Solution presentation",   mood: "smile",   refs: [19, 23], agent: "RK", bullets: ["Explained they would initiate cancellation and forward to the department.", "Marked the request as urgent."] },
+        { id: "resolution", name: "Resolution confirmation", mood: "happy",   refs: [28, 30], agent: "RK", bullets: ["Customer confirmed understanding and satisfaction with the action taken.", "Agent confirmed no further assistance needed."] },
+        { id: "closing",    name: "Closing",                 mood: "happy",   refs: [29, 32], agent: "SI", bullets: ["Wished customer a nice afternoon.", "Customer reciprocated good wishes."] },
       ],
     },
     predictedCsat: { status: "Satisfied" },
@@ -1244,5 +1521,435 @@ const pStyles = {
   observationBullet: {
     color: "var(--color-text-tertiary)",
     flexShrink: 0,
+  },
+};
+
+// ---- Agent Playbook (3-option switcher) styles --------------------------
+//
+// 🚩 FLAG — raw hex values below (agent ramps + mood face backgrounds +
+// row hover tint #F3F6FB) have no design-system equivalent today. Inlined
+// to ship the review; promote to tokens once the palette lands.
+const pbStyles = {
+  detail: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    paddingInline: 2,
+  },
+  switcher: {
+    display: "flex",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  switcherBtn: {
+    flex: 1,
+    minWidth: 130,
+    border: "1px solid var(--color-divider-card)",
+    background: "var(--surface-white)",
+    borderRadius: 10,
+    padding: "9px 12px",
+    cursor: "pointer",
+    textAlign: "left",
+    fontFamily: "var(--font-sans)",
+  },
+  switcherBtnActive: {
+    flex: 1,
+    minWidth: 130,
+    border: "1px solid var(--color-text-deep)",
+    background: "var(--surface-white)",
+    borderRadius: 10,
+    padding: "9px 12px",
+    cursor: "pointer",
+    textAlign: "left",
+    fontFamily: "var(--font-sans)",
+    boxShadow: "0 1px 0 rgba(31,36,51,0.04)",
+  },
+  switcherTitle: {
+    display: "block",
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  switcherSub: {
+    display: "block",
+    fontSize: 11,
+    color: "var(--color-text-tertiary)",
+    marginTop: 1,
+  },
+  hint: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    margin: 0,
+    paddingInline: 2,
+    lineHeight: 1.5,
+  },
+  optBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+    paddingTop: 4,
+  },
+  hero: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  heroCompact: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  heroTile: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    background: "var(--color-icon-tertiary-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTileCompact: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    background: "var(--color-icon-tertiary-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTitle: {
+    margin: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 20,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.15,
+  },
+  heroTitleCompact: {
+    margin: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 18,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.15,
+  },
+  heroSub: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    marginTop: 2,
+  },
+  heroInlineTags: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    flexWrap: "wrap",
+  },
+  tagRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 7,
+    alignItems: "center",
+  },
+  keyTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: "#FAECE7",
+    color: "#712B13",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: "5px 10px",
+    borderRadius: 10,
+    fontFamily: "var(--font-sans)",
+  },
+  tag: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    padding: "5px 10px",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+  },
+  why: {
+    background: "#E6F1FB",
+    borderRadius: 10,
+    padding: "13px 15px",
+  },
+  whyEyebrow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#0C447C",
+    marginBottom: 5,
+  },
+  whyText: {
+    margin: 0,
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "var(--color-text-deep)",
+  },
+  whyMore: {
+    background: "none",
+    border: "none",
+    color: "#185FA5",
+    fontFamily: "inherit",
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer",
+    padding: "6px 0 0",
+  },
+  track: {
+    position: "relative",
+    paddingLeft: 30,
+  },
+  trackLine: {
+    position: "absolute",
+    left: 9,
+    top: 6,
+    bottom: 6,
+    width: 2,
+    background: "var(--color-divider-card)",
+  },
+  node: {
+    position: "relative",
+    marginBottom: 18,
+    marginLeft: -4,
+    cursor: "pointer",
+    borderRadius: 8,
+    padding: "2px 4px",
+    fontFamily: "var(--font-sans)",
+    transition: "background 150ms ease, opacity 200ms ease",
+  },
+  nodeDot: {
+    position: "absolute",
+    left: -30,
+    top: 0,
+  },
+  nodeHead: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  nodeName: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  bullets: {
+    listStyle: "none",
+    padding: 0,
+    margin: "3px 0 0",
+  },
+  bullet: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    lineHeight: 1.55,
+    paddingLeft: 14,
+    position: "relative",
+    display: "block",
+  },
+  bulletDot: {
+    position: "absolute",
+    left: 4,
+    color: "var(--color-text-tertiary)",
+  },
+  moodDot: {
+    width: 22,
+    height: 22,
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  ref: {
+    fontSize: 11,
+    fontWeight: 500,
+    padding: "2px 7px",
+    borderRadius: 6,
+    cursor: "pointer",
+    border: "1px solid transparent",
+    whiteSpace: "nowrap",
+    fontFamily: "var(--font-sans)",
+    transition: "opacity 200ms ease",
+  },
+  sectLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    marginBottom: 11,
+  },
+  evGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 9,
+  },
+  evDivider: {
+    marginTop: 24,
+    paddingTop: 18,
+    borderTop: "1px solid var(--color-divider-card)",
+  },
+  agentCard: {
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+    padding: 11,
+    cursor: "pointer",
+    background: "transparent",
+    textAlign: "left",
+    fontFamily: "var(--font-sans)",
+    display: "block",
+    width: "100%",
+    transition: "border-color 150ms ease, opacity 200ms ease",
+  },
+  agentCardHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  agentAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  agentName: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  agentMeta: {
+    display: "block",
+    fontSize: 11,
+    color: "var(--color-text-tertiary)",
+    marginTop: 6,
+    lineHeight: 1.4,
+  },
+  protocolLabel: {
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: "var(--color-text-tertiary)",
+    margin: "8px 0 4px",
+  },
+  list: {
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  li: {
+    display: "flex",
+    gap: 11,
+    padding: "13px 15px",
+    cursor: "pointer",
+    fontFamily: "var(--font-sans)",
+    textAlign: "left",
+    transition: "background 150ms ease, opacity 200ms ease",
+  },
+  liTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    alignItems: "baseline",
+  },
+  liName: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  liBody: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    marginTop: 2,
+    lineHeight: 1.5,
+  },
+  lead: {
+    fontFamily: 'Georgia, "Times New Roman", serif',
+    fontSize: 15,
+    lineHeight: 1.55,
+    paddingLeft: 14,
+    borderLeft: "2px solid var(--color-divider-card)",
+    color: "var(--color-text-deep)",
+    margin: "4px 0 6px",
+  },
+  cmp: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  crow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 11,
+    padding: "11px 4px",
+    cursor: "pointer",
+    background: "transparent",
+    fontFamily: "var(--font-sans)",
+    textAlign: "left",
+  },
+  crowName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  crowChev: {
+    display: "inline-flex",
+    transition: "transform 200ms ease",
+  },
+  crowDetail: {
+    listStyle: "none",
+    padding: "0 4px 12px 37px",
+    margin: 0,
+  },
+  evRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    padding: "11px 12px",
+    background: "var(--color-card-emoji-bg)",
+    borderRadius: 10,
+    marginTop: 16,
+  },
+  evStack: {
+    display: "flex",
+  },
+  stackAvatar: {
+    width: 27,
+    height: 27,
+    borderRadius: "50%",
+    border: "2px solid var(--color-card-emoji-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "opacity 200ms ease",
+  },
+  evRowText: {
+    flex: 1,
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+  },
+  evRowTrace: {
+    fontSize: 12,
+    color: "#185FA5",
+    fontWeight: 500,
+    cursor: "pointer",
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    fontFamily: "var(--font-sans)",
   },
 };
