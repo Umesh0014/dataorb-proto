@@ -20,6 +20,7 @@ import {
 import Button from "./Button";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
+import DarkPillSwitcher from "./DarkPillSwitcher";
 
 // InteractionDetailPage — full-page deep dive for a single interaction.
 // Sticky top metadata bar + two-column body (Email Conversations left,
@@ -466,8 +467,14 @@ function getInitials(code) {
   return (PB_AGENTS[code]?.name || code).split(" ").map((s) => s[0]).join("").slice(0, 2);
 }
 
+// Floating-switcher options — A / B / C, kept terse to match the
+// DarkPillSwitcher chrome (mirrors the M1/M2 + Team Leader/Agent demo
+// switchers on the Missions shell). The labels A/B/C map to the
+// internal opt key.
+const PLAYBOOK_OPTS = ["A", "B", "C"];
+
 function AgentPlaybookDetail({ data }) {
-  const [opt, setOpt] = React.useState("a");
+  const [opt, setOpt] = React.useState("A");
   const [activeAgent, setActiveAgent] = React.useState(null);
 
   if (!data) return null;
@@ -486,41 +493,20 @@ function AgentPlaybookDetail({ data }) {
 
   return (
     <div style={pbStyles.detail}>
-      <PlaybookSwitcher value={opt} onChange={handleOptChange} />
-      <p style={pbStyles.hint}>
-        Refs are colored by the agent who handled that stage. Tap a stage — or an agent — to trace the link.
-      </p>
-      {opt === "a" && <PlaybookOptionA {...shared} />}
-      {opt === "b" && <PlaybookOptionB {...shared} />}
-      {opt === "c" && <PlaybookOptionC {...shared} />}
-    </div>
-  );
-}
-
-function PlaybookSwitcher({ value, onChange }) {
-  const opts = [
-    { id: "a", title: "Option A", sub: "Editorial timeline" },
-    { id: "b", title: "Option B", sub: "Evidence-first" },
-    { id: "c", title: "Option C", sub: "Compact" },
-  ];
-  return (
-    <div style={pbStyles.switcher} role="tablist" aria-label="Playbook layout option">
-      {opts.map((o) => {
-        const active = value === o.id;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(o.id)}
-            style={active ? pbStyles.switcherBtnActive : pbStyles.switcherBtn}
-          >
-            <span style={pbStyles.switcherTitle}>{o.title}</span>
-            <span style={pbStyles.switcherSub}>{o.sub}</span>
-          </button>
-        );
-      })}
+      {opt === "A" && <PlaybookOptionA {...shared} />}
+      {opt === "B" && <PlaybookOptionB {...shared} />}
+      {opt === "C" && <PlaybookOptionC {...shared} />}
+      {/* Floating bottom-right demo switcher — same DarkPillSwitcher
+          chrome as MissionsLandingShell's M1/M2 and Team Leader/Agent
+          pills. Demo affordance, not product UI. */}
+      <div style={pbStyles.floatingSwitcher}>
+        <DarkPillSwitcher
+          value={opt}
+          options={PLAYBOOK_OPTS}
+          onChange={handleOptChange}
+          ariaLabel="Agent Playbook layout option"
+        />
+      </div>
     </div>
   );
 }
@@ -1536,52 +1522,11 @@ const pbStyles = {
     gap: 16,
     paddingInline: 2,
   },
-  switcher: {
-    display: "flex",
-    gap: 6,
-    flexWrap: "wrap",
-  },
-  switcherBtn: {
-    flex: 1,
-    minWidth: 130,
-    border: "1px solid var(--color-divider-card)",
-    background: "var(--surface-white)",
-    borderRadius: 10,
-    padding: "9px 12px",
-    cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "var(--font-sans)",
-  },
-  switcherBtnActive: {
-    flex: 1,
-    minWidth: 130,
-    border: "1px solid var(--color-text-deep)",
-    background: "var(--surface-white)",
-    borderRadius: 10,
-    padding: "9px 12px",
-    cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "var(--font-sans)",
-    boxShadow: "0 1px 0 rgba(31,36,51,0.04)",
-  },
-  switcherTitle: {
-    display: "block",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-  },
-  switcherSub: {
-    display: "block",
-    fontSize: 11,
-    color: "var(--color-text-tertiary)",
-    marginTop: 1,
-  },
-  hint: {
-    fontSize: 12,
-    color: "var(--color-text-tertiary)",
-    margin: 0,
-    paddingInline: 2,
-    lineHeight: 1.5,
+  floatingSwitcher: {
+    position: "fixed",
+    right: 24,
+    bottom: 24,
+    zIndex: 50,
   },
   optBody: {
     display: "flex",
