@@ -501,6 +501,12 @@ function AgentPlaybookDetail({ data }) {
           pills. Demo affordance, not product UI. */}
       <div style={pbStyles.floatingSwitcher}>
         <DarkPillSwitcher
+          value="Problem space"
+          options={["Problem space"]}
+          onChange={() => {}}
+          ariaLabel="Problem space"
+        />
+        <DarkPillSwitcher
           value={opt}
           options={PLAYBOOK_OPTS}
           onChange={handleOptChange}
@@ -1521,6 +1527,10 @@ const pbStyles = {
     right: 24,
     bottom: 24,
     zIndex: 50,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 12,
   },
   optBody: {
     display: "flex",
