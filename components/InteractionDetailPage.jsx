@@ -13,6 +13,9 @@ import {
   Heart,
   Headphones,
   Smile,
+  Meh,
+  Frown,
+  Quote,
   Activity,
   User,
 } from "lucide-react";
@@ -40,6 +43,15 @@ import TabsRow from "./TabsRow";
 export default function InteractionDetailPage({ interactionId, onBack }) {
   const interaction = resolveInteraction(interactionId);
   const [activeTab, setActiveTab] = React.useState("insights");
+  // Insights list ↔ category-detail swap. Set to a row id (e.g. "playbook")
+  // to drill into a category; null shows the list. Switching tabs always
+  // resets back to the list so each tab lands on its primary view.
+  const [selectedInsightCategory, setSelectedInsightCategory] = React.useState(null);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSelectedInsightCategory(null);
+  };
 
   return (
     <div style={pStyles.shell}>
@@ -48,8 +60,11 @@ export default function InteractionDetailPage({ interactionId, onBack }) {
         <EmailConversationsColumn messages={interaction.messages} />
         <InsightsColumn
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           insights={interaction.insights}
+          selectedCategory={selectedInsightCategory}
+          onSelectCategory={setSelectedInsightCategory}
+          onClearCategory={() => setSelectedInsightCategory(null)}
         />
       </div>
     </div>
@@ -253,7 +268,12 @@ const TAB_DEFS = [
   { id: "feedback", label: "Feedback" },
 ];
 
-function InsightsColumn({ activeTab, onTabChange, insights }) {
+function InsightsColumn({ activeTab, onTabChange, insights, selectedCategory, onSelectCategory, onClearCategory }) {
+  // 🚩 FLAG — sticky tabs. Spec calls for tabs that stay pinned at the top
+  // of the scrolling right column. The column shares document scroll
+  // today (see top-of-file FLAG), so sticky tabs would either fight the
+  // metadata bar or read as unexpected. Tabs are static for now; promote
+  // to sticky once independent column scroll lands.
   return (
     <Card padX={0} padY={0}>
       <div style={pStyles.tabsWrap}>
@@ -264,17 +284,29 @@ function InsightsColumn({ activeTab, onTabChange, insights }) {
         />
       </div>
       <div style={pStyles.tabBody}>
-        {activeTab === "insights" && <InsightsList insights={insights} />}
-        {activeTab === "quality" && <EmptyTabPanel name="Quality" />}
-        {activeTab === "feedback" && <EmptyTabPanel name="Feedback" />}
+        {activeTab === "insights" ? (
+          selectedCategory ? (
+            <CategoryDetail
+              categoryId={selectedCategory}
+              insights={insights}
+              onBack={onClearCategory}
+            />
+          ) : (
+            <InsightsList
+              insights={insights}
+              onSelectCategory={onSelectCategory}
+            />
+          )
+        ) : activeTab === "quality" ? (
+          <EmptyTabPanel name="Quality" />
+        ) : (
+          <EmptyTabPanel name="Feedback" />
+        )}
       </div>
     </Card>
   );
 }
 
-// 🚩 FLAG — row click target. onInsightCategoryClick is a stub until the
-// drill destination (in-page accordion vs. drawer vs. sub-route) is
-// decided.
 // 🚩 FLAG — insight row icons. Seeded from the closest lucide match per
 // label; confirm against Figma.
 // 🚩 FLAG — pill palette vocabulary. Today: Moderate (warning), Positive
@@ -289,7 +321,7 @@ const INSIGHT_ROWS = [
   { id: "session",         label: "Session Insights",           Icon: Activity },
 ];
 
-function InsightsList({ insights }) {
+function InsightsList({ insights, onSelectCategory }) {
   const pillValues = {
     outcomeStatus: insights?.interactionOutcome?.status,
     sentimentStatus: insights?.customerSentiment?.status,
@@ -302,19 +334,20 @@ function InsightsList({ insights }) {
           key={r.id}
           row={r}
           pillValue={r.pillKey ? pillValues[r.pillKey] : null}
+          onSelect={() => onSelectCategory(r.id)}
         />
       ))}
     </ul>
   );
 }
 
-function InsightRow({ row, pillValue }) {
+function InsightRow({ row, pillValue, onSelect }) {
   const { label, Icon } = row;
   return (
     <li>
       <button
         type="button"
-        onClick={() => onInsightCategoryClick(row.id)}
+        onClick={onSelect}
         style={pStyles.insightRow}
       >
         <span style={pStyles.insightLeft}>
@@ -328,10 +361,6 @@ function InsightRow({ row, pillValue }) {
       </button>
     </li>
   );
-}
-
-function onInsightCategoryClick(_id) {
-  // TODO: open the category detail. Target TBD — confirm with Akash.
 }
 
 // Status pill — reuses the existing severity tokens (success / warning /
@@ -357,6 +386,220 @@ function EmptyTabPanel({ name }) {
       {name} content TBD.
     </div>
   );
+}
+
+// ---- Insight category detail (shell + Agent Playbook content) -----------
+
+// Reusable detail shell. Other categories will plug their own body in;
+// only Agent Playbook is fleshed out today per spec.
+// 🚩 FLAG — back row stickiness. Defaults to scrolling inline with the
+// content. Akash to confirm whether it should pin under the tabs for
+// long bodies.
+function CategoryDetail({ categoryId, insights, onBack }) {
+  const meta = INSIGHT_ROWS.find((r) => r.id === categoryId);
+  if (!meta) return null;
+  return (
+    <div style={pStyles.detailWrap}>
+      <DetailHeader meta={meta} onBack={onBack} />
+      <CategoryBody categoryId={categoryId} insights={insights} />
+    </div>
+  );
+}
+
+function DetailHeader({ meta, onBack }) {
+  const Icon = meta.Icon;
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      style={pStyles.detailHeader}
+      aria-label="Back to insights"
+    >
+      <ArrowLeft size={16} color="var(--color-button-primary-bg)" />
+      <span style={pStyles.detailHeaderTitleGroup}>
+        <Icon size={16} color="var(--color-text-tertiary)" />
+        <span style={pStyles.detailHeaderTitle}>{meta.label}</span>
+      </span>
+    </button>
+  );
+}
+
+function CategoryBody({ categoryId, insights }) {
+  if (categoryId === "playbook") {
+    return <AgentPlaybookDetail data={insights?.agentPlaybook} />;
+  }
+  // 🚩 FLAG — other categories (Contact Reason Overview, Interaction
+  // Outcome Insights, Customer Sentiment, Predicted CSAT, Session
+  // Insights) reuse this shell once their content specs land.
+  return (
+    <div style={pStyles.detailPlaceholder}>
+      Detail content for this category is coming in a follow-up spec.
+    </div>
+  );
+}
+
+// ---- Agent Playbook detail body -----------------------------------------
+
+// 🚩 FLAG — "Present Stages" semantics. Reading "Present" as stages that
+// occurred during the call. No "Missing Stages" sibling block today;
+// confirm whether one is intended.
+function AgentPlaybookDetail({ data }) {
+  if (!data) return null;
+  return (
+    <div style={pStyles.detailBody}>
+      <AssessmentCard assessment={data.assessment} />
+      <PresentStagesCard stages={data.presentStages} />
+    </div>
+  );
+}
+
+function AssessmentCard({ assessment }) {
+  const [open, setOpen] = React.useState(false);
+  if (!assessment) return null;
+  return (
+    <div style={pStyles.assessmentCard}>
+      <span style={pStyles.eyebrow}>ASSESSMENT</span>
+      <div style={pStyles.assessmentRow}>
+        <p style={open ? pStyles.assessmentBodyOpen : pStyles.assessmentBodyClamp}>
+          {renderTextWithCitations(assessment.text)}
+        </p>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          style={pStyles.linkBtn}
+          aria-expanded={open}
+        >
+          {open ? "See less" : "See more"}
+        </button>
+        <CitationBadge count={assessment.citationCount} />
+      </div>
+    </div>
+  );
+}
+
+function PresentStagesCard({ stages = [] }) {
+  return (
+    <div style={pStyles.stagesCard}>
+      <span style={pStyles.stagesHeading}>Present Stages</span>
+      <div style={pStyles.stagesList}>
+        {stages.map((s, i) => (
+          <StageRow key={s.id} stage={s} isLast={i === stages.length - 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StageRow({ stage, isLast }) {
+  return (
+    <div style={{ ...pStyles.stageRow, borderBottom: isLast ? "none" : "1px solid var(--color-border-tab)" }}>
+      <div style={pStyles.stageTopRow}>
+        <span style={pStyles.stageLeft}>
+          <SentimentFace sentiment={stage.sentiment} />
+          <span style={pStyles.stageTitle}>{stage.title}</span>
+        </span>
+        <CitationRefs references={stage.references} />
+      </div>
+      {stage.observations?.length > 0 && (
+        <ul style={pStyles.observationList}>
+          {stage.observations.map((obs, i) => (
+            <li key={i} style={pStyles.observationItem}>
+              <span style={pStyles.observationBullet}>•</span>
+              <span>{obs}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// 🚩 FLAG — sentiment-face icon source. The design system has no canonical
+// face icons today; using lucide Smile / Meh / Frown as placeholders.
+// 🚩 FLAG — face palette. Figma uses #00711D / #FFC24C / #C54600 which
+// don't have direct tokens. Mapping to the closest existing severity
+// tokens (--color-success / --color-warning / --color-error). Stage title
+// is purple (--color-icon-tertiary-fg) across all sentiments per the
+// Figma; only the face icon is sentiment-coloured.
+const SENTIMENT_FACES = {
+  positive: { Icon: Smile, color: "var(--color-success)" },
+  neutral:  { Icon: Meh,   color: "var(--color-warning)" },
+  negative: { Icon: Frown, color: "var(--color-error)" },
+};
+
+function SentimentFace({ sentiment }) {
+  const cfg = SENTIMENT_FACES[sentiment] || SENTIMENT_FACES.neutral;
+  const Icon = cfg.Icon;
+  return <Icon size={16} color={cfg.color} aria-label={`${sentiment} sentiment`} />;
+}
+
+function CitationRefs({ references = [] }) {
+  return (
+    <span style={pStyles.citationRefs}>
+      {references.map((n, i) => (
+        <React.Fragment key={`${n}-${i}`}>
+          {i > 0 && <span style={pStyles.citationDot} aria-hidden="true" />}
+          <CitationLink n={n} label={`#${n}`} />
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
+
+function CitationLink({ n, label }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onCitationClick(n)}
+      style={pStyles.citationLink}
+    >
+      {label}
+    </button>
+  );
+}
+
+function CitationBadge({ count }) {
+  if (!count) return null;
+  return (
+    <span style={pStyles.citationBadge} aria-label={`${count} citations`}>
+      <Quote size={12} color="var(--color-text-tertiary)" />
+      <span style={pStyles.citationBadgeCount}>{count}</span>
+    </span>
+  );
+}
+
+// Inline citation parser — splits the assessment text on [N] / [N-N]
+// markers and renders each marker as a CitationLink. The non-marker
+// chunks render as plain text nodes.
+function renderTextWithCitations(text) {
+  if (!text) return null;
+  const parts = [];
+  const regex = /\[(\d+(?:-\d+)?)\]/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <CitationLink key={`c-${key++}`} n={match[1]} label={match[0]} />,
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
+
+// 🚩 FLAG for Akash — citation behavior. Stub today: clicking a [N] in
+// the assessment or a #N on a stage row logs the target. Confirm:
+// (a) are [N] and #N the same index space? (b) target = scroll-to +
+// highlight on the left column? open the email card expanded? show a
+// popover? (c) does N point to a message id or a moment inside a
+// message?
+function onCitationClick(n) {
+  // eslint-disable-next-line no-console
+  console.log("citation click", n);
 }
 
 // ---- Mock data + helpers -------------------------------------------------
@@ -424,9 +667,30 @@ const MOCK_INTERACTION = {
     contactReasonOverview: {},
     interactionOutcome: { status: "Moderate" },
     customerSentiment:  { status: "Positive" },
-    agentPlaybook:      {},
-    predictedCsat:      { status: "Satisfied" },
-    sessionInsights:    {},
+    agentPlaybook: {
+      assessment: {
+        text:
+          "The agent maintained control of the call flow, moving logically from authentication [11] to diagnosis [16] and solution presentation [44]. " +
+          "The interaction was efficient until standard troubleshooting (power reset) failed [59-69]. " +
+          "The agent successfully navigated an unscripted technical hurdle by suggesting a physical intervention (using a stick to clear the rotor) [93-102]. " +
+          "This step was critical and effective. The main friction point was the initial loop of failed standard steps. " +
+          "The agent missed a formal recap of the final steps (let it rest 10-15 mins) being explicitly confirmed by the customer, although the instruction was given [176].",
+        citationCount: 4,
+      },
+      presentStages: [
+        { id: "initial_greeting",   title: "Initial Greeting",      sentiment: "neutral",  references: [1, 3],     observations: ["Agent greeting and identification"] },
+        { id: "authentication",     title: "Authentication",        sentiment: "neutral",  references: [11, 15],   observations: ["Customer provided name and address"] },
+        { id: "discovery_probing",  title: "Discovery and Probing", sentiment: "neutral",  references: [16, 19],   observations: ["Agent asked about light patterns", "Customer confirmed orange light"] },
+        { id: "troubleshooting_a",  title: "Troubleshooting Steps", sentiment: "negative", references: [44, 70],   observations: ["Customer performed power reset", "Reset failed to clear error"] },
+        { id: "discovery_probing_b",title: "Discovery and Probing", sentiment: "neutral",  references: [70, 81],   observations: ["Agent confirmed prior cleaning efforts", "Agent inquired about machine temperature"] },
+        { id: "solution",           title: "Solution Presentation", sentiment: "neutral",  references: [93, 102],  observations: ["Agent suggested physical intervention (stick)"] },
+        { id: "troubleshooting_b",  title: "Troubleshooting Steps", sentiment: "positive", references: [102, 110], observations: ["Customer cleared internal path with stick", "Water flow confirmed"] },
+        { id: "recap",              title: "Recap",                 sentiment: "positive", references: [176, 180], observations: ["Agent instructed machine to rest 10-15 mins", "Customer confirmed understanding"] },
+        { id: "closing",            title: "Closing",               sentiment: "positive", references: [185, 190], observations: ["Mutual thanks and farewell"] },
+      ],
+    },
+    predictedCsat: { status: "Satisfied" },
+    sessionInsights: {},
   },
 };
 
@@ -752,5 +1016,233 @@ const pStyles = {
     color: "var(--color-text-tertiary)",
     fontSize: 13,
     textAlign: "center",
+  },
+
+  // ---- Category detail shell ----
+  detailWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 24,
+    padding: "16px 12px",
+  },
+  detailHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    textAlign: "left",
+    width: "100%",
+    fontFamily: "var(--font-sans)",
+  },
+  detailHeaderTitleGroup: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+  },
+  detailHeaderTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    fontWeight: 500,
+    color: "var(--color-text-medium)",
+    letterSpacing: "0.1px",
+  },
+  detailPlaceholder: {
+    padding: "32px 24px",
+    color: "var(--color-text-tertiary)",
+    fontSize: 13,
+    textAlign: "center",
+    border: "1px solid var(--color-border-tab)",
+    borderRadius: 12,
+  },
+  detailBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
+
+  // ---- Assessment card ----
+  assessmentCard: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    padding: "12px 24px",
+    background: "var(--color-card-emoji-bg)",
+    borderRadius: 8,
+  },
+  // 🚩 FLAG — eyebrow color. Figma uses #6650A5 (violet) which matches
+  // --color-icon-tertiary-fg; that's our canonical "section accent" today.
+  eyebrow: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 11,
+    fontWeight: 600,
+    lineHeight: "18px",
+    letterSpacing: "0.5px",
+    textTransform: "uppercase",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  assessmentRow: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  assessmentBodyClamp: {
+    margin: 0,
+    flex: 1,
+    minWidth: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    lineHeight: "22px",
+    letterSpacing: "0.25px",
+    color: "var(--color-text-medium)",
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 3,
+    overflow: "hidden",
+  },
+  assessmentBodyOpen: {
+    margin: 0,
+    flex: 1,
+    minWidth: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    lineHeight: "22px",
+    letterSpacing: "0.25px",
+    color: "var(--color-text-medium)",
+  },
+  linkBtn: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    fontWeight: 500,
+    color: "var(--color-button-primary-bg)",
+    letterSpacing: "0.1px",
+    flexShrink: 0,
+  },
+  citationBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 2,
+    padding: "2px 6px",
+    background: "var(--grey-100)",
+    borderRadius: 100,
+    flexShrink: 0,
+    alignSelf: "flex-start",
+  },
+  citationBadgeCount: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: "20px",
+    letterSpacing: "0.5px",
+    color: "var(--color-text-tertiary)",
+  },
+
+  // ---- Present Stages card ----
+  stagesCard: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    padding: "16px 24px",
+    background: "var(--surface-white)",
+    border: "1px solid var(--color-border-tab)",
+    borderRadius: 12,
+  },
+  stagesHeading: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    fontWeight: 500,
+    lineHeight: "22px",
+    letterSpacing: "0.1px",
+    color: "var(--color-text-medium)",
+  },
+  stagesList: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  stageRow: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    padding: "16px 0",
+  },
+  stageTopRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+  },
+  stageLeft: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+  },
+  stageTitle: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 11,
+    fontWeight: 600,
+    lineHeight: "18px",
+    letterSpacing: "0.5px",
+    textTransform: "uppercase",
+    color: "var(--color-icon-tertiary-fg)",
+    flex: 1,
+    minWidth: 0,
+  },
+  citationRefs: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  },
+  citationDot: {
+    width: 3,
+    height: 3,
+    borderRadius: "50%",
+    background: "var(--color-divider-card)",
+    display: "inline-block",
+  },
+  citationLink: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 12,
+    fontWeight: 400,
+    lineHeight: "20px",
+    letterSpacing: "0.4px",
+    color: "var(--color-button-primary-bg)",
+  },
+  observationList: {
+    margin: 0,
+    padding: 0,
+    listStyle: "none",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  observationItem: {
+    display: "flex",
+    gap: 8,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    lineHeight: "22px",
+    letterSpacing: "0.25px",
+    color: "var(--color-text-medium)",
+  },
+  observationBullet: {
+    color: "var(--color-text-tertiary)",
+    flexShrink: 0,
   },
 };
