@@ -509,6 +509,7 @@ function AgentPlaybookDetail({ data }) {
           chrome as MissionsLandingShell's M1/M2 and Team Leader/Agent
           pills. Demo affordance, not product UI. */}
       <div style={pbStyles.floatingSwitcher}>
+        <FigmaLink href={INTERACTION_DETAIL_FIGMA_URL} />
         <DarkPillSwitcher
           value="Problem space"
           options={["Problem space"]}
@@ -516,18 +517,17 @@ function AgentPlaybookDetail({ data }) {
           ariaLabel="Problem space"
         />
         <DarkPillSwitcher
-          value={designVer}
-          options={["Current design", "Updated design"]}
-          onChange={setDesignVer}
-          ariaLabel="Design version"
-        />
-        <DarkPillSwitcher
           value={opt}
           options={PLAYBOOK_OPTS}
           onChange={handleOptChange}
           ariaLabel="Agent Playbook layout option"
         />
-        <FigmaLink href={INTERACTION_DETAIL_FIGMA_URL} />
+        <DarkPillSwitcher
+          value={designVer}
+          options={["Current design", "Updated design"]}
+          onChange={setDesignVer}
+          ariaLabel="Design version"
+        />
       </div>
     </div>
   );
