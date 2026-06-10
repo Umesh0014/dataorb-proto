@@ -43,6 +43,7 @@ import {
 // the reference — confirm against Figma if outline is preferred.
 import { WhatsappLogo } from "@phosphor-icons/react";
 import Card from "./Card";
+import EmailConversationView from "./EmailConversationView";
 import Button from "./Button";
 import { formatDateTime } from "./formatDate";
 
@@ -170,7 +171,7 @@ const SKILLS_TOP = {
 };
 
 const ROWS = [
-  { interactionId: "7123456", customerId: "000028", channel: "voice",    date: "2026-05-07T16:50:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 1, s: 51 }, sentiment: "negative", adherence: null, skills: null         },
+  { interactionId: "7123456", customerId: "000028", channel: "email",    date: "2026-05-07T16:50:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 1, s: 51 }, sentiment: "negative", adherence: null, skills: null         },
   { interactionId: "6534512", customerId: "000023", channel: "whatsapp", date: "2026-05-07T04:40:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 19 }, sentiment: "neutral",  adherence: 78,   skills: SKILLS_FULL  },
   { interactionId: "9871234", customerId: "000022", channel: "voice",    date: "2026-05-05T17:25:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 44 }, sentiment: "positive", adherence: 91,   skills: SKILLS_FULL  },
   { interactionId: "4451289", customerId: "000010", channel: "whatsapp", date: "2026-04-30T06:35:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 5 },  sentiment: "mixed",    adherence: 69,   skills: SKILLS_TOP   },
@@ -471,6 +472,19 @@ export default function InteractionsPage() {
       ROWS.find((r) => r.customerId === selectedRowId)
     : null;
 
+  // Email-channel drill-down. Clicking the Email icon on a row swaps the
+  // listing for EmailConversationView; the Back button restores the listing.
+  const [emailViewRow, setEmailViewRow] = React.useState(null);
+
+  if (emailViewRow) {
+    return (
+      <EmailConversationView
+        row={emailViewRow}
+        onBack={() => setEmailViewRow(null)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 w-full">
       <InteractionsHeader
@@ -493,6 +507,7 @@ export default function InteractionsPage() {
               selectedRowId={selectedRowId}
               onRowClick={handleRowClick}
               rowRefs={rowRefs}
+              onOpenEmail={setEmailViewRow}
             />
             <Pagination
               page={page}
@@ -731,7 +746,7 @@ function InteractionsHeader({
   );
 }
 
-function Table({ rows, selectedRowId, onRowClick, rowRefs }) {
+function Table({ rows, selectedRowId, onRowClick, rowRefs, onOpenEmail }) {
   return (
     <div className="overflow-x-auto">
       <table
@@ -782,6 +797,7 @@ function Table({ rows, selectedRowId, onRowClick, rowRefs }) {
               isLast={i === rows.length - 1}
               isSelected={selectedRowId === row.customerId}
               onClick={() => onRowClick && onRowClick(row.customerId)}
+              onOpenEmail={onOpenEmail ? () => onOpenEmail(row) : undefined}
               rowRef={(el) => {
                 if (!rowRefs) return;
                 if (el) rowRefs.current[row.customerId] = el;
@@ -795,7 +811,7 @@ function Table({ rows, selectedRowId, onRowClick, rowRefs }) {
   );
 }
 
-function Row({ row, isLast, isSelected, onClick, rowRef }) {
+function Row({ row, isLast, isSelected, onClick, onOpenEmail, rowRef }) {
   const [hover, setHover] = React.useState(false);
   // Selected wins over hover for the tint. Use --pill-bg per spec for the
   // selected state; keep the existing translucent hover token for hover.
@@ -835,7 +851,7 @@ function Row({ row, isLast, isSelected, onClick, rowRef }) {
         </span>
       </Cell>
       <Cell>
-        <ChannelIcon channel={row.channel} />
+        <ChannelIcon channel={row.channel} onOpenEmail={onOpenEmail} />
       </Cell>
       <Cell>
         <span style={{ fontSize: 13, color: "var(--do-ink)", fontWeight: 500 }}>
@@ -884,7 +900,7 @@ function Cell({ children, align = "left" }) {
   );
 }
 
-function ChannelIcon({ channel }) {
+function ChannelIcon({ channel, onOpenEmail }) {
   if (channel === "whatsapp") {
     return (
       <span
@@ -908,14 +924,28 @@ function ChannelIcon({ channel }) {
     );
   }
   if (channel === "email") {
+    // Email is the only channel with a drill-down view today, so the icon
+    // doubles as a button. stopPropagation keeps the row click (drawer)
+    // from also firing.
     return (
-      <span
-        title="Email"
-        aria-label="Email"
-        style={{ display: "inline-flex", alignItems: "center", color: "var(--color-text-medium)" }}
+      <button
+        type="button"
+        title={onOpenEmail ? "Open email conversation" : "Email"}
+        aria-label={onOpenEmail ? "Open email conversation" : "Email"}
+        onClick={onOpenEmail ? (e) => { e.stopPropagation(); onOpenEmail(); } : undefined}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          color: "var(--color-text-medium)",
+          cursor: onOpenEmail ? "pointer" : "default",
+        }}
       >
         <Mail size={18} />
-      </span>
+      </button>
     );
   }
   return (
