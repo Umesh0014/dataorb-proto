@@ -481,6 +481,10 @@ const INTERACTION_DETAIL_FIGMA_URL = "https://www.figma.com/";
 function AgentPlaybookDetail({ data }) {
   const [opt, setOpt] = React.useState("O1");
   const [activeAgent, setActiveAgent] = React.useState(null);
+  // 🚩 FLAG — demo-only "Current vs Updated design" switcher. No content
+  // swap wired today; the current page is the Updated design. Hook this
+  // into a content swap once the Current-design reference is specced.
+  const [designVer, setDesignVer] = React.useState("Updated design");
 
   if (!data) return null;
 
@@ -510,6 +514,12 @@ function AgentPlaybookDetail({ data }) {
           options={["Problem space"]}
           onChange={() => {}}
           ariaLabel="Problem space"
+        />
+        <DarkPillSwitcher
+          value={designVer}
+          options={["Current design", "Updated design"]}
+          onChange={setDesignVer}
+          ariaLabel="Design version"
         />
         <DarkPillSwitcher
           value={opt}
