@@ -473,6 +473,11 @@ function getInitials(code) {
 // internal opt key. (Cache-buster: v1.)
 const PLAYBOOK_OPTS = ["O1", "O2", "O3"];
 
+// 🚩 FLAG for Akash — placeholder Figma URL. Replace with the canonical
+// frame for this page; future pages should each pass their own URL into
+// <FigmaLink />.
+const INTERACTION_DETAIL_FIGMA_URL = "https://www.figma.com/";
+
 function AgentPlaybookDetail({ data }) {
   const [opt, setOpt] = React.useState("O1");
   const [activeAgent, setActiveAgent] = React.useState(null);
@@ -512,8 +517,42 @@ function AgentPlaybookDetail({ data }) {
           onChange={handleOptChange}
           ariaLabel="Agent Playbook layout option"
         />
+        <FigmaLink href={INTERACTION_DETAIL_FIGMA_URL} />
       </div>
     </div>
+  );
+}
+
+// FigmaLink — round dark-chrome button with the Figma brand mark. Opens
+// the page's Figma frame in a new tab. Same chrome family as the
+// DarkPillSwitcher so the floating cluster reads as one unit.
+function FigmaLink({ href }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={pbStyles.figmaLink}
+      aria-label="Open Figma frame for this page"
+      title="Open Figma frame"
+    >
+      <FigmaLogo />
+    </a>
+  );
+}
+
+function FigmaLogo() {
+  // Standard Figma brand mark (5 shapes). Inlined so the floating button
+  // doesn't depend on the lucide icon set (lucide ships an outline figma
+  // icon, not the multi-color brand mark).
+  return (
+    <svg width="18" height="27" viewBox="0 0 38 57" fill="none" aria-hidden="true">
+      <path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0Z" fill="#1ABCFE"/>
+      <path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0Z" fill="#0ACF83"/>
+      <path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19Z" fill="#FF7262"/>
+      <path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5Z" fill="#F24E1E"/>
+      <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5Z" fill="#A259FF"/>
+    </svg>
   );
 }
 
@@ -1531,6 +1570,19 @@ const pbStyles = {
     flexDirection: "column",
     alignItems: "flex-end",
     gap: 12,
+  },
+  figmaLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 44,
+    height: 44,
+    borderRadius: "50%",
+    background: "#171717",
+    border: "1px solid #404040",
+    boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
+    cursor: "pointer",
+    textDecoration: "none",
   },
   optBody: {
     display: "flex",
