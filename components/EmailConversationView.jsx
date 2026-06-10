@@ -173,6 +173,10 @@ function EmailConversationsCard({ emails }) {
 
 function EmailItem({ email }) {
   const [expanded, setExpanded] = React.useState(email.expanded);
+  // Body read-more: clamps the long body to 12 lines; the See more / See
+  // less CTA toggles the clamp on/off independently of the card open/close
+  // chevron.
+  const [bodyOpen, setBodyOpen] = React.useState(false);
   const Chevron = expanded ? ChevronUp : ChevronDown;
   const isAgent = email.role === "agent";
   return (
@@ -200,8 +204,17 @@ function EmailItem({ email }) {
       </div>
       {expanded && email.body && (
         <div style={vStyles.itemBodyWrap}>
-          <p style={vStyles.itemBody}>{email.body}</p>
-          <button type="button" style={vStyles.seeMoreBtn}>See more</button>
+          <p style={bodyOpen ? vStyles.itemBodyFull : vStyles.itemBody}>
+            {email.body}
+          </p>
+          <button
+            type="button"
+            onClick={() => setBodyOpen((v) => !v)}
+            style={vStyles.seeMoreBtn}
+            aria-expanded={bodyOpen}
+          >
+            {bodyOpen ? "See less" : "See more"}
+          </button>
         </div>
       )}
       {/* Tone hint dot is in the agent variant to mirror the figma purple
@@ -518,6 +531,14 @@ const vStyles = {
     WebkitBoxOrient: "vertical",
     WebkitLineClamp: 12,
     overflow: "hidden",
+  },
+  itemBodyFull: {
+    margin: 0,
+    fontSize: 12,
+    lineHeight: "18px",
+    color: "var(--color-text-medium)",
+    letterSpacing: "0.4px",
+    whiteSpace: "pre-wrap",
   },
   seeMoreBtn: {
     alignSelf: "flex-start",
