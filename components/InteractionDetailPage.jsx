@@ -470,7 +470,7 @@ function getInitials(code) {
 // Floating-switcher options — A / B / C, kept terse to match the
 // DarkPillSwitcher chrome (mirrors the M1/M2 + Team Leader/Agent demo
 // switchers on the Missions shell). The labels A/B/C map to the
-// internal opt key. (Cache-buster: v1.)
+// internal opt key. (Cache-buster: v2.)
 const PLAYBOOK_OPTS = ["O1", "O2", "O3"];
 
 // 🚩 FLAG for Akash — placeholder Figma URL. Replace with the canonical
