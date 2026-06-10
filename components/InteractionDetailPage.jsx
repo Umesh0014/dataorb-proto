@@ -470,7 +470,7 @@ function getInitials(code) {
 // Floating-switcher options — A / B / C, kept terse to match the
 // DarkPillSwitcher chrome (mirrors the M1/M2 + Team Leader/Agent demo
 // switchers on the Missions shell). The labels A/B/C map to the
-// internal opt key.
+// internal opt key. (Cache-buster: v1.)
 const PLAYBOOK_OPTS = ["A", "B", "C"];
 
 function AgentPlaybookDetail({ data }) {
