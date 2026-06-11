@@ -1,3 +1,11 @@
+/* eslint-disable no-restricted-syntax, max-lines, max-lines-per-function --
+   VersionBar is meta-tooling (a demo / preview affordance for switching
+   between design versions), not product chrome. Same precedent as
+   DarkPillSwitcher: raw <button> is intentional because Button.jsx's
+   variants (primary blue pill / text / icon / ai) don't fit this dark
+   floating bar's pill, baseline-block, iteration-circle, or ghost-circle
+   styles. The component is a single cohesive unit; splitting across
+   files would harm comprehension. */
 "use client";
 
 import React from "react";
@@ -28,12 +36,20 @@ const CLOSE_SIZE = 52;
 
 export default function VersionBar({
   versions = DEFAULT_VERSIONS,
+  baselineOptions = BASELINE_OPTIONS,
   defaultActiveId = "current",
+  value,
   onChange,
   onOpenFigma,
 }) {
+  const isControlled = value !== undefined;
+  const [internalActiveId, setInternalActiveId] = React.useState(defaultActiveId);
+  const activeId = isControlled ? value.versionId : internalActiveId;
+  const setActiveId = (next) => {
+    if (!isControlled) setInternalActiveId(next);
+  };
+
   const [open, setOpen] = React.useState(false);
-  const [activeId, setActiveId] = React.useState(defaultActiveId);
   const [expandedId, setExpandedId] = React.useState(null);
   const [iterById, setIterById] = React.useState(() => {
     const m = {};
@@ -43,7 +59,23 @@ export default function VersionBar({
     return m;
   });
   const [helpOpen, setHelpOpen] = React.useState(false);
-  const [baselineId, setBaselineId] = React.useState("current");
+  // Baseline-id default mirrors the controlled value if it points at a
+  // baseline option, otherwise the first baseline option's id.
+  const initialBaselineId = (() => {
+    if (isControlled && baselineOptions.some((o) => o.id === value.versionId)) {
+      return value.versionId;
+    }
+    return baselineOptions[0]?.id ?? "current";
+  })();
+  const [internalBaselineId, setInternalBaselineId] = React.useState(initialBaselineId);
+  // When controlled and the value points at a baseline option, keep the
+  // baseline label in sync with the controlled value.
+  const controlledBaselineId = (() => {
+    if (!isControlled) return null;
+    if (baselineOptions.some((o) => o.id === value.versionId)) return value.versionId;
+    return null;
+  })();
+  const baselineId = controlledBaselineId ?? internalBaselineId;
   const [baselineMenuOpen, setBaselineMenuOpen] = React.useState(false);
   const [barWidth, setBarWidth] = React.useState(COLLAPSED_SIZE);
 
@@ -177,7 +209,7 @@ export default function VersionBar({
   };
 
   const selectBaseline = (id) => {
-    setBaselineId(id);
+    setInternalBaselineId(id);
     setBaselineMenuOpen(false);
     setExpandedId(null);
     setActiveId(id);
@@ -185,8 +217,11 @@ export default function VersionBar({
   };
 
   const baselineSelected =
-    BASELINE_OPTIONS.find((o) => o.id === baselineId) || BASELINE_OPTIONS[0];
-  const chips = versions.filter((v) => v.id !== "current");
+    baselineOptions.find((o) => o.id === baselineId) || baselineOptions[0];
+  // Chips = every version that isn't the baseline option being displayed.
+  // Empty versions array → no chips, no first divider.
+  const chips = versions.filter((v) => v.id !== baselineSelected?.id);
+  const hasChips = chips.length > 0;
 
   return (
     <div style={hostStyles} aria-live="polite">
@@ -223,7 +258,7 @@ export default function VersionBar({
                 menuOpen={baselineMenuOpen}
                 onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
               />
-              <span className="vb-divider" aria-hidden="true" />
+              {hasChips && <span className="vb-divider" aria-hidden="true" />}
               {chips.map((v) =>
                 expandedId === v.id ? (
                   <VGroup
@@ -259,7 +294,7 @@ export default function VersionBar({
             </div>
           </div>
           <span className="vb-badge" aria-hidden="true">
-            {versions.length}
+            {baselineOptions.length + chips.length}
           </span>
         </div>
         <button
@@ -312,7 +347,7 @@ export default function VersionBar({
             transform: "translateY(-100%)",
           }}
         >
-          {BASELINE_OPTIONS.map((o) => {
+          {baselineOptions.map((o) => {
             const on = o.id === baselineSelected.id;
             return (
               <button
@@ -342,18 +377,19 @@ export default function VersionBar({
 // ---- Anchor-rect hook ----------------------------------------------------
 function useAnchorRect(ref, active, ...deps) {
   const [rect, setRect] = React.useState(null);
+  // Subscribe to scroll/resize while active. setRect is only called
+  // from event-handler / RAF callbacks (allowed) — never from the
+  // effect body. When active flips off we leave the previous rect
+  // in state; consumers should guard with `active`.
   React.useEffect(() => {
-    if (!active) {
-      setRect(null);
-      return undefined;
-    }
+    if (!active) return undefined;
     const update = () => {
       if (ref.current) setRect(ref.current.getBoundingClientRect());
     };
-    update();
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
-    // Re-read after one frame to catch morph width changes.
+    // Initial measurement deferred to the next frame so it counts as
+    // a callback rather than an in-effect setState.
     const raf = requestAnimationFrame(update);
     return () => {
       window.removeEventListener("scroll", update, true);

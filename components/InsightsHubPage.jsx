@@ -14,23 +14,30 @@ import ResolutionRateCard from "./ResolutionRateCard";
 import ContactReasonCard from "./ContactReasonCard";
 import ManualEvalCard from "./ManualEvalCard";
 import FilterPanel from "./FilterPanel";
-import DarkPillSwitcher from "./DarkPillSwitcher";
+import VersionBar from "./VersionBar";
 import CollectionHubPage from "./CollectionHubPage";
 
 // InsightsHubPage owns filter open state + experience switcher.
-// The dark pill at bottom-right toggles between Experience A
+// The floating bar at bottom-right toggles between Experience A
 // (Contact Center, default) and Experience B (Collection Hub).
 // Only the content region swaps; SideNav + PageLayout persist.
 // Switcher state is React-only — no localStorage / sessionStorage.
 
-const EXPERIENCES = ["Contact Center", "Collection Hub"];
+// Canonical view list — the source of truth shared between the screen
+// renderer below and the floating VersionBar control. Add a new
+// experience here and wire it in the render branch + EXPERIENCE_BY_ID.
+const VIEWS = [
+  { id: "contact-center", label: "Contact Center" },
+  { id: "collection-hub", label: "Collection Hub" },
+];
+const DEFAULT_VIEW_ID = VIEWS[0].id;
 
 export default function InsightsHubPage({ filtersOpen, onToggleFilters }) {
-  const [experience, setExperience] = React.useState(EXPERIENCES[0]);
+  const [viewId, setViewId] = React.useState(DEFAULT_VIEW_ID);
 
   return (
     <>
-      {experience === "Contact Center" ? (
+      {viewId === "contact-center" ? (
         <>
           <HeaderCard onFilterToggle={onToggleFilters} />
           <TotalInteractionsCard />
@@ -48,23 +55,18 @@ export default function InsightsHubPage({ filtersOpen, onToggleFilters }) {
       ) : (
         <CollectionHubPage />
       )}
-      <div style={switcherWrap}>
-        <DarkPillSwitcher
-          ariaLabel="Experience switcher"
-          value={experience}
-          options={EXPERIENCES}
-          onChange={setExperience}
-        />
-      </div>
+      {/* Floating bar (bottom-right). The baseline-block dropdown IS the
+          view switcher: the two views are baseline options, no chips. */}
+      <VersionBar
+        versions={[]}
+        baselineOptions={VIEWS}
+        value={{ versionId: viewId, iterationId: null }}
+        onChange={({ versionId }) => {
+          if (VIEWS.some((v) => v.id === versionId)) setViewId(versionId);
+        }}
+      />
     </>
   );
 }
 
 InsightsHubPage.FilterPanel = FilterPanel;
-
-const switcherWrap = {
-  position: "fixed",
-  bottom: 24,
-  right: 24,
-  zIndex: 1000,
-};
