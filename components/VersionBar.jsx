@@ -15,6 +15,14 @@ const DEFAULT_VERSIONS = [
   { id: "v3", label: "v3", iterations: ["i1", "i2"] },
 ];
 
+// The baseline block doubles as a "design phase" picker. Clicking the
+// chevron opens a small menu above the bar with these two options. Pick
+// one → that label becomes the baseline label and it's marked active.
+const BASELINE_OPTIONS = [
+  { id: "current", label: "Current design" },
+  { id: "updated", label: "Updated design" },
+];
+
 export default function VersionBar({
   versions = DEFAULT_VERSIONS,
   defaultActiveId = "current",
@@ -32,6 +40,8 @@ export default function VersionBar({
     return m;
   });
   const [helpOpen, setHelpOpen] = React.useState(false);
+  const [baselineId, setBaselineId] = React.useState("current");
+  const [baselineMenuOpen, setBaselineMenuOpen] = React.useState(false);
 
   const barRef = React.useRef(null);
   const fabRef = React.useRef(null);
@@ -40,7 +50,8 @@ export default function VersionBar({
     onChange?.({ versionId, iterationId });
   };
 
-  // Outside-click closes inline expansion + help; never the bar itself.
+  // Outside-click closes inline expansion + help + baseline menu;
+  // never the bar itself (that needs the explicit × close).
   React.useEffect(() => {
     if (collapsed) return;
     const handler = (e) => {
@@ -48,21 +59,23 @@ export default function VersionBar({
       if (fabRef.current?.contains(e.target)) return;
       setExpandedId(null);
       setHelpOpen(false);
+      setBaselineMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [collapsed]);
 
-  // Esc closes help + expansion.
+  // Esc closes help + expansion + baseline menu.
   React.useEffect(() => {
     const handler = (e) => {
       if (e.key !== "Escape") return;
       if (helpOpen) setHelpOpen(false);
       if (expandedId) setExpandedId(null);
+      if (baselineMenuOpen) setBaselineMenuOpen(false);
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [helpOpen, expandedId]);
+  }, [helpOpen, expandedId, baselineMenuOpen]);
 
   // ← / → step iterations when a version is expanded.
   React.useEffect(() => {
@@ -91,6 +104,7 @@ export default function VersionBar({
     setCollapsed(true);
     setExpandedId(null);
     setHelpOpen(false);
+    setBaselineMenuOpen(false);
   };
   const figma = () => {
     if (onOpenFigma) onOpenFigma();
@@ -98,6 +112,7 @@ export default function VersionBar({
   };
 
   const selectVersion = (v) => {
+    setBaselineMenuOpen(false);
     if (v.iterations.length) {
       setActiveId(v.id);
       setExpandedId((cur) => (cur === v.id ? null : v.id));
@@ -111,12 +126,24 @@ export default function VersionBar({
   };
 
   const selectIteration = (versionId, iterId) => {
+    setBaselineMenuOpen(false);
     setIterById((m) => ({ ...m, [versionId]: iterId }));
     setActiveId(versionId);
     fire(versionId, iterId);
   };
 
-  const baseline = versions.find((v) => v.id === "current");
+  const selectBaseline = (id) => {
+    setBaselineId(id);
+    setBaselineMenuOpen(false);
+    setExpandedId(null);
+    setActiveId(id);
+    fire(id, null);
+  };
+
+  const baselineSelected = BASELINE_OPTIONS.find((o) => o.id === baselineId) || BASELINE_OPTIONS[0];
+  // Chips = everything in versions except the original baseline id
+  // ("current"). The baseline block's own label is driven by the menu
+  // pick above, not by the versions array.
   const chips = versions.filter((v) => v.id !== "current");
 
   return (
@@ -174,13 +201,14 @@ export default function VersionBar({
         )}
 
         <div style={vbStyles.bar}>
-          {baseline && (
-            <Baseline
-              version={baseline}
-              active={activeId === baseline.id}
-              onClick={() => selectVersion(baseline)}
-            />
-          )}
+          <Baseline
+            options={BASELINE_OPTIONS}
+            selected={baselineSelected}
+            active={activeId === baselineSelected.id}
+            menuOpen={baselineMenuOpen}
+            onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
+            onSelect={selectBaseline}
+          />
           <span style={vbStyles.divider} aria-hidden="true" />
           <div style={vbStyles.chipsRow}>
             {chips.map((v) =>
@@ -221,21 +249,58 @@ export default function VersionBar({
   );
 }
 
-function Baseline({ version, active, onClick }) {
+function Baseline({ options, selected, active, menuOpen, onToggleMenu, onSelect }) {
   return (
-    <button
-      type="button"
-      className="vb-focusable vb-anim"
-      onClick={onClick}
-      style={{
-        ...vbStyles.baseline,
-        background: active ? "var(--vb-accent)" : "var(--vb-pill)",
-        color: active ? "var(--vb-accent-ink)" : "var(--vb-txt)",
-        fontWeight: active ? 700 : 500,
-      }}
-    >
-      {version.label}
-    </button>
+    <div style={vbStyles.baselineWrap}>
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        className="vb-focusable vb-anim"
+        onClick={onToggleMenu}
+        style={{
+          ...vbStyles.baseline,
+          background: active ? "var(--vb-accent)" : "var(--vb-pill)",
+          color: active ? "var(--vb-accent-ink)" : "var(--vb-txt)",
+          fontWeight: active ? 700 : 500,
+        }}
+      >
+        <span>{selected.label}</span>
+        <span
+          style={{
+            ...vbStyles.baselineChev,
+            transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          <ChevronDownGlyph />
+        </span>
+      </button>
+      {menuOpen && (
+        <div role="menu" aria-label="Design phase" style={vbStyles.baselineMenu}>
+          {options.map((o) => {
+            const on = o.id === selected.id;
+            return (
+              <button
+                key={o.id}
+                role="menuitemradio"
+                aria-checked={on}
+                type="button"
+                className="vb-focusable vb-anim"
+                onClick={() => onSelect(o.id)}
+                style={{
+                  ...vbStyles.baselineMenuItem,
+                  color: on ? "var(--vb-accent)" : "var(--vb-txt)",
+                  fontWeight: on ? 700 : 500,
+                }}
+              >
+                {o.label}
+                {on && <span style={vbStyles.baselineMenuCheck} aria-hidden="true">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -325,6 +390,24 @@ function CompGlyph() {
       <path d="M15 12l3 3 3-3-3-3z" />
       <path d="M9 6l3 3 3-3-3-3z" />
       <path d="M9 18l3 3 3-3-3-3z" />
+    </svg>
+  );
+}
+
+function ChevronDownGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width="12"
+      height="12"
+      aria-hidden="true"
+    >
+      <path d="M6 9l6 6 6-6" />
     </svg>
   );
 }
@@ -458,15 +541,64 @@ const vbStyles = {
     border: "1px solid var(--vb-hairline)",
     color: "var(--vb-txt)",
   },
+  baselineWrap: {
+    position: "relative",
+    display: "inline-flex",
+  },
   baseline: {
     borderRadius: 12,
-    padding: "9px 16px",
+    padding: "9px 14px",
     border: "none",
     cursor: "pointer",
     fontFamily: "var(--vb-mono)",
     fontSize: 13,
     letterSpacing: "0.01em",
     transition: "background 180ms ease, color 180ms ease",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  baselineChev: {
+    display: "inline-flex",
+    transition: "transform 180ms ease",
+    color: "currentColor",
+    opacity: 0.85,
+  },
+  baselineMenu: {
+    position: "absolute",
+    bottom: "100%",
+    left: 0,
+    marginBottom: 8,
+    minWidth: 180,
+    background: "var(--vb-group)",
+    border: "1px solid var(--vb-hairline)",
+    borderRadius: 10,
+    padding: 4,
+    boxShadow: "0 20px 50px -22px rgba(0,0,0,0.7)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    zIndex: 1,
+  },
+  baselineMenuItem: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingInline: 12,
+    paddingBlock: 8,
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    borderRadius: 8,
+    fontFamily: "var(--vb-mono)",
+    fontSize: 12,
+    letterSpacing: "0.02em",
+    textAlign: "left",
+  },
+  baselineMenuCheck: {
+    fontSize: 12,
+    fontWeight: 700,
   },
   divider: {
     width: 1,
