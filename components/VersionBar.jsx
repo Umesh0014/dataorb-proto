@@ -42,7 +42,12 @@ export default function VersionBar({
   onChange,
   figmaHref,
   onOpenFigma,
+  help,
 }) {
+  // The help (?) button is disabled until the consumer wires content.
+  // Pass `help` as a React node (string / JSX) and it renders inside
+  // the popover. Mirrors the Figma button's "no link → disabled" pattern.
+  const helpEnabled = help !== undefined && help !== null && help !== false;
   const isControlled = value !== undefined;
   const [internalActiveId, setInternalActiveId] = React.useState(defaultActiveId);
   const activeId = isControlled ? value.versionId : internalActiveId;
@@ -285,9 +290,10 @@ export default function VersionBar({
               <span className="vb-divider" aria-hidden="true" />
               <CircleBtn
                 btnRef={helpBtnRef}
-                ariaLabel="Help"
+                ariaLabel={helpEnabled ? "Help" : "Help not available"}
                 pressed={helpOpen}
-                onClick={() => setHelpOpen((v) => !v)}
+                disabled={!helpEnabled}
+                onClick={() => { if (helpEnabled) setHelpOpen((v) => !v); }}
               >
                 <span className="vb-q">?</span>
               </CircleBtn>
@@ -321,7 +327,7 @@ export default function VersionBar({
       {/* Popovers live outside the dock so they aren't clipped by the
           morph's overflow:hidden. Position:fixed anchored to the
           trigger button's rect. */}
-      {helpOpen && helpRect && (
+      {helpOpen && helpRect && helpEnabled && (
         <div
           ref={helpRef}
           role="dialog"
@@ -333,15 +339,7 @@ export default function VersionBar({
             transform: "translate(-50%, -100%)",
           }}
         >
-          <strong style={vbStyles.helpTitle}>Versions</strong>
-          <p style={vbStyles.helpText}>
-            Click a version to switch the canvas. Versions with iterations
-            (›) expand inline so you can step through their drafts.
-          </p>
-          <p style={vbStyles.helpHint}>
-            Esc closes this and any open group. ← / → step iterations once
-            a version is expanded.
-          </p>
+          {help}
         </div>
       )}
 
