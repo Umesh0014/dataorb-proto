@@ -22,6 +22,7 @@ import CollectionHubPage from "./CollectionHubPage";
 // (Contact Center, default) and Experience B (Collection Hub).
 // Only the content region swaps; SideNav + PageLayout persist.
 // Switcher state is React-only — no localStorage / sessionStorage.
+// (Cache-buster: v1.)
 
 // Canonical view list — the source of truth shared between the screen
 // renderer below and the floating VersionBar control. Add a new
