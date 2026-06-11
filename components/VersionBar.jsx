@@ -240,10 +240,19 @@ export default function VersionBar({
           <CircleBtn ariaLabel="Open in Figma" onClick={figma}>
             <FigmaMark />
           </CircleBtn>
-          <CircleBtn ariaLabel="Close versions" onClick={collapse}>
-            <CollapseGlyph />
-          </CircleBtn>
         </div>
+        {/* Floating × close — sits at the top-right corner of the bar,
+            outside its content row, so it reads as a "dismiss the whole
+            thing" affordance rather than another bar action. */}
+        <button
+          type="button"
+          aria-label="Close versions"
+          className="vb-focusable vb-anim"
+          onClick={collapse}
+          style={vbStyles.closeBtn}
+        >
+          <CollapseGlyph />
+        </button>
       </div>
     </div>
   );
@@ -540,6 +549,23 @@ const vbStyles = {
     flexWrap: "wrap",
     border: "1px solid var(--vb-hairline)",
     color: "var(--vb-txt)",
+  },
+  closeBtn: {
+    position: "absolute",
+    top: -10,
+    right: -10,
+    width: 26,
+    height: 26,
+    borderRadius: "50%",
+    background: "var(--vb-circle)",
+    border: "1px solid var(--vb-hairline)",
+    color: "var(--vb-txt)",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 8px 18px -6px rgba(0,0,0,0.6)",
+    transition: "background 180ms ease, color 180ms ease",
   },
   baselineWrap: {
     position: "relative",
