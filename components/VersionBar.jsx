@@ -2,7 +2,7 @@
 
 import React from "react";
 
-// VersionBar — floating component → version → iteration switcher.
+// VersionBar — floating component → version → iteration switcher. (v1)
 // Lives over a full-screen canvas: collapsed FAB at bottom-right;
 // expanded bar at bottom-center. Versions with iterations expand
 // inline (sideways disclosure: chip morphs into a yellow-label group
