@@ -501,8 +501,12 @@ function CircleBtn({ btnRef, ariaLabel, pressed, disabled, onClick, children }) 
       onClick={onClick}
       style={{
         ...vbStyles.circle,
-        color: pressed ? "var(--vb-accent)" : "var(--vb-txt)",
-        opacity: disabled ? 0.4 : 1,
+        color: disabled ? "var(--vb-muted)" : pressed ? "var(--vb-accent)" : "var(--vb-txt)",
+        // Disabled: strip the chrome (bg + border) so the glyph reads
+        // as a faded icon, not a clickable circle.
+        background: disabled ? "transparent" : "var(--vb-circle)",
+        borderColor: disabled ? "transparent" : "var(--vb-hairline)",
+        opacity: disabled ? 0.45 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
