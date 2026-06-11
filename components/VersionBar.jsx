@@ -535,7 +535,9 @@ const vbStyles = {
     left: "50%",
     zIndex: 60,
     transform: "translateX(-50%) translateY(0)",
-    maxWidth: "calc(100vw - 56px)",
+    // Reserve ~120px gutter so the floating × close (which sits 52px
+    // outside the bar's right edge) never clips past the viewport.
+    maxWidth: "calc(100vw - 120px)",
     transition: "opacity 220ms ease-out, transform 220ms ease-out",
   },
   bar: {
@@ -552,10 +554,11 @@ const vbStyles = {
   },
   closeBtn: {
     position: "absolute",
-    top: -10,
-    right: -10,
-    width: 26,
-    height: 26,
+    top: "50%",
+    right: -52,
+    transform: "translateY(-50%)",
+    width: 38,
+    height: 38,
     borderRadius: "50%",
     background: "var(--vb-circle)",
     border: "1px solid var(--vb-hairline)",
