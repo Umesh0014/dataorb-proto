@@ -28,6 +28,7 @@ import SettingsPage from "../../components/SettingsPage";
 import CreditsUsagePage from "../../components/CreditsUsagePage";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
+import ReplayPage from "../../components/ReplayPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
@@ -87,6 +88,7 @@ const LEARNING_PAGES = {
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
+  "replay":       { Component: ReplayPage,      pageName: "Replay" },
 };
 
 const MIRA_PAGES = {

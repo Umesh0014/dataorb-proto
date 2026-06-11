@@ -1,6 +1,6 @@
 "use client";
 
-import { DrillIcon, InteractionsIcon, AgentsIcon, MissionsIcon, GuideIcon } from "../icons";
+import { DrillIcon, InteractionsIcon, AgentsIcon, MissionsIcon, GuideIcon, ReplayIcon } from "../icons";
 
 // Per-module config: ONLY the middle-section icon set + their routing data.
 // Chrome (rail, brand, app switcher trigger, footer, avatar) is owned by SideNav.
@@ -49,6 +49,13 @@ export const learningHubConfig = {
       // Reuse-only — SideNav reads this and renders a corner badge
       // without altering the icon centring or rail width.
       wip: true,
+    },
+    {
+      id: "replay",
+      label: "Replay",
+      Icon: ReplayIcon,
+      route: "/learning/replay",
+      beta: true,
     },
   ],
 };
