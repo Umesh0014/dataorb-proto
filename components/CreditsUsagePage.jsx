@@ -6,6 +6,7 @@ import PageHeader from "./PageHeader";
 import DarkPillSwitcher from "./DarkPillSwitcher";
 import CreditsUsageVariantC from "./CreditsUsageVariantC";
 import CreditsUsageVariantCI2 from "./CreditsUsageVariantCI2";
+import CreditsUsageVariantCI3 from "./CreditsUsageVariantCI3";
 import { TENANT_SAMPLE, TEAMS_SAMPLE, AGENTS_SAMPLE, EMAIL_RE } from "./mocks/creditsUsage";
 
 // CreditsUsagePage — Credits & Usage admin surface.
@@ -16,22 +17,25 @@ import { TENANT_SAMPLE, TEAMS_SAMPLE, AGENTS_SAMPLE, EMAIL_RE } from "./mocks/cr
 // iteration. Review picked the team-allocation dashboard (option C); the
 // floating switcher now flips between its iterations (demo-only):
 //
-//   I1 — Team allocation dashboard, team card grid (prior iteration)
+//   I1 — Team card grid (first iteration)
 //   I2 — Agents nested under team: team-level usage + quota control, and
 //        drill into a team for agent-level usage + quota adjustment
+//   I3 — Calmer single-line team rows: cadence dropdown beside the quota,
+//        agent face-pile, plain agent quota text box, more negative space
 //
 // State lives here so flipping the switcher preserves edits across
 // iterations. All sample data is mock; no backend.
 
-const VARIANTS = ["I1", "I2"];
+const VARIANTS = ["I1", "I2", "I3"];
 
 const VARIANT_COMPONENTS = {
   I1: CreditsUsageVariantC,
   I2: CreditsUsageVariantCI2,
+  I3: CreditsUsageVariantCI3,
 };
 
 export default function CreditsUsagePage({ onBack }) {
-  const [variant, setVariant] = React.useState("I2");
+  const [variant, setVariant] = React.useState("I3");
   const [allocatedCap, setAllocatedCap] = React.useState(TENANT_SAMPLE.allocatedCap);
   const [usageMode, setUsageMode] = React.useState("additional"); // "cap" | "additional"
   const [additionalCap, setAdditionalCap] = React.useState(TENANT_SAMPLE.additionalCap);
@@ -58,6 +62,11 @@ export default function CreditsUsagePage({ onBack }) {
 
   const setAgentLimit = (id, limit) =>
     setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, limit } : a)));
+
+  // I3 edits an agent's quota directly in a text box (no custom toggle), so
+  // setting a value also marks the agent as overriding the team default.
+  const setAgentQuota = (id, limit) =>
+    setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, limit, hasCustom: true } : a)));
 
   const teamById = React.useMemo(
     () => Object.fromEntries(teams.map((t) => [t.id, t])),
@@ -94,6 +103,7 @@ export default function CreditsUsagePage({ onBack }) {
     teamById,
     toggleAgentCustom,
     setAgentLimit,
+    setAgentQuota,
     routingEmail,
     setRoutingEmail,
     emailError,

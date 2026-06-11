@@ -2,23 +2,19 @@
 
 import React from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
-import Card from "./Card";
-import Button from "./Button";
 import Toggle from "./Toggle";
+import TenantCapacityHero from "./CreditsUsageHero";
 import {
   InfoBanner,
   Section,
-  MetricTile,
   CapacityBar,
   CompositionBadge,
   CadenceSelect,
-  UsageTrendChart,
   AdditionalUsageChoice,
   RequestRoutingField,
   AgentBannerPreview,
   cadenceShort,
 } from "./CreditsUsageParts";
-import { TENANT_SAMPLE, TREND_DATA } from "./mocks/creditsUsage";
 
 // Variant C · Iteration I2 — team allocation dashboard with agents nested
 // under each team (review feedback on I1). Team rows show team-level usage
@@ -28,7 +24,6 @@ import { TENANT_SAMPLE, TREND_DATA } from "./mocks/creditsUsage";
 
 export default function CreditsUsageVariantCI2({ vm }) {
   const [openTeam, setOpenTeam] = React.useState(vm.teams[0]?.id ?? null);
-  const usedPct = Math.round((TENANT_SAMPLE.usedThisPeriod / vm.allocatedCap) * 100);
 
   const agentsByTeam = React.useMemo(() => {
     const map = {};
@@ -42,49 +37,13 @@ export default function CreditsUsageVariantCI2({ vm }) {
     <div style={ciStyles.column}>
       <InfoBanner />
 
-      <Card padX={0} padY={0} style={ciStyles.hero}>
-        <header style={ciStyles.heroHeader}>
-          <div>
-            <h2 style={ciStyles.heroTitle}>Tenant capacity</h2>
-            <p style={ciStyles.heroSub}>
-              {TENANT_SAMPLE.usedThisPeriod.toLocaleString()} of{" "}
-              {vm.allocatedCap.toLocaleString()} committed min used · {TENANT_SAMPLE.periodLabel}
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            onClick={vm.onSave}
-            disabled={Boolean(vm.emailError)}
-            style={{ height: 36, paddingInline: 20 }}
-          >
-            Save changes
-          </Button>
-        </header>
-        <div style={ciStyles.heroBody}>
-          <div style={ciStyles.heroBar}>
-            <div style={ciStyles.heroBarTop}>
-              <span style={ciStyles.heroBarPct}>{usedPct}%</span>
-              <span style={ciStyles.heroBarNote}>of committed capacity</span>
-            </div>
-            <CapacityBar used={TENANT_SAMPLE.usedThisPeriod} total={vm.allocatedCap} height={10} />
-          </div>
-          <div style={ciStyles.kpiRow}>
-            <MetricTile label="Committed" value={`${vm.allocatedCap.toLocaleString()} min`} sub="Billed per contract" />
-            <MetricTile
-              label="Additional cap"
-              value={vm.usageMode === "additional" ? `${vm.additionalCap.toLocaleString()} min` : "Off"}
-              sub={vm.usageMode === "additional" ? "Allowed on top" : "Hard stop at commitment"}
-              chipLabel={vm.usageMode === "additional" ? "Capped" : undefined}
-            />
-            <MetricTile
-              label="Active agents"
-              value={`${TENANT_SAMPLE.activeAgents} of ${TENANT_SAMPLE.totalAgents}`}
-              sub={`Practiced ${TENANT_SAMPLE.periodLabel.toLowerCase()}`}
-            />
-          </div>
-          <UsageTrendChart data={TREND_DATA} />
-        </div>
-      </Card>
+      <TenantCapacityHero
+        allocatedCap={vm.allocatedCap}
+        usageMode={vm.usageMode}
+        additionalCap={vm.additionalCap}
+        onSave={vm.onSave}
+        saveDisabled={Boolean(vm.emailError)}
+      />
 
       <Section
         title="Teams & agents"
@@ -247,24 +206,6 @@ function TeamRow({
 
 const ciStyles = {
   column: { display: "flex", flexDirection: "column", gap: 16, width: "100%" },
-
-  hero: { border: "1px solid var(--color-border-card-soft)", display: "flex", flexDirection: "column" },
-  heroHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-    padding: "16px 20px",
-    borderBottom: "1px solid #F9F9FF",
-  },
-  heroTitle: { margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
-  heroSub: { margin: "4px 0 0", fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)" },
-  heroBody: { display: "flex", flexDirection: "column", gap: 18, padding: 20 },
-  heroBar: { display: "flex", flexDirection: "column", gap: 8 },
-  heroBarTop: { display: "flex", alignItems: "baseline", gap: 8 },
-  heroBarPct: { fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums" },
-  heroBarNote: { fontSize: 12, color: "var(--color-text-tertiary)" },
-  kpiRow: { display: "flex", gap: 12 },
 
   teamCount: {
     padding: "3px 10px",
