@@ -15,12 +15,12 @@ import {
 } from "./CreditsUsageParts";
 import { CADENCES } from "./mocks/creditsUsage";
 
-// Variant C · Iteration I3 — calmer take on the team drill-down (I2 read as
-// busy). Each team is a single line: name · prominent usage bar · quota
-// value with a cadence dropdown beside it · agent face-pile. Opening a team
-// reveals its agents as light secondary rows, each with a plain quota text
-// box (no toggle, no per-agent cadence). More negative space and a clearer
-// team-over-agent hierarchy. I1 and I2 are retained as earlier iterations.
+// Variant C · Iteration I3 — calm team drill-down. Teams are divider-
+// separated rows (not cards): name with an agent count beneath it, a
+// prominent usage bar, and the quota value with a cadence dropdown beside
+// it. Multiple teams can be expanded at once; an open team reveals its
+// agents as light secondary rows, each with a plain quota text box (agents
+// inherit the team cadence). I1 and I2 are retained as earlier iterations.
 
 const AVATAR_COLORS = [
   "var(--chart-blue)",
@@ -32,7 +32,15 @@ const AVATAR_COLORS = [
 ];
 
 export default function CreditsUsageVariantCI3({ vm }) {
-  const [openTeam, setOpenTeam] = React.useState(null);
+  const [openTeams, setOpenTeams] = React.useState(() => new Set());
+
+  const toggleTeam = (id) =>
+    setOpenTeams((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const agentsByTeam = React.useMemo(() => {
     const map = {};
@@ -60,13 +68,14 @@ export default function CreditsUsageVariantCI3({ vm }) {
         headerRight={<span style={c3Styles.teamCount}>{vm.teams.length} teams</span>}
       >
         <div style={c3Styles.teamList}>
-          {vm.teams.map((team) => (
+          {vm.teams.map((team, idx) => (
             <TeamRow
               key={team.id}
               team={team}
               agents={agentsByTeam[team.id] || []}
-              open={openTeam === team.id}
-              onToggleOpen={() => setOpenTeam((cur) => (cur === team.id ? null : team.id))}
+              open={openTeams.has(team.id)}
+              last={idx === vm.teams.length - 1}
+              onToggleOpen={() => toggleTeam(team.id)}
               onCadence={vm.setTeamCadence}
               onPerAgent={vm.setTeamPerAgent}
               onSetAgentQuota={vm.setAgentQuota}
@@ -101,20 +110,25 @@ export default function CreditsUsageVariantCI3({ vm }) {
   );
 }
 
-function TeamRow({ team, agents, open, onToggleOpen, onCadence, onPerAgent, onSetAgentQuota }) {
+function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent, onSetAgentQuota }) {
   const teamUsed = agents.reduce((sum, a) => sum + a.used, 0);
   const pct = team.allocated > 0 ? Math.round((teamUsed / team.allocated) * 100) : 0;
   const cad = cadenceShort(team.cadence);
 
   return (
-    <div style={c3Styles.team}>
+    <div style={{ ...c3Styles.team, borderBottom: last ? "none" : "1px solid var(--color-border-card-soft)" }}>
       <div style={c3Styles.row}>
         <button type="button" onClick={onToggleOpen} aria-expanded={open} style={c3Styles.identity}>
           <span style={c3Styles.chevron}>
             {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </span>
-          <span style={c3Styles.teamName}>{team.name}</span>
-          <CompositionBadge composition={team.composition} />
+          <span style={c3Styles.identityText}>
+            <span style={c3Styles.teamTitleRow}>
+              <span style={c3Styles.teamName}>{team.name}</span>
+              <CompositionBadge composition={team.composition} />
+            </span>
+            <span style={c3Styles.teamAgentCount}>{agents.length} agents</span>
+          </span>
         </button>
 
         <div style={c3Styles.usage}>
@@ -142,8 +156,6 @@ function TeamRow({ team, agents, open, onToggleOpen, onCadence, onPerAgent, onSe
             ariaLabel={`Quota cadence for ${team.name}`}
           />
         </div>
-
-        <FacePile agents={agents} />
       </div>
 
       {open && (
@@ -200,22 +212,7 @@ function CadenceDropdown({ value, onChange, ariaLabel }) {
   );
 }
 
-function FacePile({ agents }) {
-  const shown = agents.slice(0, 4);
-  const extra = agents.length - shown.length;
-  return (
-    <div style={c3Styles.facePile}>
-      {shown.map((a, i) => (
-        <span key={a.id} style={{ ...c3Styles.facePileItem, marginLeft: i === 0 ? 0 : -8 }}>
-          <Avatar name={a.name} index={i} ring />
-        </span>
-      ))}
-      {extra > 0 && <span style={c3Styles.facePileMore}>+{extra}</span>}
-    </div>
-  );
-}
-
-function Avatar({ name, index, ring }) {
+function Avatar({ name, index }) {
   const initials = name
     .split(" ")
     .slice(0, 2)
@@ -223,13 +220,7 @@ function Avatar({ name, index, ring }) {
     .join("")
     .toUpperCase();
   return (
-    <span
-      style={{
-        ...c3Styles.avatar,
-        background: AVATAR_COLORS[index % AVATAR_COLORS.length],
-        boxShadow: ring ? "0 0 0 2px #FFFFFF" : undefined,
-      }}
-    >
+    <span style={{ ...c3Styles.avatar, background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}>
       {initials}
     </span>
   );
@@ -248,18 +239,15 @@ const c3Styles = {
     whiteSpace: "nowrap",
   },
 
-  teamList: { display: "flex", flexDirection: "column", gap: 12 },
-  team: {
-    border: "1px solid var(--color-border-card-soft)",
-    borderRadius: 12,
-    background: "#FFFFFF",
-    overflow: "hidden",
-  },
-  row: { display: "flex", alignItems: "center", gap: 20, padding: "18px 20px" },
+  // Divider-separated rows (not cards). The Section card is the only
+  // surface; teams are rows within it.
+  teamList: { display: "flex", flexDirection: "column" },
+  team: { display: "flex", flexDirection: "column" },
+  row: { display: "flex", alignItems: "center", gap: 20, padding: "18px 4px" },
 
   identity: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
     width: 240,
     flexShrink: 0,
@@ -270,8 +258,11 @@ const c3Styles = {
     fontFamily: "inherit",
     padding: 0,
   },
-  chevron: { display: "flex", color: "var(--color-text-tertiary)", flexShrink: 0 },
+  chevron: { display: "flex", color: "var(--color-text-tertiary)", flexShrink: 0, marginTop: 2 },
+  identityText: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
+  teamTitleRow: { display: "flex", alignItems: "center", gap: 8 },
   teamName: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
+  teamAgentCount: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
 
   usage: { display: "flex", flexDirection: "column", gap: 7, flex: 1, minWidth: 0 },
   usageVal: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
@@ -312,10 +303,6 @@ const c3Styles = {
     appearance: "auto",
   },
 
-  facePile: { display: "flex", alignItems: "center", width: 116, flexShrink: 0, justifyContent: "flex-end" },
-  facePileItem: { display: "inline-flex" },
-  facePileMore: { marginLeft: 6, fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)" },
-
   avatar: {
     width: 26,
     height: 26,
@@ -333,15 +320,16 @@ const c3Styles = {
   agentPanel: {
     display: "flex",
     flexDirection: "column",
-    padding: "4px 20px 8px 46px",
+    padding: "4px 8px 12px 46px",
     background: "var(--color-card-emoji-bg)",
-    borderTop: "1px solid var(--color-border-card-soft)",
+    borderRadius: 10,
+    marginBottom: 12,
   },
   agentRow: {
     display: "flex",
     alignItems: "center",
     gap: 20,
-    padding: "12px 0",
+    padding: "12px 8px",
     borderBottom: "1px solid #ECECF4",
   },
   agentIdentity: { display: "flex", alignItems: "center", gap: 10, width: 220, flexShrink: 0 },
