@@ -16,9 +16,9 @@ export const TENANT_SAMPLE = {
 };
 
 export const CADENCES = [
-  { id: "day", label: "Per day", short: "/day" },
-  { id: "week", label: "Per week", short: "/wk" },
-  { id: "month", label: "Per month", short: "/mo" },
+  { id: "day", label: "Per day", short: "/day", adjective: "Daily" },
+  { id: "week", label: "Per week", short: "/wk", adjective: "Weekly" },
+  { id: "month", label: "Per month", short: "/mo", adjective: "Monthly" },
 ];
 
 // Teams are inherited from the Contact Center side (same workspace/teams
@@ -40,31 +40,33 @@ export const TREND_DATA = [
   { label: "W5", value: 2400 },
 ];
 
-// Per-agent overrides. team links each agent to a TEAMS_SAMPLE id so the
-// override table can show which team default a custom limit departs from.
+// Per-agent overrides. team links each agent to a TEAMS_SAMPLE id (so the
+// override table can show which team default a custom limit departs from,
+// and so agents can be nested under their team). used = minutes consumed
+// this period, for agent-level usage bars on the team drill-down.
 export const AGENTS_SAMPLE = [
-  { id: 1, name: "Priya Sharma", email: "priya.sharma@eci.com", team: "billing", hasCustom: false, limit: 120 },
-  { id: 2, name: "Rahul Verma", email: "rahul.verma@eci.com", team: "billing", hasCustom: true, limit: 200 },
-  { id: 3, name: "Anita Desai", email: "anita.desai@eci.com", team: "tech", hasCustom: false, limit: 120 },
-  { id: 4, name: "Vikram Patel", email: "vikram.patel@eci.com", team: "sales", hasCustom: true, limit: 600 },
-  { id: 5, name: "Meera Joshi", email: "meera.joshi@eci.com", team: "onboarding", hasCustom: false, limit: 40 },
-  { id: 6, name: "Arjun Nair", email: "arjun.nair@eci.com", team: "onboarding", hasCustom: false, limit: 40 },
-  { id: 7, name: "Kavita Singh", email: "kavita.singh@eci.com", team: "tech", hasCustom: true, limit: 80 },
-  { id: 8, name: "Deepak Gupta", email: "deepak.gupta@eci.com", team: "billing", hasCustom: false, limit: 120 },
-  { id: 9, name: "Sneha Reddy", email: "sneha.reddy@eci.com", team: "retention", hasCustom: false, limit: 600 },
-  { id: 10, name: "Karan Mehta", email: "karan.mehta@eci.com", team: "sales", hasCustom: true, limit: 720 },
-  { id: 11, name: "Pooja Iyer", email: "pooja.iyer@eci.com", team: "onboarding", hasCustom: false, limit: 40 },
-  { id: 12, name: "Sanjay Rao", email: "sanjay.rao@eci.com", team: "tech", hasCustom: false, limit: 120 },
-  { id: 13, name: "Neha Kulkarni", email: "neha.kulkarni@eci.com", team: "billing", hasCustom: true, limit: 160 },
-  { id: 14, name: "Amit Choudhary", email: "amit.choudhary@eci.com", team: "retention", hasCustom: false, limit: 600 },
-  { id: 15, name: "Divya Menon", email: "divya.menon@eci.com", team: "onboarding", hasCustom: false, limit: 40 },
-  { id: 16, name: "Rohit Saxena", email: "rohit.saxena@eci.com", team: "tech", hasCustom: true, limit: 90 },
-  { id: 17, name: "Ananya Bose", email: "ananya.bose@eci.com", team: "billing", hasCustom: false, limit: 120 },
-  { id: 18, name: "Manish Agarwal", email: "manish.agarwal@eci.com", team: "sales", hasCustom: false, limit: 480 },
-  { id: 19, name: "Shreya Pillai", email: "shreya.pillai@eci.com", team: "retention", hasCustom: true, limit: 800 },
-  { id: 20, name: "Gaurav Bhat", email: "gaurav.bhat@eci.com", team: "onboarding", hasCustom: false, limit: 40 },
-  { id: 21, name: "Ritu Malhotra", email: "ritu.malhotra@eci.com", team: "tech", hasCustom: false, limit: 120 },
-  { id: 22, name: "Varun Khanna", email: "varun.khanna@eci.com", team: "billing", hasCustom: true, limit: 140 },
+  { id: 1, name: "Priya Sharma", email: "priya.sharma@eci.com", team: "billing", hasCustom: false, limit: 120, used: 84 },
+  { id: 2, name: "Rahul Verma", email: "rahul.verma@eci.com", team: "billing", hasCustom: true, limit: 200, used: 176 },
+  { id: 3, name: "Anita Desai", email: "anita.desai@eci.com", team: "tech", hasCustom: false, limit: 120, used: 60 },
+  { id: 4, name: "Vikram Patel", email: "vikram.patel@eci.com", team: "sales", hasCustom: true, limit: 600, used: 545 },
+  { id: 5, name: "Meera Joshi", email: "meera.joshi@eci.com", team: "onboarding", hasCustom: false, limit: 40, used: 38 },
+  { id: 6, name: "Arjun Nair", email: "arjun.nair@eci.com", team: "onboarding", hasCustom: false, limit: 40, used: 22 },
+  { id: 7, name: "Kavita Singh", email: "kavita.singh@eci.com", team: "tech", hasCustom: true, limit: 80, used: 80 },
+  { id: 8, name: "Deepak Gupta", email: "deepak.gupta@eci.com", team: "billing", hasCustom: false, limit: 120, used: 45 },
+  { id: 9, name: "Sneha Reddy", email: "sneha.reddy@eci.com", team: "retention", hasCustom: false, limit: 600, used: 410 },
+  { id: 10, name: "Karan Mehta", email: "karan.mehta@eci.com", team: "sales", hasCustom: true, limit: 720, used: 690 },
+  { id: 11, name: "Pooja Iyer", email: "pooja.iyer@eci.com", team: "onboarding", hasCustom: false, limit: 40, used: 12 },
+  { id: 12, name: "Sanjay Rao", email: "sanjay.rao@eci.com", team: "tech", hasCustom: false, limit: 120, used: 96 },
+  { id: 13, name: "Neha Kulkarni", email: "neha.kulkarni@eci.com", team: "billing", hasCustom: true, limit: 160, used: 132 },
+  { id: 14, name: "Amit Choudhary", email: "amit.choudhary@eci.com", team: "retention", hasCustom: false, limit: 600, used: 300 },
+  { id: 15, name: "Divya Menon", email: "divya.menon@eci.com", team: "onboarding", hasCustom: false, limit: 40, used: 40 },
+  { id: 16, name: "Rohit Saxena", email: "rohit.saxena@eci.com", team: "tech", hasCustom: true, limit: 90, used: 72 },
+  { id: 17, name: "Ananya Bose", email: "ananya.bose@eci.com", team: "billing", hasCustom: false, limit: 120, used: 30 },
+  { id: 18, name: "Manish Agarwal", email: "manish.agarwal@eci.com", team: "sales", hasCustom: false, limit: 480, used: 220 },
+  { id: 19, name: "Shreya Pillai", email: "shreya.pillai@eci.com", team: "retention", hasCustom: true, limit: 800, used: 760 },
+  { id: 20, name: "Gaurav Bhat", email: "gaurav.bhat@eci.com", team: "onboarding", hasCustom: false, limit: 40, used: 8 },
+  { id: 21, name: "Ritu Malhotra", email: "ritu.malhotra@eci.com", team: "tech", hasCustom: false, limit: 120, used: 110 },
+  { id: 22, name: "Varun Khanna", email: "varun.khanna@eci.com", team: "billing", hasCustom: true, limit: 140, used: 138 },
 ];
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

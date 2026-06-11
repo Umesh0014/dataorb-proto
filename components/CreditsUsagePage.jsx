@@ -4,36 +4,34 @@ import React from "react";
 import { Gauge } from "lucide-react";
 import PageHeader from "./PageHeader";
 import DarkPillSwitcher from "./DarkPillSwitcher";
-import CreditsUsageVariantA from "./CreditsUsageVariantA";
-import CreditsUsageVariantB from "./CreditsUsageVariantB";
 import CreditsUsageVariantC from "./CreditsUsageVariantC";
+import CreditsUsageVariantCI2 from "./CreditsUsageVariantCI2";
 import { TENANT_SAMPLE, TEAMS_SAMPLE, AGENTS_SAMPLE, EMAIL_RE } from "./mocks/creditsUsage";
 
 // CreditsUsagePage — Credits & Usage admin surface.
 //
 // Thin shell: owns the team-level quota model state (committed capacity,
 // additional-usage policy, per-team cadence/quota, per-agent overrides,
-// request routing) and hands a single view-model to whichever design
-// variant is selected. Three genuinely distinct directions sit behind the
-// floating A/B/C switcher (demo-only) — Umesh picks the winner:
+// request routing) and hands a single view-model to the selected
+// iteration. Review picked the team-allocation dashboard (option C); the
+// floating switcher now flips between its iterations (demo-only):
 //
-//   A — Stacked governance form (everything in one scroll)
-//   B — Guided setup stepper (one concern per step + review)
-//   C — Team allocation dashboard (capacity hero + team card grid)
+//   I1 — Team allocation dashboard, team card grid (prior iteration)
+//   I2 — Agents nested under team: team-level usage + quota control, and
+//        drill into a team for agent-level usage + quota adjustment
 //
 // State lives here so flipping the switcher preserves edits across
-// variants. All sample data is mock; no backend.
+// iterations. All sample data is mock; no backend.
 
-const VARIANTS = ["A", "B", "C"];
+const VARIANTS = ["I1", "I2"];
 
 const VARIANT_COMPONENTS = {
-  A: CreditsUsageVariantA,
-  B: CreditsUsageVariantB,
-  C: CreditsUsageVariantC,
+  I1: CreditsUsageVariantC,
+  I2: CreditsUsageVariantCI2,
 };
 
 export default function CreditsUsagePage({ onBack }) {
-  const [variant, setVariant] = React.useState("A");
+  const [variant, setVariant] = React.useState("I2");
   const [allocatedCap, setAllocatedCap] = React.useState(TENANT_SAMPLE.allocatedCap);
   const [usageMode, setUsageMode] = React.useState("additional"); // "cap" | "additional"
   const [additionalCap, setAdditionalCap] = React.useState(TENANT_SAMPLE.additionalCap);

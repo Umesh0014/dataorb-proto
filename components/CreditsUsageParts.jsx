@@ -148,8 +148,9 @@ export function ComingSoonBadge() {
 }
 
 // CadenceSelect — day / week / month segmented control. Shared because
-// every variant exposes cadence as a first-class quota variable.
-export function CadenceSelect({ value, onChange, ariaLabel }) {
+// every variant exposes cadence as a first-class quota variable. Pass
+// useAdjective for the "Daily / Weekly / Monthly" wording (iteration I2).
+export function CadenceSelect({ value, onChange, ariaLabel, useAdjective = false }) {
   return (
     <div style={partStyles.cadenceWrap} role="group" aria-label={ariaLabel}>
       {CADENCES.map((c) => {
@@ -167,7 +168,7 @@ export function CadenceSelect({ value, onChange, ariaLabel }) {
               borderColor: selected ? "var(--color-icon-tertiary-fg)" : "var(--color-border-card-soft)",
             }}
           >
-            {c.label}
+            {useAdjective ? c.adjective : c.label}
           </button>
         );
       })}
