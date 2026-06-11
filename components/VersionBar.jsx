@@ -40,6 +40,7 @@ export default function VersionBar({
   defaultActiveId = "current",
   value,
   onChange,
+  figmaHref,
   onOpenFigma,
 }) {
   const isControlled = value !== undefined;
@@ -181,10 +182,15 @@ export default function VersionBar({
     setHelpOpen(false);
     setBaselineMenuOpen(false);
   };
+  // The Figma button is disabled until the consumer wires it — either
+  // a custom onOpenFigma handler or a figmaHref URL. No fallback to
+  // https://figma.com so a missing link reads as "not yet specced".
+  const figmaEnabled = typeof onOpenFigma === "function" || typeof figmaHref === "string";
   const figma = () => {
+    if (!figmaEnabled) return;
     if (onOpenFigma) onOpenFigma();
     else if (typeof window !== "undefined")
-      window.open("https://figma.com", "_blank", "noopener,noreferrer");
+      window.open(figmaHref, "_blank", "noopener,noreferrer");
   };
 
   const selectVersion = (v) => {
@@ -285,8 +291,12 @@ export default function VersionBar({
               >
                 <span className="vb-q">?</span>
               </CircleBtn>
-              <CircleBtn ariaLabel="Open in Figma" onClick={figma}>
-                <FigmaMark />
+              <CircleBtn
+                ariaLabel={figmaEnabled ? "Open in Figma" : "Figma link not set"}
+                onClick={figma}
+                disabled={!figmaEnabled}
+              >
+                <FigmaMark muted={!figmaEnabled} />
               </CircleBtn>
             </div>
             <div className="vb-m-icon" aria-hidden="true">
@@ -480,18 +490,22 @@ function VGroup({ version, activeIter, onIter }) {
   );
 }
 
-function CircleBtn({ btnRef, ariaLabel, pressed, onClick, children }) {
+function CircleBtn({ btnRef, ariaLabel, pressed, disabled, onClick, children }) {
   return (
     <button
       ref={btnRef}
       type="button"
       aria-label={ariaLabel}
       aria-pressed={pressed}
+      aria-disabled={disabled || undefined}
+      disabled={disabled}
       className="vb-focusable"
       onClick={onClick}
       style={{
         ...vbStyles.circle,
         color: pressed ? "var(--vb-accent)" : "var(--vb-txt)",
+        opacity: disabled ? 0.4 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
       {children}
@@ -578,14 +592,17 @@ function CollapseGlyph() {
   );
 }
 
-function FigmaMark() {
+function FigmaMark({ muted = false }) {
+  // When muted, all five shapes desaturate to a single grey so the icon
+  // reads as "not actionable" without losing the recognisable F mark.
+  const fill = (c) => (muted ? "var(--vb-muted)" : c);
   return (
     <svg width="14" height="20" viewBox="0 0 38 57" fill="none" aria-hidden="true">
-      <path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0Z" fill="#1ABCFE" />
-      <path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0Z" fill="#0ACF83" />
-      <path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19Z" fill="#FF7262" />
-      <path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5Z" fill="#F24E1E" />
-      <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5Z" fill="#A259FF" />
+      <path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0Z" fill={fill("#1ABCFE")} />
+      <path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0Z" fill={fill("#0ACF83")} />
+      <path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19Z" fill={fill("#FF7262")} />
+      <path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5Z" fill={fill("#F24E1E")} />
+      <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5Z" fill={fill("#A259FF")} />
     </svg>
   );
 }
