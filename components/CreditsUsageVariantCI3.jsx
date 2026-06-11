@@ -111,8 +111,7 @@ export default function CreditsUsageVariantCI3({ vm }) {
 }
 
 function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent, onSetAgentQuota }) {
-  const teamUsed = agents.reduce((sum, a) => sum + a.used, 0);
-  const pct = team.allocated > 0 ? Math.round((teamUsed / team.allocated) * 100) : 0;
+  const pct = team.allocated > 0 ? Math.round((team.used / team.allocated) * 100) : 0;
   const cad = cadenceShort(team.cadence);
 
   return (
@@ -132,13 +131,18 @@ function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent
         </button>
 
         <div style={c3Styles.usage}>
-          <CapacityBar used={teamUsed} total={team.allocated} height={10} />
+          <CapacityBar used={team.used} total={team.allocated} height={10} />
           <span style={c3Styles.usageVal}>
-            {teamUsed.toLocaleString()} / {team.allocated.toLocaleString()} min · {pct}%
+            {team.used.toLocaleString()} / {team.allocated.toLocaleString()} min · {pct}%
           </span>
         </div>
 
         <div style={c3Styles.quota}>
+          <CadenceDropdown
+            value={team.cadence}
+            onChange={(v) => onCadence(team.id, v)}
+            ariaLabel={`Quota cadence for ${team.name}`}
+          />
           <label style={c3Styles.quotaInput}>
             <input
               type="number"
@@ -150,11 +154,6 @@ function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent
             />
             <span style={c3Styles.quotaSuffix}>min</span>
           </label>
-          <CadenceDropdown
-            value={team.cadence}
-            onChange={(v) => onCadence(team.id, v)}
-            ariaLabel={`Quota cadence for ${team.name}`}
-          />
         </div>
       </div>
 

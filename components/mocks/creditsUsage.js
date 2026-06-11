@@ -23,12 +23,13 @@ export const CADENCES = [
 
 // Teams are inherited from the Contact Center side (same workspace/teams
 // hierarchy). tenured vs new split drives why cadence/per-agent quota
-// differ team to team.
+// differ team to team. used/allocated set so a few teams sit at critical
+// consumption (onboarding + sales at/over cap, billing high) for the bars.
 export const TEAMS_SAMPLE = [
-  { id: "onboarding", name: "Onboarding cohort", composition: "New", tenured: 0, newAgents: 6, cadence: "day", perAgent: 40, allocated: 6000, used: 4980 },
-  { id: "billing", name: "Billing Support", composition: "Mixed", tenured: 2, newAgents: 3, cadence: "week", perAgent: 120, allocated: 5400, used: 3320 },
-  { id: "tech", name: "Tech Support", composition: "Mixed", tenured: 3, newAgents: 2, cadence: "week", perAgent: 120, allocated: 5400, used: 2870 },
-  { id: "sales", name: "Sales — Tenured", composition: "Tenured", tenured: 4, newAgents: 0, cadence: "month", perAgent: 480, allocated: 3200, used: 1910 },
+  { id: "onboarding", name: "Onboarding cohort", composition: "New", tenured: 0, newAgents: 6, cadence: "day", perAgent: 40, allocated: 6000, used: 6000 },
+  { id: "billing", name: "Billing Support", composition: "Mixed", tenured: 2, newAgents: 3, cadence: "week", perAgent: 120, allocated: 5400, used: 5130 },
+  { id: "tech", name: "Tech Support", composition: "Mixed", tenured: 3, newAgents: 2, cadence: "week", perAgent: 120, allocated: 5400, used: 2700 },
+  { id: "sales", name: "Sales — Tenured", composition: "Tenured", tenured: 4, newAgents: 0, cadence: "month", perAgent: 480, allocated: 3200, used: 3260 },
   { id: "retention", name: "Retention", composition: "Mixed", tenured: 2, newAgents: 1, cadence: "month", perAgent: 600, allocated: 4000, used: 1800 },
 ];
 
