@@ -20,7 +20,7 @@ import {
 import Button from "./Button";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
-import DarkPillSwitcher from "./DarkPillSwitcher";
+import VersionBar from "./VersionBar";
 
 // InteractionDetailPage — full-page deep dive for a single interaction.
 // Sticky top metadata bar + two-column body (Email Conversations left,
@@ -467,24 +467,19 @@ function getInitials(code) {
   return (PB_AGENTS[code]?.name || code).split(" ").map((s) => s[0]).join("").slice(0, 2);
 }
 
-// Floating-switcher options — A / B / C, kept terse to match the
-// DarkPillSwitcher chrome (mirrors the M1/M2 + Team Leader/Agent demo
-// switchers on the Missions shell). The labels A/B/C map to the
-// internal opt key. (Cache-buster: v2.)
-const PLAYBOOK_OPTS = ["O1", "O2", "O3"];
-
-// 🚩 FLAG for Akash — placeholder Figma URL. Replace with the canonical
-// frame for this page; future pages should each pass their own URL into
-// <FigmaLink />.
-const INTERACTION_DETAIL_FIGMA_URL = "https://www.figma.com/";
+// Maps the floating VersionBar's versionId → the playbook layout option
+// it should render. current / v1 stay on O1 (no iteration drill-down);
+// v2 + v3 swap to O2 / O3 and own their own iteration sub-pick.
+const VERSION_TO_OPT = {
+  current: "O1",
+  v1: "O1",
+  v2: "O2",
+  v3: "O3",
+};
 
 function AgentPlaybookDetail({ data }) {
   const [opt, setOpt] = React.useState("O1");
   const [activeAgent, setActiveAgent] = React.useState(null);
-  // 🚩 FLAG — demo-only "Current vs Updated design" switcher. No content
-  // swap wired today; the current page is the Updated design. Hook this
-  // into a content swap once the Current-design reference is specced.
-  const [designVer, setDesignVer] = React.useState("Updated design");
 
   if (!data) return null;
 
@@ -492,10 +487,15 @@ function AgentPlaybookDetail({ data }) {
     setActiveAgent((cur) => (cur === agent ? null : agent));
   };
   const clearAgent = () => setActiveAgent(null);
-  const handleOptChange = (next) => {
-    if (next === opt) return;
+
+  // VersionBar fires { versionId, iterationId } on every change. We use
+  // versionId to swap layout; iterationId is cosmetic for this demo —
+  // wire it to a real variant once iteration designs land.
+  const handleVersionChange = ({ versionId }) => {
+    const nextOpt = VERSION_TO_OPT[versionId] || "O1";
+    if (nextOpt === opt) return;
     clearAgent();
-    setOpt(next);
+    setOpt(nextOpt);
   };
 
   const shared = { data, activeAgent, onSetAgent: toggleAgent, onClearAgent: clearAgent };
@@ -505,64 +505,8 @@ function AgentPlaybookDetail({ data }) {
       {opt === "O1" && <PlaybookOptionA {...shared} />}
       {opt === "O2" && <PlaybookOptionB {...shared} />}
       {opt === "O3" && <PlaybookOptionC {...shared} />}
-      {/* Floating bottom-right demo switcher — same DarkPillSwitcher
-          chrome as MissionsLandingShell's M1/M2 and Team Leader/Agent
-          pills. Demo affordance, not product UI. */}
-      <div style={pbStyles.floatingSwitcher}>
-        <FigmaLink href={INTERACTION_DETAIL_FIGMA_URL} />
-        <DarkPillSwitcher
-          value="Problem space"
-          options={["Problem space"]}
-          onChange={() => {}}
-          ariaLabel="Problem space"
-        />
-        <DarkPillSwitcher
-          value={opt}
-          options={PLAYBOOK_OPTS}
-          onChange={handleOptChange}
-          ariaLabel="Agent Playbook layout option"
-        />
-        <DarkPillSwitcher
-          value={designVer}
-          options={["Current design", "Updated design"]}
-          onChange={setDesignVer}
-          ariaLabel="Design version"
-        />
-      </div>
+      <VersionBar onChange={handleVersionChange} />
     </div>
-  );
-}
-
-// FigmaLink — round dark-chrome button with the Figma brand mark. Opens
-// the page's Figma frame in a new tab. Same chrome family as the
-// DarkPillSwitcher so the floating cluster reads as one unit.
-function FigmaLink({ href }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={pbStyles.figmaLink}
-      aria-label="Open Figma frame for this page"
-      title="Open Figma frame"
-    >
-      <FigmaLogo />
-    </a>
-  );
-}
-
-function FigmaLogo() {
-  // Standard Figma brand mark (5 shapes). Inlined so the floating button
-  // doesn't depend on the lucide icon set (lucide ships an outline figma
-  // icon, not the multi-color brand mark).
-  return (
-    <svg width="18" height="27" viewBox="0 0 38 57" fill="none" aria-hidden="true">
-      <path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0Z" fill="#1ABCFE"/>
-      <path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0Z" fill="#0ACF83"/>
-      <path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19Z" fill="#FF7262"/>
-      <path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5Z" fill="#F24E1E"/>
-      <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5Z" fill="#A259FF"/>
-    </svg>
   );
 }
 
@@ -1570,29 +1514,6 @@ const pbStyles = {
     flexDirection: "column",
     gap: 16,
     paddingInline: 2,
-  },
-  floatingSwitcher: {
-    position: "fixed",
-    right: 24,
-    bottom: 24,
-    zIndex: 50,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-end",
-    gap: 12,
-  },
-  figmaLink: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 44,
-    height: 44,
-    borderRadius: "50%",
-    background: "#171717",
-    border: "1px solid #404040",
-    boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
-    cursor: "pointer",
-    textDecoration: "none",
   },
   optBody: {
     display: "flex",
