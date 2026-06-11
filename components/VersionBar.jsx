@@ -7,7 +7,7 @@ import React from "react";
 // at bottom-right. Opening it stretches the same element horizontally
 // into a bar; the chips inside pop in left→right with a small spring
 // overshoot, and a separate × close button grows in beside the bar.
-// Reverse on close (no stagger replay).
+// Reverse on close (no stagger replay). (v3)
 
 const DEFAULT_VERSIONS = [
   { id: "current", label: "Current design", iterations: [] },
