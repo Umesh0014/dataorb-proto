@@ -15,6 +15,7 @@ import {
 // cluster. Both states are in-memory only — when the session ends the
 // page resets to "Team Leader" + "M2" defaults (deletable in a single
 // commit).
+// (Cache-buster: v1.)
 //
 // Switcher chrome is VersionBar (replaces the stacked Persona +
 // Variant DarkPillSwitchers): persona lives in the baseline-block
