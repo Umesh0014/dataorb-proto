@@ -2,11 +2,12 @@
 
 import React from "react";
 
-// VersionBar — floating component → version → iteration switcher. (v2)
-// Lives over a full-screen canvas: collapsed FAB at bottom-right;
-// expanded bar at bottom-center. Versions with iterations expand
-// inline (sideways disclosure: chip morphs into a yellow-label group
-// of iteration circles). Dark chrome regardless of page background.
+// VersionBar — floating version → iteration switcher with a "Pop" morph
+// animation. Collapsed = a 56px circle (component glyph + count badge)
+// at bottom-right. Opening it stretches the same element horizontally
+// into a bar; the chips inside pop in left→right with a small spring
+// overshoot, and a separate × close button grows in beside the bar.
+// Reverse on close (no stagger replay).
 
 const DEFAULT_VERSIONS = [
   { id: "current", label: "Current design", iterations: [] },
@@ -15,13 +16,15 @@ const DEFAULT_VERSIONS = [
   { id: "v3", label: "v3", iterations: ["i1", "i2"] },
 ];
 
-// The baseline block doubles as a "design phase" picker. Clicking the
-// chevron opens a small menu above the bar with these two options. Pick
-// one → that label becomes the baseline label and it's marked active.
+// Baseline-block dropdown options. Picking one updates the baseline
+// label and fires onChange with that id.
 const BASELINE_OPTIONS = [
   { id: "current", label: "Current design" },
   { id: "updated", label: "Updated design" },
 ];
+
+const COLLAPSED_SIZE = 56;
+const CLOSE_SIZE = 52;
 
 export default function VersionBar({
   versions = DEFAULT_VERSIONS,
@@ -29,7 +32,7 @@ export default function VersionBar({
   onChange,
   onOpenFigma,
 }) {
-  const [collapsed, setCollapsed] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
   const [activeId, setActiveId] = React.useState(defaultActiveId);
   const [expandedId, setExpandedId] = React.useState(null);
   const [iterById, setIterById] = React.useState(() => {
@@ -42,30 +45,65 @@ export default function VersionBar({
   const [helpOpen, setHelpOpen] = React.useState(false);
   const [baselineId, setBaselineId] = React.useState("current");
   const [baselineMenuOpen, setBaselineMenuOpen] = React.useState(false);
+  const [barWidth, setBarWidth] = React.useState(COLLAPSED_SIZE);
 
-  const barRef = React.useRef(null);
-  const fabRef = React.useRef(null);
+  const dockRef = React.useRef(null);
+  const barInnerRef = React.useRef(null);
+  const baselineBtnRef = React.useRef(null);
+  const helpBtnRef = React.useRef(null);
+  const helpRef = React.useRef(null);
+  const baselineMenuRef = React.useRef(null);
 
   const fire = (versionId, iterationId) => {
     onChange?.({ versionId, iterationId });
   };
 
-  // Outside-click closes inline expansion + help + baseline menu;
-  // never the bar itself (that needs the explicit × close).
+  // Measure the bar's natural content width once mounted + whenever
+  // chip count / chip expansion changes the row's intrinsic size.
   React.useEffect(() => {
-    if (collapsed) return;
+    const el = barInnerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.scrollWidth;
+      if (w > 0) setBarWidth(w);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Re-measure on chip expansion change (vgroup width differs from chip).
+  React.useEffect(() => {
+    const el = barInnerRef.current;
+    if (!el) return;
+    // Defer one frame so the new chip/vgroup has laid out.
+    const id = requestAnimationFrame(() => {
+      const w = el.scrollWidth;
+      if (w > 0) setBarWidth(w);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [expandedId, iterById]);
+
+  // Outside-click closes inline expansion + help + baseline menu;
+  // never the bar itself (use × close for that).
+  React.useEffect(() => {
+    if (!open) return;
     const handler = (e) => {
-      if (barRef.current?.contains(e.target)) return;
-      if (fabRef.current?.contains(e.target)) return;
+      const t = e.target;
+      if (dockRef.current?.contains(t)) return;
+      if (helpRef.current?.contains(t)) return;
+      if (baselineMenuRef.current?.contains(t)) return;
       setExpandedId(null);
       setHelpOpen(false);
       setBaselineMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [collapsed]);
+  }, [open]);
 
-  // Esc closes help + expansion + baseline menu.
+  // Esc closes popovers + inline expansion.
   React.useEffect(() => {
     const handler = (e) => {
       if (e.key !== "Escape") return;
@@ -77,7 +115,7 @@ export default function VersionBar({
     return () => document.removeEventListener("keydown", handler);
   }, [helpOpen, expandedId, baselineMenuOpen]);
 
-  // ← / → step iterations when a version is expanded.
+  // ←/→ step iterations when a version is expanded.
   React.useEffect(() => {
     if (!expandedId) return;
     const v = versions.find((x) => x.id === expandedId);
@@ -99,16 +137,22 @@ export default function VersionBar({
     return () => document.removeEventListener("keydown", handler);
   }, [expandedId, iterById, versions]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const expand = () => setCollapsed(false);
+  // Popover anchor rects — refresh on open + scroll + resize so they
+  // stay glued to their trigger as the bar morphs.
+  const baselineRect = useAnchorRect(baselineBtnRef, baselineMenuOpen, barWidth, open);
+  const helpRect = useAnchorRect(helpBtnRef, helpOpen, barWidth, open);
+
+  const expand = () => setOpen(true);
   const collapse = () => {
-    setCollapsed(true);
+    setOpen(false);
     setExpandedId(null);
     setHelpOpen(false);
     setBaselineMenuOpen(false);
   };
   const figma = () => {
     if (onOpenFigma) onOpenFigma();
-    else if (typeof window !== "undefined") window.open("https://figma.com", "_blank", "noopener,noreferrer");
+    else if (typeof window !== "undefined")
+      window.open("https://figma.com", "_blank", "noopener,noreferrer");
   };
 
   const selectVersion = (v) => {
@@ -140,162 +184,144 @@ export default function VersionBar({
     fire(id, null);
   };
 
-  const baselineSelected = BASELINE_OPTIONS.find((o) => o.id === baselineId) || BASELINE_OPTIONS[0];
-  // Chips = everything in versions except the original baseline id
-  // ("current"). The baseline block's own label is driven by the menu
-  // pick above, not by the versions array.
+  const baselineSelected =
+    BASELINE_OPTIONS.find((o) => o.id === baselineId) || BASELINE_OPTIONS[0];
   const chips = versions.filter((v) => v.id !== "current");
 
   return (
-    <div style={vbStyles.host} aria-live="polite">
+    <div style={hostStyles} aria-live="polite">
       <style>{VB_STYLESHEET}</style>
 
-      {/* FAB (collapsed) */}
-      <button
-        ref={fabRef}
-        type="button"
-        aria-label="Open versions"
-        title="Versions"
-        className="vb-focusable vb-anim"
-        onClick={expand}
-        style={{
-          ...vbStyles.fab,
-          opacity: collapsed ? 1 : 0,
-          transform: collapsed ? "scale(1)" : "scale(0.82)",
-          pointerEvents: collapsed ? "auto" : "none",
-        }}
-      >
-        <CompGlyph />
-        <span style={vbStyles.fabBadge} aria-hidden="true">
-          {versions.length}
-        </span>
-      </button>
-
-      {/* Bar (expanded) */}
       <div
-        ref={barRef}
-        role="group"
-        aria-label="Version selector"
-        className="vb-anim"
-        style={{
-          ...vbStyles.barWrap,
-          opacity: collapsed ? 0 : 1,
-          transform: collapsed
-            ? "translateX(-50%) translateY(18px)"
-            : "translateX(-50%) translateY(0)",
-          pointerEvents: collapsed ? "none" : "auto",
-        }}
+        ref={dockRef}
+        className={`vb-dock${open ? " is-open" : ""}`}
       >
-        {helpOpen && (
-          <div style={vbStyles.helpPopover} role="dialog" aria-label="Help">
-            <strong style={vbStyles.helpTitle}>Versions</strong>
-            <p style={vbStyles.helpText}>
-              Click a version to switch the canvas. Versions with iterations
-              (›) expand inline so you can step through their drafts.
-            </p>
-            <p style={vbStyles.helpHint}>
-              Esc closes this and any open group. ← / → step iterations
-              once a version is expanded.
-            </p>
-          </div>
-        )}
-
-        <div style={vbStyles.bar}>
-          <Baseline
-            options={BASELINE_OPTIONS}
-            selected={baselineSelected}
-            active={activeId === baselineSelected.id}
-            menuOpen={baselineMenuOpen}
-            onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
-            onSelect={selectBaseline}
-          />
-          <span style={vbStyles.divider} aria-hidden="true" />
-          <div style={vbStyles.chipsRow}>
-            {chips.map((v) =>
-              expandedId === v.id ? (
-                <VGroup
-                  key={v.id}
-                  version={v}
-                  activeIter={iterById[v.id]}
-                  onIter={(iter) => selectIteration(v.id, iter)}
-                />
-              ) : (
-                <VChip
-                  key={v.id}
-                  version={v}
-                  active={activeId === v.id}
-                  onClick={() => selectVersion(v)}
-                />
-              ),
-            )}
-          </div>
-          <span style={vbStyles.divider} aria-hidden="true" />
-          <CircleBtn
-            ariaLabel="Help"
-            pressed={helpOpen}
-            onClick={() => setHelpOpen((v) => !v)}
+        <div className="vb-wrap">
+          <div
+            className="vb-morph"
+            style={{ width: open ? `${barWidth}px` : `${COLLAPSED_SIZE}px` }}
+            role={!open ? "button" : undefined}
+            tabIndex={!open ? 0 : -1}
+            aria-label={!open ? "Open versions" : undefined}
+            title={!open ? "Versions" : undefined}
+            onClick={() => {
+              if (!open) expand();
+            }}
+            onKeyDown={(e) => {
+              if (open) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                expand();
+              }
+            }}
           >
-            <span style={vbStyles.qMark}>?</span>
-          </CircleBtn>
-          <CircleBtn ariaLabel="Open in Figma" onClick={figma}>
-            <FigmaMark />
-          </CircleBtn>
+            <div className="vb-m-bar" ref={barInnerRef}>
+              <Baseline
+                btnRef={baselineBtnRef}
+                selected={baselineSelected}
+                active={activeId === baselineSelected.id}
+                menuOpen={baselineMenuOpen}
+                onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
+              />
+              <span className="vb-divider" aria-hidden="true" />
+              {chips.map((v) =>
+                expandedId === v.id ? (
+                  <VGroup
+                    key={v.id}
+                    version={v}
+                    activeIter={iterById[v.id]}
+                    onIter={(iter) => selectIteration(v.id, iter)}
+                  />
+                ) : (
+                  <VChip
+                    key={v.id}
+                    version={v}
+                    active={activeId === v.id}
+                    onClick={() => selectVersion(v)}
+                  />
+                ),
+              )}
+              <span className="vb-divider" aria-hidden="true" />
+              <CircleBtn
+                btnRef={helpBtnRef}
+                ariaLabel="Help"
+                pressed={helpOpen}
+                onClick={() => setHelpOpen((v) => !v)}
+              >
+                <span className="vb-q">?</span>
+              </CircleBtn>
+              <CircleBtn ariaLabel="Open in Figma" onClick={figma}>
+                <FigmaMark />
+              </CircleBtn>
+            </div>
+            <div className="vb-m-icon" aria-hidden="true">
+              <CompGlyph />
+            </div>
+          </div>
+          <span className="vb-badge" aria-hidden="true">
+            {versions.length}
+          </span>
         </div>
-        {/* Floating × close — sits at the top-right corner of the bar,
-            outside its content row, so it reads as a "dismiss the whole
-            thing" affordance rather than another bar action. */}
         <button
           type="button"
+          className="vb-close vb-focusable"
           aria-label="Close versions"
-          className="vb-focusable vb-anim"
           onClick={collapse}
-          style={vbStyles.closeBtn}
+          tabIndex={open ? 0 : -1}
         >
           <CollapseGlyph />
         </button>
       </div>
-    </div>
-  );
-}
 
-function Baseline({ options, selected, active, menuOpen, onToggleMenu, onSelect }) {
-  return (
-    <div style={vbStyles.baselineWrap}>
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        className="vb-focusable vb-anim"
-        onClick={onToggleMenu}
-        style={{
-          ...vbStyles.baseline,
-          background: active ? "var(--vb-accent)" : "var(--vb-pill)",
-          color: active ? "var(--vb-accent-ink)" : "var(--vb-txt)",
-          fontWeight: active ? 700 : 500,
-        }}
-      >
-        <span>{selected.label}</span>
-        <span
+      {/* Popovers live outside the dock so they aren't clipped by the
+          morph's overflow:hidden. Position:fixed anchored to the
+          trigger button's rect. */}
+      {helpOpen && helpRect && (
+        <div
+          ref={helpRef}
+          role="dialog"
+          aria-label="Help"
           style={{
-            ...vbStyles.baselineChev,
-            transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)",
+            ...vbStyles.helpPopover,
+            top: helpRect.top - 10,
+            left: helpRect.left + helpRect.width / 2,
+            transform: "translate(-50%, -100%)",
           }}
         >
-          <ChevronDownGlyph />
-        </span>
-      </button>
-      {menuOpen && (
-        <div role="menu" aria-label="Design phase" style={vbStyles.baselineMenu}>
-          {options.map((o) => {
-            const on = o.id === selected.id;
+          <strong style={vbStyles.helpTitle}>Versions</strong>
+          <p style={vbStyles.helpText}>
+            Click a version to switch the canvas. Versions with iterations
+            (›) expand inline so you can step through their drafts.
+          </p>
+          <p style={vbStyles.helpHint}>
+            Esc closes this and any open group. ← / → step iterations once
+            a version is expanded.
+          </p>
+        </div>
+      )}
+
+      {baselineMenuOpen && baselineRect && (
+        <div
+          ref={baselineMenuRef}
+          role="menu"
+          aria-label="Design phase"
+          style={{
+            ...vbStyles.baselineMenu,
+            top: baselineRect.top - 8,
+            left: baselineRect.left,
+            transform: "translateY(-100%)",
+          }}
+        >
+          {BASELINE_OPTIONS.map((o) => {
+            const on = o.id === baselineSelected.id;
             return (
               <button
                 key={o.id}
+                type="button"
                 role="menuitemradio"
                 aria-checked={on}
-                type="button"
-                className="vb-focusable vb-anim"
-                onClick={() => onSelect(o.id)}
+                className="vb-focusable"
+                onClick={() => selectBaseline(o.id)}
                 style={{
                   ...vbStyles.baselineMenuItem,
                   color: on ? "var(--vb-accent)" : "var(--vb-txt)",
@@ -303,7 +329,7 @@ function Baseline({ options, selected, active, menuOpen, onToggleMenu, onSelect 
                 }}
               >
                 {o.label}
-                {on && <span style={vbStyles.baselineMenuCheck} aria-hidden="true">✓</span>}
+                {on && <span aria-hidden="true">✓</span>}
               </button>
             );
           })}
@@ -313,12 +339,69 @@ function Baseline({ options, selected, active, menuOpen, onToggleMenu, onSelect 
   );
 }
 
+// ---- Anchor-rect hook ----------------------------------------------------
+function useAnchorRect(ref, active, ...deps) {
+  const [rect, setRect] = React.useState(null);
+  React.useEffect(() => {
+    if (!active) {
+      setRect(null);
+      return undefined;
+    }
+    const update = () => {
+      if (ref.current) setRect(ref.current.getBoundingClientRect());
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    // Re-read after one frame to catch morph width changes.
+    const raf = requestAnimationFrame(update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+      cancelAnimationFrame(raf);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, ...deps]);
+  return rect;
+}
+
+// ---- Bar children --------------------------------------------------------
+
+function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu }) {
+  return (
+    <button
+      ref={btnRef}
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={menuOpen}
+      className="vb-focusable"
+      onClick={onToggleMenu}
+      style={{
+        ...vbStyles.baseline,
+        background: active ? "var(--vb-accent)" : "var(--vb-pill)",
+        color: active ? "var(--vb-accent-ink)" : "var(--vb-txt)",
+        fontWeight: active ? 700 : 500,
+      }}
+    >
+      <span>{selected.label}</span>
+      <span
+        style={{
+          ...vbStyles.baselineChev,
+          transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)",
+        }}
+      >
+        <ChevronDownGlyph />
+      </span>
+    </button>
+  );
+}
+
 function VChip({ version, active, onClick }) {
   const hasIter = version.iterations.length > 0;
   return (
     <button
       type="button"
-      className="vb-focusable vb-anim"
+      className="vb-focusable"
       onClick={onClick}
       style={{
         ...vbStyles.chip,
@@ -344,7 +427,7 @@ function VGroup({ version, activeIter, onIter }) {
             key={i}
             type="button"
             aria-pressed={on}
-            className="vb-focusable vb-anim"
+            className="vb-focusable"
             onClick={() => onIter(i)}
             style={{
               ...vbStyles.iter,
@@ -361,13 +444,14 @@ function VGroup({ version, activeIter, onIter }) {
   );
 }
 
-function CircleBtn({ ariaLabel, pressed, onClick, children }) {
+function CircleBtn({ btnRef, ariaLabel, pressed, onClick, children }) {
   return (
     <button
+      ref={btnRef}
       type="button"
       aria-label={ariaLabel}
       aria-pressed={pressed}
-      className="vb-focusable vb-anim"
+      className="vb-focusable"
       onClick={onClick}
       style={{
         ...vbStyles.circle,
@@ -379,7 +463,7 @@ function CircleBtn({ ariaLabel, pressed, onClick, children }) {
   );
 }
 
-// ---- Icons (inline SVG; no font dependency) -----------------------------
+// ---- Icons (inline SVG) --------------------------------------------------
 
 function CompGlyph() {
   return (
@@ -440,8 +524,6 @@ function HChevron() {
 }
 
 function CollapseGlyph() {
-  // X (close) glyph — collapses the bar back to the corner FAB. Replaces
-  // the earlier «« double-chevron; reads more clearly as "dismiss".
   return (
     <svg
       viewBox="0 0 24 24"
@@ -474,130 +556,50 @@ function FigmaMark() {
 
 // ---- Styles --------------------------------------------------------------
 
-// Host scopes the CSS variables so the dark chrome doesn't depend on the
-// page's light-mode tokens. Webfonts fall back to system if not loaded.
+// Host scopes the dark CSS variables so the bar reads correctly over
+// light-mode pages. Webfonts fall back to system if not loaded.
+const hostStyles = {
+  "--vb-bar": "#27272C",
+  "--vb-pill": "#3A3A40",
+  "--vb-group": "#33333A",
+  "--vb-circle": "#33333A",
+  "--vb-muted": "#9B9BA1",
+  "--vb-txt": "#F2F2F4",
+  "--vb-accent": "#F4D63E",
+  "--vb-accent-ink": "#2A2400",
+  "--vb-divider": "rgba(255,255,255,0.12)",
+  "--vb-hairline": "rgba(255,255,255,0.07)",
+  "--vb-ui": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+  "--vb-mono":
+    '"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace',
+  fontFamily: "var(--vb-ui)",
+};
+
 const vbStyles = {
-  host: {
-    "--vb-bar": "#27272C",
-    "--vb-pill": "#3A3A40",
-    "--vb-group": "#33333A",
-    "--vb-circle": "#33333A",
-    "--vb-muted": "#9B9BA1",
-    "--vb-txt": "#F2F2F4",
-    "--vb-accent": "#F4D63E",
-    "--vb-accent-ink": "#2A2400",
-    "--vb-divider": "rgba(255,255,255,0.12)",
-    "--vb-hairline": "rgba(255,255,255,0.07)",
-    "--vb-ui": '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
-    "--vb-mono":
-      '"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace',
-    fontFamily: "var(--vb-ui)",
-  },
-  fab: {
-    position: "fixed",
-    right: 28,
-    bottom: 28,
-    width: 54,
-    height: 54,
-    borderRadius: "50%",
-    background: "var(--vb-bar)",
-    border: "1px solid var(--vb-hairline)",
-    boxShadow: "0 16px 40px -16px rgba(0,0,0,0.7)",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 60,
-    color: "var(--vb-txt)",
-    transition: "opacity 220ms ease-out, transform 220ms ease-out",
-  },
-  fabBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    minWidth: 18,
-    height: 18,
-    paddingInline: 5,
-    borderRadius: 9,
-    background: "var(--vb-accent)",
-    color: "var(--vb-accent-ink)",
-    fontFamily: "var(--vb-mono)",
-    fontSize: 10,
-    fontWeight: 700,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "2px solid var(--vb-bar)",
-  },
-  barWrap: {
-    position: "fixed",
-    bottom: 28,
-    left: "50%",
-    zIndex: 60,
-    transform: "translateX(-50%) translateY(0)",
-    // Reserve ~120px gutter so the floating × close (which sits 52px
-    // outside the bar's right edge) never clips past the viewport.
-    maxWidth: "calc(100vw - 120px)",
-    transition: "opacity 220ms ease-out, transform 220ms ease-out",
-  },
-  bar: {
-    background: "var(--vb-bar)",
-    borderRadius: 18,
-    padding: "10px 14px",
-    boxShadow: "0 20px 50px -22px rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    flexWrap: "wrap",
-    border: "1px solid var(--vb-hairline)",
-    color: "var(--vb-txt)",
-  },
-  closeBtn: {
-    position: "absolute",
-    top: "50%",
-    right: -52,
-    transform: "translateY(-50%)",
-    width: 38,
-    height: 38,
-    borderRadius: "50%",
-    background: "var(--vb-circle)",
-    border: "1px solid var(--vb-hairline)",
-    color: "var(--vb-txt)",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 8px 18px -6px rgba(0,0,0,0.6)",
-    transition: "background 180ms ease, color 180ms ease",
-  },
-  baselineWrap: {
-    position: "relative",
-    display: "inline-flex",
-  },
   baseline: {
+    height: 36,
     borderRadius: 12,
-    padding: "9px 14px",
+    paddingInline: 14,
     border: "none",
     cursor: "pointer",
     fontFamily: "var(--vb-mono)",
     fontSize: 13,
     letterSpacing: "0.01em",
-    transition: "background 180ms ease, color 180ms ease",
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+    transition: "background 180ms ease, color 180ms ease",
   },
   baselineChev: {
     display: "inline-flex",
     transition: "transform 180ms ease",
-    color: "currentColor",
     opacity: 0.85,
   },
   baselineMenu: {
-    position: "absolute",
-    bottom: "100%",
-    left: 0,
-    marginBottom: 8,
+    position: "fixed",
+    zIndex: 70,
     minWidth: 180,
     background: "var(--vb-group)",
     border: "1px solid var(--vb-hairline)",
@@ -607,7 +609,8 @@ const vbStyles = {
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    zIndex: 1,
+    color: "var(--vb-txt)",
+    fontFamily: "var(--vb-ui)",
   },
   baselineMenuItem: {
     display: "flex",
@@ -625,22 +628,6 @@ const vbStyles = {
     letterSpacing: "0.02em",
     textAlign: "left",
   },
-  baselineMenuCheck: {
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  divider: {
-    width: 1,
-    height: 22,
-    background: "var(--vb-divider)",
-    flexShrink: 0,
-  },
-  chipsRow: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
   chip: {
     display: "inline-flex",
     alignItems: "center",
@@ -653,6 +640,8 @@ const vbStyles = {
     fontFamily: "var(--vb-mono)",
     fontSize: 12,
     letterSpacing: "0.02em",
+    flexShrink: 0,
+    whiteSpace: "nowrap",
     transition: "background 180ms ease, color 180ms ease",
   },
   vgroup: {
@@ -664,6 +653,7 @@ const vbStyles = {
     background: "var(--vb-group)",
     borderRadius: 999,
     border: "1px solid var(--vb-hairline)",
+    flexShrink: 0,
   },
   vlabel: {
     fontFamily: "var(--vb-mono)",
@@ -672,6 +662,7 @@ const vbStyles = {
     color: "var(--vb-accent)",
     paddingInline: 6,
     letterSpacing: "0.02em",
+    whiteSpace: "nowrap",
   },
   iter: {
     width: 32,
@@ -697,20 +688,14 @@ const vbStyles = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "background 180ms ease, color 180ms ease",
     fontFamily: "var(--vb-ui)",
     fontSize: 14,
-  },
-  qMark: {
-    fontFamily: "var(--vb-mono)",
-    fontWeight: 700,
+    flexShrink: 0,
+    transition: "background 180ms ease, color 180ms ease",
   },
   helpPopover: {
-    position: "absolute",
-    bottom: "100%",
-    marginBottom: 10,
-    left: "50%",
-    transform: "translateX(-50%)",
+    position: "fixed",
+    zIndex: 70,
     width: 320,
     maxWidth: "calc(100vw - 56px)",
     background: "var(--vb-bar)",
@@ -720,17 +705,16 @@ const vbStyles = {
     boxShadow: "0 20px 50px -22px rgba(0,0,0,0.7)",
     color: "var(--vb-txt)",
     boxSizing: "border-box",
+    fontFamily: "var(--vb-ui)",
   },
   helpTitle: {
     display: "block",
-    fontFamily: "var(--vb-ui)",
     fontSize: 13,
     fontWeight: 700,
     marginBottom: 6,
   },
   helpText: {
     margin: 0,
-    fontFamily: "var(--vb-ui)",
     fontSize: 12,
     lineHeight: 1.5,
     color: "var(--vb-muted)",
@@ -744,12 +728,166 @@ const vbStyles = {
   },
 };
 
+// Stylesheet for: the morph transitions, the Pop stagger (needs
+// nth-child selectors), :focus-visible, prefers-reduced-motion. All
+// `vb-` prefixed to keep this self-contained.
 const VB_STYLESHEET = `
+.vb-dock {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vb-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.vb-morph {
+  position: relative;
+  height: ${COLLAPSED_SIZE}px;
+  border-radius: ${COLLAPSED_SIZE / 2}px;
+  background: var(--vb-bar);
+  border: 1px solid var(--vb-hairline);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 16px 40px -16px rgba(0,0,0,0.7);
+  transition:
+    width .42s cubic-bezier(.2,.7,.2,1),
+    border-radius .42s cubic-bezier(.2,.7,.2,1),
+    box-shadow .3s ease;
+  color: var(--vb-txt);
+}
+.vb-dock.is-open .vb-morph {
+  border-radius: 18px;
+  cursor: default;
+  box-shadow: 0 20px 50px -22px rgba(0,0,0,0.7);
+}
+.vb-m-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  height: ${COLLAPSED_SIZE}px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  width: max-content;
+}
+.vb-m-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: opacity .18s ease;
+  opacity: 1;
+}
+.vb-dock.is-open .vb-m-icon {
+  opacity: 0;
+}
+.vb-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--vb-accent);
+  color: var(--vb-accent-ink);
+  font-family: var(--vb-mono);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--vb-bar);
+  transition: opacity .15s ease;
+  pointer-events: none;
+}
+.vb-dock.is-open .vb-badge {
+  opacity: 0;
+}
+.vb-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--vb-divider);
+  flex-shrink: 0;
+}
+.vb-q {
+  font-family: var(--vb-mono);
+  font-weight: 700;
+}
+.vb-close {
+  width: 0;
+  height: ${CLOSE_SIZE}px;
+  border-radius: 50%;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  background: var(--vb-circle);
+  border: 1px solid var(--vb-hairline);
+  color: var(--vb-txt);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: width .3s ease, opacity .25s ease;
+  box-shadow: 0 8px 18px -6px rgba(0,0,0,0.6);
+}
+.vb-dock.is-open .vb-close {
+  width: ${CLOSE_SIZE}px;
+  opacity: 1;
+}
+
+/* Pop — chips hidden behind the circle while collapsed; pop in with
+   a spring overshoot, staggered, when the dock is open. */
+.vb-m-bar > * {
+  opacity: 0;
+  transform: scale(.4);
+  transform-origin: center;
+  transition: opacity .24s ease, transform .34s cubic-bezier(.34, 1.56, .64, 1);
+}
+.vb-dock.is-open .vb-m-bar > * {
+  opacity: 1;
+  transform: scale(1);
+}
+.vb-dock.is-open .vb-m-bar > *:nth-child(1) { transition-delay: .06s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(2) { transition-delay: .11s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(3) { transition-delay: .16s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(4) { transition-delay: .21s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(5) { transition-delay: .26s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(6) { transition-delay: .31s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(7) { transition-delay: .36s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(8) { transition-delay: .41s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(9) { transition-delay: .46s; }
+.vb-dock.is-open .vb-m-bar > *:nth-child(10) { transition-delay: .51s; }
+
+/* Focus ring */
 .vb-focusable:focus-visible {
-  outline: 2px solid #F4D63E;
+  outline: 2px solid var(--vb-accent);
   outline-offset: 2px;
 }
+.vb-morph[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--vb-accent);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .vb-anim { transition: none !important; }
+  .vb-morph,
+  .vb-m-icon,
+  .vb-badge,
+  .vb-close,
+  .vb-m-bar > * {
+    transition: none !important;
+  }
+  .vb-m-bar > * {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 `;
