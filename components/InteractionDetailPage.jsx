@@ -1,3 +1,4 @@
+// Cache-buster: v1 — force fresh Vercel bundle for Agent Playbook click wiring.
 "use client";
 
 import React from "react";
