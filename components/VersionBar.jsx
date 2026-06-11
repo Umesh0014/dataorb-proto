@@ -212,7 +212,7 @@ export default function VersionBar({
           <CircleBtn ariaLabel="Open in Figma" onClick={figma}>
             <FigmaMark />
           </CircleBtn>
-          <CircleBtn ariaLabel="Collapse to corner" onClick={collapse}>
+          <CircleBtn ariaLabel="Close versions" onClick={collapse}>
             <CollapseGlyph />
           </CircleBtn>
         </div>
@@ -348,6 +348,8 @@ function HChevron() {
 }
 
 function CollapseGlyph() {
+  // X (close) glyph — collapses the bar back to the corner FAB. Replaces
+  // the earlier «« double-chevron; reads more clearly as "dismiss".
   return (
     <svg
       viewBox="0 0 24 24"
@@ -360,8 +362,8 @@ function CollapseGlyph() {
       height="14"
       aria-hidden="true"
     >
-      <path d="M11 7l-5 5 5 5" />
-      <path d="M18 7l-5 5 5 5" />
+      <path d="M6 6l12 12" />
+      <path d="M18 6L6 18" />
     </svg>
   );
 }
