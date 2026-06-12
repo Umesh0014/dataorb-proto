@@ -638,10 +638,11 @@ const s = {
 
   readingColumn: { maxWidth: 720 },
 
-  // KPI strip
+  // KPI strip — auto-fill so multilingual labels (ES/FR/NL) wrap to a 2×2
+  // grid without crushing tile contents (UI-8).
   kpiStrip: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
     gap: 12,
     padding: 0,
     margin: 0,

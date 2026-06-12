@@ -223,6 +223,7 @@ function BenchmarksTable({ data }) {
 function AreaBlock({ area, areaIdx, editor, edits, onEdit }) {
   const isPrimary = area.statusChip?.kind === "primary";
   const [open, setOpen] = React.useState(isPrimary);
+  const [hover, setHover] = React.useState(false);
   const band = scoreBand(area.score);
   const hasFocus = !area.whereToFocus?.empty;
   const accent = isPrimary
@@ -230,10 +231,18 @@ function AreaBlock({ area, areaIdx, editor, edits, onEdit }) {
     : "var(--color-divider-card)";
 
   return (
-    <div style={{ ...s.area, borderInlineStartColor: accent }}>
+    <div
+      style={{
+        ...s.area,
+        borderInlineStartColor: accent,
+        background: hover || open ? "var(--color-card-emoji-bg)" : "var(--surface-white)",
+      }}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         aria-expanded={open}
         aria-controls={`area-${areaIdx}`}
         style={s.areaHead}

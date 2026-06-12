@@ -79,7 +79,10 @@ export default function CoachingBriefDeck({ brief, edits, onEdit, onBack }) {
             shadow
             style={{
               ...s.stageCard,
-              opacity: stageDimmed ? 0.0 : 1,
+              // Dim but never disappear — the surface stays in place so
+              // there is no layout-shift on slide change (MOT-9). Refresh
+              // is signalled through opacity only, not by hiding chrome.
+              opacity: stageDimmed ? 0.35 : 1,
               transition: reduceMotion ? "none" : "opacity 150ms ease",
             }}
           >
@@ -154,33 +157,46 @@ function ChapterRail({ sections, activeIdx, onSelect }) {
       <Card padX={12} padY={12} shadow style={s.railCard}>
         <span style={s.railTitle}>Slides</span>
         <nav style={s.railList} aria-label="Brief slides">
-          {sections.map((sec, i) => {
-            const active = i === activeIdx;
-            return (
-              <button
-                key={sec.id}
-                type="button"
-                onClick={() => onSelect(i)}
-                aria-current={active ? "true" : undefined}
-                style={{
-                  ...s.railBtn,
-                  background: active ? "var(--nav-rail-active-bg)" : "transparent",
-                  color: active ? "var(--nav-rail-active)" : "var(--color-text-medium)",
-                  fontWeight: active ? 600 : 500,
-                }}
-              >
-                <span style={s.railIdx}>{String(i + 1).padStart(2, "0")}</span>
-                <sec.Icon
-                  size={16}
-                  color={active ? "var(--nav-rail-active)" : "var(--color-text-tertiary)"}
-                />
-                <span style={s.railLabel}>{sec.title}</span>
-              </button>
-            );
-          })}
+          {sections.map((sec, i) => (
+            <RailBtn
+              key={sec.id}
+              section={sec}
+              index={i}
+              active={i === activeIdx}
+              onClick={() => onSelect(i)}
+            />
+          ))}
         </nav>
       </Card>
     </aside>
+  );
+}
+
+function RailBtn({ section, index, active, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const tonal = active || hover;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-current={active ? "true" : undefined}
+      style={{
+        ...s.railBtn,
+        background: tonal ? "var(--nav-rail-active-bg)" : "transparent",
+        color: tonal ? "var(--nav-rail-active)" : "var(--color-text-medium)",
+        fontWeight: active ? 600 : 500,
+      }}
+    >
+      <span style={s.railIdx}>{String(index + 1).padStart(2, "0")}</span>
+      <section.Icon
+        size={16}
+        color={tonal ? "var(--nav-rail-active)" : "var(--color-text-tertiary)"}
+        aria-hidden="true"
+      />
+      <span style={s.railLabel}>{section.title}</span>
+    </button>
   );
 }
 
