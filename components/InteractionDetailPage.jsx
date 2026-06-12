@@ -47,6 +47,11 @@ export default function InteractionDetailPage({ interactionId, onBack }) {
   // to drill into a category; null shows the list. Switching tabs always
   // resets back to the list so each tab lands on its primary view.
   const [selectedInsightCategory, setSelectedInsightCategory] = React.useState(null);
+  // Design version selected from VersionBar's baseline dropdown. "updated"
+  // is the current spec (Quality / Feedback tabs + the assessment + 3-opt
+  // playbook); "current" mirrors the pre-redesign view (Adherence /
+  // Coaching tabs + the simpler Assessment + Present Stages playbook).
+  const [designVer, setDesignVer] = React.useState("updated");
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -65,6 +70,8 @@ export default function InteractionDetailPage({ interactionId, onBack }) {
           selectedCategory={selectedInsightCategory}
           onSelectCategory={setSelectedInsightCategory}
           onClearCategory={() => setSelectedInsightCategory(null)}
+          designVer={designVer}
+          onDesignVerChange={setDesignVer}
         />
       </div>
     </div>
@@ -262,13 +269,29 @@ function ThreadStartedRow() {
 
 // ---- Right column --------------------------------------------------------
 
-const TAB_DEFS = [
+const TAB_DEFS_UPDATED = [
   { id: "insights", label: "Insights" },
   { id: "quality",  label: "Quality" },
   { id: "feedback", label: "Feedback" },
 ];
+const TAB_DEFS_CURRENT = [
+  { id: "insights",  label: "Insights" },
+  { id: "adherence", label: "Adherence" },
+  { id: "coaching",  label: "Coaching" },
+  { id: "feedback",  label: "Feedback" },
+];
 
-function InsightsColumn({ activeTab, onTabChange, insights, selectedCategory, onSelectCategory, onClearCategory }) {
+function InsightsColumn({
+  activeTab,
+  onTabChange,
+  insights,
+  selectedCategory,
+  onSelectCategory,
+  onClearCategory,
+  designVer,
+  onDesignVerChange,
+}) {
+  const tabs = designVer === "current" ? TAB_DEFS_CURRENT : TAB_DEFS_UPDATED;
   // 🚩 FLAG — sticky tabs. Spec calls for tabs that stay pinned at the top
   // of the scrolling right column. The column shares document scroll
   // today (see top-of-file FLAG), so sticky tabs would either fight the
@@ -278,7 +301,7 @@ function InsightsColumn({ activeTab, onTabChange, insights, selectedCategory, on
     <Card padX={0} padY={0}>
       <div style={pStyles.tabsWrap}>
         <TabsRow
-          tabs={TAB_DEFS}
+          tabs={tabs}
           activeTab={activeTab}
           onTabClick={onTabChange}
         />
@@ -290,6 +313,8 @@ function InsightsColumn({ activeTab, onTabChange, insights, selectedCategory, on
               categoryId={selectedCategory}
               insights={insights}
               onBack={onClearCategory}
+              designVer={designVer}
+              onDesignVerChange={onDesignVerChange}
             />
           ) : (
             <InsightsList
@@ -297,10 +322,8 @@ function InsightsColumn({ activeTab, onTabChange, insights, selectedCategory, on
               onSelectCategory={onSelectCategory}
             />
           )
-        ) : activeTab === "quality" ? (
-          <EmptyTabPanel name="Quality" />
         ) : (
-          <EmptyTabPanel name="Feedback" />
+          <EmptyTabPanel name={activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} />
         )}
       </div>
     </Card>
@@ -395,13 +418,18 @@ function EmptyTabPanel({ name }) {
 // 🚩 FLAG — back row stickiness. Defaults to scrolling inline with the
 // content. Akash to confirm whether it should pin under the tabs for
 // long bodies.
-function CategoryDetail({ categoryId, insights, onBack }) {
+function CategoryDetail({ categoryId, insights, onBack, designVer, onDesignVerChange }) {
   const meta = INSIGHT_ROWS.find((r) => r.id === categoryId);
   if (!meta) return null;
   return (
     <div style={pStyles.detailWrap}>
       <DetailHeader meta={meta} onBack={onBack} />
-      <CategoryBody categoryId={categoryId} insights={insights} />
+      <CategoryBody
+        categoryId={categoryId}
+        insights={insights}
+        designVer={designVer}
+        onDesignVerChange={onDesignVerChange}
+      />
     </div>
   );
 }
@@ -424,9 +452,15 @@ function DetailHeader({ meta, onBack }) {
   );
 }
 
-function CategoryBody({ categoryId, insights }) {
+function CategoryBody({ categoryId, insights, designVer, onDesignVerChange }) {
   if (categoryId === "playbook") {
-    return <AgentPlaybookDetail data={insights?.agentPlaybook} />;
+    return (
+      <AgentPlaybookDetail
+        data={insights?.agentPlaybook}
+        designVer={designVer}
+        onDesignVerChange={onDesignVerChange}
+      />
+    );
   }
   // 🚩 FLAG — other categories (Contact Reason Overview, Interaction
   // Outcome Insights, Customer Sentiment, Predicted CSAT, Session
@@ -478,7 +512,7 @@ const VERSION_TO_OPT = {
   v3: "O3",
 };
 
-function AgentPlaybookDetail({ data }) {
+function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange }) {
   const [opt, setOpt] = React.useState("O1");
   const [activeAgent, setActiveAgent] = React.useState(null);
 
@@ -489,27 +523,297 @@ function AgentPlaybookDetail({ data }) {
   };
   const clearAgent = () => setActiveAgent(null);
 
-  // VersionBar fires { versionId, iterationId } on every change. We use
-  // versionId to swap layout; iterationId is cosmetic for this demo —
-  // wire it to a real variant once iteration designs land.
+  // VersionBar fires { versionId, iterationId } on every change.
+  // - "current" / "updated" are baseline-dropdown picks → swap the whole
+  //   right-column layout via onDesignVerChange.
+  // - "v1" / "v2" / "v3" are chip picks → swap which O1/O2/O3 layout
+  //   renders (Updated-design only; ignored under Current design).
   const handleVersionChange = ({ versionId }) => {
+    if (versionId === "current" || versionId === "updated") {
+      onDesignVerChange?.(versionId);
+      clearAgent();
+      return;
+    }
     const nextOpt = VERSION_TO_OPT[versionId] || "O1";
     if (nextOpt === opt) return;
     clearAgent();
     setOpt(nextOpt);
   };
 
+  // VersionBar.value drives which item is highlighted.
+  // - Current design: baseline "current" stays yellow regardless of opt.
+  // - Updated design: chips (v1/v2/v3) reflect opt; the baseline is no
+  //   longer yellow.
+  const barValue =
+    designVer === "current"
+      ? { versionId: "current", iterationId: null }
+      : { versionId: OPT_TO_VERSION[opt] || "v1", iterationId: null };
+
   const shared = { data, activeAgent, onSetAgent: toggleAgent, onClearAgent: clearAgent };
 
   return (
     <div style={pbStyles.detail}>
-      {opt === "O1" && <PlaybookOptionA {...shared} />}
-      {opt === "O2" && <PlaybookOptionB {...shared} />}
-      {opt === "O3" && <PlaybookOptionC {...shared} />}
-      <VersionBar onChange={handleVersionChange} />
+      {designVer === "current" ? (
+        <CurrentDesignPlaybook data={CURRENT_PLAYBOOK_MOCK} />
+      ) : (
+        <>
+          {opt === "O1" && <PlaybookOptionA {...shared} />}
+          {opt === "O2" && <PlaybookOptionB {...shared} />}
+          {opt === "O3" && <PlaybookOptionC {...shared} />}
+        </>
+      )}
+      <VersionBar value={barValue} onChange={handleVersionChange} />
     </div>
   );
 }
+
+// Reverse of VERSION_TO_OPT — used to pick which chip the VersionBar
+// highlights when designVer === "updated".
+const OPT_TO_VERSION = { O1: "v1", O2: "v2", O3: "v3" };
+
+// ---- Current-design playbook (image 1, pre-redesign view) ---------------
+// Sparser layout: Assessment paragraph + Present Stages list with simple
+// face glyphs and #N · #M citation chips. Mock data is a different
+// scenario (initial greeting → discovery → information provision →
+// resolution → closing) — not the returns/cancellations flow used by the
+// updated playbook. Two payloads keep the two designs cleanly separated.
+const CURRENT_PLAYBOOK_MOCK = {
+  assessment: {
+    text:
+      "The agent followed a standard playbook, starting with greetings and authentication [3-5]. " +
+      "She then moved into discovery and probing by checking the case and previous updates [5-7]. " +
+      "Information provision was key, explaining the proposed solution and the status of the investigation [11-23]. " +
+      "She closed with a clean resolution check-in and a polite farewell [24-31].",
+  },
+  presentStages: [
+    {
+      id: "initial_greeting",
+      title: "Initial greeting",
+      mood: "smile",
+      refs: [3, 3],
+      observations: ["Agent introduced herself and offered assistance."],
+    },
+    {
+      id: "discovery_probing",
+      title: "Discovery and probing",
+      mood: "neutral",
+      refs: [5, 10],
+      observations: [
+        "Agent reviewed case AFR2024091578923.",
+        "Agent inquired about previous updates and customer's understanding.",
+      ],
+    },
+    {
+      id: "information_provision",
+      title: "Information provision",
+      mood: "neutral",
+      refs: [11, 23],
+      observations: [
+        "Agent explained the proposed solution of an alternative product.",
+        "Agent clarified the status of the investigation and lack of specific details.",
+        "Agent explained the process started on the 21st and the search for a substitute.",
+      ],
+    },
+    {
+      id: "resolution_confirmation",
+      title: "Resolution confirmation",
+      mood: "smile",
+      refs: [24, 26],
+      observations: [
+        "Agent recommended waiting 1-2 days for a response.",
+        "Agent provided context on previous response times.",
+        "Agent confirmed no exact timelines were available.",
+      ],
+    },
+    {
+      id: "closing",
+      title: "Closing",
+      mood: "smile",
+      refs: [29, 31],
+      observations: [
+        "Agent asked if further assistance was needed.",
+        "Agent provided a polite closing.",
+      ],
+    },
+  ],
+};
+
+const CD_MOOD_FACES = {
+  smile:   { Icon: Smile, color: "var(--color-warning)" },
+  neutral: { Icon: Meh,   color: "var(--color-warning)" },
+  happy:   { Icon: Smile, color: "var(--color-success)" },
+};
+
+function CurrentDesignPlaybook({ data }) {
+  const [bodyOpen, setBodyOpen] = React.useState(false);
+  if (!data) return null;
+  return (
+    <div style={cdStyles.body}>
+      <div style={cdStyles.assessmentBlock}>
+        <span style={cdStyles.eyebrow}>ASSESSMENT</span>
+        <p style={cdStyles.assessmentText}>
+          {bodyOpen
+            ? data.assessment.text
+            : `${data.assessment.text.slice(0, 220)}…`}
+        </p>
+        <button
+          type="button"
+          onClick={() => setBodyOpen((v) => !v)}
+          style={cdStyles.seeMore}
+          aria-expanded={bodyOpen}
+        >
+          {bodyOpen ? "See less" : "See more"}
+        </button>
+      </div>
+
+      <div style={cdStyles.stagesHeading}>Present Stages</div>
+      <div style={cdStyles.stagesList}>
+        {data.presentStages.map((s) => (
+          <CurrentDesignStageRow key={s.id} stage={s} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CurrentDesignStageRow({ stage }) {
+  const cfg = CD_MOOD_FACES[stage.mood] || CD_MOOD_FACES.neutral;
+  const Icon = cfg.Icon;
+  return (
+    <div style={cdStyles.stageRow}>
+      <div style={cdStyles.stageHead}>
+        <span style={cdStyles.stageHeadLeft}>
+          <Icon size={16} color={cfg.color} aria-label={`${stage.mood} sentiment`} />
+          <span style={cdStyles.stageTitle}>{stage.title}</span>
+        </span>
+        <span style={cdStyles.stageRefs}>
+          <span style={cdStyles.ref}>#{stage.refs[0]}</span>
+          <span style={cdStyles.refDot} aria-hidden="true">·</span>
+          <span style={cdStyles.ref}>#{stage.refs[1]}</span>
+        </span>
+      </div>
+      <ul style={cdStyles.bullets}>
+        {stage.observations.map((b, i) => (
+          <li key={i} style={cdStyles.bullet}>
+            <span aria-hidden="true" style={cdStyles.bulletDot}>•</span>
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const cdStyles = {
+  body: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    paddingInline: 2,
+  },
+  assessmentBlock: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    background: "var(--color-card-emoji-bg)",
+    borderRadius: 10,
+    padding: "14px 16px",
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  assessmentText: {
+    margin: 0,
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "var(--color-text-deep)",
+  },
+  seeMore: {
+    alignSelf: "flex-start",
+    background: "none",
+    border: "none",
+    padding: "2px 0 0",
+    color: "var(--color-button-primary-bg)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  stagesHeading: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 15,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    marginTop: 4,
+  },
+  stagesList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+  stageRow: {
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 12,
+    padding: "12px 14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  },
+  stageHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  stageHeadLeft: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+  },
+  stageTitle: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  stageRefs: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  },
+  ref: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: "var(--color-button-primary-bg)",
+    fontFamily: "var(--font-sans)",
+  },
+  refDot: {
+    color: "var(--color-text-tertiary)",
+    fontSize: 12,
+  },
+  bullets: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0,
+  },
+  bullet: {
+    fontSize: 13,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.55,
+    paddingLeft: 16,
+    position: "relative",
+    marginTop: 2,
+  },
+  bulletDot: {
+    position: "absolute",
+    left: 4,
+    color: "var(--color-text-tertiary)",
+  },
+};
 
 // Hero (icon tile + title + subline) — shared across all options.
 function PlaybookHero({ sub, compact = false, rightSlot = null }) {
