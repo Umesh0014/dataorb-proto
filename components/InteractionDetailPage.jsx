@@ -515,7 +515,8 @@ const VERSION_TO_OPT = {
 };
 
 function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange }) {
-  const [opt, setOpt] = React.useState("O1");
+  // Default to v2 / i1 — the Updated-design canonical view.
+  const [opt, setOpt] = React.useState("O2");
   const [iter, setIter] = React.useState("i1");
   const [activeAgent, setActiveAgent] = React.useState(null);
 
@@ -538,6 +539,11 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
     if (versionId === "current" || versionId === "updated") {
       onDesignVerChange?.(versionId);
       clearAgent();
+      // Returning to Updated design lands on the canonical v2 / i1 view.
+      if (versionId === "updated") {
+        setOpt("O2");
+        setIter("i1");
+      }
       return;
     }
     const nextOpt = VERSION_TO_OPT[versionId];
