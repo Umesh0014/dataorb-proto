@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -24,8 +25,26 @@ import {
   Quote,
   Search,
   X,
+  Layers,
+  BarChart3,
+  Tag,
+  Crosshair,
+  TrendingDown,
+  Smile,
+  Flag,
+  Award,
+  Info,
 } from "lucide-react";
+// 🚩 FLAG — Phosphor introduced solely for the WhatsApp brand mark
+// (lucide lacks a real WhatsApp logo). Other channel icons stay on
+// lucide. Two follow-ups for Akash: (A — built) only WhatsApp moves to
+// Phosphor, sized to sit next to the lucide icons; (B — not done)
+// standardise all channel icons on one library if mixing reads
+// inconsistent. Weight="fill" picked to match the solid brand mark in
+// the reference — confirm against Figma if outline is preferred.
+import { WhatsappLogo } from "@phosphor-icons/react";
 import Card from "./Card";
+import EmailConversationView from "./EmailConversationView";
 import Button from "./Button";
 import { formatDateTime } from "./formatDate";
 
@@ -106,14 +125,29 @@ const FILTER_SECTIONS = [
 const TOTAL = 6811;
 const PAGE_SIZE = 20;
 
+// Search-by attributes. Each entry knows how to pluck its field off a row
+// — keeps the filter logic generic and lets new attributes land as a
+// single config row, not a switch-statement edit.
+//
+// 🚩 FLAG — Topic / Caller ID / External Conversation ID source. These
+// live under row.details in production; in the prototype mock, details
+// only lives on the selected row via DETAILS_SAMPLE fallback. The filter
+// here uses DETAILS_SAMPLE as a fallback so all five options are testable.
 const SEARCH_ATTRS = [
-  { id: "customer", label: "Customer ID" },
-  { id: "agent",    label: "Agent Name"  },
-  { id: "reason",   label: "Contact Reason" },
+  { id: "customer",    label: "Customer ID",              field: (row) => row.customerId },
+  { id: "topic",       label: "Topic",                    field: (row) => detailsOf(row).interactionOutcome?.topic },
+  { id: "caller",      label: "Caller ID",                field: (row) => detailsOf(row).interactionMetadata?.callerId },
+  { id: "interaction", label: "Interaction ID",           field: (row) => row.interactionId },
+  { id: "external",    label: "External Conversation ID", field: (row) => detailsOf(row).interactionMetadata?.externalId },
 ];
+
+function detailsOf(row) {
+  return row.details || DETAILS_SAMPLE;
+}
 
 // Skills payloads reused across rows — keeps mock concise and means the
 // popover renders the reference layout for both variants.
+// Mock cache-buster: v4 (forces a new bundle hash on Vercel).
 const SKILLS_FULL = {
   variant: "tracked",
   strengths: [
@@ -138,26 +172,26 @@ const SKILLS_TOP = {
 };
 
 const ROWS = [
-  { customerId: "1CFEA2", channel: "voice",    date: "2026-05-07T16:50:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 1, s: 51 }, sentiment: "negative", adherence: null, skills: null         },
-  { customerId: "EB236D", channel: "whatsapp", date: "2026-05-07T04:40:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 19 }, sentiment: "neutral",  adherence: 78,   skills: SKILLS_FULL  },
-  { customerId: "CA1484", channel: "voice",    date: "2026-05-05T17:25:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 44 }, sentiment: "positive", adherence: 91,   skills: SKILLS_FULL  },
-  { customerId: "53611D", channel: "whatsapp", date: "2026-04-30T06:35:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 5 },  sentiment: "mixed",    adherence: 69,   skills: SKILLS_TOP   },
-  { customerId: "CACA53", channel: "sms",      date: "2026-04-30T06:33:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 1 },  sentiment: "mixed",    adherence: 58,   skills: null         },
-  { customerId: "020A31", channel: "voice",    date: "2026-04-29T18:44:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 2, s: 17 }, sentiment: "positive", adherence: 92,   skills: SKILLS_FULL  },
-  { customerId: "9492B2", channel: "whatsapp", date: "2026-04-28T14:12:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 56 }, sentiment: "negative", adherence: 28,   skills: null         },
-  { customerId: "1EA06C", channel: "sms",      date: "2026-04-22T21:18:00Z", agent: { initials: "AT", name: "Akash Trainee" },    duration: { h: 0, m: 2, s: 26 }, sentiment: "positive", adherence: 70,   skills: null         },
-  { customerId: "A85CF1", channel: "email",    date: "2026-04-22T17:30:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 0, s: 28 }, sentiment: "positive", adherence: 81,   skills: null         },
-  { customerId: "300C85", channel: "voice",    date: "2026-04-17T17:22:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 2, s: 0 },  sentiment: "negative", adherence: 83,   skills: SKILLS_TOP   },
-  { customerId: "B61007", channel: "whatsapp", date: "2026-04-17T17:20:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 15 }, sentiment: "negative", adherence: 40,   skills: null         },
-  { customerId: "23F1F4", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "negative", adherence: null, skills: null         },
-  { customerId: "FC5A2C", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "negative", adherence: null, skills: null         },
-  { customerId: "A92F18", channel: "whatsapp", date: "2026-04-15T10:11:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 32 }, sentiment: "positive", adherence: 84,   skills: SKILLS_FULL  },
-  { customerId: "DE3422", channel: "voice",    date: "2026-04-13T09:05:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 47 }, sentiment: "neutral",  adherence: null, skills: null         },
-  { customerId: "FF7A09", channel: "whatsapp", date: "2026-04-12T11:48:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 3, s: 18 }, sentiment: "positive", adherence: 84,   skills: SKILLS_FULL  },
-  { customerId: "60AAB2", channel: "voice",    date: "2026-04-09T13:21:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 54 }, sentiment: "negative", adherence: 33,   skills: SKILLS_TOP   },
-  { customerId: "112233", channel: "sms",      date: "2026-04-08T15:00:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 2, s: 1 },  sentiment: "neutral",  adherence: 68,   skills: null         },
-  { customerId: "B7C9D0", channel: "whatsapp", date: "2026-04-05T19:33:00Z", agent: { initials: "AT", name: "Akash Trainee" },    duration: { h: 0, m: 1, s: 28 }, sentiment: "mixed",    adherence: 65,   skills: null         },
-  { customerId: "5510EF", channel: "voice",    date: "2026-04-03T08:15:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 2, s: 12 }, sentiment: "positive", adherence: null, skills: null         },
+  { interactionId: "7123456", customerId: "000028", channel: "email",    date: "2026-05-07T16:50:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 1, s: 51 }, sentiment: "negative", adherence: null, skills: null         },
+  { interactionId: "6534512", customerId: "000023", channel: "whatsapp", date: "2026-05-07T04:40:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 19 }, sentiment: "neutral",  adherence: 78,   skills: SKILLS_FULL  },
+  { interactionId: "9871234", customerId: "000022", channel: "voice",    date: "2026-05-05T17:25:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 44 }, sentiment: "positive", adherence: 91,   skills: SKILLS_FULL  },
+  { interactionId: "4451289", customerId: "000010", channel: "whatsapp", date: "2026-04-30T06:35:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 5 },  sentiment: "mixed",    adherence: 69,   skills: SKILLS_TOP   },
+  { interactionId: "1023487", customerId: "000031", channel: "sms",      date: "2026-04-30T06:33:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 1 },  sentiment: "mixed",    adherence: 58,   skills: null         },
+  { interactionId: "8847651", customerId: "000015", channel: "voice",    date: "2026-04-29T18:44:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 2, s: 17 }, sentiment: "positive", adherence: 92,   skills: SKILLS_FULL  },
+  { interactionId: "5512309", customerId: "000034", channel: "whatsapp", date: "2026-04-28T14:12:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 2, s: 56 }, sentiment: "negative", adherence: 28,   skills: null         },
+  { interactionId: "2245876", customerId: "000018", channel: "sms",      date: "2026-04-22T21:18:00Z", agent: { initials: "AT", name: "Akash Trainee" },    duration: { h: 0, m: 2, s: 26 }, sentiment: "positive", adherence: 70,   skills: null         },
+  { interactionId: "6634012", customerId: "000024", channel: "email",    date: "2026-04-22T17:30:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 0, s: 28 }, sentiment: "positive", adherence: 81,   skills: null         },
+  { interactionId: "7798456", customerId: "000020", channel: "voice",    date: "2026-04-17T17:22:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 2, s: 0 },  sentiment: "negative", adherence: 83,   skills: SKILLS_TOP   },
+  { interactionId: "1234567", customerId: "000090", channel: "whatsapp", date: "2026-04-17T17:20:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 15 }, sentiment: "negative", adherence: 40,   skills: null         },
+  { interactionId: "9032187", customerId: "000045", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "negative", adherence: null, skills: null         },
+  { interactionId: "8765432", customerId: "000051", channel: "voice",    date: "2026-04-17T13:57:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 13 }, sentiment: "negative", adherence: null, skills: null         },
+  { interactionId: "3349812", customerId: "000062", channel: "whatsapp", date: "2026-04-15T10:11:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 1, s: 32 }, sentiment: "positive", adherence: 84,   skills: SKILLS_FULL  },
+  { interactionId: "7765409", customerId: "000071", channel: "voice",    date: "2026-04-13T09:05:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 0, s: 47 }, sentiment: "neutral",  adherence: null, skills: null         },
+  { interactionId: "5511289", customerId: "000084", channel: "whatsapp", date: "2026-04-12T11:48:00Z", agent: { initials: "AK", name: "Akash S" },          duration: { h: 0, m: 3, s: 18 }, sentiment: "positive", adherence: 84,   skills: SKILLS_FULL  },
+  { interactionId: "4423091", customerId: "000037", channel: "voice",    date: "2026-04-09T13:21:00Z", agent: { initials: "KO", name: "Konecta Partner" },  duration: { h: 0, m: 0, s: 54 }, sentiment: "negative", adherence: 33,   skills: SKILLS_TOP   },
+  { interactionId: "6612354", customerId: "000056", channel: "sms",      date: "2026-04-08T15:00:00Z", agent: { initials: "AL", name: "Aliasgar Trainee" }, duration: { h: 0, m: 2, s: 1 },  sentiment: "neutral",  adherence: 68,   skills: null         },
+  { interactionId: "9988123", customerId: "000099", channel: "whatsapp", date: "2026-04-05T19:33:00Z", agent: { initials: "AT", name: "Akash Trainee" },    duration: { h: 0, m: 1, s: 28 }, sentiment: "mixed",    adherence: 65,   skills: null         },
+  { interactionId: "7702145", customerId: "000077", channel: "voice",    date: "2026-04-03T08:15:00Z", agent: { initials: "GA", name: "G Agent" },          duration: { h: 0, m: 2, s: 12 }, sentiment: "positive", adherence: null, skills: null         },
 ];
 
 const COLS = [
@@ -175,12 +209,175 @@ const COLS = [
 // preset so the row already shows its inline summary on first open.
 const INITIAL_FILTERS = { date: "last_12_months" };
 
+// Row-detail drawer config.
+// 🚩 FLAG for Akash — data source. DETAILS_SAMPLE is the mock payload from
+// the reference (customer 000028). It's attached to every row so any row
+// click demonstrates the drawer; in production confirm whether the row
+// fetch returns details inline or a separate on-click fetch.
+// 🚩 FLAG for Akash — section icons. Seeded from lucide as a starting
+// point; confirm canonical icons against Figma before locking.
+// 🚩 FLAG — collapsibility. Default is non-collapsible, single scroll
+// (matches the reference). If sections grow long, revisit.
+const DETAILS_SAMPLE = {
+  contactReason: {
+    hasSalesLead: false,
+    customerIntent: "Issue resolution",
+    issueType: "Account management issue",
+    journeyStage: "Account changes",
+    reasonForContact: "Retrieve account password",
+    businessAspect: "Account management",
+    hasActionItem: false,
+  },
+  interactionOutcome: { topic: "Retrieve account password", status: "Pending" },
+  commercialOffer: { salesAttempt: false, offerCategory: "Not applicable", offerStatus: "Not applicable" },
+  competitorMention: { competitor: "Jazztel" },
+  churnRisk: { status: "Moderate", driver: "Inconvenient password reset process", mentionedToSwitch: false },
+  customerSentiment: { initialSentiment: "Mixed", finalSentiment: "Negative", painPointDrivers: "Account access failure" },
+  predictedCsat: { satisfactionRating: "Very dissatisfied" },
+  flags: { agentFollowup: true },
+  skillProficiency: { coachingRecommendation: false },
+  interactionMetadata: {
+    customerId: "000028", source: "Zendesk", externalId: "653518", channel: "Email", direction: "Outbound",
+    lob: null, campaign: "FO_R_FIDE_RES", productType: "Convergente", service: "ATEN_RES_MASIVO_MOVIL",
+    subService: "POSPAGO", serviceProviderLocation: "KON_SEVILLA", customerSeniority: "INFANCIA",
+    lastAgentGroup: "Not available", group: "Generalista Guadalajara", callerId: "600000000",
+    customerLineTariff: "4G de Orang en casa", hasCommitmentActive: true, commitmentPeriodDurationMonths: 3,
+    agentSkill: "6440169", importedDate: "Dec 4, 2019 1:42 pm",
+  },
+};
+
+const DETAIL_SECTIONS = [
+  {
+    id: "contactReason",
+    title: "Contact reason insights",
+    Icon: Layers,
+    dataKey: "contactReason",
+    fields: [
+      { label: "Has sales lead",     key: "hasSalesLead",    format: "boolean" },
+      { label: "Customer Intent",    key: "customerIntent" },
+      { label: "Issue type",         key: "issueType" },
+      { label: "Journey stage",      key: "journeyStage" },
+      { label: "Reason for Contact", key: "reasonForContact" },
+      { label: "Business aspect",    key: "businessAspect" },
+      { label: "Has action item",    key: "hasActionItem",   format: "boolean" },
+    ],
+  },
+  {
+    id: "interactionOutcome",
+    title: "Interaction outcome overview",
+    Icon: BarChart3,
+    dataKey: "interactionOutcome",
+    fields: [
+      { label: "Topic",  key: "topic" },
+      { label: "Status", key: "status" },
+    ],
+  },
+  {
+    id: "commercialOffer",
+    title: "Commercial offer insights",
+    Icon: Tag,
+    dataKey: "commercialOffer",
+    fields: [
+      { label: "Sales attempt",  key: "salesAttempt", format: "boolean" },
+      { label: "Offer category", key: "offerCategory" },
+      { label: "Offer status",   key: "offerStatus" },
+    ],
+  },
+  {
+    id: "competitorMention",
+    title: "Competitor mention",
+    Icon: Crosshair,
+    dataKey: "competitorMention",
+    fields: [
+      { label: "Competitor", key: "competitor" },
+    ],
+  },
+  {
+    id: "churnRisk",
+    title: "Churn-risk Insights",
+    Icon: TrendingDown,
+    dataKey: "churnRisk",
+    fields: [
+      { label: "Churn-risk status",    key: "status" },
+      { label: "Churn risk driver",    key: "driver" },
+      { label: "Mentioned to switch",  key: "mentionedToSwitch", format: "boolean" },
+    ],
+  },
+  {
+    id: "customerSentiment",
+    title: "Customer sentiment",
+    Icon: Heart,
+    dataKey: "customerSentiment",
+    fields: [
+      { label: "Initial sentiment",   key: "initialSentiment" },
+      { label: "Final sentiment",     key: "finalSentiment" },
+      { label: "Pain point drivers",  key: "painPointDrivers" },
+    ],
+  },
+  {
+    id: "predictedCsat",
+    title: "Predicted CSAT",
+    Icon: Smile,
+    dataKey: "predictedCsat",
+    fields: [
+      { label: "Satisfaction Rating", key: "satisfactionRating" },
+    ],
+  },
+  {
+    id: "flags",
+    title: "Flags",
+    Icon: Flag,
+    dataKey: "flags",
+    fields: [
+      { label: "Agent Followup", key: "agentFollowup", format: "boolean" },
+    ],
+  },
+  {
+    id: "skillProficiency",
+    title: "Skill Proficiency",
+    Icon: Award,
+    dataKey: "skillProficiency",
+    fields: [
+      { label: "Coaching recommendation", key: "coachingRecommendation", format: "boolean" },
+    ],
+  },
+  {
+    id: "interactionMetadata",
+    title: "Interaction metadata",
+    Icon: Info,
+    dataKey: "interactionMetadata",
+    fields: [
+      { label: "Customer ID",                            key: "customerId" },
+      { label: "Source",                                 key: "source" },
+      { label: "External ID",                            key: "externalId" },
+      { label: "Channel",                                key: "channel" },
+      { label: "Direction",                              key: "direction" },
+      { label: "LOB",                                    key: "lob" },
+      { label: "Campaign",                               key: "campaign" },
+      { label: "Product type",                           key: "productType" },
+      { label: "Service",                                key: "service" },
+      { label: "Sub-service",                            key: "subService" },
+      { label: "Service provider location",              key: "serviceProviderLocation" },
+      { label: "Customer seniority",                     key: "customerSeniority" },
+      { label: "Last agent group",                       key: "lastAgentGroup" },
+      { label: "Group",                                  key: "group" },
+      { label: "Caller ID",                              key: "callerId" },
+      { label: "Customer line tariff",                   key: "customerLineTariff" },
+      { label: "Has commitment active",                  key: "hasCommitmentActive", format: "boolean" },
+      { label: "Commitment period duration in months",   key: "commitmentPeriodDurationMonths" },
+      { label: "Agent skill",                            key: "agentSkill" },
+      { label: "Imported date",                          key: "importedDate" },
+    ],
+  },
+];
+
 function onApplyFilters(_draft) {
   // TODO: apply filters to the interactions query. Do NOT wire fetch here —
   // stub only; confirm the query/handler contract with Akash.
 }
 
 export default function InteractionsPage() {
+  const router = useRouter();
   const [page, setPage] = React.useState(1);
   const totalPages = Math.ceil(TOTAL / PAGE_SIZE);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -188,35 +385,109 @@ export default function InteractionsPage() {
   const filterBtnRef = React.useRef(null);
 
   // Lifted from InteractionsHeader so the empty-state branch and the
-  // header's X-clear button share one source of truth + handler.
+  // header's X-clear button share one source of truth + handler. `query`
+  // tracks keystrokes; `debouncedQuery` lags by ~300ms and is what the
+  // filter actually runs against — matches the spec's "fire the query"
+  // debounce for when this is wired to a server-side fetch.
   const [query, setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [attr, setAttr] = React.useState("customer");
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
   // 🚩 FLAG — clearSearch scope. Clears query only by default; confirm
   // whether it should also reset the search attribute and applied filters.
-  const clearSearch = () => setQuery("");
+  const clearSearch = () => {
+    setQuery("");
+    setDebouncedQuery("");
+  };
 
-  // Client-side filter against the chosen attribute. The mock has no
-  // reason field, so for "reason" the filter degrades to a no-op match
-  // until a real field lands — keeps the empty state reachable for the
-  // two attributes the mock supports.
+  // Changing the search-by attribute clears whatever was typed for the
+  // previous field — the old query no longer makes sense against the
+  // new field. Debounced value is reset synchronously so the table
+  // doesn't briefly show stale matches.
+  const handleAttrChange = (id) => {
+    setAttr(id);
+    setQuery("");
+    setDebouncedQuery("");
+  };
+
+  // Client-side filter against the chosen attribute. The selected attr's
+  // `field` accessor pulls the value off the row; missing values are
+  // coerced to "" so they never match a non-empty query.
   const filteredRows = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (!q) return ROWS;
-    return ROWS.filter((row) => {
-      if (attr === "agent") return row.agent.name.toLowerCase().includes(q);
-      // default: customer id
-      return row.customerId.toLowerCase().includes(q);
-    });
-  }, [query, attr]);
+    const fieldOf = SEARCH_ATTRS.find((a) => a.id === attr)?.field || (() => "");
+    return ROWS.filter((row) => String(fieldOf(row) || "").toLowerCase().includes(q));
+  }, [debouncedQuery, attr]);
 
-  const isSearchEmpty = query.trim() !== "" && filteredRows.length === 0;
+  const isSearchEmpty = debouncedQuery.trim() !== "" && filteredRows.length === 0;
+  const isSearchActive = debouncedQuery.trim() !== "";
+
+  // Count + pagination reflect the filtered set when a search is active.
+  // (When inactive, fall back to TOTAL — the mock represents a server-side
+  // count that ROWS only samples.) Clamp totalPages to at least 1 so the
+  // "Page 1 of 1" footer renders correctly for the single-result case.
+  const effectiveCount = isSearchActive ? filteredRows.length : TOTAL;
+  const effectiveTotalPages = isSearchActive
+    ? Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
+    : totalPages;
+
+  // Reset to page 1 when the query changes so a deep page (e.g. p.5) doesn't
+  // strand the user on an out-of-range page after filtering down to <20 rows.
+  React.useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   const handleApply = (draft) => {
     setAppliedFilters(draft);
     onApplyFilters(draft);
     setFiltersOpen(false);
   };
+
+  // Row click navigates to the interaction detail page (the full-canvas
+  // Email Conversations + Insights / Quality / Feedback view). The
+  // previous in-place row drawer is retired; navigation lives on
+  // /insights/interaction/{interactionId}.
+  const [selectedRowId, setSelectedRowId] = React.useState(null);
+  const rowRefs = React.useRef({});
+
+  const handleRowClick = (interactionId) => {
+    if (!interactionId) return;
+    router.push(`/insights/interaction/${interactionId}`);
+  };
+
+  const closeDetails = () => {
+    const lastId = selectedRowId;
+    setSelectedRowId(null);
+    // Restore focus to the row the drawer was opened from.
+    requestAnimationFrame(() => {
+      const el = lastId && rowRefs.current[lastId];
+      if (el && typeof el.focus === "function") el.focus();
+    });
+  };
+
+  const selectedRow = selectedRowId
+    ? filteredRows.find((r) => r.customerId === selectedRowId) ||
+      ROWS.find((r) => r.customerId === selectedRowId)
+    : null;
+
+  // Email-channel drill-down. Clicking the Email icon on a row swaps the
+  // listing for EmailConversationView; the Back button restores the listing.
+  const [emailViewRow, setEmailViewRow] = React.useState(null);
+
+  if (emailViewRow) {
+    return (
+      <EmailConversationView
+        row={emailViewRow}
+        onBack={() => setEmailViewRow(null)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -228,18 +499,24 @@ export default function InteractionsPage() {
         onQueryChange={setQuery}
         onClearSearch={clearSearch}
         attr={attr}
-        onAttrChange={setAttr}
+        onAttrChange={handleAttrChange}
       />
       <Card padX={0} padY={0}>
         {isSearchEmpty ? (
           <SearchEmptyState onClear={clearSearch} />
         ) : (
           <>
-            <Table rows={filteredRows} />
+            <Table
+              rows={filteredRows}
+              selectedRowId={selectedRowId}
+              onRowClick={handleRowClick}
+              rowRefs={rowRefs}
+              onOpenEmail={setEmailViewRow}
+            />
             <Pagination
               page={page}
-              totalPages={totalPages}
-              totalCount={TOTAL}
+              totalPages={effectiveTotalPages}
+              totalCount={effectiveCount}
               onPageChange={setPage}
             />
           </>
@@ -256,6 +533,9 @@ export default function InteractionsPage() {
           }}
         />
       )}
+      {selectedRow && (
+        <DetailsPanel row={selectedRow} onClose={closeDetails} />
+      )}
     </div>
   );
 }
@@ -265,17 +545,80 @@ function InteractionsHeader({
   query, onQueryChange, onClearSearch, attr, onAttrChange,
 }) {
   const [open, setOpen] = React.useState(false);
+  const [menuRect, setMenuRect] = React.useState(null);
   const ddRef = React.useRef(null);
+  const menuRef = React.useRef(null);
+  const triggerRef = React.useRef(null);
   const selected = SEARCH_ATTRS.find((a) => a.id === attr) || SEARCH_ATTRS[0];
+
+  // The header card wraps everything in overflow-hidden + rounded corners,
+  // which clipped an absolutely-positioned menu's hit area. Use position:
+  // fixed and compute coords from the trigger's bounding rect so the menu
+  // escapes the wrapper entirely — same pattern as ChartTooltip /
+  // SkillsPopover.
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const sync = () => {
+      if (triggerRef.current) setMenuRect(triggerRef.current.getBoundingClientRect());
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [open]);
 
   React.useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (ddRef.current && !ddRef.current.contains(e.target)) setOpen(false);
+      const insideTrigger = ddRef.current && ddRef.current.contains(e.target);
+      const insideMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!insideTrigger && !insideMenu) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  // Don't auto-focus the active item on open — that triggers a focus
+  // background that reads as "selected" and clutters the plain list.
+  // Arrow-down on the menu container moves focus to the first item; see
+  // handleMenuKeyDown.
+
+  // Arrow-key navigation + Esc within the menu. Enter on a focused item
+  // fires the item's native onClick.
+  const handleMenuKeyDown = (e) => {
+    if (!open) return;
+    const items = Array.from(menuRef.current?.querySelectorAll('[role="menuitem"]') || []);
+    if (items.length === 0) return;
+    const currentIdx = items.indexOf(document.activeElement);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      items[(currentIdx + 1 + items.length) % items.length].focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      items[(currentIdx - 1 + items.length) % items.length].focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      items[0].focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      items[items.length - 1].focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+  };
+
+  const handleTriggerKeyDown = (e) => {
+    // Down arrow on a closed trigger opens the menu (standard combobox).
+    if (!open && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
 
   return (
     <div
@@ -298,11 +641,19 @@ function InteractionsHeader({
       {/* Search row */}
       <div className="h-12 flex items-center bg-white" style={{ padding: "0 12px 0 0" }}>
         <div className="flex-1 flex items-center gap-2" style={{ padding: "8px 0 8px 12px" }}>
-          {/* Attribute dropdown */}
-          <div ref={ddRef} className="relative">
+          {/* Attribute dropdown.
+              🚩 FLAG — no shared <Dropdown> primitive in this repo today.
+              The same inline pattern lives in FiltersPanel's
+              SingleSelectDropdown. Promote to a shared primitive once a
+              3rd consumer appears so all three sites stay in lock-step. */}
+          <div ref={ddRef} onKeyDown={handleMenuKeyDown}>
             <button
+              ref={triggerRef}
               type="button"
               onClick={() => setOpen((o) => !o)}
+              onKeyDown={handleTriggerKeyDown}
+              aria-haspopup="menu"
+              aria-expanded={open}
               className="flex items-center gap-2 h-8 px-3 rounded-md cursor-pointer"
               style={{
                 background: "var(--pill-bg)",
@@ -315,35 +666,51 @@ function InteractionsHeader({
               </span>
               <ChevronDown size={14} className="text-text-tertiary" />
             </button>
-            {open && (
-              <div
-                className="absolute left-0 mt-1 bg-white rounded-md overflow-hidden z-50"
-                style={{
-                  top: "calc(100% + 4px)",
-                  minWidth: 160,
-                  boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
-                  border: "1px solid var(--color-border-tab)",
-                }}
-              >
-                {SEARCH_ATTRS.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => { onAttrChange(a.id); setOpen(false); }}
-                    className="block w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      color: a.id === attr ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
-                      fontWeight: a.id === attr ? 600 : 500,
-                      background: a.id === attr ? "var(--pill-bg)" : "transparent",
-                    }}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
+          {open && menuRect && (
+            <div
+              ref={menuRef}
+              role="menu"
+              aria-label="Search by"
+              onKeyDown={handleMenuKeyDown}
+              className="bg-white rounded-md overflow-hidden"
+              style={{
+                position: "fixed",
+                top: menuRect.bottom + 4,
+                left: menuRect.left,
+                minWidth: 200,
+                zIndex: 1000,
+                boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
+                border: "1px solid var(--color-border-tab)",
+              }}
+            >
+              {/* Plain list — every option styled identically. Selection
+                  state lives only in aria-checked and the trigger label. */}
+              {SEARCH_ATTRS.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  role="menuitem"
+                  aria-checked={a.id === attr}
+                  onClick={() => {
+                    onAttrChange(a.id);
+                    setOpen(false);
+                    triggerRef.current?.focus();
+                  }}
+                  className="block w-full text-left px-3 py-2 text-[13px] cursor-pointer hover:bg-pill-bg focus:bg-pill-bg"
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    color: "var(--color-text-medium)",
+                    fontWeight: 500,
+                    background: "transparent",
+                    outline: "none",
+                  }}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Search input */}
           <input
@@ -383,7 +750,7 @@ function InteractionsHeader({
   );
 }
 
-function Table({ rows }) {
+function Table({ rows, selectedRowId, onRowClick, rowRefs, onOpenEmail }) {
   return (
     <div className="overflow-x-auto">
       <table
@@ -428,7 +795,19 @@ function Table({ rows }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <Row key={row.customerId + i} row={row} isLast={i === rows.length - 1} />
+            <Row
+              key={row.customerId + i}
+              row={row}
+              isLast={i === rows.length - 1}
+              isSelected={selectedRowId === row.customerId}
+              onClick={() => onRowClick && onRowClick(row.interactionId)}
+              onOpenEmail={onOpenEmail ? () => onOpenEmail(row) : undefined}
+              rowRef={(el) => {
+                if (!rowRefs) return;
+                if (el) rowRefs.current[row.customerId] = el;
+                else delete rowRefs.current[row.customerId];
+              }}
+            />
           ))}
         </tbody>
       </table>
@@ -436,16 +815,36 @@ function Table({ rows }) {
   );
 }
 
-function Row({ row, isLast }) {
+function Row({ row, isLast, isSelected, onClick, onOpenEmail, rowRef }) {
   const [hover, setHover] = React.useState(false);
+  // Selected wins over hover for the tint. Use --pill-bg per spec for the
+  // selected state; keep the existing translucent hover token for hover.
+  const background = isSelected
+    ? "var(--pill-bg)"
+    : hover ? "rgba(0,0,0,0.02)" : "transparent";
   return (
     <tr
+      ref={rowRef}
+      tabIndex={0}
+      aria-selected={isSelected ? true : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        // Enter / Space activate the row, mirroring native button keys.
+        // Ignore events bubbling up from focused child controls (Skills
+        // button, etc.) so a Skills-button activation doesn't double-fire
+        // and also toggle the drawer.
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick && onClick();
+        }
+      }}
       style={{
         height: 56,
         borderBottom: isLast ? "none" : "1px solid #F0F2FA",
-        background: hover ? "rgba(0,0,0,0.02)" : "transparent",
+        background,
         cursor: "pointer",
         transition: "background 120ms ease",
       }}
@@ -456,7 +855,7 @@ function Row({ row, isLast }) {
         </span>
       </Cell>
       <Cell>
-        <ChannelIcon channel={row.channel} />
+        <ChannelIcon channel={row.channel} onOpenEmail={onOpenEmail} />
       </Cell>
       <Cell>
         <span style={{ fontSize: 13, color: "var(--do-ink)", fontWeight: 500 }}>
@@ -505,7 +904,7 @@ function Cell({ children, align = "left" }) {
   );
 }
 
-function ChannelIcon({ channel }) {
+function ChannelIcon({ channel, onOpenEmail }) {
   if (channel === "whatsapp") {
     return (
       <span
@@ -513,7 +912,7 @@ function ChannelIcon({ channel }) {
         aria-label="WhatsApp"
         style={{ display: "inline-flex", alignItems: "center", color: "#25D366" }}
       >
-        <MessageCircle size={18} fill="#25D366" stroke="#FFFFFF" strokeWidth={1.5} />
+        <WhatsappLogo size={18} weight="fill" />
       </span>
     );
   }
@@ -529,14 +928,28 @@ function ChannelIcon({ channel }) {
     );
   }
   if (channel === "email") {
+    // Email is the only channel with a drill-down view today, so the icon
+    // doubles as a button. stopPropagation keeps the row click (drawer)
+    // from also firing.
     return (
-      <span
-        title="Email"
-        aria-label="Email"
-        style={{ display: "inline-flex", alignItems: "center", color: "var(--color-text-medium)" }}
+      <button
+        type="button"
+        title={onOpenEmail ? "Open email conversation" : "Email"}
+        aria-label={onOpenEmail ? "Open email conversation" : "Email"}
+        onClick={onOpenEmail ? (e) => { e.stopPropagation(); onOpenEmail(); } : undefined}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          color: "var(--color-text-medium)",
+          cursor: onOpenEmail ? "pointer" : "default",
+        }}
       >
         <Mail size={18} />
-      </span>
+      </button>
     );
   }
   return (
@@ -1381,6 +1794,195 @@ const emptyStyles = {
   },
 };
 
+// DetailsPanel — right drawer mirroring the FiltersPanel / PreviewStep
+// precedent (fixed, --shadow-drawer, divider border, --surface-white).
+// Non-modal, no scrim — the table behind stays interactive. Sticky
+// header; only the body scrolls. Sections render from DETAIL_SECTIONS;
+// missing values fall back to the DETAILS_SAMPLE mock so any row can
+// demo the drawer.
+//
+// 🚩 FLAG — width. 440px sits between the FiltersPanel (320) and the
+// Figma's 408, leaving comfortable room for the two-line field rows.
+// Confirm exact width against the latest Figma.
+// 🚩 FLAG — scrim. None today (matches FiltersPanel). Confirm whether the
+// page should dim when the drawer opens.
+// 🚩 FLAG — collapsibility. All sections render expanded in one scroll
+// (matches the reference). If panels get long in practice, sections
+// could become collapsible.
+function DetailsPanel({ row, onClose }) {
+  const panelRef = React.useRef(null);
+  const details = row?.details || DETAILS_SAMPLE;
+
+  // Focus into the panel on mount only — don't refocus on every render or
+  // the user's clicks inside the panel will get stolen back to the root.
+  React.useEffect(() => {
+    if (panelRef.current) panelRef.current.focus();
+  }, []);
+
+  // Escape closes (matches FiltersPanel).
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-label="Interaction details"
+      tabIndex={-1}
+      style={dpStyles.panel}
+    >
+      <div style={dpStyles.header}>
+        <span style={dpStyles.title}>View details</span>
+        <Button variant="icon" onClick={onClose} aria-label="Close details">
+          <X size={18} />
+        </Button>
+      </div>
+      <div style={dpStyles.body}>
+        {DETAIL_SECTIONS.map((section, idx) => (
+          <DetailSection
+            key={section.id}
+            section={section}
+            data={details?.[section.dataKey]}
+            isLast={idx === DETAIL_SECTIONS.length - 1}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DetailSection({ section, data, isLast }) {
+  const Icon = section.Icon;
+  return (
+    <div style={dpStyles.section}>
+      <div style={dpStyles.sectionHead}>
+        {Icon ? <Icon size={16} color="var(--color-text-medium)" strokeWidth={2} /> : null}
+        <span style={dpStyles.sectionTitle}>{section.title}</span>
+      </div>
+      <div style={dpStyles.fields}>
+        {section.fields.map((field) => (
+          <FieldRow
+            key={field.key}
+            label={field.label}
+            value={formatDetailValue(data?.[field.key], field.format)}
+          />
+        ))}
+      </div>
+      {!isLast && <div style={dpStyles.divider} />}
+    </div>
+  );
+}
+
+function FieldRow({ label, value }) {
+  const isPlaceholder = value === null;
+  return (
+    <div style={dpStyles.fieldRow}>
+      <span style={dpStyles.fieldLabel}>{label}</span>
+      <span
+        style={{
+          ...dpStyles.fieldValue,
+          color: isPlaceholder ? "var(--color-text-placeholder)" : "var(--color-text-deep)",
+        }}
+      >
+        {isPlaceholder ? "--" : value}
+      </span>
+    </div>
+  );
+}
+
+// Format helper: booleans → Yes/No, null/empty → placeholder marker
+// (caller renders "--"), everything else → String(value).
+function formatDetailValue(raw, format) {
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (format === "boolean") return raw ? "Yes" : "No";
+  return String(raw);
+}
+
+const DETAILS_DRAWER_WIDTH = 440;
+
+const dpStyles = {
+  panel: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: DETAILS_DRAWER_WIDTH,
+    background: "var(--surface-white)",
+    borderLeft: "1px solid var(--color-divider-card)",
+    boxShadow: "var(--shadow-drawer)",
+    display: "flex",
+    flexDirection: "column",
+    zIndex: 40,
+    outline: "none",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingInline: 20,
+    height: 56,
+    borderBottom: "1px solid var(--color-divider-card)",
+    flexShrink: 0,
+  },
+  title: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 16,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  body: {
+    flex: 1,
+    overflowY: "auto",
+    paddingBlock: 8,
+  },
+  section: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    paddingInline: 20,
+    paddingBlock: 16,
+  },
+  sectionHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionTitle: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 14,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  fields: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    paddingLeft: 24,
+  },
+  fieldRow: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  fieldLabel: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+  },
+  fieldValue: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 12,
+  },
+  divider: {
+    height: 1,
+    background: "var(--color-divider-card)",
+    marginTop: 8,
+  },
+};
+
 function Pagination({ page, totalPages, totalCount, onPageChange }) {
   const canPrev = page > 1;
   const canNext = page < totalPages;
@@ -1394,8 +1996,11 @@ function Pagination({ page, totalPages, totalCount, onPageChange }) {
         borderTop: "1px solid var(--color-border-tab)",
       }}
     >
-      <div style={{ color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 500 }}>
-        Total {totalCount.toLocaleString()} Interactions
+      <div
+        aria-live="polite"
+        style={{ color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 500 }}
+      >
+        Total {totalCount.toLocaleString()} interactions
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <PageBtn ariaLabel="First page" disabled={!canPrev} onClick={() => onPageChange(1)}>

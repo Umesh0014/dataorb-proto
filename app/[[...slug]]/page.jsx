@@ -9,6 +9,7 @@ import DrillDetailPage from "../../components/DrillDetailPage";
 import NewRoleplayPage from "../../components/NewRoleplayPage";
 import NewRoleplayContextPage from "../../components/NewRoleplayContextPage";
 import InteractionsPage from "../../components/InteractionsPage";
+import InteractionDetailPage from "../../components/InteractionDetailPage";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
@@ -135,6 +136,7 @@ const DEFAULT_NAV = {
   learningNav: "drill",
   miraNav: "chat",
   missionDetailId: null,
+  interactionDetailId: null,
   settingsSubpage: null,
 };
 
@@ -160,6 +162,12 @@ function deriveNav(pathname) {
         // /insights/contact-center | /insights/reports | /insights/interaction
         next.insightsNav = segs[1];
       }
+    }
+    // /insights/interaction/{id} — surface the trailing id so the route
+    // can mount the standalone InteractionDetailPage. Same pattern as
+    // /learning/missions/{id}.
+    if (segs[1] === "interaction" && segs.length >= 3) {
+      next.interactionDetailId = segs[2];
     }
   } else if (segs[0] === "learning") {
     next.currentPage = "learning";
@@ -222,7 +230,7 @@ export default function Page() {
   // URL is the source of truth for module + sub-section. Derive the four
   // nav ids on every render from the pathname; nav-driving setState calls
   // are replaced with router.push() against the same URL schema.
-  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId, settingsSubpage } = React.useMemo(
+  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId, interactionDetailId, settingsSubpage } = React.useMemo(
     () => deriveNav(pathname),
     [pathname],
   );
@@ -736,6 +744,7 @@ export default function Page() {
   } else {
     const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");
     const isInsightsHome = insightsNav === "contact-center";
+    const onInteractionDetail = insightsNav === "interaction" && interactionDetailId;
     const insightsRightPanel = isInsightsHome && filtersOpen
       ? <FilterPanel open onClose={() => setFiltersOpen(false)} />
       : null;
@@ -750,16 +759,29 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
+    // Interactions canvas (listing + detail) reads better at the wider
+    // 1440 max-width — matches the Missions Kanban frame. Other Insights
+    // pages keep the 1068 default.
+    const insightsContentMaxWidth =
+      insightsNav === "interaction" ? "1440px" : undefined;
     moduleContent = (
       <PageLayout
         rightPanel={insightsRightPanel}
         onPanelClose={() => setFiltersOpen(false)}
+        contentMaxWidth={insightsContentMaxWidth}
       >
-        <InsightsPage
-          pageName={pageName}
-          filtersOpen={filtersOpen}
-          onToggleFilters={() => setFiltersOpen((o) => !o)}
-        />
+        {onInteractionDetail ? (
+          <InteractionDetailPage
+            interactionId={interactionDetailId}
+            onBack={() => router.push("/insights/interaction")}
+          />
+        ) : (
+          <InsightsPage
+            pageName={pageName}
+            filtersOpen={filtersOpen}
+            onToggleFilters={() => setFiltersOpen((o) => !o)}
+          />
+        )}
       </PageLayout>
     );
   }
