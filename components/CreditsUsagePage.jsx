@@ -3,7 +3,7 @@
 import React from "react";
 import { Gauge } from "lucide-react";
 import PageHeader from "./PageHeader";
-import DarkPillSwitcher from "./DarkPillSwitcher";
+import VersionBar from "./VersionBar";
 import CreditsUsageVariantC from "./CreditsUsageVariantC";
 import CreditsUsageVariantCI2 from "./CreditsUsageVariantCI2";
 import CreditsUsageVariantCI3 from "./CreditsUsageVariantCI3";
@@ -26,13 +26,21 @@ import { TENANT_SAMPLE, TEAMS_SAMPLE, AGENTS_SAMPLE, EMAIL_RE } from "./mocks/cr
 // State lives here so flipping the switcher preserves edits across
 // iterations. All sample data is mock; no backend.
 
-const VARIANTS = ["I1", "I2", "I3"];
-
 const VARIANT_COMPONENTS = {
   I1: CreditsUsageVariantC,
   I2: CreditsUsageVariantCI2,
   I3: CreditsUsageVariantCI3,
 };
+
+// VersionBar config — the three iterations as sibling version chips. The
+// baseline block is a static "Credits & Usage" label (staticBaseline), so
+// this surface shows no design-phase dropdown — just the version switcher.
+const CU_VERSIONS = [
+  { id: "i1", label: "I1", iterations: [] },
+  { id: "i2", label: "I2", iterations: [] },
+  { id: "i3", label: "I3", iterations: [] },
+];
+const CU_BASELINE = [{ id: "cu", label: "Credits & Usage" }];
 
 export default function CreditsUsagePage({ onBack }) {
   const [variant, setVariant] = React.useState("I3");
@@ -127,14 +135,13 @@ export default function CreditsUsagePage({ onBack }) {
 
       <ActiveVariant vm={vm} />
 
-      <div style={styles.switcherWrap}>
-        <DarkPillSwitcher
-          ariaLabel="Credits & Usage variant switcher"
-          value={variant}
-          options={VARIANTS}
-          onChange={setVariant}
-        />
-      </div>
+      <VersionBar
+        versions={CU_VERSIONS}
+        baselineOptions={CU_BASELINE}
+        staticBaseline
+        value={{ versionId: variant.toLowerCase(), iterationId: null }}
+        onChange={({ versionId }) => setVariant(versionId.toUpperCase())}
+      />
     </div>
   );
 }
@@ -146,11 +153,5 @@ const styles = {
     gap: 16,
     width: "100%",
     fontFamily: "var(--font-sans)",
-  },
-  switcherWrap: {
-    position: "fixed",
-    bottom: 24,
-    right: 24,
-    zIndex: 1000,
   },
 };

@@ -239,7 +239,7 @@ const ciStyles = {
   },
   teamChevron: { display: "flex", color: "var(--color-text-tertiary)", flexShrink: 0 },
   teamHeaderName: { display: "flex", alignItems: "center", gap: 10, width: 220, flexShrink: 0 },
-  teamName: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
+  teamName: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },
   teamHeaderUsage: { display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 },
   teamUsageVal: {
     fontSize: 12,
@@ -251,7 +251,7 @@ const ciStyles = {
   teamUsageBar: { flex: 1, minWidth: 60 },
   teamUsagePct: {
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: 600,
     color: "var(--color-text-tertiary)",
     fontVariantNumeric: "tabular-nums",
     width: 36,

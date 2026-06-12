@@ -170,7 +170,7 @@ const cStyles = {
     background: "#FFFFFF",
   },
   cardTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  cardName: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
+  cardName: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },
   cardUsage: { display: "flex", flexDirection: "column", gap: 6 },
   cardUsageTop: { display: "flex", alignItems: "baseline", justifyContent: "space-between" },
   cardUsageVal: {
@@ -181,13 +181,13 @@ const cStyles = {
   },
   cardUsagePct: {
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: 600,
     color: "var(--color-text-tertiary)",
     fontVariantNumeric: "tabular-nums",
   },
   cardMeta: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
   cardMetaItem: { fontSize: 11, color: "var(--color-text-tertiary)" },
-  cardMetaStrong: { color: "var(--color-text-deep)", fontWeight: 700 },
+  cardMetaStrong: { color: "var(--color-text-deep)", fontWeight: 600 },
   cardMetaDot: { color: "var(--color-text-placeholder)" },
   cardControls: {
     display: "flex",
