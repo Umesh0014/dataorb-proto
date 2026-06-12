@@ -588,7 +588,11 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
           {opt === "O3" && <PlaybookOptionC {...shared} />}
         </>
       )}
-      <VersionBar value={barValue} onChange={handleVersionChange} />
+      <VersionBar
+        value={barValue}
+        onChange={handleVersionChange}
+        versions={designVer === "current" ? [] : undefined}
+      />
     </div>
   );
 }
