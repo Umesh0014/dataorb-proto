@@ -13,7 +13,17 @@ import StatCard from "./StatCard";
 import TabsRow from "./TabsRow";
 import Toggle from "./Toggle";
 import ComingSoon from "./ComingSoon";
+import VersionBar from "./VersionBar";
 import { DRILL_CARDS } from "./mocks/drillCards";
+
+// Persona switch (Team Leader ↔ Agent), surfaced via the house VersionBar
+// like Missions. Team Leader sees the full management UI; Agent sees a
+// read-only, practice-oriented view — they use the roleplay, they don't
+// edit it.
+const DRILL_PERSONAS = [
+  { id: "tl", label: "Team Leader" },
+  { id: "agent", label: "Agent" },
+];
 
 const DIFFICULTY_PALETTE = {
   Simple:   { bg: "var(--color-success-bg)",  text: "var(--color-success-text)" },
@@ -27,6 +37,8 @@ const DIFFICULTY_PALETTE = {
 // fonts, shadows, or component primitives).
 export default function DrillDetailPage({ cardId, onBack, onStartGuided }) {
   const card = DRILL_CARDS.find((c) => c.id === cardId);
+  const [persona, setPersona] = React.useState("tl");
+  const isAgent = persona === "agent";
 
   React.useEffect(() => {
     if (typeof document !== "undefined") {
@@ -41,18 +53,28 @@ export default function DrillDetailPage({ cardId, onBack, onStartGuided }) {
   if (!card) return <ComingSoon pageName="Drill Details" />;
 
   return (
-    <div style={dpStyles.page}>
-      <DetailHeader card={card} onBack={onBack} onStartGuided={onStartGuided} />
-      <StatRow card={card} />
-      <AgentBriefSection card={card} />
-      <PersonaDetailsSection card={card} />
-    </div>
+    <>
+      <div style={dpStyles.page}>
+        <DetailHeader card={card} onBack={onBack} onStartGuided={onStartGuided} isAgent={isAgent} />
+        <StatRow card={card} />
+        <AgentBriefSection card={card} />
+        {/* Persona Details are manager-only — hidden in the Agent (use,
+            don't edit) view. */}
+        {!isAgent && <PersonaDetailsSection card={card} />}
+      </div>
+      <VersionBar
+        versions={[]}
+        baselineOptions={DRILL_PERSONAS}
+        value={{ versionId: persona, iterationId: null }}
+        onChange={({ versionId }) => setPersona(versionId)}
+      />
+    </>
   );
 }
 
 // ---------- Header ----------
 
-function DetailHeader({ card, onBack, onStartGuided }) {
+function DetailHeader({ card, onBack, onStartGuided, isAgent }) {
   const palette = DIFFICULTY_PALETTE[card.difficulty] || DIFFICULTY_PALETTE.Simple;
   return (
     <Card>
@@ -87,14 +109,18 @@ function DetailHeader({ card, onBack, onStartGuided }) {
             onClick={onStartGuided}
             style={{ height: 36, minWidth: 0, paddingInline: 18 }}
           >
-            Start guided drill
+            {isAgent ? "Take guided roleplay" : "Start guided drill"}
           </Button>
         )}
 
-        <div style={dpStyles.activeRow}>
-          <Toggle defaultEnabled ariaLabel="Toggle scenario active" />
-          <span style={dpStyles.activeLabel}>Active</span>
-        </div>
+        {/* The Active toggle is a management control — only the Team Leader
+            view can edit it; the Agent view is use-only. */}
+        {!isAgent && (
+          <div style={dpStyles.activeRow}>
+            <Toggle defaultEnabled ariaLabel="Toggle scenario active" />
+            <span style={dpStyles.activeLabel}>Active</span>
+          </div>
+        )}
       </div>
     </Card>
   );
