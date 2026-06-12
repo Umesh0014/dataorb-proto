@@ -1442,18 +1442,19 @@ const v1i2 = {
 // evidence grid surfaces per-agent outcome chips, and the protocol is a
 // numbered list with full descriptions instead of mood-faces + bullets.
 const PLAYBOOK_V2_I1_MOCK = {
+  campaignName: "Returns & cancellations",
   keyTag: "Price pressure",
   secondaryTag: "Returns · Urgent",
   whyText:
     "Full authentication up front and an early intent check kept the flow linear, so the price-driven cancellation resolved in a single pass.",
   agents: PLAYBOOK_AGENTS_GRID,
   protocol: [
-    { n: 1, title: "Initial greeting",       description: "Greeted customer and asked for name and concern.",                                                                                         refs: [1, 2] },
-    { n: 2, title: "Authentication",         description: "Requested and received ID, full name, and last four of order number. Confirmed identity before sharing account details.",                  refs: [5, 12] },
-    { n: 3, title: "Discovery & probing",    description: "Confirmed customer had multiple returns. Identified specific handbag and price. Confirmed intent to cancel the return.",                   refs: [13, 18] },
-    { n: 4, title: "Solution presentation",  description: "Explained they would initiate cancellation and forward to the department. Marked the request as urgent.",                                  refs: [19, 23] },
-    { n: 5, title: "Resolution confirmation", description: "Customer confirmed understanding and satisfaction with the action taken. Agent confirmed no further assistance needed.",                  refs: [28, 30] },
-    { n: 6, title: "Closing",                description: "Wished customer a nice afternoon. Customer reciprocated good wishes.",                                                                     refs: [29, 32] },
+    { n: 1, title: "Initial greeting",        agent: "SI", description: "Greeted customer and asked for name and concern.",                                                                                         refs: [1, 2] },
+    { n: 2, title: "Authentication",          agent: "AM", description: "Requested and received ID, full name, and last four of order number. Confirmed identity before sharing account details.",                  refs: [5, 12] },
+    { n: 3, title: "Discovery & probing",     agent: "TN", description: "Confirmed customer had multiple returns. Identified specific handbag and price. Confirmed intent to cancel the return.",                   refs: [13, 18] },
+    { n: 4, title: "Solution presentation",   agent: "RK", description: "Explained they would initiate cancellation and forward to the department. Marked the request as urgent.",                                  refs: [19, 23] },
+    { n: 5, title: "Resolution confirmation", agent: "RK", description: "Customer confirmed understanding and satisfaction with the action taken. Agent confirmed no further assistance needed.",                   refs: [28, 30] },
+    { n: 6, title: "Closing",                 agent: "SI", description: "Wished customer a nice afternoon. Customer reciprocated good wishes.",                                                                     refs: [29, 32] },
   ],
 };
 
@@ -1465,8 +1466,8 @@ function PlaybookV2I1({ data }) {
         <span style={v2i1.heroTile}>
           <BookOpen size={22} color="var(--color-icon-tertiary-fg)" />
         </span>
-        <div>
-          <h3 style={v2i1.heroTitle}>Agent playbook</h3>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={v2i1.heroTitle}>{data.campaignName}</h3>
           <div style={v2i1.tagRow}>
             <span style={v2i1.keyTag}>{data.keyTag}</span>
             <span style={v2i1.outlineTag}>{data.secondaryTag}</span>
@@ -1533,6 +1534,7 @@ function V2I1AgentCard({ agent }) {
 }
 
 function V2I1ProtocolRow({ step, isLast }) {
+  const ramp = PB_AGENTS[step.agent] || PB_AGENTS.SI;
   return (
     <div
       style={{
@@ -1540,11 +1542,15 @@ function V2I1ProtocolRow({ step, isLast }) {
         borderBottom: isLast ? "none" : "1px solid var(--color-divider-card)",
       }}
     >
-      <span style={v2i1.stepNumber}>{step.n}</span>
+      <span style={{ ...v2i1.stepNumber, background: ramp.bg, color: ramp.text }}>
+        {step.n}
+      </span>
       <div style={v2i1.stepBody}>
         <div style={v2i1.stepHead}>
           <span style={v2i1.stepTitle}>{step.title}</span>
-          <span style={v2i1.refChip}>#{step.refs[0]}–{step.refs[1]}</span>
+          <span style={{ ...v2i1.refChip, background: ramp.bg, color: ramp.text }}>
+            #{step.refs[0]}–{step.refs[1]}
+          </span>
         </div>
         <div style={v2i1.stepDesc}>{step.description}</div>
       </div>
