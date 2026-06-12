@@ -573,6 +573,7 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
   const showV1I1 = opt === "O1" && iter === "i1";
   const showV1I2 = opt === "O1" && iter === "i2";
   const showV2I1 = opt === "O2" && iter === "i1";
+  const showV2I2 = opt === "O2" && iter === "i2";
 
   return (
     <div style={pbStyles.detail}>
@@ -584,7 +585,8 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
           {showV1I2 && <PlaybookV1I2 data={PLAYBOOK_V1_I1_MOCK} />}
           {opt === "O1" && !showV1I1 && !showV1I2 && <PlaybookOptionA {...shared} />}
           {showV2I1 && <PlaybookV2I1 data={PLAYBOOK_V2_I1_MOCK} />}
-          {opt === "O2" && !showV2I1 && <PlaybookOptionB {...shared} />}
+          {showV2I2 && <PlaybookV2I2 data={PLAYBOOK_V2_I1_MOCK} />}
+          {opt === "O2" && !showV2I1 && !showV2I2 && <PlaybookOptionB {...shared} />}
           {opt === "O3" && <PlaybookOptionC {...shared} />}
         </>
       )}
@@ -1561,6 +1563,341 @@ function V2I1ProtocolRow({ step, isLast }) {
     </div>
   );
 }
+
+// ---- v2 / i2 — horizontal-contributors + agent-avatar protocol ----------
+// Shares v2/i1's mock (same Returns & cancellations payload + protocol),
+// but re-orders the sections (Built from grid moves above the Why
+// callout) and swaps two render details:
+//  - Agent cards become horizontal rows: avatar on the left, name +
+//    outcome chip stacked beside it (vs v2/i1's vertical agent cards)
+//  - Protocol rows use the responsible agent's avatar with a stage-
+//    number badge underneath (mirrors v1/i2's stage marker) instead of
+//    the agent-tinted number circle
+//  - Subtitle reads "Contributors · chip = the outcome each achieved"
+function PlaybookV2I2({ data }) {
+  const [whyOpen, setWhyOpen] = React.useState(false);
+  return (
+    <div style={v2i2.body}>
+      <div style={v2i2.hero}>
+        <span style={v2i2.heroTile}>
+          <BookOpen size={22} color="var(--color-icon-tertiary-fg)" />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={v2i2.heroTitle}>{data.campaignName}</h3>
+          <div style={v2i2.tagRow}>
+            <span style={v2i2.keyTag}>{data.keyTag}</span>
+            <span style={v2i2.outlineTag}>{data.secondaryTag}</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style={v2i2.sectLabel}>
+          <User size={14} color="var(--color-text-medium)" />
+          <span>Built from {data.agents.length} agent interactions</span>
+        </div>
+        <div style={v2i2.sectSub}>Contributors · chip = the outcome each achieved</div>
+        <div style={v2i2.agentsGrid}>
+          {data.agents.map((a) => (
+            <V2I2AgentCard key={a.id} agent={a} />
+          ))}
+        </div>
+      </div>
+
+      <div style={v2i2.whyCard}>
+        <div style={v2i2.whyHeader}>
+          <span style={v2i2.whyBulb}>💡</span>
+          <span style={v2i2.whyTitle}>Why this approach works</span>
+        </div>
+        <p style={v2i2.whyText}>
+          {whyOpen ? data.whyText : `${data.whyText.slice(0, 130)}…`}
+        </p>
+        <button
+          type="button"
+          onClick={() => setWhyOpen((v) => !v)}
+          style={v2i2.whyMore}
+          aria-expanded={whyOpen}
+        >
+          {whyOpen ? "See less" : "See more"}
+        </button>
+      </div>
+
+      <div style={v2i2.protocolHeading}>The protocol</div>
+      <div style={v2i2.protocolList}>
+        {data.protocol.map((step, i) => (
+          <V2I2ProtocolRow key={step.n} step={step} isLast={i === data.protocol.length - 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function V2I2AgentCard({ agent }) {
+  const ramp = PB_AGENTS[agent.id] || PB_AGENTS.SI;
+  return (
+    <div style={v2i2.agentCard}>
+      <span style={{ ...v2i2.agentAvatar, background: ramp.bg, color: ramp.text }}>
+        {agent.id}
+      </span>
+      <div style={v2i2.agentInfo}>
+        <span style={v2i2.agentName}>{agent.name}</span>
+        <span style={v2i2.outcomeChip}>{agent.outcome}</span>
+      </div>
+    </div>
+  );
+}
+
+function V2I2ProtocolRow({ step, isLast }) {
+  const ramp = PB_AGENTS[step.agent] || PB_AGENTS.SI;
+  return (
+    <div
+      style={{
+        ...v2i2.protocolRow,
+        borderBottom: isLast ? "none" : "1px solid var(--color-divider-card)",
+      }}
+    >
+      <div style={v2i2.avatarWrap}>
+        <span style={{ ...v2i2.stepAvatar, background: ramp.bg, color: ramp.text }}>
+          {step.agent}
+        </span>
+        <span style={v2i2.stepNum}>{step.n}</span>
+      </div>
+      <div style={v2i2.stepBody}>
+        <div style={v2i2.stepHead}>
+          <span style={v2i2.stepTitle}>{step.title}</span>
+          <span style={{ ...v2i2.refChip, background: ramp.bg, color: ramp.text }}>
+            #{step.refs[0]}–{step.refs[1]}
+          </span>
+        </div>
+        <div style={v2i2.stepDesc}>{step.description}</div>
+      </div>
+    </div>
+  );
+}
+
+const v2i2 = {
+  body: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+    paddingInline: 2,
+  },
+  hero: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  heroTile: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    background: "var(--color-icon-tertiary-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTitle: {
+    margin: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 22,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.15,
+  },
+  tagRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
+  keyTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: "#FAECE7",
+    color: "#712B13",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: "5px 10px",
+    borderRadius: 10,
+  },
+  outlineTag: {
+    fontSize: 12,
+    color: "var(--color-text-medium)",
+    padding: "5px 10px",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+  },
+  sectLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  sectSub: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    margin: "2px 0 10px",
+  },
+  agentsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  },
+  agentCard: {
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+    padding: "10px 12px",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    background: "var(--surface-white)",
+  },
+  agentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  agentInfo: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 3,
+    minWidth: 0,
+  },
+  agentName: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+  },
+  outcomeChip: {
+    alignSelf: "flex-start",
+    background: "#E6FAEB",
+    color: "#1F8C45",
+    paddingInline: 8,
+    paddingBlock: 2,
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  whyCard: {
+    background: "#EFF6FF",
+    borderRadius: 10,
+    padding: "14px 16px",
+  },
+  whyHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  whyBulb: { fontSize: 14, lineHeight: 1 },
+  whyTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  whyText: {
+    margin: 0,
+    fontSize: 13,
+    lineHeight: 1.55,
+    color: "var(--color-text-deep)",
+  },
+  whyMore: {
+    background: "transparent",
+    border: "none",
+    color: "var(--color-button-primary-bg)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: "6px 0 0",
+  },
+  protocolHeading: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 15,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    marginTop: 4,
+  },
+  protocolList: {
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  protocolRow: {
+    display: "grid",
+    gridTemplateColumns: "40px 1fr",
+    gap: 14,
+    padding: "14px 16px",
+    alignItems: "flex-start",
+  },
+  avatarWrap: {
+    position: "relative",
+    width: 36,
+    display: "inline-flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  stepAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  stepNum: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: "var(--color-text-tertiary)",
+  },
+  stepBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    minWidth: 0,
+  },
+  stepHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  stepTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+  },
+  refChip: {
+    flexShrink: 0,
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "3px 8px",
+    borderRadius: 6,
+    whiteSpace: "nowrap",
+    fontFamily: "var(--font-sans)",
+  },
+  stepDesc: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    lineHeight: 1.55,
+  },
+};
 
 const v2i1 = {
   body: {
