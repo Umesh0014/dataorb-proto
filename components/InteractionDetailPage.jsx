@@ -1468,7 +1468,6 @@ function PlaybookV3I1({ data }) {
     data.stages.forEach((st) => s.add(st.n));
     return s;
   });
-  const [activeId, setActiveId] = React.useState(data.defaultActiveStageId);
 
   const toggle = (n) => {
     setExpanded((prev) => {
@@ -1494,14 +1493,13 @@ function PlaybookV3I1({ data }) {
       </blockquote>
 
       <div style={v3i1.stagesList}>
-        {data.stages.map((s) => (
+        {data.stages.map((s, idx) => (
           <V3I1StageRow
             key={s.n}
             stage={s}
             expanded={expanded.has(s.n)}
             onToggle={() => toggle(s.n)}
-            active={activeId === s.n}
-            onActivate={() => setActiveId(s.n)}
+            isLast={idx === data.stages.length - 1}
           />
         ))}
       </div>
@@ -1511,22 +1509,19 @@ function PlaybookV3I1({ data }) {
   );
 }
 
-function V3I1StageRow({ stage, expanded, onToggle, active, onActivate }) {
+function V3I1StageRow({ stage, expanded, onToggle, isLast }) {
   const ramp = PB_AGENTS[stage.agent] || PB_AGENTS.SI;
   return (
     <div
       style={{
         ...v3i1.stageRow,
-        borderColor: active ? "var(--color-button-primary-bg)" : "var(--color-divider-card)",
+        borderBottom: isLast ? "none" : "1px solid var(--color-divider-card)",
       }}
     >
       <button
         type="button"
         aria-expanded={expanded}
-        onClick={() => {
-          onActivate();
-          onToggle();
-        }}
+        onClick={onToggle}
         style={v3i1.stageHead}
       >
         <span style={{ ...v3i1.stepNumber, background: ramp.bg, color: ramp.text }}>
@@ -1648,13 +1643,11 @@ const v3i1 = {
   stagesList: {
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: 0,
   },
   stageRow: {
-    border: "2px solid var(--color-divider-card)",
-    borderRadius: 12,
-    overflow: "hidden",
-    transition: "border-color 150ms ease",
+    // No card outline — stages flow inline, separated only by hairlines
+    // between header / body and between rows.
   },
   stageHead: {
     width: "100%",
@@ -1665,7 +1658,7 @@ const v3i1 = {
     gridTemplateColumns: "auto 1fr auto auto",
     alignItems: "center",
     gap: 12,
-    padding: "12px 14px",
+    padding: "10px 0",
     fontFamily: "var(--font-sans)",
     textAlign: "left",
   },
@@ -1698,9 +1691,8 @@ const v3i1 = {
     transition: "transform 180ms ease",
   },
   stageBody: {
-    padding: "0 14px 12px 50px",
+    padding: "10px 0 14px 38px",
     borderTop: "1px solid var(--color-divider-card)",
-    paddingTop: 10,
     display: "flex",
     flexDirection: "column",
     gap: 4,
