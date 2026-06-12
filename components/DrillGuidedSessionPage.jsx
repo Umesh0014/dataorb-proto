@@ -17,7 +17,7 @@ import {
 import Card from "./Card";
 import Button from "./Button";
 import Banner from "./Banner";
-import DarkPillSwitcher from "./DarkPillSwitcher";
+import VersionBar from "./VersionBar";
 import {
   GUIDED_DRILL_META,
   GUIDED_DRILL_STEPS,
@@ -46,7 +46,15 @@ import {
 // surface rendered outside PageLayout — 32px gutter between the 64px nav
 // rail and the white card; the 1068 content max-width does not apply.
 
-const VARIANTS = ["Sidecar", "Coach", "Spine"];
+// The three design directions, mapped onto VersionBar (the house floating
+// switcher): the active direction shows in the baseline block — its
+// dropdown lists all three — and the other two appear as quick chips.
+const DIRECTIONS = [
+  { id: "sidecar", label: "Sidecar" },
+  { id: "coach", label: "Coach" },
+  { id: "spine", label: "Spine" },
+];
+const DIRECTION_VERSIONS = DIRECTIONS.map((d) => ({ ...d, iterations: [] }));
 
 // Per-state visual meta. Color is always paired with an icon + a text
 // label so meaning never rides on color alone (G9). iconColor and
@@ -91,7 +99,7 @@ function stepStateMeta(state) {
 export default function DrillGuidedSessionPage({ onEnd }) {
   const meta = GUIDED_DRILL_META;
 
-  const [variant, setVariant] = React.useState("Sidecar");
+  const [variant, setVariant] = React.useState("sidecar");
   const [steps, setSteps] = React.useState(GUIDED_DRILL_STEPS);
   const [muted, setMuted] = React.useState(false);
   const [secondsLeft, setSecondsLeft] = React.useState(meta.totalSeconds);
@@ -151,8 +159,8 @@ export default function DrillGuidedSessionPage({ onEnd }) {
         {ended ? (
           <EvalResult onBackToDrill={onEnd} onUnassisted={onEnd} />
         ) : (
-          <div style={variant === "Spine" ? styles.bodyStacked : styles.body}>
-            {variant === "Spine" ? (
+          <div style={variant === "spine" ? styles.bodyStacked : styles.body}>
+            {variant === "spine" ? (
               <>
                 <ProgressSpine
                   steps={steps}
@@ -182,7 +190,7 @@ export default function DrillGuidedSessionPage({ onEnd }) {
                   onEnd={endCall}
                 />
                 <Transcript turns={GUIDED_DRILL_TURNS} steps={steps} />
-                {variant === "Sidecar" && (
+                {variant === "sidecar" && (
                   <ChecklistRail
                     steps={steps}
                     skippedSteps={skippedSteps}
@@ -192,7 +200,7 @@ export default function DrillGuidedSessionPage({ onEnd }) {
                     onToggleHint={() => setHintOpen((o) => !o)}
                   />
                 )}
-                {variant === "Coach" && (
+                {variant === "coach" && (
                   <CoachPanel
                     activeStep={activeStep}
                     nextStep={nextStep}
@@ -211,7 +219,12 @@ export default function DrillGuidedSessionPage({ onEnd }) {
       </div>
 
       {!ended && (
-        <FloatingSwitcher value={variant} onChange={setVariant} />
+        <VersionBar
+          versions={DIRECTION_VERSIONS}
+          baselineOptions={DIRECTIONS}
+          value={{ versionId: variant, iterationId: null }}
+          onChange={({ versionId }) => setVariant(versionId)}
+        />
       )}
     </div>
   );
@@ -718,22 +731,6 @@ function EvalResult({ onBackToDrill, onUnassisted }) {
   );
 }
 
-// ---- Floating variant switcher ----------------------------------------
-
-function FloatingSwitcher({ value, onChange }) {
-  return (
-    <div style={styles.switcherCluster}>
-      <span style={styles.switcherLabel}>Direction</span>
-      <DarkPillSwitcher
-        ariaLabel="Guided drill design direction"
-        value={value}
-        options={VARIANTS}
-        onChange={onChange}
-      />
-    </div>
-  );
-}
-
 // ---- Styles ------------------------------------------------------------
 
 const styles = {
@@ -1142,17 +1139,5 @@ const styles = {
   railOnTrack: {
     display: "inline-flex", alignItems: "center", gap: 6,
     fontSize: 12, fontWeight: 600, color: "var(--color-success-text)",
-  },
-
-  // Floating switcher
-  switcherCluster: {
-    position: "fixed", right: 24, bottom: 24, zIndex: 50,
-    display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6,
-  },
-  switcherLabel: {
-    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.4px",
-    textTransform: "uppercase", color: "var(--color-text-tertiary)",
-    background: "var(--surface-white)", padding: "2px 8px", borderRadius: 4,
-    boxShadow: "var(--shadow-card)",
   },
 };
