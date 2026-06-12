@@ -2,18 +2,16 @@
 
 import React from "react";
 import {
-  ArrowLeft,
   ChevronDown,
   ChevronUp,
   Sparkles,
   TrendingUp,
   TrendingDown,
   Minus,
-  Presentation,
 } from "lucide-react";
 import Card from "./Card";
-import Button from "./Button";
 import CoachingBriefEditable from "./CoachingBriefEditable";
+import CoachingBriefHeader from "./CoachingBriefHeader";
 
 /**
  * CoachingBriefDocument — Variant C.
@@ -41,7 +39,7 @@ export default function CoachingBriefDocument({ brief, edits, onEdit, onBack }) 
 
   return (
     <div style={s.column}>
-      <Header overview={overview} onBack={onBack} />
+      <CoachingBriefHeader overview={overview} onBack={onBack} showPresent />
 
       <div style={s.body}>
         <Document
@@ -60,42 +58,6 @@ export default function CoachingBriefDocument({ brief, edits, onEdit, onBack }) 
       </div>
     </div>
   );
-}
-
-// ---- Header -----------------------------------------------------------
-
-function Header({ overview, onBack }) {
-  return (
-    <Card padX={0} padY={0} style={s.headerCard}>
-      <div style={s.headerInner}>
-        <Button variant="icon" size="sm" onClick={onBack} aria-label="Back to Coaching">
-          <ArrowLeft size={20} color="var(--color-text-medium)" />
-        </Button>
-        <span style={s.headerKind}>Coaching Brief</span>
-        <Dot />
-        <span style={s.headerAgent}>{overview.agentName}</span>
-        <Dot />
-        <span style={s.headerPeriod}>{overview.period}</span>
-        <div style={{ flex: 1 }} />
-        <Button
-          variant="text"
-          uppercase={false}
-          leadingIcon={
-            <Presentation size={16} color="var(--color-text-medium)" aria-hidden="true" />
-          }
-          aria-label="Present (coming soon)"
-          disabled
-        >
-          Present
-        </Button>
-        <span style={s.statusPill}>v{overview.schemaVersion} · Auto-generated</span>
-      </div>
-    </Card>
-  );
-}
-
-function Dot() {
-  return <span style={s.headerDot} aria-hidden="true" />;
 }
 
 // ---- Document (left pane) --------------------------------------------
@@ -123,6 +85,9 @@ function Document({ overview, adherence, focus, actions, edits, onEdit }) {
           editor={adherence.lastUpdatedBy}
           label="adherence executive narrative"
         />
+
+        <BenchmarksTable data={adherence} />
+
         <CoachingBriefEditable
           value={edits["adherence.closing"] ?? adherence.closingNarrative}
           onChange={(v) => onEdit("adherence.closing", v)}
@@ -202,12 +167,56 @@ function Document({ overview, adherence, focus, actions, edits, onEdit }) {
 
 function DocSection({ eyebrow, children }) {
   return (
-    <Card padX={28} padY={28} style={s.docCard}>
+    <Card padX={28} padY={28} shadow>
       <section style={s.section}>
         <span style={s.sectionEyebrow}>{eyebrow}</span>
         {children}
       </section>
     </Card>
+  );
+}
+
+// BenchmarksTable — accessible per-area breakdown (WCAG-9). The inspector
+// renders a compact summary; this is the full table with agent / org / top
+// columns so the chart-as-table alternative is available in the document.
+function BenchmarksTable({ data }) {
+  return (
+    <div style={s.tableWrap}>
+      <table style={s.table}>
+        <caption style={s.tableCaption}>
+          Adherence vs. organisation — accessible alternative to the same data
+          as a chart per WCAG-9.
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" style={{ ...s.th, textAlign: "left" }}>Focus area</th>
+            <th scope="col" style={s.th}>Agent (%)</th>
+            <th scope="col" style={s.th}>Org avg (%)</th>
+            <th scope="col" style={s.th}>Top P90 (%)</th>
+            <th scope="col" style={s.th}>vs. Org (pp)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.benchmarks.map((row) => {
+            const tone = TREND_STYLES[row.vsOrgTone] || TREND_STYLES.neutral;
+            return (
+              <tr key={row.area}>
+                <td style={{ ...s.td, textAlign: "left", fontWeight: 500 }}>{row.area}</td>
+                <td style={s.td}>{row.agentRate}</td>
+                <td style={s.td}>{row.orgAvg}</td>
+                <td style={s.td}>{row.topAvg}</td>
+                <td style={{ ...s.td, color: tone.fg, fontWeight: 600 }}>
+                  <span style={s.tableDeltaCell}>
+                    <span style={{ ...s.toneDot, background: tone.fg }} aria-hidden="true" />
+                    {row.vsOrg}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -324,7 +333,7 @@ function EmptyState({ title, body }) {
 function Inspector({ overview, adherence, focus }) {
   return (
     <aside style={s.inspectorWrap} aria-label="Brief data inspector">
-      <Card padX={20} padY={20} style={s.inspectorCard}>
+      <Card padX={20} padY={20} shadow style={s.inspectorCard}>
         <span style={s.inspectorTitle}>Inspector</span>
         <span style={s.inspectorSub}>Read-only grounding · {overview.sampleSize}</span>
 
@@ -349,13 +358,21 @@ function Inspector({ overview, adherence, focus }) {
           </ul>
         </InspectorBlock>
 
-        <InspectorBlock title="Benchmarks (vs. Org)">
+        <InspectorBlock
+          title="Benchmarks"
+          subtitle={adherence.benchmark}
+        >
+          <p style={s.inspectorAside}>
+            Full breakdown lives in the Adherence section table to the left
+            — this is the at-a-glance summary.
+          </p>
           <ul style={s.benchList}>
             {adherence.benchmarks.map((row) => {
               const tone = TREND_STYLES[row.vsOrgTone] || TREND_STYLES.neutral;
               return (
                 <li key={row.area} style={s.benchRow}>
                   <span style={s.benchArea}>{row.area}</span>
+                  <span style={s.benchAgent}>{row.agentRate}</span>
                   <span style={{ ...s.benchDelta, color: tone.fg }}>
                     <span
                       style={{ ...s.toneDot, background: tone.fg }}
@@ -367,7 +384,6 @@ function Inspector({ overview, adherence, focus }) {
               );
             })}
           </ul>
-          <p style={s.benchFootnote}>{adherence.benchmark}</p>
         </InspectorBlock>
 
         <InspectorBlock title="Focus scores">
@@ -475,55 +491,6 @@ const s = {
     fontFamily: "var(--font-sans)",
   },
 
-  // Header
-  headerCard: { boxShadow: "var(--shadow-card)" },
-  headerInner: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "10px 20px",
-    minHeight: 56,
-  },
-  headerKind: {
-    fontFamily: "var(--font-mono)",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
-    color: "var(--color-text-tertiary)",
-    textTransform: "uppercase",
-  },
-  headerAgent: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 16,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-    letterSpacing: "0.1px",
-  },
-  headerPeriod: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-  },
-  headerDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 999,
-    background: "var(--color-text-placeholder)",
-  },
-  statusPill: {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "4px 10px",
-    background: "var(--color-icon-tertiary-bg)",
-    color: "var(--color-icon-tertiary-fg)",
-    borderRadius: 999,
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.05em",
-  },
-
   // Body
   body: {
     display: "flex",
@@ -540,7 +507,7 @@ const s = {
     flexDirection: "column",
     gap: 16,
   },
-  docCard: { boxShadow: "var(--shadow-card)" },
+  docCard: {},
   section: { display: "flex", flexDirection: "column", gap: 16 },
   sectionEyebrow: {
     fontFamily: "var(--font-mono)",
@@ -608,6 +575,43 @@ const s = {
     marginRight: 6,
   },
 
+  // Adherence benchmarks table (WCAG-9 — chart-as-table alt)
+  tableWrap: { overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse" },
+  tableCaption: {
+    captionSide: "bottom",
+    paddingTop: 8,
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    textAlign: "left",
+  },
+  th: {
+    padding: "10px 12px",
+    background: "var(--color-card-emoji-bg)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 600,
+    color: "var(--color-text-tertiary)",
+    letterSpacing: "0.05em",
+    textAlign: "right",
+    borderBottom: "1px solid var(--color-border-card-soft)",
+  },
+  td: {
+    padding: "12px 12px",
+    fontFamily: "var(--font-sans)",
+    fontSize: 14,
+    color: "var(--color-text-medium)",
+    textAlign: "right",
+    borderBottom: "1px solid var(--color-border-card-soft)",
+  },
+  tableDeltaCell: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    justifyContent: "flex-end",
+  },
+
   // Areas
   areaList: { display: "flex", flexDirection: "column", gap: 12 },
   area: {
@@ -619,6 +623,7 @@ const s = {
     borderInlineStartStyle: "solid",
     borderRadius: 8,
     overflow: "hidden",
+    transition: "background 150ms ease, box-shadow 150ms ease",
   },
   areaHead: {
     display: "flex",
@@ -632,6 +637,7 @@ const s = {
     cursor: "pointer",
     fontFamily: "inherit",
     textAlign: "left",
+    transition: "background 150ms ease, color 150ms ease",
   },
   areaHeadLeft: { display: "inline-flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 },
   areaScore: {
@@ -805,7 +811,7 @@ const s = {
     top: 16,
     alignSelf: "flex-start",
   },
-  inspectorCard: { boxShadow: "var(--shadow-card)" },
+  inspectorCard: {},
   inspectorTitle: {
     display: "block",
     fontFamily: "var(--font-mono)",
@@ -877,19 +883,24 @@ const s = {
     fontWeight: 600,
   },
 
-  benchList: { display: "flex", flexDirection: "column", gap: 8, padding: 0, margin: 0, listStyle: "none" },
+  benchList: { display: "flex", flexDirection: "column", gap: 6, padding: 0, margin: 0, listStyle: "none" },
   benchRow: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) auto auto",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
+    gap: 10,
   },
   benchArea: {
     fontFamily: "var(--font-sans)",
     fontSize: 12,
     color: "var(--color-text-medium)",
-    flex: 1,
     minWidth: 0,
+  },
+  benchAgent: {
+    fontFamily: "var(--font-mono)",
+    fontSize: 12,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
   },
   benchDelta: {
     display: "inline-flex",
@@ -899,12 +910,12 @@ const s = {
     fontSize: 12,
     fontWeight: 600,
   },
-  benchFootnote: {
+  inspectorAside: {
     margin: 0,
     fontFamily: "var(--font-sans)",
     fontSize: 11,
     color: "var(--color-text-tertiary)",
-    lineHeight: "16px",
+    lineHeight: "15px",
   },
 
   areaScoreList: { display: "flex", flexDirection: "column", gap: 8, padding: 0, margin: 0, listStyle: "none" },

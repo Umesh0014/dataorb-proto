@@ -2,7 +2,6 @@
 
 import React from "react";
 import {
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -17,6 +16,7 @@ import {
 import Card from "./Card";
 import Button from "./Button";
 import CoachingBriefEditable from "./CoachingBriefEditable";
+import CoachingBriefHeader from "./CoachingBriefHeader";
 
 /**
  * CoachingBriefDeck — Variant A.
@@ -40,16 +40,30 @@ import CoachingBriefEditable from "./CoachingBriefEditable";
  *   onBack   optional back handler (header back button)
  */
 export default function CoachingBriefDeck({ brief, edits, onEdit, onBack }) {
+  const overview = brief.sections.find((x) => x.type === "overview");
   const sections = React.useMemo(() => buildSlides(brief), [brief]);
   const [slideIdx, setSlideIdx] = React.useState(0);
+  const [pendingIdx, setPendingIdx] = React.useState(0);
+  const reduceMotion = usePrefersReducedMotion();
   const current = sections[slideIdx];
-  const prev = () => setSlideIdx((i) => Math.max(0, i - 1));
-  const next = () => setSlideIdx((i) => Math.min(sections.length - 1, i + 1));
-  const goTo = (i) => setSlideIdx(i);
+  const transition = (target) => {
+    if (target === slideIdx) return;
+    setPendingIdx(target);
+    if (reduceMotion) {
+      setSlideIdx(target);
+      return;
+    }
+    // 120ms fade out → swap → fade in. Mirrors MOT-1 / MOT-5.
+    window.setTimeout(() => setSlideIdx(target), 120);
+  };
+  const prev = () => transition(Math.max(0, slideIdx - 1));
+  const next = () => transition(Math.min(sections.length - 1, slideIdx + 1));
+  const goTo = (i) => transition(i);
+  const stageDimmed = pendingIdx !== slideIdx;
 
   return (
     <div style={s.column}>
-      <Header brief={brief} onBack={onBack} />
+      <CoachingBriefHeader overview={overview} onBack={onBack} />
 
       <div style={s.body}>
         <ChapterRail
@@ -59,7 +73,16 @@ export default function CoachingBriefDeck({ brief, edits, onEdit, onBack }) {
         />
 
         <main style={s.stage}>
-          <Card padX={32} padY={32} style={s.stageCard}>
+          <Card
+            padX={32}
+            padY={32}
+            shadow
+            style={{
+              ...s.stageCard,
+              opacity: stageDimmed ? 0.0 : 1,
+              transition: reduceMotion ? "none" : "opacity 150ms ease",
+            }}
+          >
             <SlideHead section={current} index={slideIdx} total={sections.length} />
             <SlideBody
               section={current}
@@ -80,6 +103,22 @@ export default function CoachingBriefDeck({ brief, edits, onEdit, onBack }) {
       </div>
     </div>
   );
+}
+
+// usePrefersReducedMotion — single subscription to the media query; the
+// initial value reads the current match synchronously so SSR + first
+// paint stay deterministic.
+function usePrefersReducedMotion() {
+  const [reduce, setReduce] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduce(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+  return reduce;
 }
 
 // ---- Slide registry ---------------------------------------------------
@@ -107,43 +146,12 @@ function buildSlides(brief) {
   ];
 }
 
-// ---- Header -----------------------------------------------------------
-
-function Header({ brief, onBack }) {
-  const ov = brief.sections.find((x) => x.type === "overview");
-  return (
-    <Card padX={0} padY={0} style={s.headerCard}>
-      <div style={s.headerInner}>
-        <Button
-          variant="icon"
-          size="sm"
-          onClick={onBack}
-          aria-label="Back to Coaching"
-        >
-          <ArrowLeft size={20} color="var(--color-text-medium)" />
-        </Button>
-        <span style={s.headerKind}>Coaching Brief</span>
-        <Dot />
-        <span style={s.headerAgent}>{ov.agentName}</span>
-        <Dot />
-        <span style={s.headerPeriod}>{ov.period}</span>
-        <div style={{ flex: 1 }} />
-        <span style={s.statusPill}>v{ov.schemaVersion} · Auto-generated</span>
-      </div>
-    </Card>
-  );
-}
-
-function Dot() {
-  return <span style={s.headerDot} aria-hidden="true" />;
-}
-
 // ---- Chapter rail -----------------------------------------------------
 
 function ChapterRail({ sections, activeIdx, onSelect }) {
   return (
     <aside style={s.railWrap} aria-label="Brief slides">
-      <Card padX={12} padY={12} style={s.railCard}>
+      <Card padX={12} padY={12} shadow style={s.railCard}>
         <span style={s.railTitle}>Slides</span>
         <nav style={s.railList} aria-label="Brief slides">
           {sections.map((sec, i) => {
@@ -539,32 +547,36 @@ function ActionsSlide({ data, edits, onEdit }) {
 function Pager({ current, total, onPrev, onNext, currentTitle }) {
   return (
     <div style={s.pager} aria-label="Slide navigation">
-      <Button
-        variant="icon"
-        size="sm"
-        bordered
-        onClick={onPrev}
-        disabled={current === 0}
-        aria-label="Previous slide"
-      >
-        <ChevronLeft size={18} color="var(--color-text-medium)" />
-      </Button>
+      <span style={s.pagerBtnWrap}>
+        <Button
+          variant="icon"
+          size="md"
+          bordered
+          onClick={onPrev}
+          disabled={current === 0}
+          aria-label="Previous slide"
+        >
+          <ChevronLeft size={18} color="var(--color-text-medium)" />
+        </Button>
+      </span>
       <span style={s.pagerLabel}>
         <span style={s.pagerCount}>
           {String(current + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
         </span>
         <span style={s.pagerTitle}>{currentTitle}</span>
       </span>
-      <Button
-        variant="icon"
-        size="sm"
-        bordered
-        onClick={onNext}
-        disabled={current === total - 1}
-        aria-label="Next slide"
-      >
-        <ChevronRight size={18} color="var(--color-text-medium)" />
-      </Button>
+      <span style={s.pagerBtnWrap}>
+        <Button
+          variant="icon"
+          size="md"
+          bordered
+          onClick={onNext}
+          disabled={current === total - 1}
+          aria-label="Next slide"
+        >
+          <ChevronRight size={18} color="var(--color-text-medium)" />
+        </Button>
+      </span>
     </div>
   );
 }
@@ -621,55 +633,6 @@ const s = {
     fontFamily: "var(--font-sans)",
   },
 
-  // Header
-  headerCard: { boxShadow: "var(--shadow-card)" },
-  headerInner: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "10px 20px",
-    minHeight: 56,
-  },
-  headerKind: {
-    fontFamily: "var(--font-mono)",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
-    color: "var(--color-text-tertiary)",
-    textTransform: "uppercase",
-  },
-  headerAgent: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 16,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-    letterSpacing: "0.1px",
-  },
-  headerPeriod: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-  },
-  headerDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 999,
-    background: "var(--color-text-placeholder)",
-  },
-  statusPill: {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "4px 10px",
-    background: "var(--color-icon-tertiary-bg)",
-    color: "var(--color-icon-tertiary-fg)",
-    borderRadius: 999,
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.05em",
-  },
-
   // Body
   body: {
     display: "flex",
@@ -686,7 +649,7 @@ const s = {
     top: 16,
     alignSelf: "flex-start",
   },
-  railCard: { boxShadow: "var(--shadow-card)" },
+  railCard: {},
   railTitle: {
     display: "block",
     padding: "8px 12px",
@@ -725,7 +688,7 @@ const s = {
 
   // Stage
   stage: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 },
-  stageCard: { boxShadow: "var(--shadow-card)" },
+  stageCard: {},
 
   slideHead: {
     display: "flex",
@@ -770,10 +733,11 @@ const s = {
     color: "var(--color-text-medium)",
   },
 
-  // KPI strip
+  // KPI strip — auto-fill so multilingual labels can break to 2x2 without
+  // crushing the tiles (UI-8 expansion tolerance).
   kpiStrip: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
     gap: 12,
   },
   kpiTile: {
@@ -1110,11 +1074,12 @@ const s = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    padding: "10px 16px",
+    padding: "8px 16px",
     background: "var(--surface-white)",
     border: "1px solid var(--color-divider-card)",
     borderRadius: 999,
   },
+  pagerBtnWrap: { display: "inline-grid", placeItems: "center", padding: 6 },
   pagerLabel: {
     display: "flex",
     flexDirection: "column",

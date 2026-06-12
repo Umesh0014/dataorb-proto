@@ -10,6 +10,8 @@ export default function MultiLineInput({
   max,
   placeholder,
   rows = 4,
+  ariaLabel,
+  ariaDescribedBy,
 }) {
   const handle = (e) => {
     const next = e.target.value;
@@ -23,6 +25,8 @@ export default function MultiLineInput({
         placeholder={placeholder}
         maxLength={max}
         rows={rows}
+        aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         style={mlStyles.textarea}
       />
       <span style={mlStyles.counter}>{value.length}/{max}</span>

@@ -2,7 +2,6 @@
 
 import React from "react";
 import {
-  ArrowLeft,
   FileText,
   Crosshair,
   Target,
@@ -13,8 +12,8 @@ import {
   Minus,
 } from "lucide-react";
 import Card from "./Card";
-import Button from "./Button";
 import CoachingBriefEditable from "./CoachingBriefEditable";
+import CoachingBriefHeader from "./CoachingBriefHeader";
 
 /**
  * CoachingBriefEditorial — Variant B.
@@ -35,19 +34,50 @@ export default function CoachingBriefEditorial({ brief, edits, onEdit, onBack })
   const focus     = brief.sections.find((x) => x.type === "focus-area");
   const actions   = brief.sections.find((x) => x.type === "coaching-actions");
 
+  const [activeId, setActiveId] = React.useState("overview");
+
+  // Scroll-spy — tracks the section closest to the viewport top so the
+  // sticky TOC always advertises where the reader is (INT-2). Falls back
+  // to the manual selection if IntersectionObserver isn't available.
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return undefined;
+    const targets = TOC_ITEMS
+      .map((item) => document.getElementById(`cb-${item.id}`))
+      .filter(Boolean);
+    if (!targets.length) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) {
+          const id = visible.target.id.replace(/^cb-/, "");
+          setActiveId(id);
+        }
+      },
+      { rootMargin: "-20% 0px -70% 0px", threshold: [0, 0.5, 1] },
+    );
+    targets.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   const handleTocClick = (id) => {
     if (typeof document === "undefined") return;
     const el = document.getElementById(`cb-${id}`);
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    setActiveId(id);
   };
 
   return (
     <div style={s.column}>
-      <Header overview={overview} onBack={onBack} />
+      <CoachingBriefHeader overview={overview} onBack={onBack} />
 
       <div style={s.body}>
-        <Toc onSelect={handleTocClick} />
+        <Toc activeId={activeId} onSelect={handleTocClick} />
 
         <main style={s.article}>
           <OverviewBlock data={overview} />
@@ -60,31 +90,6 @@ export default function CoachingBriefEditorial({ brief, edits, onEdit, onBack })
   );
 }
 
-// ---- Header -----------------------------------------------------------
-
-function Header({ overview, onBack }) {
-  return (
-    <Card padX={0} padY={0} style={s.headerCard}>
-      <div style={s.headerInner}>
-        <Button variant="icon" size="sm" onClick={onBack} aria-label="Back to Coaching">
-          <ArrowLeft size={20} color="var(--color-text-medium)" />
-        </Button>
-        <span style={s.headerKind}>Coaching Brief</span>
-        <Dot />
-        <span style={s.headerAgent}>{overview.agentName}</span>
-        <Dot />
-        <span style={s.headerPeriod}>{overview.period}</span>
-        <div style={{ flex: 1 }} />
-        <span style={s.statusPill}>v{overview.schemaVersion} · Auto-generated</span>
-      </div>
-    </Card>
-  );
-}
-
-function Dot() {
-  return <span style={s.headerDot} aria-hidden="true" />;
-}
-
 // ---- TOC --------------------------------------------------------------
 
 const TOC_ITEMS = [
@@ -94,14 +99,19 @@ const TOC_ITEMS = [
   { id: "actions",   label: "Coaching actions", Icon: ListChecks },
 ];
 
-function Toc({ onSelect }) {
+function Toc({ activeId, onSelect }) {
   return (
     <aside style={s.tocWrap} aria-label="Brief sections">
-      <Card padX={12} padY={12} style={s.tocCard}>
+      <Card padX={12} padY={12} shadow style={s.tocCard}>
         <span style={s.tocTitle}>Sections</span>
         <nav style={s.tocList} aria-label="Brief sections">
           {TOC_ITEMS.map((item) => (
-            <TocBtn key={item.id} item={item} onClick={() => onSelect(item.id)} />
+            <TocBtn
+              key={item.id}
+              item={item}
+              active={item.id === activeId}
+              onClick={() => onSelect(item.id)}
+            />
           ))}
         </nav>
       </Card>
@@ -109,23 +119,26 @@ function Toc({ onSelect }) {
   );
 }
 
-function TocBtn({ item, onClick }) {
+function TocBtn({ item, active, onClick }) {
   const [hover, setHover] = React.useState(false);
+  const tonal = active || hover;
   return (
     <button
       type="button"
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      aria-current={active ? "true" : undefined}
       style={{
         ...s.tocBtn,
-        background: hover ? "var(--nav-rail-active-bg)" : "transparent",
-        color: hover ? "var(--nav-rail-active)" : "var(--color-text-medium)",
+        background: tonal ? "var(--nav-rail-active-bg)" : "transparent",
+        color: tonal ? "var(--nav-rail-active)" : "var(--color-text-medium)",
+        fontWeight: active ? 600 : 500,
       }}
     >
       <item.Icon
         size={16}
-        color={hover ? "var(--nav-rail-active)" : "var(--color-text-tertiary)"}
+        color={tonal ? "var(--nav-rail-active)" : "var(--color-text-tertiary)"}
       />
       <span style={s.tocLabel}>{item.label}</span>
     </button>
@@ -462,7 +475,7 @@ function ActionsBlock({ data, edits, onEdit }) {
 
 function Section({ id, eyebrow, children }) {
   return (
-    <Card padX={32} padY={32} style={{ ...s.sectionCard, scrollMarginTop: 16 }}>
+    <Card padX={32} padY={32} shadow>
       <section id={`cb-${id}`} style={s.section}>
         <span style={s.sectionEyebrow}>{eyebrow}</span>
         {children}
@@ -522,55 +535,6 @@ const s = {
     fontFamily: "var(--font-sans)",
   },
 
-  // Header
-  headerCard: { boxShadow: "var(--shadow-card)" },
-  headerInner: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "10px 20px",
-    minHeight: 56,
-  },
-  headerKind: {
-    fontFamily: "var(--font-mono)",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
-    color: "var(--color-text-tertiary)",
-    textTransform: "uppercase",
-  },
-  headerAgent: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 16,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-    letterSpacing: "0.1px",
-  },
-  headerPeriod: {
-    fontFamily: "var(--font-sans)",
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-  },
-  headerDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 999,
-    background: "var(--color-text-placeholder)",
-  },
-  statusPill: {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "4px 10px",
-    background: "var(--color-icon-tertiary-bg)",
-    color: "var(--color-icon-tertiary-fg)",
-    borderRadius: 999,
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.05em",
-  },
-
   // Body
   body: {
     display: "flex",
@@ -587,7 +551,7 @@ const s = {
     top: 16,
     alignSelf: "flex-start",
   },
-  tocCard: { boxShadow: "var(--shadow-card)" },
+  tocCard: {},
   tocTitle: {
     display: "block",
     padding: "8px 12px",
@@ -620,8 +584,12 @@ const s = {
   article: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 },
 
   // Section
-  sectionCard: { boxShadow: "var(--shadow-card)" },
-  section: { display: "flex", flexDirection: "column", gap: 20 },
+  section: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 20,
+    scrollMarginTop: 16,
+  },
   sectionEyebrow: {
     fontFamily: "var(--font-mono)",
     fontSize: 11,
