@@ -1,31 +1,40 @@
 "use client";
 
 import React from "react";
-import DarkPillSwitcher from "./DarkPillSwitcher";
+import VersionBar from "./VersionBar";
 import AIRecruiterBoard from "./AIRecruiterBoard";
 import AIRecruiterTable from "./AIRecruiterTable";
-import AIRecruiterFunnel from "./AIRecruiterFunnel";
+import CandidateRecordPage from "./CandidateRecordPage";
+import AddCandidateModal from "./AddCandidateModal";
 import { CANDIDATES, STAGE_META } from "./mocks/recruiter";
 
 // AIRecruiterShell — AI Recruiter (AI Interviewer) product landing entry
 // point: the hiring manager's candidate pipeline. Hosts the demo-only
-// candidate state, the shared stage-advance handler, and the floating A/B/C
-// switcher that flips between three structural directions for the pipeline:
-//   A · Board  — candidate stage columns (direction R1)
-//   B · Table  — candidate table + detail sidecar (direction R2)
-//   C · Funnel — stage funnel + ROI rail + community (direction R3)
+// candidate state, the shared stage-advance handler, and the floating
+// view switcher (VersionBar — the same meta-tooling Missions uses) that
+// flips between the two surviving directions:
+//   Board — candidate stage swimlanes (direction R1)
+//   Table — candidate table + detail sidecar (direction R2)
+// (Option C · Funnel was discarded per review.)
 //
 // Candidate + stage state is in-memory only (no browser storage — G5),
 // mirroring the MissionsLandingShell / page.jsx tasks pattern: advancing a
-// candidate (e.g. "Push to Interview") moves them through the pipeline in
-// place, and the whole switcher is deletable in one commit once a direction
-// is chosen. See docs/tickets/ai-recruiter/directions.md for the cut.
+// candidate ("Push to Interview") moves them through the pipeline in place,
+// adding a candidate prepends to the list, and opening a record swaps in the
+// full-page CandidateRecordPage. See docs/tickets/ai-recruiter/directions.md.
 
-const VARIANTS = ["A", "B", "C"];
+// View options rendered in the VersionBar's baseline dropdown. ids match the
+// resolver below; the bar always shows the current view's label.
+const VIEW_OPTIONS = [
+  { id: "board", label: "Board" },
+  { id: "table", label: "Table" },
+];
 
 export default function AIRecruiterShell({ pageName }) {
-  const [variant, setVariant] = React.useState("A");
+  const [view, setView] = React.useState("board");
   const [candidates, setCandidates] = React.useState(CANDIDATES);
+  const [recordId, setRecordId] = React.useState(null);
+  const [addOpen, setAddOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -48,56 +57,48 @@ export default function AIRecruiterShell({ pageName }) {
     );
   }, []);
 
-  // Opening a candidate record is a net-new downstream flow that is out of
-  // scope for this exploration — logged, not wired, so the landing stays
-  // interactive without inventing the full candidate-record screen.
-  const onOpenCandidate = (id) => console.log("AI Recruiter — open candidate record", id);
+  // addCandidate — prepend a new applicant from the Add-candidate form. New
+  // applicants land at "Applied" with their AI screening not yet started.
+  const addCandidate = React.useCallback((draft) => {
+    setCandidates((prev) => [draft, ...prev]);
+    setAddOpen(false);
+  }, []);
 
-  const View =
-    variant === "B" ? AIRecruiterTable
-    : variant === "C" ? AIRecruiterFunnel
-    : AIRecruiterBoard;
+  const record = recordId ? candidates.find((c) => c.id === recordId) : null;
+
+  // Full-page candidate record takes over the surface (no switcher), mirroring
+  // how Learning Hub swaps in DrillDetailPage / AgentProfile over its landing.
+  if (record) {
+    return (
+      <CandidateRecordPage
+        candidate={record}
+        onBack={() => setRecordId(null)}
+        onAdvance={advance}
+      />
+    );
+  }
+
+  const View = view === "table" ? AIRecruiterTable : AIRecruiterBoard;
 
   return (
     <>
       <View
         candidates={candidates}
         onAdvance={advance}
-        onOpenCandidate={onOpenCandidate}
+        onOpenCandidate={(id) => setRecordId(id)}
+        onAddCandidate={() => setAddOpen(true)}
       />
-      <div style={clusterStyle}>
-        <span style={captionStyle}>Variant</span>
-        <DarkPillSwitcher
-          ariaLabel="AI Recruiter layout variant switcher"
-          value={variant}
-          options={VARIANTS}
-          onChange={setVariant}
-        />
-      </div>
+      <VersionBar
+        versions={[]}
+        baselineOptions={VIEW_OPTIONS}
+        value={{ versionId: view, iterationId: null }}
+        onChange={({ versionId }) => setView(versionId)}
+      />
+      <AddCandidateModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdd={addCandidate}
+      />
     </>
   );
 }
-
-// Floating bottom-right cluster — same spatial idea as the Missions switcher:
-// out of the content flow, above page chrome, never overlapping the side rail.
-const clusterStyle = {
-  position: "fixed",
-  right: 24,
-  bottom: 24,
-  zIndex: 50,
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-};
-const captionStyle = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "var(--color-text-tertiary)",
-  background: "var(--surface-white)",
-  padding: "4px 8px",
-  borderRadius: 6,
-  boxShadow: "var(--shadow-card)",
-};

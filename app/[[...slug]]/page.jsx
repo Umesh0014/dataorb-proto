@@ -30,6 +30,7 @@ import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import ReplayPage from "../../components/ReplayPage";
 import AIRecruiterShell from "../../components/AIRecruiterShell";
+import InterviewPlansPage from "../../components/InterviewPlansPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
@@ -101,9 +102,9 @@ const MIRA_PAGES = {
 };
 
 const RECRUITER_PAGES = {
-  "pipeline":  { Component: AIRecruiterShell, pageName: "AI Recruiter" },
-  "community": { Component: ComingSoon,       pageName: "Talent Community" },
-  "plans":     { Component: ComingSoon,       pageName: "Interview Plans" },
+  "pipeline":  { Component: AIRecruiterShell,   pageName: "AI Recruiter" },
+  "community": { Component: ComingSoon,         pageName: "Talent Community" },
+  "plans":     { Component: InterviewPlansPage, pageName: "Interview Plans" },
 };
 
 function resolvePage(map, navId, fallbackName = "Page") {

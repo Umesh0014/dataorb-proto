@@ -59,9 +59,9 @@ export const STAGE_META = [...STAGES, COMMUNITY_STAGE].reduce((acc, s) => {
 
 // screen.status: "completed" (evidence available) · "in_progress" (AI
 // Interviewer running) · "not_started". coverage = topics the candidate
-// covered out of those assigned to the role's screening (per-candidate; the
-// aggregate sample lives in funnelStats). `thin` = count of assigned topics
-// with the thinnest coverage, surfaced as a follow-up cue (not a score).
+// covered out of those assigned to the role's screening (per-candidate).
+// `thin` = count of assigned topics with the thinnest coverage, surfaced as a
+// follow-up cue (not a score).
 export const CANDIDATES = [
   {
     id: "c-aanya", name: "Aanya Sharma", initial: "AS",
@@ -162,31 +162,4 @@ export function stageCounts(candidates) {
     acc[c.stage] = (acc[c.stage] || 0) + 1;
     return acc;
   }, {});
-}
-
-// funnelStats — the business case the hiring manager reports up. Every figure
-// carries its unit and its basis (G3); ROI is framed against the manual
-// screening baseline, never as an absolute claim.
-export function funnelStats(candidates) {
-  const counts = stageCounts(candidates);
-  const screened = candidates.filter((c) => c.screen.status === "completed").length;
-  return {
-    counts,
-    // AI screenings completed this quarter (drives the "hours saved" basis).
-    screened,
-    // Avg time-to-hire vs the manual baseline. Days, labelled at callsite.
-    timeToHire: { days: 9, baselineDays: 21 },
-    // Screening hours the AI Interviewer absorbed this quarter vs doing the
-    // first round by hand (~1.5h/candidate). Hours, this quarter.
-    hoursSaved: { hours: 312, period: "this quarter" },
-    // Cost per hire vs the manual screening baseline. Percentage lower.
-    costPerHire: { pctLower: 38, basis: "vs. manual first-round screening" },
-  };
-}
-
-// FUNNEL_STAGES — the ordered live pipeline (excludes community) used to draw
-// the conversion funnel. Each carries the count for its stage.
-export function funnelRows(candidates) {
-  const counts = stageCounts(candidates);
-  return STAGES.map((s) => ({ ...s, count: counts[s.id] || 0 }));
 }

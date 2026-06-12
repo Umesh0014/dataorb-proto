@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { Plus, Search, ArrowUpDown, ListFilter, ChevronRight } from "lucide-react";
+import { Plus, Search, ArrowUpDown, ListFilter, ChevronRight, Check } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import Banner from "./Banner";
 import TabsRow from "./TabsRow";
 import { FaceScanIcon } from "./SideNav/icons";
 import { formatDate } from "./formatDate";
-import { FAMILY_LABELS } from "./mocks/recruiter";
+import { FAMILY_LABELS, STAGES } from "./mocks/recruiter";
 import {
   CandidateMonogram, StageBadge, CoverageMeter, COMPLIANCE_COPY,
 } from "./AIRecruiterParts";
@@ -34,9 +34,29 @@ const TAB_BUCKETS = {
   community: ["community"],
 };
 
-export default function AIRecruiterTable({ candidates, onAdvance, onOpenCandidate }) {
+// Stage rank for the "Pipeline stage" sort — follows the canonical order in
+// STAGES so the table can read top-of-funnel → hired.
+const STAGE_RANK = STAGES.reduce((acc, st, i) => { acc[st.id] = i; return acc; }, { community: STAGES.length });
+
+// Sort options for the table. Each carries a comparator over candidates;
+// coverage uses the completed-screening percentage (in-progress / not-started
+// sort to the bottom — they have no settled coverage figure).
+const coveragePct = (c) =>
+  c.screen.status === "completed" && c.screen.coverage.total > 0
+    ? c.screen.coverage.covered / c.screen.coverage.total
+    : -1;
+const SORTS = [
+  { id: "applied_desc", label: "Newest applied", cmp: (a, b) => b.appliedAt.localeCompare(a.appliedAt) },
+  { id: "applied_asc", label: "Oldest applied", cmp: (a, b) => a.appliedAt.localeCompare(b.appliedAt) },
+  { id: "name", label: "Name (A–Z)", cmp: (a, b) => a.name.localeCompare(b.name) },
+  { id: "coverage_desc", label: "Coverage (high–low)", cmp: (a, b) => coveragePct(b) - coveragePct(a) },
+  { id: "stage", label: "Pipeline stage", cmp: (a, b) => STAGE_RANK[a.stage] - STAGE_RANK[b.stage] },
+];
+
+export default function AIRecruiterTable({ candidates, onAdvance, onOpenCandidate, onAddCandidate }) {
   const [tab, setTab] = React.useState("active");
   const [search, setSearch] = React.useState("");
+  const [sortId, setSortId] = React.useState("applied_desc");
   const [openId, setOpenId] = React.useState(null);
 
   const TABS = [
@@ -48,14 +68,17 @@ export default function AIRecruiterTable({ candidates, onAdvance, onOpenCandidat
   const inTab = candidates.filter((c) => TAB_BUCKETS[tab].includes(c.stage));
   const rows = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return inTab;
-    return inTab.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.role.toLowerCase().includes(q) ||
-        FAMILY_LABELS[c.family].toLowerCase().includes(q),
-    );
-  }, [inTab, search]);
+    const matched = q
+      ? inTab.filter(
+          (c) =>
+            c.name.toLowerCase().includes(q) ||
+            c.role.toLowerCase().includes(q) ||
+            FAMILY_LABELS[c.family].toLowerCase().includes(q),
+        )
+      : inTab;
+    const sort = SORTS.find((srt) => srt.id === sortId) || SORTS[0];
+    return [...matched].sort(sort.cmp);
+  }, [inTab, search, sortId]);
 
   const openCandidate = openId ? candidates.find((c) => c.id === openId) : null;
 
@@ -70,7 +93,7 @@ export default function AIRecruiterTable({ candidates, onAdvance, onOpenCandidat
               </span>
               <span style={s.identLabel}>AI Recruiter</span>
             </div>
-            <Button variant="primary" leadingIcon={<Plus size={16} />} onClick={() => onOpenCandidate?.("new")}>
+            <Button variant="primary" leadingIcon={<Plus size={16} />} onClick={() => onAddCandidate?.()}>
               Add candidate
             </Button>
           </div>
@@ -85,7 +108,7 @@ export default function AIRecruiterTable({ candidates, onAdvance, onOpenCandidat
               style={s.searchInput}
             />
             <div style={s.iconGroup}>
-              <Button variant="icon" size="sm" aria-label="Sort candidates"><ArrowUpDown size={18} /></Button>
+              <SortControl value={sortId} onChange={setSortId} />
               <Button variant="icon" size="sm" aria-label="Filter candidates"><ListFilter size={18} /></Button>
             </div>
           </div>
@@ -204,6 +227,54 @@ function CandidateSidecar({ candidate, onClose, onAdvance, onOpenCandidate }) {
   );
 }
 
+// SortControl — icon-button trigger + a radio menu of sort keys. Mirrors the
+// Missions Kanban SortControl pattern (icon Button, scrim-dismissed menu,
+// menuitemradio rows) so the table's sort affordance reads the same as the
+// board's everywhere it appears.
+function SortControl({ value, onChange }) {
+  const [open, setOpen] = React.useState(false);
+  const active = SORTS.find((srt) => srt.id === value) || SORTS[0];
+  return (
+    <div style={s.sortWrap}>
+      <Button
+        variant="icon"
+        size="sm"
+        aria-label={`Sort candidates — ${active.label}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        style={{ background: open ? "var(--pill-bg)" : undefined }}
+      >
+        <ArrowUpDown size={18} />
+      </Button>
+      {open && (
+        <>
+          <div style={s.sortScrim} onClick={() => setOpen(false)} aria-hidden="true" />
+          <div role="menu" aria-label="Sort candidates" style={s.sortMenu}>
+            {SORTS.map((srt) => {
+              const on = srt.id === value;
+              return (
+                <button
+                  key={srt.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={on}
+                  className="recruiter-focusable"
+                  onClick={() => { onChange(srt.id); setOpen(false); }}
+                  style={{ ...s.sortItem, color: on ? "var(--color-text-deep)" : "var(--color-text-medium)", fontWeight: on ? 700 : 500 }}
+                >
+                  {srt.label}
+                  {on && <Check size={15} aria-hidden="true" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function EmptyState({ query, tab }) {
   return (
     <div style={s.empty}>
@@ -230,6 +301,19 @@ const s = {
   row2: { display: "flex", alignItems: "center", gap: 12 },
   searchInput: { flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--color-text-deep)" },
   iconGroup: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
+
+  sortWrap: { position: "relative", flexShrink: 0 },
+  sortScrim: { position: "fixed", inset: 0, zIndex: 39 },
+  sortMenu: {
+    position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 200, zIndex: 40,
+    background: "var(--surface-white)", border: "1px solid var(--color-divider-card)",
+    borderRadius: 10, boxShadow: "var(--shadow-8)", padding: 6, display: "flex", flexDirection: "column", gap: 2,
+  },
+  sortItem: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+    width: "100%", padding: "8px 12px", borderRadius: 8, border: "none", background: "transparent",
+    cursor: "pointer", textAlign: "left", fontFamily: "var(--font-sans)", fontSize: 13,
+  },
 
   tableCard: { overflow: "hidden" },
   table: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed", fontFamily: "var(--font-sans)" },

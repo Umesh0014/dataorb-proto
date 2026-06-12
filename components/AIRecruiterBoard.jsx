@@ -23,7 +23,7 @@ import {
 // curtain that slides in when a card is opened (the shared CandidateDetail).
 // A Talent Community shelf below holds re-activatable candidates.
 
-export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidate }) {
+export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidate, onAddCandidate }) {
   const [search, setSearch] = React.useState("");
   const [openId, setOpenId] = React.useState(null);
 
@@ -48,7 +48,7 @@ export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidat
           iconBg: "var(--color-icon-tertiary-bg)",
           iconColor: "var(--color-icon-tertiary-fg)",
         }}
-        primaryAction={{ label: "Add candidate", icon: <Plus size={16} />, onClick: () => onOpenCandidate?.("new") }}
+        primaryAction={{ label: "Add candidate", icon: <Plus size={16} />, onClick: () => onAddCandidate?.() }}
         search={{ value: search, onChange: setSearch, placeholder: "Search candidates by name or role" }}
         toolbar={[{ id: "filters", icon: <SlidersHorizontal size={18} />, label: "Filters", onClick: () => {} }]}
       />

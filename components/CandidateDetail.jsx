@@ -77,13 +77,13 @@ export function CandidateDetailFooter({ candidate, onAdvance, onOpenCandidate })
   );
 }
 
-function screeningStatusLabel(c) {
+export function screeningStatusLabel(c) {
   if (c.screen.status === "completed") return `Completed ${formatDate(c.screen.completedAt)}`;
   if (c.screen.status === "in_progress") return "In progress";
   return "Not started";
 }
 
-function thinLabel(c) {
+export function thinLabel(c) {
   if (c.screen.status !== "completed") return "—";
   if (!c.thin) return "None — full coverage";
   return `${c.thin} topic${c.thin === 1 ? "" : "s"} to probe`;
@@ -115,8 +115,9 @@ function evidenceDraft(c) {
 // EvidenceBlock — the AI-output-as-starting-state surface (INT-7). The
 // narrative is editable inline and user-owned; once edited it carries a "last
 // edited by" credit. The quantitative coverage above stays read-only — the
-// user owns the words, the system owns the numbers.
-function EvidenceBlock({ candidate }) {
+// user owns the words, the system owns the numbers. Exported so the full
+// candidate record page renders the same editable evidence as the sidecar.
+export function EvidenceBlock({ candidate }) {
   const draft = evidenceDraft(candidate);
   const [text, setText] = React.useState(draft);
   const [editing, setEditing] = React.useState(false);
