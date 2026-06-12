@@ -540,14 +540,15 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
     setOpt(nextOpt);
   };
 
-  // VersionBar.value drives which item is highlighted.
-  // - Current design: baseline "current" stays yellow regardless of opt.
-  // - Updated design: chips (v1/v2/v3) reflect opt; the baseline is no
-  //   longer yellow.
-  const barValue =
-    designVer === "current"
-      ? { versionId: "current", iterationId: null }
-      : { versionId: OPT_TO_VERSION[opt] || "v1", iterationId: null };
+  // VersionBar.value drives the baseline label (it always tracks the
+  // page's designVer so the label and the content can't drift). The
+  // chip / opt swap still happens via the onChange handler, but the
+  // active highlight stays on the baseline — keeps the bar from
+  // visually contradicting the page state.
+  const barValue = {
+    versionId: designVer === "current" ? "current" : "updated",
+    iterationId: null,
+  };
 
   const shared = { data, activeAgent, onSetAgent: toggleAgent, onClearAgent: clearAgent };
 
@@ -567,9 +568,6 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
   );
 }
 
-// Reverse of VERSION_TO_OPT — used to pick which chip the VersionBar
-// highlights when designVer === "updated".
-const OPT_TO_VERSION = { O1: "v1", O2: "v2", O3: "v3" };
 
 // ---- Current-design playbook (image 1, pre-redesign view) ---------------
 // Sparser layout: Assessment paragraph + Present Stages list with simple
