@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -376,6 +377,7 @@ function onApplyFilters(_draft) {
 }
 
 export default function InteractionsPage() {
+  const router = useRouter();
   const [page, setPage] = React.useState(1);
   const totalPages = Math.ceil(TOTAL / PAGE_SIZE);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -447,14 +449,16 @@ export default function InteractionsPage() {
     setFiltersOpen(false);
   };
 
-  // Row-detail drawer state. Row click toggles selection; clicking the same
-  // row again closes the drawer. rowRefs lets us return focus to the
-  // originating row on close per drawer a11y conventions.
+  // Row click navigates to the interaction detail page (the full-canvas
+  // Email Conversations + Insights / Quality / Feedback view). The
+  // previous in-place row drawer is retired; navigation lives on
+  // /insights/interaction/{interactionId}.
   const [selectedRowId, setSelectedRowId] = React.useState(null);
   const rowRefs = React.useRef({});
 
-  const handleRowClick = (rowId) => {
-    setSelectedRowId((current) => (current === rowId ? null : rowId));
+  const handleRowClick = (interactionId) => {
+    if (!interactionId) return;
+    router.push(`/insights/interaction/${interactionId}`);
   };
 
   const closeDetails = () => {
@@ -796,7 +800,7 @@ function Table({ rows, selectedRowId, onRowClick, rowRefs, onOpenEmail }) {
               row={row}
               isLast={i === rows.length - 1}
               isSelected={selectedRowId === row.customerId}
-              onClick={() => onRowClick && onRowClick(row.customerId)}
+              onClick={() => onRowClick && onRowClick(row.interactionId)}
               onOpenEmail={onOpenEmail ? () => onOpenEmail(row) : undefined}
               rowRef={(el) => {
                 if (!rowRefs) return;
