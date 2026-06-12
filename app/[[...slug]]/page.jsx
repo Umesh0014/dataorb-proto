@@ -48,6 +48,7 @@ import FilterPanel from "../../components/FilterPanel";
 import { insightsHubConfig } from "../../components/SideNav/configs/insightsHubConfig";
 import { learningHubConfig } from "../../components/SideNav/configs/learningHubConfig";
 import { askMiraConfig } from "../../components/SideNav/configs/askMiraConfig";
+import { recruiterConfig } from "../../components/SideNav/configs/recruiterConfig";
 
 const MIRA_RESPONSE_DELAY_MS = 800;
 
@@ -90,7 +91,6 @@ const LEARNING_PAGES = {
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
-  "recruiter":    { Component: AIRecruiterShell, pageName: "AI Recruiter" },
 };
 
 const MIRA_PAGES = {
@@ -98,6 +98,12 @@ const MIRA_PAGES = {
   "history": { Component: MiraChatsPage,  pageName: "Chats" },
   "skills":  { Component: SkillsPage,     pageName: "Skills" },
   "tasks":   { Component: TasksPage,      pageName: "Tasks" },
+};
+
+const RECRUITER_PAGES = {
+  "pipeline":  { Component: AIRecruiterShell, pageName: "AI Recruiter" },
+  "community": { Component: ComingSoon,       pageName: "Talent Community" },
+  "plans":     { Component: ComingSoon,       pageName: "Interview Plans" },
 };
 
 function resolvePage(map, navId, fallbackName = "Page") {
@@ -120,7 +126,7 @@ function generateTaskId() {
 // row (expanded sidenav) and its collapsed-state tooltip. Coaching does
 // not have a config yet; its prefix is matched inline below until the
 // module ships.
-const MODULE_REGISTRY = [insightsHubConfig, learningHubConfig, askMiraConfig];
+const MODULE_REGISTRY = [insightsHubConfig, learningHubConfig, askMiraConfig, recruiterConfig];
 
 function resolveAppSwitcherLabel(pathname) {
   if (pathname?.startsWith("/coaching")) return "Coaching";
@@ -136,6 +142,7 @@ const DEFAULT_NAV = {
   insightsNav: "contact-center",
   learningNav: "drill",
   miraNav: "chat",
+  recruiterNav: "pipeline",
   missionDetailId: null,
   settingsSubpage: null,
 };
@@ -175,6 +182,9 @@ function deriveNav(pathname) {
   } else if (segs[0] === "mira") {
     next.currentPage = "mira";
     if (segs.length >= 2) next.miraNav = segs[1];
+  } else if (segs[0] === "recruiter") {
+    next.currentPage = "recruiter";
+    if (segs.length >= 2) next.recruiterNav = segs[1];
   } else if (segs[0] === "settings") {
     next.currentPage = "settings";
     if (segs.length >= 2) next.settingsSubpage = segs[1];
@@ -187,6 +197,7 @@ function deriveNav(pathname) {
 function pathForCurrentPage(currentPage) {
   if (currentPage === "learning") return "/learning/drill";
   if (currentPage === "mira") return "/mira/chat";
+  if (currentPage === "recruiter") return "/recruiter/pipeline";
   return "/insights/contact-center";
 }
 
@@ -207,12 +218,16 @@ function pathForMira(id) {
   return `/mira/${id}`;
 }
 
+function pathForRecruiter(id) {
+  return `/recruiter/${id}`;
+}
+
 // Settings is a cross-module utility surface — when the user opens it
 // the SideNav keeps the module rail they came from (no rail item turns
 // active). We remember the last non-settings module so a direct load on
 // /settings still picks a sensible rail (defaulting to insights).
 function resolveSettingsRailModule(previous) {
-  return previous === "learning" || previous === "mira" || previous === "insights"
+  return previous === "learning" || previous === "mira" || previous === "insights" || previous === "recruiter"
     ? previous
     : "insights";
 }
@@ -224,7 +239,7 @@ export default function Page() {
   // URL is the source of truth for module + sub-section. Derive the four
   // nav ids on every render from the pathname; nav-driving setState calls
   // are replaced with router.push() against the same URL schema.
-  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId, settingsSubpage } = React.useMemo(
+  const { currentPage, insightsNav, learningNav, miraNav, recruiterNav, missionDetailId, settingsSubpage } = React.useMemo(
     () => deriveNav(pathname),
     [pathname],
   );
@@ -236,6 +251,7 @@ export default function Page() {
     if (pathname === "/learning") router.replace(pathForLearning("drill"));
     else if (pathname === "/insights") router.replace(pathForInsights("contact-center"));
     else if (pathname === "/mira") router.replace(pathForMira("chat"));
+    else if (pathname === "/recruiter") router.replace(pathForRecruiter("pipeline"));
   }, [pathname, router]);
 
   // Track the most recently visited module so /settings can render with
@@ -478,6 +494,9 @@ export default function Page() {
     if (railModule === "mira") {
       sidenavConfig = askMiraConfig;
       handleSidenavSelect = (id) => router.push(pathForMira(id));
+    } else if (railModule === "recruiter") {
+      sidenavConfig = recruiterConfig;
+      handleSidenavSelect = (id) => router.push(pathForRecruiter(id));
     } else if (railModule === "learning") {
       sidenavConfig = learningHubConfig;
       handleSidenavSelect = (id) => router.push(pathForLearning(id));
@@ -596,6 +615,20 @@ export default function Page() {
         onPanelClose={() => setMiraSetupOpen(false)}
       >
         {miraContent}
+      </PageLayout>
+    );
+  } else if (currentPage === "recruiter") {
+    const { Component: RecruiterPage, pageName } = resolvePage(RECRUITER_PAGES, recruiterNav, "AI Recruiter");
+    sidenavConfig = recruiterConfig;
+    sidenavActiveId = recruiterNav;
+    handleSidenavSelect = (id) => router.push(pathForRecruiter(id));
+    handleAppSelectPage = (page) => {
+      setAppMenuOpen(false);
+      router.push(pathForCurrentPage(page));
+    };
+    moduleContent = (
+      <PageLayout>
+        <RecruiterPage pageName={pageName} />
       </PageLayout>
     );
   } else if (currentPage === "learning") {

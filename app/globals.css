@@ -352,8 +352,8 @@ body {
 /* AI Recruiter sidecar slide-in — mirrors the Drawer spatial model (enters
    from its right edge). Gated by prefers-reduced-motion (WCAG 2.3.1). */
 @keyframes recruiterDrawerIn {
-  from { transform: translateX(24px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
 }
 .recruiter-drawer {
   animation: recruiterDrawerIn 240ms ease;

@@ -2,20 +2,20 @@
 
 import React from "react";
 import {
-  Headset, TrendingUp, ShieldCheck, Rocket, Scale, Wrench,
-  Sparkles, User, ShieldCheck as RecordIcon,
+  Headset, TrendingUp, ShieldCheck, Rocket, Scale, Wrench, ArrowRight, RotateCcw,
 } from "lucide-react";
-import { FAMILY_TINTS, FAMILY_LABELS } from "./mocks/recruiter";
+import Button from "./Button";
+import { FAMILY_TINTS, STAGE_META } from "./mocks/recruiter";
 
-// AIRecruiterParts — shared pieces for the three AI Recruiter landing
-// variants (Library / Table / Pipeline). Extracted under the rule-of-three:
-// the family avatar, status chip, coverage meter, mode + maintained tags,
-// and the compliance copy each render in all three variants, so the
-// composition lives once here to prevent drift across the demo set.
+// AIRecruiterParts — shared pieces for the three AI Recruiter candidate-pipeline
+// variants (Board / Table / Funnel). Extracted under the rule-of-three: the
+// family avatar, stage badge, screening-coverage meter, recorded tag, and the
+// compliance copy each render in all three variants, so the composition lives
+// once here to prevent drift across the demo set.
 //
-// Compliance spine (rubric G4): the AI surfaces coverage + evidence; it
-// never asserts mastery and never frames a hire decision. That copy is a
-// shared constant so all three variants say it identically.
+// Compliance spine (rubric G4): the AI surfaces coverage + evidence; it never
+// asserts mastery and never frames a hire decision. That copy is a shared
+// constant so all three variants say it identically.
 
 const FAMILY_ICON_CMP = {
   support: Headset,
@@ -29,11 +29,13 @@ const FAMILY_ICON_CMP = {
 export const COMPLIANCE_COPY = {
   heading: "Evidence, not a verdict",
   body:
-    "The AI Interviewer reports how much of the assigned knowledge a candidate " +
-    "covered — never whether they passed. Hiring decisions stay with you, and " +
-    "every interview is recorded for compliance.",
+    "The AI Interviewer reports how much of the assigned knowledge each candidate " +
+    "covered — never whether they passed. You decide who advances, and every " +
+    "screening is recorded for compliance.",
 };
 
+// FamilyAvatar — job-family glyph in the family tint. Decorative reinforcement
+// of the family already named in text, so aria-hidden (WCAG-7).
 export function FamilyAvatar({ family, size = 40 }) {
   const tint = FAMILY_TINTS[family] || FAMILY_TINTS.support;
   const Icon = FAMILY_ICON_CMP[family] || Headset;
@@ -52,96 +54,132 @@ export function FamilyAvatar({ family, size = 40 }) {
   );
 }
 
-// StatusChip — live / draft / archived. Pairs a coloured dot with a text
-// label so status never rides on colour alone (G9). Archived is neutral —
-// StatusBadge has no neutral tone, which is why this lives here.
-const STATUS_CHIP = {
-  live:     { label: "Live",     dot: "var(--color-success)", fg: "var(--color-success-text)", bg: "var(--color-success-bg)" },
-  draft:    { label: "Draft",    dot: "var(--color-info)",    fg: "var(--color-info-text)",    bg: "var(--color-info-bg)" },
-  archived: { label: "Archived", dot: "var(--color-text-tertiary)", fg: "var(--color-text-tertiary)", bg: "var(--pill-bg)" },
-};
-
-export function StatusChip({ status }) {
-  const m = STATUS_CHIP[status] || STATUS_CHIP.draft;
+// CandidateMonogram — initials chip in the family tint. Pairs with the
+// candidate's name in text, so aria-hidden.
+export function CandidateMonogram({ candidate, size = 36 }) {
+  const tint = FAMILY_TINTS[candidate.family] || FAMILY_TINTS.support;
   return (
-    <span style={{ ...partStyles.chip, background: m.bg, color: m.fg }}>
-      <span style={{ ...partStyles.chipDot, background: m.dot }} aria-hidden="true" />
+    <span
+      style={{
+        width: size, height: size, borderRadius: 999, flexShrink: 0,
+        background: tint.bg, color: tint.fg,
+        display: "inline-grid", placeItems: "center",
+        fontFamily: "var(--font-sans)", fontSize: Math.round(size * 0.36),
+        fontWeight: 700, letterSpacing: "0.3px",
+      }}
+      aria-hidden="true"
+    >
+      {candidate.initial}
+    </span>
+  );
+}
+
+// StageBadge — pipeline stage as a coloured dot + text label so stage never
+// rides on colour alone (G9). The dot carries the hue (decorative, paired with
+// the label); the label itself uses a deep text token so it clears the 4.5:1
+// AA floor on the light tint background (G8) — the tile foreground is an
+// icon-weight colour, too light for 11px text. Tints resolve through
+// STAGE_META → :root tokens.
+export function StageBadge({ stage }) {
+  const m = STAGE_META[stage] || STAGE_META.applied;
+  return (
+    <span style={{ ...partStyles.chip, background: m.tint.bg, color: "var(--color-text-deep)" }}>
+      <span style={{ ...partStyles.chipDot, background: m.tint.fg }} aria-hidden="true" />
       {m.label}
     </span>
   );
 }
 
-// RecordedTag — compliance affordance shown on every plan. Icon is paired
-// with the word "Recorded" so it isn't an icon-only label (UI-8 / WCAG-7).
+// RecordedTag — compliance affordance. Icon is paired with the word
+// "Recorded" so it isn't an icon-only label (WCAG-7).
 export function RecordedTag() {
   return (
     <span style={partStyles.recorded}>
-      <RecordIcon size={13} color="var(--color-text-tertiary)" aria-hidden="true" />
+      <ShieldCheck size={13} color="var(--color-text-tertiary)" aria-hidden="true" />
       Recorded
     </span>
   );
 }
 
-export function MaintainedTag({ maintainedBy }) {
-  const isAi = maintainedBy === "ai";
-  return (
-    <span style={partStyles.maintain}>
-      {isAi
-        ? <Sparkles size={13} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
-        : <User size={13} color="var(--color-text-tertiary)" aria-hidden="true" />}
-      <span style={{ color: isAi ? "var(--color-icon-tertiary-fg)" : "var(--color-text-tertiary)" }}>
-        {isAi ? "AI-maintained" : "Self-maintained"}
-      </span>
-    </span>
-  );
-}
+// CoverageMeter — labelled screening-coverage bar for one candidate. Every
+// number carries its unit (G3): "83% covered · 15 of 18 topics". A candidate
+// whose screening hasn't run reads "Not started", in progress reads
+// "Screening in progress" — never a bare 0. The bar is decorative
+// reinforcement; the text is the source of truth (G9), so colourblind +
+// zoomed users lose nothing. Coverage is never framed as a score (G4).
+export function CoverageMeter({ screen, compact = false }) {
+  const { status, coverage } = screen;
+  const { covered, total } = coverage;
+  const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+  const done = status === "completed";
+  const running = status === "in_progress";
 
-export function ModeTag({ mode, assisted }) {
-  return (
-    <span style={partStyles.modeWrap}>
-      <span style={partStyles.modeText}>{mode}</span>
-      {assisted && <span style={partStyles.assisted}>Assisted</span>}
-    </span>
-  );
-}
+  const headline = done
+    ? `${pct}% covered`
+    : running
+      ? "Screening in progress"
+      : "Not started";
+  const sample = done || running
+    ? `${covered} of ${total} topics`
+    : `0 of ${total} topics`;
+  const ariaLabel = done
+    ? `${pct}% knowledge coverage: ${covered} of ${total} assigned topics covered`
+    : running
+      ? `Screening in progress: ${covered} of ${total} assigned topics covered so far`
+      : `Not started: 0 of ${total} assigned topics covered`;
 
-// CoverageMeter — labelled knowledge-coverage bar. Every number carries its
-// unit + the interview sample it summarises (G3): "72% coverage · 13 of 18
-// topics across 25 interviews". A draft with no runs reads "Not started",
-// never a bare 0. The bar is decorative reinforcement; the text is the
-// source of truth (G9), so colourblind + zoomed users lose nothing.
-export function CoverageMeter({ coverage, compact = false }) {
-  const started = coverage.from > 0;
-  const pct = Math.max(0, Math.min(100, coverage.pct));
   return (
     <div style={partStyles.coverWrap}>
       <div style={partStyles.coverHead}>
-        <span style={partStyles.coverPct}>
-          {started ? `${pct}% coverage` : "Not started"}
-        </span>
-        <span style={partStyles.coverSample}>
-          {started
-            ? `${coverage.covered} of ${coverage.total} topics · ${coverage.from} interviews`
-            : `0 of ${coverage.total} topics`}
-        </span>
+        <span style={partStyles.coverPct}>{headline}</span>
+        <span style={partStyles.coverSample}>{sample}</span>
       </div>
-      <div
-        style={partStyles.coverTrack}
-        role="img"
-        aria-label={
-          started
-            ? `${pct}% knowledge coverage: ${coverage.covered} of ${coverage.total} topics across ${coverage.from} interviews`
-            : `Not started: 0 of ${coverage.total} topics covered`
-        }
-      >
-        <div style={{ ...partStyles.coverFill, width: `${pct}%` }} />
+      <div style={partStyles.coverTrack} role="img" aria-label={ariaLabel}>
+        <div
+          style={{
+            ...partStyles.coverFill,
+            width: `${pct}%`,
+            background: running ? "var(--color-text-tertiary)" : "var(--chart-blue)",
+          }}
+        />
       </div>
-      {!compact && started && (
+      {!compact && done && (
         <span style={partStyles.coverHint}>
           Coverage of assigned knowledge — not a score
         </span>
       )}
     </div>
+  );
+}
+
+// AdvanceButton — the hiring manager's stage-move control, shared across all
+// three variants (Board card / Table sidecar / Funnel list). The label is the
+// next stage's action ("Push to Interview", "Move to Offer", "Activate
+// candidate"…). The push out of AI Screening is visibly blocked until the
+// screening completes (INT-8) rather than failing silently — the human only
+// advances a candidate the AI has finished gathering evidence on. Terminal
+// stages (Hired) render nothing.
+export function AdvanceButton({ candidate, onAdvance, fullWidth = false }) {
+  const meta = STAGE_META[candidate.stage];
+  if (!meta?.advance) return null;
+  const blocked =
+    candidate.stage === "ai_screening" && candidate.screen.status !== "completed";
+  const isActivate = candidate.stage === "community";
+  return (
+    <Button
+      variant="primary"
+      fullWidth={fullWidth}
+      disabled={blocked}
+      leadingIcon={isActivate ? <RotateCcw size={15} /> : <ArrowRight size={15} />}
+      onClick={() => onAdvance?.(candidate.id)}
+      aria-label={
+        blocked
+          ? `${meta.advance} — available once ${candidate.name}'s AI screening completes`
+          : `${meta.advance} — ${candidate.name}`
+      }
+    >
+      {meta.advance}
+    </Button>
   );
 }
 
@@ -158,22 +196,6 @@ const partStyles = {
     display: "inline-flex", alignItems: "center", gap: 4,
     fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 600,
     color: "var(--color-text-tertiary)", whiteSpace: "nowrap",
-  },
-  maintain: {
-    display: "inline-flex", alignItems: "center", gap: 4,
-    fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 700,
-    letterSpacing: "0.2px", whiteSpace: "nowrap",
-  },
-  modeWrap: { display: "inline-flex", alignItems: "center", gap: 8 },
-  modeText: {
-    fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600,
-    color: "var(--color-text-tertiary)",
-  },
-  assisted: {
-    display: "inline-flex", alignItems: "center", height: 18, padding: "0 6px",
-    borderRadius: 4, background: "var(--color-icon-tertiary-bg)",
-    color: "var(--color-icon-tertiary-fg)", fontFamily: "var(--font-sans)",
-    fontSize: 10, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase",
   },
 
   coverWrap: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0 },
@@ -194,8 +216,7 @@ const partStyles = {
     background: "var(--grey-200)", overflow: "hidden",
   },
   coverFill: {
-    height: "100%", borderRadius: 999, background: "var(--chart-blue)",
-    transition: "width 150ms ease",
+    height: "100%", borderRadius: 999, transition: "width 150ms ease",
   },
   coverHint: {
     fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 400,

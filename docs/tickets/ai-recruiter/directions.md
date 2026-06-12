@@ -165,3 +165,75 @@ uses an outline form (visible, gate-passing) rather than the canonical double-ri
 and B's sidecar forks a bespoke drawer rather than a shared `Drawer` shell — both for
 **Neil**. And the parent ticket is still `Parking area` / `2027` with Neil's "map before
 build" note — these remain exploratory directions, not a committed build.
+
+---
+
+# Rework — candidate pipeline for the hiring manager (Notion comments, 12 Jun)
+
+Umesh's review re-pointed the surface. The first build designed the **team lead's
+interview-plan library**; the comments ask for the **hiring manager's end-to-end
+recruitment workflow**, candidate-first:
+
+> "There should be candidate pipeline view for AI recruiter for hiring manager.
+> I can't see any candidate details here, and after AI interview push for Interview
+> stage is missing." · "Create end-to-end hiring manager workflow of recruitment via
+> AI — screening round via AI, build a community of candidates which can get
+> activated and hired; business benefit: low time-to-hire, less manhours + budget."
+> · "It should be the 4th product on the left navigation below Ask Mira Pro."
+
+**Surface re-scoped** from *plan library* → **candidate pipeline**. New entity spine:
+**Candidate → AI Screening (AI Interviewer) → [AI evidence: coverage, not a verdict]
+→ human decides → Push to Interview → Offer → Hired**, with a **Talent Community**
+pool that can be re-activated. Three asks fold in across every variant: (1) a pipeline
+view, (2) candidate details, (3) a **Push to Interview** stage-advance after AI
+screening. Business value (time-to-hire, screening hours saved, cost per hire) is
+surfaced as labelled stats. Compliance spine unchanged: the AI reports coverage +
+evidence, never a verdict; the human owns every stage move (G4); screenings recorded.
+
+**Nav:** promoted out of Learning Hub into its own top-level **product**, 4th in the
+app switcher **below Ask Mira Pro** (`/recruiter/*`, default `/recruiter/pipeline`).
+
+## 10 candidate-pipeline directions
+
+- **R1 · Stage board (Kanban).** Candidate cards in stage columns (Applied · AI
+  Screening · Interview · Offer · Hired). Reuses MissionsKanban. Push-to-Interview =
+  explicit advance control on screened cards (no drag — keyboard-safe). The most
+  literal "pipeline view". Reuse 2 · affordance 2 · drill 2 · empty 2 · i18n 1. **45/52.**
+- **R2 · Candidate table + sidecar.** Dense table (Candidate · Role · Stage · AI
+  coverage · Applied · Last activity); row → sidecar with full candidate detail,
+  editable AI evidence (INT-7), and the Push-to-Interview / advance action. Reuses
+  Tasks table + the existing recruiter sidecar. Best for "candidate details" + UI-9.
+  Reuse 2 · affordance 2 · drill 2 · sidecar 2 · AI-start 2 · density 2. **48/52.**
+- **R3 · Funnel + ROI rail.** A stage funnel (counts + conversion) and the business
+  case (time-to-hire, screening hours saved, cost-per-hire — each labelled + based)
+  on the rail; a stage-filtered candidate list beside it; the Talent Community as a
+  re-activatable pool. Carries asks #1+#4. Reuse 2 · affordance 2 · drill 2 · empty 2
+  · identity/params 2 · AI-start 1. **45/52.**
+- **R4 · Single-candidate review-first feed.** Lead with the just-completed AI
+  screenings awaiting a decision. Strong for the decision moment, weak as the primary
+  *manage-the-pipeline* surface; demotes the funnel. **38/52.** Folded into R2's sidecar.
+- **R5 · Req-grouped accordion.** Group candidates under each open role/req. Clear
+  hierarchy but an extra layer before a candidate; slower scan. **38/52.**
+- **R6 · Split screening-queue vs. shortlist.** Two panes: AI-screening queue ↔
+  human-interview shortlist. Encodes the hand-off but halves each list at V1 volume.
+  **42/52.** Folded into R1 columns / R2 stage filter.
+- **R7 · Talent-community-first.** Lead with the pooled community + "activate" actions.
+  Good for ask #4's community loop, but buries the active pipeline. **36/52.** Community
+  absorbed into R3's rail + R1's column.
+- **R8 · Map/heat by coverage.** Candidates plotted on a coverage matrix. Risks an
+  abstract chart (G2) and a coverage-as-score read (G4). **30/52.** Out.
+- **R9 · Calendar/scheduling-led.** Interview scheduling as the spine. A downstream
+  concern, not the screening pipeline; needs backend. **28/52.** Hold.
+- **R10 · Conversational "ask the recruiter".** Free-form Q&A over candidates.
+  Hits the anti-chatbot rule (INT-11) head-on. **20/52.** Out.
+
+## The cut — top 3
+
+| Rank | Direction | Weighted | Why it won |
+|---|---|:--:|---|
+| 1 | **R2 · Candidate table + sidecar** → **B** | 48/52 | Directly answers "I can't see candidate details" + houses Push-to-Interview and the editable AI evidence (UI-9 + INT-7). Reuses the Tasks table and the existing sidecar wholesale. |
+| 2 | **R1 · Stage board** → **A** | 45/52 | The literal "candidate pipeline view" Umesh named; stage columns make the funnel legible; advance controls are explicit, not drag-only (keyboard-safe). |
+| 3 | **R3 · Funnel + ROI rail** → **C** | 45/52 | The only direction that surfaces the business case (time-to-hire, hours saved, cost) + the Talent-Community re-activation loop — asks #1 and #4 together. |
+
+**Mapped to the switcher:** A → R1 (Board) · B → R2 (Table) · C → R3 (Funnel).
+Old plan-library trio (D1/D2/D3) retired — candidate spine replaces it.

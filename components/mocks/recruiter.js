@@ -1,17 +1,19 @@
-// Mock data for the AI Recruiter (AI Interviewer) landing surface.
+// Mock data for the AI Recruiter (AI Interviewer) — hiring-manager surface.
 //
-// Entity model (from the ticket brief): Job Profile → Interview Plan →
-// Interview runs (candidate sessions) → AI evidence report → human hire
-// decision. The landing lists Interview Plans (the "survey/mentor"
-// template model). Compliance spine: coverage — never mastery; AI surfaces
-// evidence, the human owns the decision; sessions recorded for compliance.
+// Entity model (from the ticket brief + 12 Jun review): Candidate → AI
+// Screening (the AI Interviewer runs the screening round) → AI evidence
+// (coverage, never a verdict) → the hiring manager decides → Push to
+// Interview → Offer → Hired. A Talent Community pools candidates who can be
+// re-activated and hired later. Compliance spine: the AI reports how much of
+// the assigned knowledge a candidate covered — never whether they passed;
+// the human owns every stage move; screenings are recorded for compliance.
 //
-// Numbers carry their unit at the callsite (coverage % is paired with the
-// interview sample it's based on — "18 of 25" — so no figure is unexplained).
+// Every number carries its unit at the callsite (coverage is "13 of 18
+// topics", ROI stats state their basis), so no figure is unexplained.
 
-// Job family → tint token pair. Tints come straight from the Settings
-// pastel tile palette in globals.css (no new tokens). Colour marks a true
-// difference in kind (job family), not decoration.
+// Job family → tint token pair. Tints come straight from the Settings pastel
+// tile palette in globals.css (no new tokens). Colour marks a true difference
+// in kind (job family), not decoration.
 export const FAMILY_TINTS = {
   support:    { bg: "var(--tile-blue-bg)",    fg: "var(--tile-blue-fg)" },
   sales:      { bg: "var(--tile-emerald-bg)", fg: "var(--tile-emerald-fg)" },
@@ -19,16 +21,6 @@ export const FAMILY_TINTS = {
   onboarding: { bg: "var(--tile-orange-bg)",  fg: "var(--tile-orange-fg)" },
   compliance: { bg: "var(--tile-cyan-bg)",    fg: "var(--tile-cyan-fg)" },
   field:      { bg: "var(--tile-rose-bg)",    fg: "var(--tile-rose-fg)" },
-};
-
-// Job family → lucide icon name (resolved to a component in the views).
-export const FAMILY_ICONS = {
-  support:    "Headset",
-  sales:      "TrendingUp",
-  retention:  "ShieldCheck",
-  onboarding: "Rocket",
-  compliance: "Scale",
-  field:      "Wrench",
 };
 
 export const FAMILY_LABELS = {
@@ -40,178 +32,161 @@ export const FAMILY_LABELS = {
   field:      "Field Ops",
 };
 
-// status: "live" (collecting interviews) · "draft" (not published) ·
-// "archived". mode: how questions are chosen. maintainedBy: who keeps the
-// knowledge current. coverage.pct is knowledge coverage; coverage.of /
-// coverage.from is the interview sample it summarises.
-export const INTERVIEW_PLANS = [
-  {
-    id: "ip-bridge-support",
-    name: "Bridge-knowledge — Tier 1 Support",
-    jobProfile: "Tier 1 Support Advisor",
-    family: "support",
-    domain: "Billing · Account · Connectivity",
-    mode: "Adaptive interview",
-    assisted: false,
-    status: "live",
-    interviewsRun: 25,
-    candidatesInvited: 31,
-    coverage: { pct: 72, covered: 13, total: 18, from: 25 }, // 13 of 18 topics, across 25 interviews
-    lastRun: "2026-06-11",
-    maintainedBy: "ai",
-    createdBy: { name: "Umesh Pisal", initial: "U" },
-  },
-  {
-    id: "ip-objection-sales",
-    name: "Objection handling — Inside Sales",
-    jobProfile: "Inside Sales Rep",
-    family: "sales",
-    domain: "Discovery · Pricing · Close",
-    mode: "Generated set",
-    assisted: true,
-    status: "live",
-    interviewsRun: 18,
-    candidatesInvited: 22,
-    coverage: { pct: 64, covered: 9, total: 14, from: 18 },
-    lastRun: "2026-06-10",
-    maintainedBy: "self",
-    createdBy: { name: "Carlos Mendes", initial: "C" },
-  },
-  {
-    id: "ip-retention-saves",
-    name: "Save-desk readiness — Retention",
-    jobProfile: "Retention Specialist",
-    family: "retention",
-    domain: "Churn signals · Offers · Compliance",
-    mode: "Adaptive interview",
-    assisted: false,
-    status: "live",
-    interviewsRun: 12,
-    candidatesInvited: 20,
-    coverage: { pct: 58, covered: 7, total: 12, from: 12 },
-    lastRun: "2026-06-09",
-    maintainedBy: "ai",
-    createdBy: { name: "Ayushi Rana", initial: "A" },
-  },
-  {
-    id: "ip-onboarding-induction",
-    name: "Induction check — New-hire Onboarding",
-    jobProfile: "Onboarding Cohort (any LOB)",
-    family: "onboarding",
-    domain: "Systems · Policy · Tooling",
-    mode: "Generated set",
-    assisted: true,
-    status: "live",
-    interviewsRun: 41,
-    candidatesInvited: 45,
-    coverage: { pct: 86, covered: 12, total: 14, from: 41 },
-    lastRun: "2026-06-11",
-    maintainedBy: "ai",
-    createdBy: { name: "Saurabh Nehe", initial: "S" },
-  },
-  {
-    id: "ip-field-warranty",
-    name: "Warranty process — Field Technician",
-    jobProfile: "Field Service Technician",
-    family: "field",
-    domain: "Diagnosis · Parts · Logistics",
-    mode: "Adaptive interview",
-    assisted: false,
-    status: "draft",
-    interviewsRun: 0,
-    candidatesInvited: 0,
-    coverage: { pct: 0, covered: 0, total: 16, from: 0 },
-    lastRun: null,
-    maintainedBy: "self",
-    createdBy: { name: "Umesh Pisal", initial: "U" },
-  },
-  {
-    id: "ip-compliance-kyc",
-    name: "KYC & disclosure — Compliance screen",
-    jobProfile: "Compliance Associate",
-    family: "compliance",
-    domain: "KYC · Disclosure · Recording rules",
-    mode: "Generated set",
-    assisted: false,
-    status: "draft",
-    interviewsRun: 0,
-    candidatesInvited: 0,
-    coverage: { pct: 0, covered: 0, total: 11, from: 0 },
-    lastRun: null,
-    maintainedBy: "self",
-    createdBy: { name: "Neil Desai", initial: "N" },
-  },
-  {
-    id: "ip-tribal-supply",
-    name: "Tribal-knowledge map — Supply Chain",
-    jobProfile: "Supply Partner Liaison",
-    family: "field",
-    domain: "Component · Supplier · Escalation",
-    mode: "Adaptive interview",
-    assisted: false,
-    status: "archived",
-    interviewsRun: 6,
-    candidatesInvited: 6,
-    coverage: { pct: 49, covered: 5, total: 13, from: 6 },
-    lastRun: "2026-05-20",
-    maintainedBy: "self",
-    createdBy: { name: "Sandeep Roy", initial: "S" },
-  },
-  {
-    id: "ip-upsell-care",
-    name: "Care-to-upsell — Premium Desk",
-    jobProfile: "Premium Care Advisor",
-    family: "sales",
-    domain: "Needs · Offer fit · Consent",
-    mode: "Generated set",
-    assisted: true,
-    status: "archived",
-    interviewsRun: 9,
-    candidatesInvited: 14,
-    coverage: { pct: 67, covered: 8, total: 12, from: 9 },
-    lastRun: "2026-05-28",
-    maintainedBy: "ai",
-    createdBy: { name: "Carlos Mendes", initial: "C" },
-  },
+// Pipeline stages, in order. `community` is the off-pipeline talent pool —
+// re-activatable, so it sits outside the linear funnel. Each stage carries a
+// tile tint (paired with its label everywhere, never colour alone — G9) and
+// the label of the action that advances a candidate OUT of it. `null` advance
+// label = terminal or manual-only stage.
+export const STAGES = [
+  { id: "applied",      label: "Applied",      advance: "Start AI screening", next: "ai_screening", tint: { bg: "var(--pill-bg)",        fg: "var(--color-text-medium)" } },
+  { id: "ai_screening", label: "AI Screening", advance: "Push to Interview",  next: "interview",    tint: { bg: "var(--tile-blue-bg)",   fg: "var(--tile-blue-fg)" } },
+  { id: "interview",    label: "Interview",    advance: "Move to Offer",      next: "offer",        tint: { bg: "var(--tile-violet-bg)", fg: "var(--tile-violet-fg)" } },
+  { id: "offer",        label: "Offer",        advance: "Mark Hired",         next: "hired",        tint: { bg: "var(--tile-orange-bg)", fg: "var(--tile-orange-fg)" } },
+  { id: "hired",        label: "Hired",        advance: null,                 next: null,           tint: { bg: "var(--tile-emerald-bg)", fg: "var(--tile-emerald-fg)" } },
 ];
 
-export const STATUS_META = {
-  live:     { label: "Live", tone: "success" },
-  draft:    { label: "Draft", tone: "info" },
-  archived: { label: "Archived", tone: "neutral" },
+// Talent Community — separate stage descriptor; activation re-enters a
+// candidate into the live pipeline at "Applied".
+export const COMMUNITY_STAGE = {
+  id: "community", label: "Talent Community", advance: "Activate candidate",
+  next: "applied", tint: { bg: "var(--tile-cyan-bg)", fg: "var(--tile-cyan-fg)" },
 };
 
-// tabCounts — live / draft / archived tallies for the tab strip.
-export function planCounts(plans) {
-  return plans.reduce(
-    (acc, p) => { acc[p.status] += 1; return acc; },
-    { live: 0, draft: 0, archived: 0 },
-  );
-}
+export const STAGE_META = [...STAGES, COMMUNITY_STAGE].reduce((acc, s) => {
+  acc[s.id] = s;
+  return acc;
+}, {});
 
-// Aggregate coverage rail (variant C). Each topic carries the interviews
-// that touched it AND the sample it's drawn from, so the figure is never
-// unexplained ("covered in 22 of 25 interviews"). Across live plans only.
-export const TOPIC_COVERAGE = [
-  { topic: "Identity verification",   covered: 24, from: 25 },
-  { topic: "Billing dispute path",    covered: 21, from: 25 },
-  { topic: "Plan & tariff changes",   covered: 18, from: 25 },
-  { topic: "Retention offer rules",   covered: 12, from: 25 },
-  { topic: "Disclosure & consent",    covered: 9,  from: 25 },
-  { topic: "Escalation thresholds",   covered: 6,  from: 25 },
+// screen.status: "completed" (evidence available) · "in_progress" (AI
+// Interviewer running) · "not_started". coverage = topics the candidate
+// covered out of those assigned to the role's screening (per-candidate; the
+// aggregate sample lives in funnelStats). `thin` = count of assigned topics
+// with the thinnest coverage, surfaced as a follow-up cue (not a score).
+export const CANDIDATES = [
+  {
+    id: "c-aanya", name: "Aanya Sharma", initial: "AS",
+    role: "Tier 1 Support Advisor", family: "support", source: "Inbound",
+    stage: "ai_screening",
+    screen: { status: "completed", coverage: { covered: 15, total: 18 }, thin: 1, completedAt: "2026-06-11" },
+    appliedAt: "2026-06-07", lastActivity: "AI screening completed",
+  },
+  {
+    id: "c-diego", name: "Diego Fernández", initial: "DF",
+    role: "Inside Sales Rep", family: "sales", source: "Referral",
+    stage: "ai_screening",
+    screen: { status: "completed", coverage: { covered: 11, total: 14 }, thin: 2, completedAt: "2026-06-11" },
+    appliedAt: "2026-06-06", lastActivity: "AI screening completed",
+  },
+  {
+    id: "c-meera", name: "Meera Iyer", initial: "MI",
+    role: "Retention Specialist", family: "retention", source: "Sourced",
+    stage: "ai_screening",
+    screen: { status: "in_progress", coverage: { covered: 4, total: 12 }, thin: null, completedAt: null },
+    appliedAt: "2026-06-09", lastActivity: "AI screening in progress",
+  },
+  {
+    id: "c-pavel", name: "Pavel Novak", initial: "PN",
+    role: "Onboarding Cohort (any LOB)", family: "onboarding", source: "Inbound",
+    stage: "applied",
+    screen: { status: "not_started", coverage: { covered: 0, total: 14 }, thin: null, completedAt: null },
+    appliedAt: "2026-06-11", lastActivity: "Application received",
+  },
+  {
+    id: "c-leila", name: "Leila Haddad", initial: "LH",
+    role: "Compliance Associate", family: "compliance", source: "Inbound",
+    stage: "applied",
+    screen: { status: "not_started", coverage: { covered: 0, total: 11 }, thin: null, completedAt: null },
+    appliedAt: "2026-06-10", lastActivity: "Application received",
+  },
+  {
+    id: "c-tomas", name: "Tomás Ribeiro", initial: "TR",
+    role: "Field Service Technician", family: "field", source: "Sourced",
+    stage: "applied",
+    screen: { status: "not_started", coverage: { covered: 0, total: 16 }, thin: null, completedAt: null },
+    appliedAt: "2026-06-10", lastActivity: "Application received",
+  },
+  {
+    id: "c-hana", name: "Hana Kobayashi", initial: "HK",
+    role: "Premium Care Advisor", family: "sales", source: "Referral",
+    stage: "interview",
+    screen: { status: "completed", coverage: { covered: 13, total: 15 }, thin: 1, completedAt: "2026-06-09" },
+    appliedAt: "2026-06-04", lastActivity: "Pushed to Interview",
+  },
+  {
+    id: "c-omar", name: "Omar Al-Rashid", initial: "OA",
+    role: "Tier 1 Support Advisor", family: "support", source: "Inbound",
+    stage: "interview",
+    screen: { status: "completed", coverage: { covered: 14, total: 18 }, thin: 2, completedAt: "2026-06-08" },
+    appliedAt: "2026-06-03", lastActivity: "Pushed to Interview",
+  },
+  {
+    id: "c-sofia", name: "Sofia Almeida", initial: "SA",
+    role: "Retention Specialist", family: "retention", source: "Sourced",
+    stage: "offer",
+    screen: { status: "completed", coverage: { covered: 11, total: 12 }, thin: 0, completedAt: "2026-06-05" },
+    appliedAt: "2026-05-30", lastActivity: "Offer extended",
+  },
+  {
+    id: "c-noah", name: "Noah Williams", initial: "NW",
+    role: "Onboarding Cohort (any LOB)", family: "onboarding", source: "Referral",
+    stage: "hired",
+    screen: { status: "completed", coverage: { covered: 13, total: 14 }, thin: 0, completedAt: "2026-05-28" },
+    appliedAt: "2026-05-22", lastActivity: "Hired",
+  },
+  {
+    id: "c-yuki", name: "Yuki Tanaka", initial: "YT",
+    role: "Inside Sales Rep", family: "sales", source: "Inbound",
+    stage: "hired",
+    screen: { status: "completed", coverage: { covered: 12, total: 14 }, thin: 1, completedAt: "2026-05-26" },
+    appliedAt: "2026-05-20", lastActivity: "Hired",
+  },
+  {
+    id: "c-fatima", name: "Fatima Zahra", initial: "FZ",
+    role: "Compliance Associate", family: "compliance", source: "Community",
+    stage: "community",
+    screen: { status: "completed", coverage: { covered: 9, total: 11 }, thin: 1, completedAt: "2026-04-18" },
+    appliedAt: "2026-04-12", lastActivity: "Added to community",
+  },
+  {
+    id: "c-victor", name: "Victor Costa", initial: "VC",
+    role: "Field Service Technician", family: "field", source: "Community",
+    stage: "community",
+    screen: { status: "completed", coverage: { covered: 10, total: 16 }, thin: 3, completedAt: "2026-03-30" },
+    appliedAt: "2026-03-24", lastActivity: "Added to community",
+  },
 ];
 
-// Headline figures for the aggregate rail — each rendered with its unit
-// and, where it's a coverage figure, its sample basis.
-export function aggregateStats(plans) {
-  const live = plans.filter((p) => p.status === "live");
-  const interviews = live.reduce((n, p) => n + p.interviewsRun, 0);
-  const invited = live.reduce((n, p) => n + p.candidatesInvited, 0);
+// stageCounts — tally candidates per stage id (includes community).
+export function stageCounts(candidates) {
+  return candidates.reduce((acc, c) => {
+    acc[c.stage] = (acc[c.stage] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+// funnelStats — the business case the hiring manager reports up. Every figure
+// carries its unit and its basis (G3); ROI is framed against the manual
+// screening baseline, never as an absolute claim.
+export function funnelStats(candidates) {
+  const counts = stageCounts(candidates);
+  const screened = candidates.filter((c) => c.screen.status === "completed").length;
   return {
-    livePlans: live.length,
-    interviews,
-    invited,
-    // Interviews logged in the trailing 7 days (demo-fixed).
-    thisWeek: 14,
+    counts,
+    // AI screenings completed this quarter (drives the "hours saved" basis).
+    screened,
+    // Avg time-to-hire vs the manual baseline. Days, labelled at callsite.
+    timeToHire: { days: 9, baselineDays: 21 },
+    // Screening hours the AI Interviewer absorbed this quarter vs doing the
+    // first round by hand (~1.5h/candidate). Hours, this quarter.
+    hoursSaved: { hours: 312, period: "this quarter" },
+    // Cost per hire vs the manual screening baseline. Percentage lower.
+    costPerHire: { pctLower: 38, basis: "vs. manual first-round screening" },
   };
+}
+
+// FUNNEL_STAGES — the ordered live pipeline (excludes community) used to draw
+// the conversion funnel. Each carries the count for its stage.
+export function funnelRows(candidates) {
+  const counts = stageCounts(candidates);
+  return STAGES.map((s) => ({ ...s, count: counts[s.id] || 0 }));
 }

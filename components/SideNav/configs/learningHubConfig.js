@@ -1,6 +1,6 @@
 "use client";
 
-import { DrillIcon, InteractionsIcon, AgentsIcon, MissionsIcon, GuideIcon, ReplayIcon, FaceScanIcon } from "../icons";
+import { DrillIcon, InteractionsIcon, AgentsIcon, MissionsIcon, GuideIcon, ReplayIcon } from "../icons";
 
 // Per-module config: ONLY the middle-section icon set + their routing data.
 // Chrome (rail, brand, app switcher trigger, footer, avatar) is owned by SideNav.
@@ -56,15 +56,6 @@ export const learningHubConfig = {
       Icon: ReplayIcon,
       route: "/learning/replay",
       beta: true,
-    },
-    {
-      id: "recruiter",
-      label: "AI Recruiter",
-      Icon: FaceScanIcon,
-      route: "/learning/recruiter",
-      // Exploratory surface (Notion ticket parked / 2027) — flagged WIP on
-      // the rail so it never reads as a shipped module.
-      wip: true,
     },
   ],
 };
