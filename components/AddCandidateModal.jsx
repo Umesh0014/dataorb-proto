@@ -87,6 +87,8 @@ export default function AddCandidateModal({ open, onClose, onAdd }) {
               value={form.name}
               onChange={set("name")}
               placeholder="e.g. Priya Anand"
+              aria-invalid={error && !form.name.trim() ? true : undefined}
+              aria-describedby={error ? "add-cand-error" : undefined}
               style={s.input}
             />
           </Field>
@@ -99,6 +101,8 @@ export default function AddCandidateModal({ open, onClose, onAdd }) {
               value={form.role}
               onChange={set("role")}
               placeholder="e.g. Tier 1 Support Advisor"
+              aria-invalid={error && !form.role.trim() ? true : undefined}
+              aria-describedby={error ? "add-cand-error" : undefined}
               style={s.input}
             />
           </Field>
@@ -118,7 +122,7 @@ export default function AddCandidateModal({ open, onClose, onAdd }) {
             </Field>
           </div>
 
-          {error && <p style={s.error} role="alert">{error}</p>}
+          {error && <p id="add-cand-error" style={s.error} role="alert">{error}</p>}
         </div>
       }
     />

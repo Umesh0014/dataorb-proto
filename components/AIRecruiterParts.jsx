@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, RotateCcw, ShieldCheck } from "lucide-react";
 import Button from "./Button";
 import { FAMILY_TINTS, STAGE_META } from "./mocks/recruiter";
 

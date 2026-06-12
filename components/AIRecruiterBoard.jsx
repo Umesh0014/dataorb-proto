@@ -121,7 +121,7 @@ function CandidateCard({ candidate, selected, onOpen }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       aria-label={`${candidate.name} — open candidate details`}
-      style={{ ...s.card, boxShadow: hover ? "0 6px 16px rgba(69, 70, 79, 0.16)" : "var(--shadow-card)" }}
+      style={{ ...s.card, boxShadow: hover ? "var(--shadow-4)" : "var(--shadow-card)" }}
     >
       {selected && <SelectionAccentBar />}
       <div style={s.cardTitleRow}>

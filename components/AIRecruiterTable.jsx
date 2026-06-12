@@ -101,6 +101,7 @@ export default function AIRecruiterTable({ candidates, onAdvance, onOpenCandidat
             <Search size={18} color="var(--color-text-placeholder)" />
             <input
               type="text"
+              className="recruiter-focusable"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search candidates by name or role"
@@ -299,7 +300,7 @@ const s = {
   },
   identLabel: { marginLeft: 8, fontSize: 18, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
   row2: { display: "flex", alignItems: "center", gap: 12 },
-  searchInput: { flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--color-text-deep)" },
+  searchInput: { flex: 1, minWidth: 0, border: "none", background: "transparent", fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--color-text-deep)" },
   iconGroup: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
 
   sortWrap: { position: "relative", flexShrink: 0 },
