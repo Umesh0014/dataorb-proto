@@ -231,7 +231,12 @@ export default function VersionBar({
     baselineOptions.find((o) => o.id === baselineId) || baselineOptions[0];
   // Chips = every version that isn't the baseline option being displayed.
   // Empty versions array → no chips, no first divider.
-  const chips = versions.filter((v) => v.id !== baselineSelected?.id);
+  // Chips = every version that isn't a baseline option. Filtering on
+  // the full baselineOptions set (not just the active one) keeps the
+  // unpicked baseline (e.g. "current" while "updated" is active) from
+  // appearing as a chip — it lives in the dropdown only.
+  const baselineIds = new Set(baselineOptions.map((o) => o.id));
+  const chips = versions.filter((v) => !baselineIds.has(v.id));
   const hasChips = chips.length > 0;
 
   return (
