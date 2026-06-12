@@ -17,6 +17,8 @@ import {
   Meh,
   Activity,
   User,
+  BookOpen,
+  Check,
 } from "lucide-react";
 import Button from "./Button";
 import Card from "./Card";
@@ -514,6 +516,7 @@ const VERSION_TO_OPT = {
 
 function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange }) {
   const [opt, setOpt] = React.useState("O1");
+  const [iter, setIter] = React.useState("i1");
   const [activeAgent, setActiveAgent] = React.useState(null);
 
   if (!data) return null;
@@ -528,16 +531,23 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
   //   right-column layout via onDesignVerChange.
   // - "v1" / "v2" / "v3" are chip picks → swap which O1/O2/O3 layout
   //   renders (Updated-design only; ignored under Current design).
-  const handleVersionChange = ({ versionId }) => {
+  // - iterationId is captured separately; layout variants can render
+  //   different content per iteration (today: v2 / i1 → numbered
+  //   protocol with outcome chips).
+  const handleVersionChange = ({ versionId, iterationId }) => {
     if (versionId === "current" || versionId === "updated") {
       onDesignVerChange?.(versionId);
       clearAgent();
       return;
     }
-    const nextOpt = VERSION_TO_OPT[versionId] || "O1";
-    if (nextOpt === opt) return;
-    clearAgent();
-    setOpt(nextOpt);
+    const nextOpt = VERSION_TO_OPT[versionId];
+    if (nextOpt && nextOpt !== opt) {
+      clearAgent();
+      setOpt(nextOpt);
+    }
+    if (iterationId && iterationId !== iter) {
+      setIter(iterationId);
+    }
   };
 
   // VersionBar.value drives the baseline label (it always tracks the
@@ -551,6 +561,9 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
   };
 
   const shared = { data, activeAgent, onSetAgent: toggleAgent, onClearAgent: clearAgent };
+  // v2 / i1 has its own layout (numbered protocol + outcome chips).
+  // Other v2 iterations fall back to the existing Option B for now.
+  const showV2I1 = opt === "O2" && iter === "i1";
 
   return (
     <div style={pbStyles.detail}>
@@ -559,7 +572,8 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
       ) : (
         <>
           {opt === "O1" && <PlaybookOptionA {...shared} />}
-          {opt === "O2" && <PlaybookOptionB {...shared} />}
+          {showV2I1 && <PlaybookV2I1 data={PLAYBOOK_V2_I1_MOCK} />}
+          {opt === "O2" && !showV2I1 && <PlaybookOptionB {...shared} />}
           {opt === "O3" && <PlaybookOptionC {...shared} />}
         </>
       )}
@@ -810,6 +824,350 @@ const cdStyles = {
     position: "absolute",
     left: 4,
     color: "var(--color-text-tertiary)",
+  },
+};
+
+// ---- v2 / i1 — evidence-first + numbered protocol w/ outcome chips ------
+// Dedicated layout reached by picking v2 → i1 in the VersionBar. Sister
+// to PlaybookOptionB but: tag chips collapse to a single secondary, the
+// evidence grid surfaces per-agent outcome chips, and the protocol is a
+// numbered list with full descriptions instead of mood-faces + bullets.
+const PLAYBOOK_V2_I1_MOCK = {
+  keyTag: "Price pressure",
+  secondaryTag: "Returns · Urgent",
+  whyText:
+    "Full authentication up front and an early intent check kept the flow linear, so the price-driven cancellation resolved in a single pass.",
+  agents: [
+    { id: "SI", name: "Sara I.",   messages: 6, stages: "greeting, Closing",      outcome: "Resolved, 1-touch" },
+    { id: "AM", name: "Aditi M.",  messages: 8, stages: "Authentication",         outcome: "Retained" },
+    { id: "TN", name: "Tarun N.",  messages: 6, stages: "Discovery",              outcome: "Cancelled cleanly" },
+    { id: "RK", name: "Rohan K.",  messages: 8, stages: "Solution, Resolution",   outcome: "Resolved" },
+  ],
+  protocol: [
+    { n: 1, title: "Initial greeting",       description: "Greeted customer and asked for name and concern.",                                                                                         refs: [1, 2] },
+    { n: 2, title: "Authentication",         description: "Requested and received ID, full name, and last four of order number. Confirmed identity before sharing account details.",                  refs: [5, 12] },
+    { n: 3, title: "Discovery & probing",    description: "Confirmed customer had multiple returns. Identified specific handbag and price. Confirmed intent to cancel the return.",                   refs: [13, 18] },
+    { n: 4, title: "Solution presentation",  description: "Explained they would initiate cancellation and forward to the department. Marked the request as urgent.",                                  refs: [19, 23] },
+    { n: 5, title: "Resolution confirmation", description: "Customer confirmed understanding and satisfaction with the action taken. Agent confirmed no further assistance needed.",                  refs: [28, 30] },
+    { n: 6, title: "Closing",                description: "Wished customer a nice afternoon. Customer reciprocated good wishes.",                                                                     refs: [29, 32] },
+  ],
+};
+
+function PlaybookV2I1({ data }) {
+  const [whyOpen, setWhyOpen] = React.useState(false);
+  return (
+    <div style={v2i1.body}>
+      <div style={v2i1.hero}>
+        <span style={v2i1.heroTile}>
+          <BookOpen size={22} color="var(--color-icon-tertiary-fg)" />
+        </span>
+        <div>
+          <h3 style={v2i1.heroTitle}>Agent playbook</h3>
+          <div style={v2i1.tagRow}>
+            <span style={v2i1.keyTag}>{data.keyTag}</span>
+            <span style={v2i1.outlineTag}>{data.secondaryTag}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={v2i1.whyCard}>
+        <div style={v2i1.whyHeader}>
+          <span style={v2i1.whyBulb}>💡</span>
+          <span style={v2i1.whyTitle}>Why this approach works</span>
+        </div>
+        <p style={v2i1.whyText}>
+          {whyOpen ? data.whyText : `${data.whyText.slice(0, 130)}…`}
+        </p>
+        <button
+          type="button"
+          onClick={() => setWhyOpen((v) => !v)}
+          style={v2i1.whyMore}
+          aria-expanded={whyOpen}
+        >
+          {whyOpen ? "See less" : "See more"}
+        </button>
+      </div>
+
+      <div>
+        <div style={v2i1.sectLabel}>
+          <User size={14} color="var(--color-text-medium)" />
+          <span>Built from {data.agents.length} agent interactions</span>
+        </div>
+        <div style={v2i1.sectSub}>Each card is a source interaction · chip = the outcome it achieved</div>
+        <div style={v2i1.agentsGrid}>
+          {data.agents.map((a) => (
+            <V2I1AgentCard key={a.id} agent={a} />
+          ))}
+        </div>
+      </div>
+
+      <div style={v2i1.protocolHeading}>The protocol</div>
+      <div style={v2i1.protocolList}>
+        {data.protocol.map((step, i) => (
+          <V2I1ProtocolRow key={step.n} step={step} isLast={i === data.protocol.length - 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function V2I1AgentCard({ agent }) {
+  const ramp = PB_AGENTS[agent.id] || PB_AGENTS.SI;
+  return (
+    <div style={v2i1.agentCard}>
+      <div style={v2i1.agentCardHead}>
+        <span style={{ ...v2i1.agentAvatar, background: ramp.bg, color: ramp.text }}>{agent.id}</span>
+        <span style={v2i1.agentName}>{agent.name}</span>
+      </div>
+      <div style={v2i1.agentMeta}>{agent.messages} messages · {agent.stages}</div>
+      <span style={v2i1.outcomeChip}>
+        <Check size={12} color="#1F8C45" />
+        <span>{agent.outcome}</span>
+      </span>
+    </div>
+  );
+}
+
+function V2I1ProtocolRow({ step, isLast }) {
+  return (
+    <div
+      style={{
+        ...v2i1.protocolRow,
+        borderBottom: isLast ? "none" : "1px solid var(--color-divider-card)",
+      }}
+    >
+      <span style={v2i1.stepNumber}>{step.n}</span>
+      <div style={v2i1.stepBody}>
+        <div style={v2i1.stepHead}>
+          <span style={v2i1.stepTitle}>{step.title}</span>
+          <span style={v2i1.refChip}>#{step.refs[0]}–{step.refs[1]}</span>
+        </div>
+        <div style={v2i1.stepDesc}>{step.description}</div>
+      </div>
+    </div>
+  );
+}
+
+const v2i1 = {
+  body: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+    paddingInline: 2,
+  },
+  hero: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  heroTile: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    background: "var(--color-icon-tertiary-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTitle: {
+    margin: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 22,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.15,
+  },
+  tagRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
+  keyTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: "#FAECE7",
+    color: "#712B13",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: "5px 10px",
+    borderRadius: 10,
+    fontFamily: "var(--font-sans)",
+  },
+  outlineTag: {
+    fontSize: 12,
+    color: "var(--color-text-medium)",
+    padding: "5px 10px",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+    fontFamily: "var(--font-sans)",
+  },
+  whyCard: {
+    background: "#EFF6FF",
+    borderRadius: 10,
+    padding: "14px 16px",
+  },
+  whyHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  whyBulb: { fontSize: 14, lineHeight: 1 },
+  whyTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  whyText: {
+    margin: 0,
+    fontSize: 13,
+    lineHeight: 1.55,
+    color: "var(--color-text-deep)",
+  },
+  whyMore: {
+    background: "transparent",
+    border: "none",
+    color: "var(--color-button-primary-bg)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: "6px 0 0",
+  },
+  sectLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  sectSub: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    margin: "2px 0 10px",
+  },
+  agentsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  },
+  agentCard: {
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+    padding: 11,
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    background: "var(--surface-white)",
+  },
+  agentCardHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  agentAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  agentName: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+  },
+  agentMeta: {
+    fontSize: 11,
+    color: "var(--color-text-tertiary)",
+    lineHeight: 1.4,
+  },
+  outcomeChip: {
+    alignSelf: "flex-start",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: "#E6FAEB",
+    color: "#1F8C45",
+    paddingInline: 8,
+    paddingBlock: 3,
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+  },
+  protocolHeading: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 15,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    marginTop: 4,
+  },
+  protocolList: {
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  protocolRow: {
+    display: "grid",
+    gridTemplateColumns: "28px 1fr",
+    gap: 12,
+    padding: "14px 16px",
+    alignItems: "flex-start",
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: "50%",
+    background: "var(--color-card-emoji-bg)",
+    color: "var(--color-text-medium)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+    fontWeight: 700,
+    marginTop: 2,
+  },
+  stepBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    minWidth: 0,
+  },
+  stepHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  stepTitle: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  refChip: {
+    flexShrink: 0,
+    background: "var(--color-icon-tertiary-bg)",
+    color: "var(--color-icon-tertiary-fg)",
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "3px 8px",
+    borderRadius: 6,
+    fontFamily: "var(--font-sans)",
+    whiteSpace: "nowrap",
+  },
+  stepDesc: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    lineHeight: 1.55,
   },
 };
 
