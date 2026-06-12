@@ -357,32 +357,25 @@ function Transcript({ turns, steps }) {
   );
 }
 
+// Claude-like light chat: the agent (you) is the "user" — a right-aligned
+// rectangular pill on a light background; the simulated customer is the
+// "assistant" — plain left-aligned text. Speaker label + timestamp stay so
+// the transcript reads back clearly.
 function ConversationTurn({ turn, stepLabel }) {
   const isAgent = turn.speaker === "AGENT";
   return (
-    <div style={styles.turn}>
+    <div style={isAgent ? styles.turnAgent : styles.turnCustomer}>
       <div style={styles.turnHead}>
-        <span style={styles.turnDot} aria-hidden="true" />
-        <span
-          style={{
-            ...styles.turnSpeaker,
-            color: isAgent ? "var(--color-text-deep)" : "var(--color-text-tertiary)",
-          }}
-        >
-          {turn.speaker}
-        </span>
+        <span style={styles.turnSpeaker}>{isAgent ? "Agent (you)" : "Customer"}</span>
         <span style={styles.turnTimestamp}>{turn.timestamp}</span>
       </div>
-      <div style={styles.turnBodyWrap}>
-        <p
-          style={{
-            ...styles.turnBody,
-            color: isAgent ? "var(--color-text-deep)" : "var(--color-text-tertiary)",
-          }}
-        >
-          {turn.body}
-        </p>
-      </div>
+      {isAgent ? (
+        <div style={styles.agentBubble}>
+          <p style={styles.agentBody}>{turn.body}</p>
+        </div>
+      ) : (
+        <p style={styles.customerBody}>{turn.body}</p>
+      )}
       {stepLabel && (
         <span style={styles.turnStepTag}>
           <CheckCircle2 size={13} color="var(--color-success)" aria-hidden="true" />
@@ -914,29 +907,44 @@ const styles = {
   // Conversation column
   convCol: {
     flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
-    background: "var(--surface-dim)", padding: "16px 24px",
+    background: "var(--surface-white)", padding: "16px 24px",
   },
   transcript: {
     flex: 1, minHeight: 0, overflowY: "auto",
     display: "flex", flexDirection: "column", paddingBottom: 16,
   },
-  turn: { display: "flex", flexDirection: "column", padding: "12px", gap: 4 },
-  turnHead: { display: "inline-flex", alignItems: "center", gap: 12 },
-  turnDot: { width: 4, height: 4, borderRadius: 999, background: "var(--color-text-deep)" },
+  turnAgent: {
+    display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, padding: "10px 4px",
+  },
+  turnCustomer: {
+    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "10px 4px",
+  },
+  turnHead: { display: "inline-flex", alignItems: "center", gap: 10 },
   turnSpeaker: {
-    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500, letterSpacing: "0.1px",
+    fontSize: 12, fontWeight: 700, letterSpacing: "0.1px", color: "var(--color-text-tertiary)",
   },
   turnTimestamp: {
-    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 400, letterSpacing: "0.4px",
-    color: "var(--color-text-placeholder)",
+    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 400, letterSpacing: "0.4px",
+    color: "var(--color-text-tertiary)",
   },
-  turnBodyWrap: { paddingLeft: 16, borderLeft: "2px solid var(--color-text-deep)" },
-  turnBody: {
-    margin: 0, fontSize: 14, fontWeight: 400, lineHeight: 1.5, letterSpacing: "0.17px",
-    whiteSpace: "pre-wrap",
+  // Agent = "user" message: rectangular pill, light background, right-aligned.
+  agentBubble: {
+    maxWidth: "82%",
+    background: "var(--color-chip-bg)",
+    borderRadius: 12,
+    padding: "12px 16px",
+  },
+  agentBody: {
+    margin: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.55, letterSpacing: "0.1px",
+    color: "var(--color-text-deep)", whiteSpace: "pre-wrap",
+  },
+  // Customer = "assistant" message: plain left-aligned text, no pill.
+  customerBody: {
+    margin: 0, maxWidth: "88%", fontSize: 14, fontWeight: 400, lineHeight: 1.6, letterSpacing: "0.1px",
+    color: "var(--color-text-medium)", whiteSpace: "pre-wrap",
   },
   turnStepTag: {
-    display: "inline-flex", alignItems: "center", gap: 6, paddingLeft: 16, marginTop: 2,
+    display: "inline-flex", alignItems: "center", gap: 6, marginTop: 2,
   },
   turnStepTagLabel: {
     fontSize: 12, fontWeight: 600, color: "var(--color-success)",

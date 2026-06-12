@@ -660,6 +660,7 @@ export default function Page() {
         <DrillDetailPage
           cardId={drillDetailId}
           onBack={() => setDrillDetailId(null)}
+          onStartGuided={() => router.push("/learning/guided-drill")}
         />
       );
     } else if (onAgents && agentProfileId) {

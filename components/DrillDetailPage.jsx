@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ExternalLink,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
@@ -24,7 +25,7 @@ const DIFFICULTY_PALETTE = {
 // Composed from existing primitives: Card, TabsRow, Toggle, ComingSoon.
 // All visual decisions inherit from existing tokens (no new colors,
 // fonts, shadows, or component primitives).
-export default function DrillDetailPage({ cardId, onBack }) {
+export default function DrillDetailPage({ cardId, onBack, onStartGuided }) {
   const card = DRILL_CARDS.find((c) => c.id === cardId);
 
   React.useEffect(() => {
@@ -41,7 +42,7 @@ export default function DrillDetailPage({ cardId, onBack }) {
 
   return (
     <div style={dpStyles.page}>
-      <DetailHeader card={card} onBack={onBack} />
+      <DetailHeader card={card} onBack={onBack} onStartGuided={onStartGuided} />
       <StatRow card={card} />
       <AgentBriefSection card={card} />
       <PersonaDetailsSection card={card} />
@@ -51,7 +52,7 @@ export default function DrillDetailPage({ cardId, onBack }) {
 
 // ---------- Header ----------
 
-function DetailHeader({ card, onBack }) {
+function DetailHeader({ card, onBack, onStartGuided }) {
   const palette = DIFFICULTY_PALETTE[card.difficulty] || DIFFICULTY_PALETTE.Simple;
   return (
     <Card>
@@ -77,6 +78,18 @@ function DetailHeader({ card, onBack }) {
         </span>
 
         <div style={{ flex: 1 }} />
+
+        {onStartGuided && (
+          <Button
+            variant="primary"
+            leadingIcon={<ShieldCheck size={16} />}
+            uppercase={false}
+            onClick={onStartGuided}
+            style={{ height: 36, minWidth: 0, paddingInline: 18 }}
+          >
+            Start guided drill
+          </Button>
+        )}
 
         <div style={dpStyles.activeRow}>
           <Toggle defaultEnabled ariaLabel="Toggle scenario active" />
