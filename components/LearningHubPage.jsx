@@ -43,22 +43,32 @@ const VARIANT_OPTIONS = ["Inline", "Ribbon", "Coverage"];
 // LearningHubPage — Drill page + the localization layer. The page title,
 // primary CTA, search, Filters, tabs, and the taxonomy chips (category +
 // difficulty) all localize to the selected language; Arabic flips the
-// surface to RTL via the `dir` wrapper. The raw scenario body inside each
-// DrillCard stays in its source language (handled in DrillCard with
-// dir="auto") — eval/transcript content is never translated, per brief.
+// whole app to RTL via the document-level `dir` (set by the router from
+// this same locale). The raw scenario body inside each DrillCard stays in
+// its source language (handled in DrillCard with dir="auto") —
+// eval/transcript content is never translated, per brief.
+//
+// `locale` is owned by the app root (so the choice is global — the rail,
+// every page, and reading direction flip together) and threaded in as a
+// controlled prop; `onLocaleChange` lifts a new selection back up.
 //
 // Credits & Usage enforcement (spec §4) still gates the Roleplay CTA, and
 // the existing handlers (onCreateRoleplay / onOpenDrill) are untouched —
 // only presentation is localized.
-export default function LearningHubPage({ onOpenDrill, onCreateRoleplay }) {
+export default function LearningHubPage({
+  onOpenDrill,
+  onCreateRoleplay,
+  locale = "en",
+  onLocaleChange,
+}) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [searchValue, setSearchValue] = React.useState("");
-  const [locale, setLocale] = React.useState("en");
   const [variant, setVariant] = React.useState("Inline");
   // Variant C stages the locale in the modal and commits it on Apply.
   const [modalOpen, setModalOpen] = React.useState(false);
-  const [pendingLocale, setPendingLocale] = React.useState("en");
+  const [pendingLocale, setPendingLocale] = React.useState(locale);
 
+  const setLocale = (next) => onLocaleChange?.(next);
   const dir = lhDir(locale);
   const t = (key) => lhText(locale, key);
   const activeLocale = lhLocale(locale);

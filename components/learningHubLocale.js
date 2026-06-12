@@ -117,3 +117,36 @@ export function lhCoverageState(id, translated) {
   const row = translated ? COVERAGE_STATE.yes : COVERAGE_STATE.no;
   return row[id] ?? row.en;
 }
+
+// Navigation chrome — module label + SideNav item labels. Used so the
+// rail itself renders in the selected language when the whole app flips
+// (e.g. Arabic). Keyed by the learningHubConfig item ids.
+const NAV = {
+  module:       { en: "Learning Hub",  es: "Centro de aprendizaje", de: "Lernzentrum",  fr: "Centre d’apprentissage", ar: "مركز التعلّم" },
+  drill:        { en: "Drill",         es: "Práctica",      de: "Übung",         fr: "Exercice",     ar: "تدريب" },
+  interactions: { en: "Interactions",  es: "Interacciones", de: "Interaktionen", fr: "Interactions", ar: "التفاعلات" },
+  agents:       { en: "Agents",        es: "Agentes",       de: "Agenten",       fr: "Agents",       ar: "الوكلاء" },
+  missions:     { en: "Missions",      es: "Misiones",      de: "Missionen",     fr: "Missions",     ar: "المهام" },
+  guide:        { en: "Guide",         es: "Guía",          de: "Leitfaden",     fr: "Guide",        ar: "الدليل" },
+  replay:       { en: "Replay",        es: "Repetición",    de: "Wiederholung",  fr: "Relecture",    ar: "إعادة التشغيل" },
+};
+
+export function lhNavLabel(id, key, fallback) {
+  return NAV[key]?.[id] ?? fallback ?? NAV[key]?.en ?? fallback;
+}
+
+// localizeLearningConfig — return a copy of the Learning Hub SideNav config
+// with module + item labels translated into `id`. Identity-returns the
+// original for English so the common path allocates nothing.
+export function localizeLearningConfig(config, id) {
+  if (id === "en") return config;
+  return {
+    ...config,
+    moduleLabel: lhNavLabel(id, "module", config.moduleLabel),
+    displayName: lhNavLabel(id, "module", config.displayName),
+    items: config.items.map((item) => ({
+      ...item,
+      label: lhNavLabel(id, item.id, item.label),
+    })),
+  };
+}

@@ -47,6 +47,7 @@ import FilterPanel from "../../components/FilterPanel";
 import { insightsHubConfig } from "../../components/SideNav/configs/insightsHubConfig";
 import { learningHubConfig } from "../../components/SideNav/configs/learningHubConfig";
 import { askMiraConfig } from "../../components/SideNav/configs/askMiraConfig";
+import { lhDir, localizeLearningConfig } from "../../components/learningHubLocale";
 
 const MIRA_RESPONSE_DELAY_MS = 800;
 
@@ -280,6 +281,23 @@ export default function Page() {
   const [appMenuOpen, setAppMenuOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
+  // Global GUI locale. Chosen on the Learning Hub Drill page but held at
+  // the app root so the whole shell flips together: Arabic sets the
+  // document `dir="rtl"` (rail moves to the right, layout mirrors via
+  // logical CSS properties) and `lang`. In-memory only (no storage).
+  const [locale, setLocale] = React.useState("en");
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("dir", lhDir(locale));
+    root.setAttribute("lang", locale);
+  }, [locale]);
+  // Rail config with its module + item labels translated for the active
+  // locale, so the navigation itself reads in the selected language.
+  const learningNavConfig = React.useMemo(
+    () => localizeLearningConfig(learningHubConfig, locale),
+    [locale],
+  );
+
   const submitMiraQuestion = React.useCallback((value) => {
     const now = Date.now();
     const turnId = `turn-${now}`;
@@ -477,7 +495,7 @@ export default function Page() {
       sidenavConfig = askMiraConfig;
       handleSidenavSelect = (id) => router.push(pathForMira(id));
     } else if (railModule === "learning") {
-      sidenavConfig = learningHubConfig;
+      sidenavConfig = learningNavConfig;
       handleSidenavSelect = (id) => router.push(pathForLearning(id));
     } else {
       sidenavConfig = insightsHubConfig;
@@ -681,11 +699,13 @@ export default function Page() {
           onCreateGuide={openGuideWizard}
           onOpenGuide={openGuideSession}
           onOpenAgent={(id) => setAgentProfileId(id)}
+          locale={locale}
+          onLocaleChange={setLocale}
         />
       );
     }
 
-    sidenavConfig = learningHubConfig;
+    sidenavConfig = learningNavConfig;
     sidenavActiveId = learningNav;
     handleSidenavSelect = (id) => {
       setDrillDetailId(null);
