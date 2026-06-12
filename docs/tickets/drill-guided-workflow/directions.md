@@ -92,3 +92,4 @@ fourth; D4 and D10 are rejected on gate risk and are not worth building.
 | **Sidecar** | A / D1 | Persistent right-rail checklist, live check-off + skip flags |
 | **Coach** | B / D5 | Single current-step coach card, minimal load |
 | **Spine** | C / D3 | Top progress stepper, branch lights up, expand for detail |
+| **Inline** | D / D2 | Added in review — guidance lives in the chat, no side panel; a CTA reveals the full step-by-step guide |

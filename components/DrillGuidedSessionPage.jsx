@@ -53,6 +53,7 @@ const DIRECTIONS = [
   { id: "sidecar", label: "Sidecar" },
   { id: "coach", label: "Coach" },
   { id: "spine", label: "Spine" },
+  { id: "inline", label: "Inline" },
 ];
 const DIRECTION_VERSIONS = DIRECTIONS.map((d) => ({ ...d, iterations: [] }));
 
@@ -104,6 +105,8 @@ export default function DrillGuidedSessionPage({ onEnd }) {
   const [muted, setMuted] = React.useState(false);
   const [secondsLeft, setSecondsLeft] = React.useState(meta.totalSeconds);
   const [hintOpen, setHintOpen] = React.useState(false);
+  // Inline variant: the step-by-step guide is hidden until the CTA is clicked.
+  const [guideOpen, setGuideOpen] = React.useState(false);
   const [ended, setEnded] = React.useState(false);
 
   const activeStep = steps.find((s) => s.state === "active") || null;
@@ -189,7 +192,21 @@ export default function DrillGuidedSessionPage({ onEnd }) {
                   onToggleMute={() => setMuted((m) => !m)}
                   onEnd={endCall}
                 />
-                <Transcript turns={GUIDED_DRILL_TURNS} steps={steps} />
+                <Transcript turns={GUIDED_DRILL_TURNS} steps={steps}>
+                  {variant === "inline" && (
+                    <InlineGuidance
+                      activeStep={activeStep}
+                      steps={steps}
+                      skippedSteps={skippedSteps}
+                      doneCount={doneCount}
+                      activeHint={activeHint}
+                      hintOpen={hintOpen}
+                      onToggleHint={() => setHintOpen((o) => !o)}
+                      guideOpen={guideOpen}
+                      onToggleGuide={() => setGuideOpen((o) => !o)}
+                    />
+                  )}
+                </Transcript>
                 {variant === "sidecar" && (
                   <ChecklistRail
                     steps={steps}
@@ -350,12 +367,12 @@ function TimerPill({ secondsLeft }) {
 
 // ---- Transcript --------------------------------------------------------
 
-function Transcript({ turns, steps }) {
+function Transcript({ turns, steps, children }) {
   const transcriptRef = React.useRef(null);
   React.useEffect(() => {
     const el = transcriptRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [turns]);
+  }, [turns, children]);
 
   const labelForStep = (id) => steps.find((s) => s.id === id)?.label;
 
@@ -365,6 +382,7 @@ function Transcript({ turns, steps }) {
         {turns.map((turn) => (
           <ConversationTurn key={turn.id} turn={turn} stepLabel={labelForStep(turn.stepRef)} />
         ))}
+        {children}
       </div>
     </section>
   );
@@ -599,6 +617,84 @@ function CoachPanel({
         </ol>
       )}
     </aside>
+  );
+}
+
+// ---- Inline (D2) -------------------------------------------------------
+// Guidance lives inside the chat — no side panel. A coach note threads into
+// the conversation flow with the current step + Suggest-phrasing, and a CTA
+// reveals the full step-by-step guide inline on demand.
+
+function InlineGuidance({
+  activeStep,
+  steps,
+  skippedSteps,
+  doneCount,
+  activeHint,
+  hintOpen,
+  onToggleHint,
+  guideOpen,
+  onToggleGuide,
+}) {
+  return (
+    <div style={styles.inlineWrap} aria-label="In-chat guidance">
+      {skippedSteps.length > 0 && <SkipAlert steps={skippedSteps} />}
+
+      <div style={styles.inlineCard}>
+        <div style={styles.inlineHead}>
+          <span style={styles.inlineKicker}>
+            <Sparkles size={13} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
+            Guided workflow
+          </span>
+          <span style={styles.inlineProgress}>{doneCount}/{steps.length} steps</span>
+        </div>
+
+        {activeStep && (
+          <>
+            <span style={styles.coachNowLabel}>
+              <span style={styles.activeDot} aria-hidden="true" />
+              Now
+            </span>
+            <span style={styles.inlineStepLabel}>{activeStep.label}</span>
+            <span style={styles.coachStepDetail}>{activeStep.detail}</span>
+            <SuggestPhrasing hint={activeHint} open={hintOpen} onToggle={onToggleHint} />
+          </>
+        )}
+
+        <button
+          type="button"
+          onClick={onToggleGuide}
+          aria-expanded={guideOpen}
+          className="drill-focusable"
+          style={styles.inlineCta}
+        >
+          {guideOpen ? "Hide step-by-step guide" : "Show step-by-step guide"}
+          <ChevronDown
+            size={16}
+            color="var(--color-button-primary-bg)"
+            style={{ transform: guideOpen ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }}
+          />
+        </button>
+
+        {guideOpen && (
+          <ol style={styles.inlineList} role="list">
+            {steps.map((step, i) => (
+              <li key={step.id} role="listitem" style={styles.inlineRow}>
+                <span style={styles.inlineRowIndex}>{i + 1}</span>
+                <div style={styles.inlineRowMain}>
+                  <div style={styles.inlineRowTop}>
+                    <StepStatus state={step.state} />
+                    <MandatoryTag mandatory={step.mandatory} />
+                  </div>
+                  <span style={styles.inlineRowLabel}>{step.label}</span>
+                  <span style={styles.inlineRowDetail}>{step.detail}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1043,6 +1139,50 @@ const styles = {
   },
   coachAllRow: { display: "flex", alignItems: "center", gap: 10, padding: "4px 4px" },
   coachAllRowLabel: { fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
+
+  // Inline guidance (in-chat coach note)
+  inlineWrap: {
+    display: "flex", flexDirection: "column", gap: 12,
+    maxWidth: "88%", margin: "8px 0 4px", animation: "drillStepIn 150ms ease",
+  },
+  inlineCard: {
+    display: "flex", flexDirection: "column", gap: 8,
+    padding: "16px 18px", borderRadius: 12,
+    background: "var(--color-icon-tertiary-bg)",
+    border: "1px solid var(--color-border-tab)",
+  },
+  inlineHead: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+  },
+  inlineKicker: {
+    display: "inline-flex", alignItems: "center", gap: 6,
+    fontSize: 12, fontWeight: 700, letterSpacing: "0.2px",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  inlineProgress: {
+    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
+    color: "var(--color-text-medium)",
+  },
+  inlineStepLabel: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.35 },
+  inlineCta: {
+    display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start",
+    background: "transparent", border: "none", cursor: "pointer", padding: "6px 0", marginTop: 2,
+    fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-button-primary-bg)",
+  },
+  inlineList: {
+    listStyle: "none", margin: "4px 0 0", padding: "12px 0 0",
+    borderTop: "1px solid var(--color-border-tab)",
+    display: "flex", flexDirection: "column", gap: 12,
+  },
+  inlineRow: { display: "flex", gap: 12 },
+  inlineRowIndex: {
+    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
+    color: "var(--color-text-tertiary)", paddingTop: 2, width: 16, flexShrink: 0,
+  },
+  inlineRowMain: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0 },
+  inlineRowTop: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  inlineRowLabel: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
+  inlineRowDetail: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.5 },
 
   // Spine
   spine: {
