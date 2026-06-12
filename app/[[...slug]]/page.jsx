@@ -29,6 +29,7 @@ import CreditsUsagePage from "../../components/CreditsUsagePage";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import ReplayPage from "../../components/ReplayPage";
+import AIRecruiterShell from "../../components/AIRecruiterShell";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
@@ -89,6 +90,7 @@ const LEARNING_PAGES = {
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
+  "recruiter":    { Component: AIRecruiterShell, pageName: "AI Recruiter" },
 };
 
 const MIRA_PAGES = {

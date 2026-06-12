@@ -337,3 +337,27 @@ body {
 .kanbanLane:hover .kanbanLaneScroll::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--color-text-tertiary) 30%, transparent);
 }
+
+/* AI Recruiter (AI Interviewer) landing — keyboard focus ring on the
+   interactive cards / rows / list items. Inline styles can't target
+   :focus-visible, and several of these elements set box-shadow inline for
+   hover, so the ring uses outline (an equally-visible replacement per
+   WCAG-3) to avoid being overridden. Brand blue at 2px offset against the
+   white surfaces clears the 3:1 non-text-contrast floor. */
+.recruiter-focusable:focus-visible {
+  outline: 2px solid var(--do-brand-blue);
+  outline-offset: 2px;
+}
+
+/* AI Recruiter sidecar slide-in — mirrors the Drawer spatial model (enters
+   from its right edge). Gated by prefers-reduced-motion (WCAG 2.3.1). */
+@keyframes recruiterDrawerIn {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.recruiter-drawer {
+  animation: recruiterDrawerIn 240ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .recruiter-drawer { animation: none; }
+}
