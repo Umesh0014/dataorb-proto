@@ -359,16 +359,14 @@ function Transcript({ turns, steps }) {
 
 // Claude-like light chat: the agent (you) is the "user" — a right-aligned
 // rectangular pill on a light background; the simulated customer is the
-// "assistant" — plain left-aligned text. Speaker label + timestamp stay so
-// the transcript reads back clearly.
+// "assistant" — plain left-aligned text. The pill-vs-plain-text + left/
+// right alignment carry who's speaking, so no speaker label is shown; a
+// quiet timestamp is kept for transcript reference.
 function ConversationTurn({ turn, stepLabel }) {
   const isAgent = turn.speaker === "AGENT";
   return (
     <div style={isAgent ? styles.turnAgent : styles.turnCustomer}>
-      <div style={styles.turnHead}>
-        <span style={styles.turnSpeaker}>{isAgent ? "Agent (you)" : "Customer"}</span>
-        <span style={styles.turnTimestamp}>{turn.timestamp}</span>
-      </div>
+      <span style={styles.turnTimestamp}>{turn.timestamp}</span>
       {isAgent ? (
         <div style={styles.agentBubble}>
           <p style={styles.agentBody}>{turn.body}</p>
@@ -918,10 +916,6 @@ const styles = {
   },
   turnCustomer: {
     display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "10px 4px",
-  },
-  turnHead: { display: "inline-flex", alignItems: "center", gap: 10 },
-  turnSpeaker: {
-    fontSize: 12, fontWeight: 700, letterSpacing: "0.1px", color: "var(--color-text-tertiary)",
   },
   turnTimestamp: {
     fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 400, letterSpacing: "0.4px",
