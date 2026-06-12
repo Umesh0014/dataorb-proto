@@ -571,6 +571,7 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
   // tinted timeline + evidence grid). v2 / i1 = the evidence-first sister
   // layout. Other iterations fall back to the existing Options A/B/C.
   const showV1I1 = opt === "O1" && iter === "i1";
+  const showV1I2 = opt === "O1" && iter === "i2";
   const showV2I1 = opt === "O2" && iter === "i1";
 
   return (
@@ -580,7 +581,8 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
       ) : (
         <>
           {showV1I1 && <PlaybookV1I1 data={PLAYBOOK_V1_I1_MOCK} />}
-          {opt === "O1" && !showV1I1 && <PlaybookOptionA {...shared} />}
+          {showV1I2 && <PlaybookV1I2 data={PLAYBOOK_V1_I1_MOCK} />}
+          {opt === "O1" && !showV1I1 && !showV1I2 && <PlaybookOptionA {...shared} />}
           {showV2I1 && <PlaybookV2I1 data={PLAYBOOK_V2_I1_MOCK} />}
           {opt === "O2" && !showV2I1 && <PlaybookOptionB {...shared} />}
           {opt === "O3" && <PlaybookOptionC {...shared} />}
@@ -1135,6 +1137,278 @@ const v1i1 = {
   bulletDot: {
     position: "absolute",
     left: 4,
+    color: "var(--color-text-tertiary)",
+  },
+  evDivider: {
+    height: 1,
+    background: "var(--color-divider-card)",
+    margin: "4px 0",
+  },
+  sectLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  sectSub: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    margin: "2px 0 10px",
+  },
+  agentsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  },
+};
+
+// ---- v1 / i2 — editorial-quote + agent-avatar stages -------------------
+// Shares v1/i1's mock (same campaign) but trades the tinted Why callout +
+// vertical timeline for an italic blockquote and a stack of stage cards.
+// Each stage row swaps the bare number circle for the responsible agent's
+// avatar with the stage number badged below; bullets sit inside a subtle
+// rounded container instead of running plain underneath the title.
+function PlaybookV1I2({ data }) {
+  return (
+    <div style={v1i2.body}>
+      <div style={v1i2.hero}>
+        <span style={v1i2.heroTile}>
+          <BookOpen size={22} color="var(--color-icon-tertiary-fg)" />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={v1i2.heroTitle}>{data.campaignName}</h3>
+          <div style={v1i2.heroSub}>
+            {data.stages.length} stages · contributed by {data.agents.length} agents
+          </div>
+        </div>
+      </div>
+
+      <div style={v1i2.tagRow}>
+        <span style={v1i2.keyTag}>{data.keyTag}</span>
+        {data.secondaryTags.map((t) => (
+          <span key={t} style={v1i2.outlineTag}>{t}</span>
+        ))}
+      </div>
+
+      <blockquote style={v1i2.quote}>
+        <p style={v1i2.quoteText}>{data.whyText}</p>
+      </blockquote>
+
+      <div style={v1i2.stagesList}>
+        {data.stages.map((s) => (
+          <V1I2StageRow key={s.n} stage={s} />
+        ))}
+      </div>
+
+      <div style={v1i2.evDivider} />
+
+      <div>
+        <div style={v1i2.sectLabel}>
+          <User size={14} color="var(--color-text-medium)" />
+          <span>Built from {data.agents.length} agent interactions</span>
+        </div>
+        <div style={v1i2.sectSub}>Each card is a source interaction · chip = the outcome it achieved</div>
+        <div style={v1i2.agentsGrid}>
+          {data.agents.map((a) => (
+            <V2I1AgentCard key={a.id} agent={a} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function V1I2StageRow({ stage }) {
+  const ramp = PB_AGENTS[stage.agent] || PB_AGENTS.SI;
+  return (
+    <div style={v1i2.stageRow}>
+      <div style={v1i2.avatarWrap}>
+        <span style={{ ...v1i2.stageAvatar, background: ramp.bg, color: ramp.text }}>
+          {stage.agent}
+        </span>
+        <span style={v1i2.stageNum}>{stage.n}</span>
+      </div>
+      <div style={v1i2.stageBody}>
+        <div style={v1i2.stageHead}>
+          <span style={v1i2.stageTitle}>{stage.name}</span>
+          <span
+            style={{
+              ...v1i2.stageRefChip,
+              background: ramp.bg,
+              color: ramp.text,
+            }}
+          >
+            #{stage.refs[0]}–{stage.refs[1]}
+          </span>
+        </div>
+        <div style={v1i2.bulletsCard}>
+          {stage.bullets.map((b, i) => (
+            <div key={i} style={v1i2.bullet}>
+              <span aria-hidden="true" style={v1i2.bulletDot}>•</span>
+              <span>{b}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const v1i2 = {
+  body: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+    paddingInline: 2,
+  },
+  hero: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  heroTile: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    background: "var(--color-icon-tertiary-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTitle: {
+    margin: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 22,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.15,
+  },
+  heroSub: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    marginTop: 4,
+  },
+  tagRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  keyTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: "#FAECE7",
+    color: "#712B13",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: "5px 10px",
+    borderRadius: 10,
+  },
+  outlineTag: {
+    fontSize: 12,
+    color: "var(--color-text-medium)",
+    padding: "5px 10px",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+  },
+  quote: {
+    margin: 0,
+    paddingLeft: 14,
+    borderLeft: "2px solid var(--color-icon-tertiary-fg)",
+  },
+  quoteText: {
+    margin: 0,
+    fontFamily: 'Georgia, "Times New Roman", serif',
+    fontSize: 15,
+    lineHeight: 1.55,
+    color: "var(--color-text-deep)",
+  },
+  stagesList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+  },
+  stageRow: {
+    display: "grid",
+    gridTemplateColumns: "36px 1fr",
+    gap: 14,
+    alignItems: "flex-start",
+  },
+  avatarWrap: {
+    position: "relative",
+    width: 36,
+    display: "inline-flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  stageAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  stageNum: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: "var(--color-text-tertiary)",
+  },
+  stageBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    minWidth: 0,
+  },
+  stageHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  stageTitle: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 16,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+  },
+  stageRefChip: {
+    flexShrink: 0,
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "3px 8px",
+    borderRadius: 6,
+    whiteSpace: "nowrap",
+    fontFamily: "var(--font-sans)",
+  },
+  bulletsCard: {
+    background: "var(--color-card-emoji-bg)",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+    padding: "10px 14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  bullet: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    lineHeight: 1.55,
+    paddingLeft: 14,
+    position: "relative",
+  },
+  bulletDot: {
+    position: "absolute",
+    left: 2,
     color: "var(--color-text-tertiary)",
   },
   evDivider: {
