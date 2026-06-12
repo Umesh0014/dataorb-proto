@@ -1674,8 +1674,8 @@ const v3i1 = {
   },
   stageTitle: {
     fontFamily: '"Poppins", sans-serif',
-    fontSize: 16,
-    fontWeight: 700,
+    fontSize: 15,
+    fontWeight: 600,
     color: "var(--color-text-deep)",
     minWidth: 0,
   },
