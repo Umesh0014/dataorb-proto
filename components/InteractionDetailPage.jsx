@@ -1057,7 +1057,7 @@ const pStyles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1.45fr) minmax(0, 1fr)",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
     gap: 16,
     alignItems: "start",
   },
