@@ -237,3 +237,36 @@ app switcher **below Ask Mira Pro** (`/recruiter/*`, default `/recruiter/pipelin
 
 **Mapped to the switcher:** A → R1 (Board) · B → R2 (Table) · C → R3 (Funnel).
 Old plan-library trio (D1/D2/D3) retired — candidate spine replaces it.
+
+---
+
+# Rework 2 — Board kanban match (Notion comment, 12 Jun 16:42)
+
+Umesh: *"Take kanban swimlane inspiration from Missions landing page, match UI. Instead
+of upfront CTA there could be a candidate detail page and the CTA could be parked there.
+Keep cards lightweight."*
+
+Changes (Variant **A · Board** only; B/C unchanged in behaviour):
+- **Matched the Missions Kanban UI** — `--color-card-emoji-bg` swimlanes with white
+  count pills and lane headers; lightweight white cards modelled on `MissionCardCompact`
+  (whole card is the click target, `SelectionAccentBar` on the selected card, same hover
+  elevation). Mirrors `MissionsKanbanLayout`.
+- **Cards went lightweight** — name + role + family chip + a single judgement-free
+  coverage line; the upfront advance button was **removed** from the card.
+- **CTA parked in a detail surface** — clicking a card opens a **candidate detail
+  curtain** that slides in from the right (mirrors the Missions side curtain: no scrim,
+  board stays live, Esc/close to dismiss). The stage-advance CTA ("Push to Interview")
+  now lives in that detail, not on the card.
+- **Extracted `CandidateDetail.jsx`** (header / body / footer) — one detail surface now
+  shared by the Board curtain and the Table sidecar (rule-of-three hit its 2nd callsite;
+  collapsing the two detail bodies removed the duplication and lifted B's reuse score).
+
+Self-assessment (design-evaluator): A was first caught **Blocked on G10** — the lightweight
+card button was missing the shared `.recruiter-focusable` ring class that every other
+recruiter control carries. Fixed (one line) + added an at-rest drill chevron (INT-1/INT-2).
+Re-scored: **A 93% / B 92% / C 85%**, all 13/13 gates — converged.
+
+**Flagged to Neil:** the Board curtain is a non-modal `role="complementary"` panel with no
+scrim (to match the Missions board-stays-live behaviour), whereas the Table sidecar is a
+`role="dialog"` modal with a scrim. That's two detail-panel patterns in one feature — a
+one-primitive-or-two call for Neil, not settled in code.

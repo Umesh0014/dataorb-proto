@@ -1,30 +1,30 @@
 "use client";
 
 import React from "react";
-import {
-  Plus, Search, ArrowUpDown, ListFilter, ChevronRight, X, Sparkles, Pencil,
-} from "lucide-react";
+import { Plus, Search, ArrowUpDown, ListFilter, ChevronRight } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import Banner from "./Banner";
 import TabsRow from "./TabsRow";
-import MultiLineInput from "./MultiLineInput";
 import { FaceScanIcon } from "./SideNav/icons";
 import { formatDate } from "./formatDate";
-import { FAMILY_LABELS, STAGE_META } from "./mocks/recruiter";
+import { FAMILY_LABELS } from "./mocks/recruiter";
 import {
-  CandidateMonogram, StageBadge, CoverageMeter, RecordedTag, AdvanceButton,
-  COMPLIANCE_COPY,
+  CandidateMonogram, StageBadge, CoverageMeter, COMPLIANCE_COPY,
 } from "./AIRecruiterParts";
+import {
+  CandidateDetailHeader, CandidateDetailBody, CandidateDetailFooter,
+} from "./CandidateDetail";
 
 // AIRecruiterTable (Variant B · direction R2) — the candidate pipeline as an
 // operational, scan-at-volume table reusing the Tasks/MissionsTable pattern.
 // Per-candidate detail opens in a right-edge sidecar (UI-9 tabular primary +
-// sidecar reveal), not a new page: candidate identity, the AI screening
-// evidence (editable narrative, read-only coverage), and the stage-advance
-// action — including the "Push to Interview" the hiring manager makes after
-// AI screening. The row's name control is a real button so the surface is
-// fully keyboard-operable; a visible chevron makes the drill obvious (INT-2).
+// sidecar reveal), not a new page: the shared CandidateDetail surface carries
+// the AI screening evidence (editable narrative, read-only coverage) and the
+// stage-advance CTA — including the "Push to Interview" the hiring manager
+// makes after AI screening. The row's name control is a real button so the
+// surface is fully keyboard-operable; a visible chevron makes the drill obvious
+// (INT-2).
 
 // Pipeline tabs bucket the stages a hiring manager scans by. "Active" is the
 // live funnel; Hired and Community are terminal / off-pipeline pools.
@@ -180,8 +180,8 @@ function CandidateRow({ candidate, isLast, active, onOpen }) {
   );
 }
 
-// CandidateSidecar — right-edge drawer with the per-candidate detail. Esc +
-// scrim + close button all dismiss it. Slide-in gated by
+// CandidateSidecar — right-edge drawer hosting the shared CandidateDetail. Esc
+// + scrim + close button all dismiss it. Slide-in gated by
 // prefers-reduced-motion via the .recruiter-drawer class.
 function CandidateSidecar({ candidate, onClose, onAdvance, onOpenCandidate }) {
   const closeRef = React.useRef(null);
@@ -192,161 +192,15 @@ function CandidateSidecar({ candidate, onClose, onAdvance, onOpenCandidate }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const meta = STAGE_META[candidate.stage];
-
   return (
     <>
       <div onClick={onClose} aria-hidden="true" style={s.scrim} />
       <aside className="recruiter-drawer" role="dialog" aria-modal="true" aria-label={`${candidate.name} details`} style={s.drawer}>
-        <div style={s.drawerHead}>
-          <div style={s.drawerIdent}>
-            <CandidateMonogram candidate={candidate} size={40} />
-            <div style={{ minWidth: 0 }}>
-              <div style={s.drawerName}>{candidate.name}</div>
-              <div style={s.drawerSub}>{candidate.role}</div>
-            </div>
-          </div>
-          <button ref={closeRef} type="button" className="recruiter-focusable" onClick={onClose} aria-label="Close details" style={s.closeBtn}>
-            <X size={18} color="var(--color-text-medium)" />
-          </button>
-        </div>
-
-        <div style={s.drawerBody}>
-          <div style={s.drawerRowTop}>
-            <StageBadge stage={candidate.stage} />
-            <RecordedTag />
-          </div>
-
-          <CoverageMeter screen={candidate.screen} />
-
-          <div style={s.metaGrid}>
-            <Meta label="Job family" value={FAMILY_LABELS[candidate.family]} />
-            <Meta label="Source" value={candidate.source} />
-            <Meta label="Applied" value={formatDate(candidate.appliedAt)} />
-            <Meta label="AI screening" value={screeningStatusLabel(candidate)} />
-            <Meta label="Last activity" value={candidate.lastActivity} />
-            <Meta label="Follow-up topics" value={thinLabel(candidate)} />
-          </div>
-
-          <EvidenceBlock candidate={candidate} />
-
-          <div style={s.complianceNote}>
-            <p style={s.complianceTitle}>{COMPLIANCE_COPY.heading}</p>
-            <p style={s.complianceBody}>{COMPLIANCE_COPY.body}</p>
-          </div>
-        </div>
-
-        <div style={s.drawerFooter}>
-          {meta?.advance && (
-            <AdvanceButton candidate={candidate} onAdvance={onAdvance} fullWidth />
-          )}
-          <Button variant="text" uppercase={false} fullWidth onClick={() => onOpenCandidate?.(candidate.id)}>
-            Open candidate record
-          </Button>
-        </div>
+        <CandidateDetailHeader candidate={candidate} onClose={onClose} closeRef={closeRef} />
+        <CandidateDetailBody candidate={candidate} />
+        <CandidateDetailFooter candidate={candidate} onAdvance={onAdvance} onOpenCandidate={onOpenCandidate} />
       </aside>
     </>
-  );
-}
-
-function screeningStatusLabel(c) {
-  if (c.screen.status === "completed") return `Completed ${formatDate(c.screen.completedAt)}`;
-  if (c.screen.status === "in_progress") return "In progress";
-  return "Not started";
-}
-
-function thinLabel(c) {
-  if (c.screen.status !== "completed") return "—";
-  if (!c.thin) return "None — full coverage";
-  return `${c.thin} topic${c.thin === 1 ? "" : "s"} to probe`;
-}
-
-// evidenceDraft — the AI's starting-state evidence summary, generated from the
-// candidate's screening coverage. Deliberately coverage-framed and verdict-free
-// (G4): it describes what was discussed, never whether the candidate passed.
-function evidenceDraft(c) {
-  const { status, coverage } = c.screen;
-  const { covered, total } = coverage;
-  if (status === "not_started") {
-    return `AI screening hasn't run yet — an evidence summary appears here once ${c.name} completes the screening.`;
-  }
-  if (status === "in_progress") {
-    return `AI screening is in progress — ${covered} of ${total} assigned topics covered so far. A full evidence summary appears when it completes.`;
-  }
-  const thin = c.thin || 0;
-  const thinClause = thin > 0
-    ? `${thin} topic${thin === 1 ? "" : "s"} show thinner coverage and may be worth probing in the interview`
-    : "all assigned topics were covered";
-  return (
-    `In the AI screening for ${c.role}, ${c.name} covered ${covered} of ${total} ` +
-    `assigned topics. Coverage is most consistent on core process steps; ${thinClause}. ` +
-    `Evidence only — no hiring recommendation.`
-  );
-}
-
-// EvidenceBlock — the AI-output-as-starting-state surface (INT-7). The
-// narrative is editable inline and user-owned; once edited it carries a "last
-// edited by" credit. The quantitative coverage above stays read-only — the
-// user owns the words, the system owns the numbers.
-function EvidenceBlock({ candidate }) {
-  const draft = evidenceDraft(candidate);
-  const [text, setText] = React.useState(draft);
-  const [editing, setEditing] = React.useState(false);
-  const [edited, setEdited] = React.useState(false);
-  const completed = candidate.screen.status === "completed";
-
-  // The draft is candidate-specific; reset the editor when the open candidate
-  // changes so the sidecar never shows a stale summary.
-  React.useEffect(() => {
-    setText(draft);
-    setEditing(false);
-    setEdited(false);
-  }, [draft]);
-
-  const save = () => { setEditing(false); setEdited(true); };
-  const cancel = () => { setText(draft); setEditing(false); };
-
-  return (
-    <div style={s.evidence}>
-      <div style={s.evidenceHead}>
-        <span style={s.evidenceTitle}>
-          <Sparkles size={14} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
-          Evidence summary
-        </span>
-        {completed && !editing && (
-          <button type="button" className="recruiter-focusable" onClick={() => setEditing(true)} style={s.evidenceEdit}>
-            <Pencil size={13} aria-hidden="true" /> Edit
-          </button>
-        )}
-      </div>
-
-      {editing ? (
-        <>
-          <MultiLineInput value={text} onChange={setText} max={420} rows={5} placeholder="Evidence summary" ariaLabel={`Evidence summary for ${candidate.name}`} />
-          <div style={s.evidenceActions}>
-            <Button variant="text" uppercase={false} onClick={cancel} style={{ height: 32 }}>Cancel</Button>
-            <Button variant="primary" onClick={save} style={{ height: 32, minWidth: 0, paddingInline: 16 }}>Save</Button>
-          </div>
-        </>
-      ) : (
-        <p style={s.evidenceBody}>{text}</p>
-      )}
-
-      {completed && (
-        <span style={s.evidenceMeta} role="status" aria-live="polite">
-          {edited ? "Last edited by Demo Internal · Today" : "AI draft · not yet edited"}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function Meta({ label, value }) {
-  return (
-    <div style={s.meta}>
-      <span style={s.metaLabel}>{label}</span>
-      <span style={s.metaValue}>{value}</span>
-    </div>
   );
 }
 
@@ -400,44 +254,11 @@ const s = {
   emptyHeading: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.4 },
   emptyBody: { fontSize: 14, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.5, maxWidth: 360 },
 
-  // Sidecar
+  // Sidecar shell
   scrim: { position: "fixed", inset: 0, background: "var(--overlay-hover)", zIndex: 39 },
   drawer: {
     position: "fixed", top: 0, right: 0, bottom: 0, width: 360,
     background: "var(--surface-white)", boxShadow: "var(--shadow-drawer)",
     display: "flex", flexDirection: "column", zIndex: 40, fontFamily: "var(--font-sans)",
   },
-  drawerHead: {
-    display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
-    padding: "20px 20px 16px", borderBottom: "1px solid var(--color-divider-card)",
-  },
-  drawerIdent: { display: "flex", alignItems: "center", gap: 12, minWidth: 0 },
-  drawerName: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.35 },
-  drawerSub: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", marginTop: 2 },
-  closeBtn: {
-    width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--color-card-emoji-bg)",
-    display: "inline-grid", placeItems: "center", cursor: "pointer", flexShrink: 0,
-  },
-  drawerBody: { flex: 1, minHeight: 0, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 20 },
-  drawerRowTop: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" },
-  metaGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 },
-  meta: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
-  metaLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
-  metaValue: { fontSize: 13, fontWeight: 500, color: "var(--color-text-deep)", lineHeight: 1.4 },
-  evidence: { display: "flex", flexDirection: "column", gap: 8 },
-  evidenceHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  evidenceTitle: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
-  evidenceEdit: {
-    display: "inline-flex", alignItems: "center", gap: 4, background: "transparent", border: "none",
-    padding: "2px 4px", cursor: "pointer", borderRadius: 6, color: "var(--color-button-primary-bg)",
-    fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 700,
-  },
-  evidenceBody: { margin: 0, fontSize: 13, fontWeight: 400, color: "var(--color-text-medium)", lineHeight: 1.55 },
-  evidenceActions: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 },
-  evidenceMeta: { fontSize: 11, fontWeight: 500, color: "var(--color-text-placeholder)" },
-
-  complianceNote: { background: "var(--color-info-bg)", borderRadius: 8, padding: "12px 14px" },
-  complianceTitle: { margin: 0, fontSize: 12, fontWeight: 700, color: "var(--color-info)" },
-  complianceBody: { margin: "4px 0 0", fontSize: 12, fontWeight: 400, color: "var(--color-info-text)", lineHeight: 1.5 },
-  drawerFooter: { padding: 20, borderTop: "1px solid var(--color-divider-card)", display: "flex", flexDirection: "column", gap: 4 },
 };

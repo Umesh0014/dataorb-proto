@@ -1,30 +1,19 @@
 "use client";
 
 import React from "react";
-import {
-  Headset, TrendingUp, ShieldCheck, Rocket, Scale, Wrench, ArrowRight, RotateCcw,
-} from "lucide-react";
+import { ArrowRight, RotateCcw } from "lucide-react";
 import Button from "./Button";
 import { FAMILY_TINTS, STAGE_META } from "./mocks/recruiter";
 
 // AIRecruiterParts — shared pieces for the three AI Recruiter candidate-pipeline
 // variants (Board / Table / Funnel). Extracted under the rule-of-three: the
-// family avatar, stage badge, screening-coverage meter, recorded tag, and the
-// compliance copy each render in all three variants, so the composition lives
-// once here to prevent drift across the demo set.
+// candidate monogram, stage badge, screening-coverage meter, recorded tag, the
+// advance CTA, and the compliance copy each render across the variants, so the
+// composition lives once here to prevent drift across the demo set.
 //
 // Compliance spine (rubric G4): the AI surfaces coverage + evidence; it never
 // asserts mastery and never frames a hire decision. That copy is a shared
 // constant so all three variants say it identically.
-
-const FAMILY_ICON_CMP = {
-  support: Headset,
-  sales: TrendingUp,
-  retention: ShieldCheck,
-  onboarding: Rocket,
-  compliance: Scale,
-  field: Wrench,
-};
 
 export const COMPLIANCE_COPY = {
   heading: "Evidence, not a verdict",
@@ -33,26 +22,6 @@ export const COMPLIANCE_COPY = {
     "covered — never whether they passed. You decide who advances, and every " +
     "screening is recorded for compliance.",
 };
-
-// FamilyAvatar — job-family glyph in the family tint. Decorative reinforcement
-// of the family already named in text, so aria-hidden (WCAG-7).
-export function FamilyAvatar({ family, size = 40 }) {
-  const tint = FAMILY_TINTS[family] || FAMILY_TINTS.support;
-  const Icon = FAMILY_ICON_CMP[family] || Headset;
-  const glyph = Math.round(size * 0.5);
-  return (
-    <span
-      style={{
-        width: size, height: size, borderRadius: 999, flexShrink: 0,
-        background: tint.bg, color: tint.fg,
-        display: "inline-grid", placeItems: "center",
-      }}
-      aria-hidden="true"
-    >
-      <Icon size={glyph} />
-    </span>
-  );
-}
 
 // CandidateMonogram — initials chip in the family tint. Pairs with the
 // candidate's name in text, so aria-hidden.

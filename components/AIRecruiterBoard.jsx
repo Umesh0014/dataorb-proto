@@ -3,27 +3,29 @@
 import React from "react";
 import { Plus, SlidersHorizontal, ChevronRight } from "lucide-react";
 import PageHeader from "./PageHeader";
-import Card from "./Card";
 import Banner from "./Banner";
+import SelectionAccentBar from "./SelectionAccentBar";
 import { FaceScanIcon } from "./SideNav/icons";
 import {
   STAGES, COMMUNITY_STAGE, FAMILY_LABELS, stageCounts,
 } from "./mocks/recruiter";
+import { COMPLIANCE_COPY } from "./AIRecruiterParts";
 import {
-  CandidateMonogram, CoverageMeter, AdvanceButton, COMPLIANCE_COPY,
-} from "./AIRecruiterParts";
+  CandidateDetailHeader, CandidateDetailBody, CandidateDetailFooter,
+} from "./CandidateDetail";
 
 // AIRecruiterBoard (Variant A · direction R1) — the candidate pipeline as
-// stage columns (Applied → AI Screening → Interview → Offer → Hired), the most
-// literal "pipeline view". The hiring manager reads the funnel left-to-right
-// and advances a candidate with an explicit control on the card — including
-// the "Push to Interview" move after AI screening — rather than drag-only, so
-// the whole board is keyboard-operable (INT-2/G11). A Talent Community strip
-// below holds re-activatable candidates (the "community that can be activated
-// and hired" loop). Reuses the Card surface + the shared pipeline parts.
+// urgency-first swimlanes, matching the Missions Kanban landing UI: tinted
+// lanes (--color-card-emoji-bg) with a count pill, lightweight cards (the
+// whole card is the click target), and an in-place detail surface. Per the
+// 12 Jun review the card stays lightweight and carries NO upfront CTA — the
+// stage-advance ("Push to Interview") is parked in the candidate detail
+// curtain that slides in when a card is opened (the shared CandidateDetail).
+// A Talent Community shelf below holds re-activatable candidates.
 
 export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidate }) {
   const [search, setSearch] = React.useState("");
+  const [openId, setOpenId] = React.useState(null);
 
   const q = search.trim().toLowerCase();
   const match = (c) =>
@@ -35,6 +37,7 @@ export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidat
   const visible = candidates.filter(match);
   const counts = stageCounts(candidates);
   const community = visible.filter((c) => c.stage === "community");
+  const openCandidate = openId ? candidates.find((c) => c.id === openId) : null;
 
   return (
     <div style={s.column}>
@@ -56,23 +59,18 @@ export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidat
         {STAGES.map((stage) => {
           const inStage = visible.filter((c) => c.stage === stage.id);
           return (
-            <section key={stage.id} style={s.col} aria-label={`${stage.label} — ${counts[stage.id] || 0} candidates`}>
-              <div style={s.colHead}>
-                <span style={{ ...s.colDot, background: stage.tint.fg }} aria-hidden="true" />
-                <span style={s.colTitle}>{stage.label}</span>
-                <span style={s.colCount}>{counts[stage.id] || 0}</span>
+            <section key={stage.id} style={s.lane} aria-label={`${stage.label} — ${counts[stage.id] || 0} candidates`}>
+              <div style={s.laneHeader}>
+                <span style={{ ...s.laneDot, background: stage.tint.fg }} aria-hidden="true" />
+                <span style={s.laneTitle}>{stage.label}</span>
+                <span style={s.countPill}>{counts[stage.id] || 0}</span>
               </div>
-              <div style={s.colBody}>
+              <div style={s.laneScroll}>
                 {inStage.length === 0 ? (
-                  <p style={s.colEmpty}>No candidates</p>
+                  <p style={s.laneEmpty}>No candidates</p>
                 ) : (
                   inStage.map((c) => (
-                    <CandidateCard
-                      key={c.id}
-                      candidate={c}
-                      onAdvance={onAdvance}
-                      onOpenCandidate={onOpenCandidate}
-                    />
+                    <CandidateCard key={c.id} candidate={c} selected={openId === c.id} onOpen={() => setOpenId(c.id)} />
                   ))
                 )}
               </div>
@@ -81,132 +79,173 @@ export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidat
         })}
       </div>
 
-      <CommunityStrip
+      <CommunityShelf
         candidates={community}
         total={counts.community || 0}
-        onAdvance={onAdvance}
-        onOpenCandidate={onOpenCandidate}
+        openId={openId}
+        onOpen={setOpenId}
       />
+
+      {openCandidate && (
+        <CandidateCurtain
+          candidate={openCandidate}
+          onClose={() => setOpenId(null)}
+          onAdvance={onAdvance}
+          onOpenCandidate={onOpenCandidate}
+        />
+      )}
     </div>
   );
 }
 
-function CandidateCard({ candidate, onAdvance, onOpenCandidate }) {
+// coverageLabel — the one-line, judgement-free coverage cue on a lightweight
+// card. Coverage is never framed as a score (G4); a draft reads "Not screened",
+// in progress reads "Screening…", never a bare 0%.
+function coverageLabel(screen) {
+  const { status, coverage } = screen;
+  if (status === "completed") {
+    const pct = coverage.total > 0 ? Math.round((coverage.covered / coverage.total) * 100) : 0;
+    return `${pct}% covered · ${coverage.covered}/${coverage.total} topics`;
+  }
+  if (status === "in_progress") return "AI screening in progress";
+  return "Not screened yet";
+}
+
+function CandidateCard({ candidate, selected, onOpen }) {
+  const [hover, setHover] = React.useState(false);
   return (
-    <Card padX={14} padY={14} style={s.card}>
-      <div style={s.cardTop}>
-        <CandidateMonogram candidate={candidate} size={32} />
-        <button
-          type="button"
-          className="recruiter-focusable"
-          onClick={() => onOpenCandidate?.(candidate.id)}
-          aria-label={`${candidate.name} — open candidate details`}
-          style={s.cardNameBtn}
-        >
-          <span style={s.cardNameText}>
-            <span style={s.cardName}>{candidate.name}</span>
-            <span style={s.cardRole}>{candidate.role}</span>
-          </span>
-          <ChevronRight size={16} color="var(--color-text-tertiary)" style={{ flexShrink: 0 }} aria-hidden="true" />
-        </button>
+    <button
+      type="button"
+      className="recruiter-focusable"
+      onClick={onOpen}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-label={`${candidate.name} — open candidate details`}
+      style={{ ...s.card, boxShadow: hover ? "0 6px 16px rgba(69, 70, 79, 0.16)" : "var(--shadow-card)" }}
+    >
+      {selected && <SelectionAccentBar />}
+      <div style={s.cardTitleRow}>
+        <span style={s.cardTitle}>{candidate.name}</span>
+        <ChevronRight
+          size={16}
+          color="var(--color-text-tertiary)"
+          style={{ flexShrink: 0, opacity: hover ? 1 : 0.7, transition: "opacity 150ms ease" }}
+          aria-hidden="true"
+        />
       </div>
-      <CoverageMeter screen={candidate.screen} compact />
-      {STAGE_HAS_ADVANCE[candidate.stage] && (
-        <AdvanceButton candidate={candidate} onAdvance={onAdvance} fullWidth />
-      )}
-    </Card>
+      <span style={s.cardRole}>{candidate.role}</span>
+      <div style={s.cardDivider} aria-hidden="true" />
+      <div style={s.cardMetaRow}>
+        <span style={s.familyChip}>{FAMILY_LABELS[candidate.family]}</span>
+        <span style={s.coverageText}>{coverageLabel(candidate.screen)}</span>
+      </div>
+    </button>
   );
 }
 
-// Only the live-pipeline stages with a forward move render an action; Hired is
-// terminal. Derived once from the stage table so it never drifts.
-const STAGE_HAS_ADVANCE = STAGES.reduce((acc, st) => {
-  acc[st.id] = Boolean(st.advance);
-  return acc;
-}, {});
-
-// CommunityStrip — the off-pipeline talent pool. Re-activating a candidate
-// drops them back into Applied (the "community that can be activated and hired"
-// loop). Horizontal so it reads as a distinct shelf, not a sixth funnel stage.
-function CommunityStrip({ candidates, total, onAdvance, onOpenCandidate }) {
+// CommunityShelf — the off-pipeline talent pool, styled as its own lane below
+// the board. Cards open the same detail curtain, where "Activate candidate"
+// (drops them back to Applied) is the parked CTA. Horizontal so it reads as a
+// distinct shelf, not a sixth funnel stage.
+function CommunityShelf({ candidates, total, openId, onOpen }) {
   return (
-    <Card padX={20} padY={18} tone="outline" style={s.communityCard}>
-      <div style={s.communityHead}>
-        <span style={{ ...s.colDot, background: COMMUNITY_STAGE.tint.fg }} aria-hidden="true" />
-        <span style={s.communityTitle}>{COMMUNITY_STAGE.label}</span>
-        <span style={s.colCount}>{total}</span>
-        <span style={s.communitySub}>Previously screened — re-activate into the pipeline when a role opens</span>
+    <section style={s.shelf} aria-label={`${COMMUNITY_STAGE.label} — ${total} candidates`}>
+      <div style={s.laneHeader}>
+        <span style={{ ...s.laneDot, background: COMMUNITY_STAGE.tint.fg }} aria-hidden="true" />
+        <span style={s.laneTitle}>{COMMUNITY_STAGE.label}</span>
+        <span style={s.countPill}>{total}</span>
+        <span style={s.shelfSub}>Previously screened — re-activate into the pipeline when a role opens</span>
       </div>
       {candidates.length === 0 ? (
-        <p style={s.colEmpty}>No one in the community pool yet</p>
+        <p style={s.laneEmpty}>No one in the community pool yet</p>
       ) : (
-        <div style={s.communityRow}>
+        <div style={s.shelfRow}>
           {candidates.map((c) => (
-            <div key={c.id} style={s.communityItem}>
-              <div style={s.cardTop}>
-                <CandidateMonogram candidate={c} size={32} />
-                <button
-                  type="button"
-                  className="recruiter-focusable"
-                  onClick={() => onOpenCandidate?.(c.id)}
-                  aria-label={`${c.name} — open candidate details`}
-                  style={s.cardNameBtn}
-                >
-                  <span style={s.cardNameText}>
-                    <span style={s.cardName}>{c.name}</span>
-                    <span style={s.cardRole}>{c.role}</span>
-                  </span>
-                  <ChevronRight size={16} color="var(--color-text-tertiary)" style={{ flexShrink: 0 }} aria-hidden="true" />
-                </button>
-              </div>
-              <CoverageMeter screen={c.screen} compact />
-              <AdvanceButton candidate={c} onAdvance={onAdvance} fullWidth />
+            <div key={c.id} style={{ width: 260, flexShrink: 0 }}>
+              <CandidateCard candidate={c} selected={openId === c.id} onOpen={() => onOpen(c.id)} />
             </div>
           ))}
         </div>
       )}
-    </Card>
+    </section>
+  );
+}
+
+// CandidateCurtain — in-place detail surface mirroring the Missions Kanban
+// side curtain: slides in from the right edge (.recruiter-drawer, gated by
+// prefers-reduced-motion), no scrim so the board stays live behind it. Esc or
+// the close button dismisses; opening another card swaps the content in place.
+// Hosts the shared CandidateDetail, including the parked stage-advance CTA.
+function CandidateCurtain({ candidate, onClose, onAdvance, onOpenCandidate }) {
+  const closeRef = React.useRef(null);
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    closeRef.current?.focus();
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <aside className="recruiter-drawer" role="complementary" aria-label={`${candidate.name} details`} style={s.curtain}>
+      <CandidateDetailHeader candidate={candidate} onClose={onClose} closeRef={closeRef} />
+      <CandidateDetailBody candidate={candidate} />
+      <CandidateDetailFooter candidate={candidate} onAdvance={onAdvance} onOpenCandidate={onOpenCandidate} />
+    </aside>
   );
 }
 
 const s = {
   column: { display: "flex", flexDirection: "column", gap: 20, width: "100%", fontFamily: "var(--font-sans)" },
 
-  board: { display: "flex", gap: 12, alignItems: "stretch" },
-  col: {
+  board: { display: "flex", gap: 16, alignItems: "flex-start" },
+  lane: {
     flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: 12,
-    background: "var(--surface-alt)", borderRadius: 12, padding: 12,
+    background: "var(--color-card-emoji-bg)", borderRadius: 12, padding: 16,
   },
-  colHead: { display: "flex", alignItems: "center", gap: 8, padding: "2px 4px" },
-  colDot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
-  colTitle: { fontSize: 12, fontWeight: 700, letterSpacing: "0.2px", color: "var(--color-text-deep)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  colCount: {
-    marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "var(--color-text-tertiary)",
-    fontVariantNumeric: "tabular-nums", background: "var(--surface-white)", borderRadius: 999,
-    minWidth: 22, height: 20, padding: "0 7px", display: "inline-grid", placeItems: "center",
+  shelf: {
+    display: "flex", flexDirection: "column", gap: 12,
+    background: "var(--color-card-emoji-bg)", borderRadius: 12, padding: 16,
   },
-  colBody: { display: "flex", flexDirection: "column", gap: 10, minHeight: 60 },
-  colEmpty: { margin: 0, padding: "12px 4px", fontSize: 12, fontWeight: 500, color: "var(--color-text-placeholder)" },
+  laneHeader: {
+    display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
+    paddingBottom: 12, boxShadow: "0 1px 0 var(--color-divider-card)", flexWrap: "wrap",
+  },
+  laneDot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
+  laneTitle: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  countPill: {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    padding: "2px 8px", borderRadius: 10, background: "var(--surface-white)",
+    border: "1px solid var(--color-divider-card)", fontSize: 13, fontWeight: 500,
+    color: "var(--color-text-medium)", lineHeight: 1.2, minWidth: 24,
+  },
+  shelfSub: { flexBasis: "100%", fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.4 },
+  laneScroll: { display: "flex", flexDirection: "column", gap: 12, minHeight: 40 },
+  laneEmpty: { margin: 0, padding: "8px 2px", fontSize: 12, fontWeight: 500, color: "var(--color-text-placeholder)" },
+  shelfRow: { display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 },
 
-  card: { display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" },
-  cardTop: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
-  cardNameBtn: {
-    display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1,
-    background: "transparent", border: "none", padding: 0, cursor: "pointer",
-    textAlign: "left", fontFamily: "var(--font-sans)", borderRadius: 6,
+  card: {
+    position: "relative", overflow: "hidden", appearance: "none", textAlign: "left",
+    cursor: "pointer", width: "100%", flexShrink: 0, background: "var(--surface-white)",
+    border: "none", borderRadius: 8, padding: 14, display: "flex", flexDirection: "column",
+    gap: 10, transition: "box-shadow 120ms ease", fontFamily: "var(--font-sans)",
   },
-  cardNameText: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 },
-  cardName: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  cardRole: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)", lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  cardTitleRow: { display: "flex", alignItems: "center", gap: 8 },
+  cardTitle: { flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.3, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
+  cardRole: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", lineHeight: 1.35, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
+  cardDivider: { height: 1, width: "100%", background: "var(--color-divider-card)" },
+  cardMetaRow: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0 },
+  familyChip: {
+    alignSelf: "flex-start", display: "inline-flex", alignItems: "center", height: 20,
+    padding: "0 8px", borderRadius: 4, background: "var(--pill-bg)", color: "var(--color-text-medium)",
+    fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis",
+  },
+  coverageText: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
 
-  communityCard: { display: "flex", flexDirection: "column", gap: 14 },
-  communityHead: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  communityTitle: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
-  communitySub: { flexBasis: "100%", fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.4 },
-  communityRow: { display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 },
-  communityItem: {
-    flex: "0 0 240px", display: "flex", flexDirection: "column", gap: 12,
-    background: "var(--surface-white)", border: "1px solid var(--color-divider-card)",
-    borderRadius: 12, padding: 14,
+  // Detail curtain
+  curtain: {
+    position: "fixed", top: 0, right: 0, bottom: 0, width: 420, maxWidth: "92vw",
+    background: "var(--surface-white)", boxShadow: "var(--shadow-drawer)",
+    borderLeft: "1px solid var(--color-divider-card)",
+    display: "flex", flexDirection: "column", zIndex: 45, fontFamily: "var(--font-sans)",
   },
 };
