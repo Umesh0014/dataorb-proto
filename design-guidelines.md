@@ -20,9 +20,9 @@ The document has five parts:
 
 *Airbnb's "Unified" and "Iconic" map almost directly onto DataOrb's reuse-and-restraint stance; Uber's bias toward simplicity and ample whitespace reinforces the editorial treatment for content surfaces.*
 
-1. **Unified system, no outliers.** `[GATE]` Color and surface resolve only through `:root` tokens — brand, neutrals, severity, surfaces, nav, charts, badges, table, chips. No inline hex, no forked variants. Every piece must contribute to the whole; net-new primitives or tokens are flagged to Akash before promotion, never added silently.
+1. **Match and maintain the app's visual style — tokens and text alike.** `[GATE]` Every visual value resolves through the existing `:root` design tokens and the app's defined text styles — color, surface, spacing, radius, shadow *and* typography (font family, size, weight, line-height, letter-spacing, text color). No inline hex, no one-off type styles, no forked variants. A new screen must be visually indistinguishable in styling from the rest of the app; if a token or text style you need doesn't exist, flag it to Akash before promotion, never hardcode or invent it inline.
 
-2. **Reuse before you build.** `[W:3]` Borrow established precedents — `ChartTooltip` for popovers, `PreviewStep` drawer for filter drawers, `MissionsPage` switcher for version toggles — before introducing anything new. A new visual style is a regression unless approved. (Uber reports 3× faster delivery and 4× fewer parity issues from reuse; the same logic holds here.)
+2. **Reuse before you build.** `[W:3]` Borrow established precedents — `ChartTooltip` for popovers, `PreviewStep` drawer for filter drawers, the **`VersionBar`** switcher for version/option toggles (see INT-3) — before introducing anything new. A new visual style is a regression unless approved. (Uber reports 3× faster delivery and 4× fewer parity issues from reuse; the same logic holds here.)
 
 3. **Iconic charts: simple, focused, self-explanatory.** `[GATE]` Bar, trend, pie, donut, and ring only. No spider/radar charts. Every chart is fully labeled (no truncation requiring hover), readable without a manual, screenshot-clean, and also available as a table. The Apple Watch ring is the mental model for "did I hit my goal."
 
@@ -52,7 +52,7 @@ The document has five parts:
 
 2. **Drill-down must be discoverable.** `[W:3]` New users miss hover-only arrows. Surface the path into detail (visible chevron, row hover state, explicit control) so it's obvious on first encounter.
 
-3. **One primitive per pattern.** `[W:2]` Sub-menus and the app-switcher menu share `RailFlyout`; right-edge panels share the `Drawer` shell. Surface, motion, and dismissal (overlay click, close button, Esc) are identical everywhere. Divergent behavior across the app is a bug.
+3. **One primitive per pattern.** `[W:2]` Sub-menus and the app-switcher menu share `RailFlyout`; right-edge panels share the `Drawer` shell. Surface, motion, and dismissal (overlay click, close button, Esc) are identical everywhere. Divergent behavior across the app is a bug. **For showing options or versions, use the `VersionBar` switcher** — the canonical segmented switcher (dark rounded pill, yellow active segment). When a screen exposes up to three options/versions/variants (e.g. V0 / V1 / V2, or option A / B / C), reach for `VersionBar` rather than building a bespoke toggle. It carries the app's switcher styling and behavior for free; if more than three options are needed, flag it — the pattern is tuned for ≤3.
 
 4. **Tooltips are calm and predictable.** `[W:1]` Show after a 300ms delay on hover/focus; hide instantly on leave/blur. Placed right, 8px offset, vertically centered, copy matching the label, `pointer-events: none`. Tooltips clarify — they never carry primary content.
 
@@ -64,7 +64,7 @@ The document has five parts:
 
 8. **Confirm or block irreversible actions.** `[W:2]` Send, publish, delete, and similar one-way actions require a deliberate step. Where a capability isn't ready (e.g. archive in V1), block it visibly rather than letting it fail silently.
 
-9. **Don't rewrite what works.** `[GATE]` Interaction handlers and fetch logic are never touched during a visual refactor — borrow existing wiring, change only presentation. Version toggles follow the canonical `MissionsPage` switcher precedent.
+9. **Don't rewrite what works.** `[GATE]` Interaction handlers and fetch logic are never touched during a visual refactor — borrow existing wiring, change only presentation. Version/option toggles use the canonical `VersionBar` switcher (see INT-3), not a one-off control.
 
 10. **Route open decisions, don't resolve them silently.** `[GATE]` Product or scope ambiguity goes to Akash (tokens, data/algorithm, scope) or Neil (visual/chart standards). Implementation is never the place an open product question gets quietly settled.
 
@@ -138,7 +138,7 @@ The same principles, reorganized so any screen, prototype, or handoff can be sco
 
 | # | Gate | Source |
 |---|------|--------|
-| G1 | Color/surface only via `:root` tokens; no hardcoded hex, no forked components | UI-1 |
+| G1 | Visual style matches the app: color/surface/spacing/shadow **and** typography via `:root` tokens + defined text styles; no hardcoded hex, no one-off type styles, no forked components | UI-1 |
 | G2 | No spider/radar charts; every chart fully labeled and exportable as a table | UI-3 |
 | G3 | No unexplained composite numbers; every number has a label + unit | UI-4 |
 | G4 | No employment-decision framing; quantitative data read-only, narrative editable | UI-11 |
@@ -169,7 +169,7 @@ Score each: **0** = misses, **1** = partial, **2** = fully meets.
 | UI-8 | Card layouts with multilingual expansion tolerance | 2 |
 | UI-9 | Tabular primary + sidecar reveal for detail | 2 |
 | UI-10 | Editorial treatment for content, density for data | 2 |
-| INT-3 | One primitive per pattern; consistent dismissal | 2 |
+| INT-3 | One primitive per pattern; consistent dismissal; `VersionBar` for ≤3 options/versions | 2 |
 | INT-5 | Deliberate empty/zero states | 2 |
 | INT-7 | AI-output-is-starting-state; user-owned inline edits + activity log | 2 |
 | INT-8 | Irreversible actions confirmed or visibly blocked | 2 |
@@ -383,11 +383,13 @@ The goal is a **predictable** Figma that maps 1:1 to the codebase, so any screen
   - **`size`** → `sm` · `md` · `lg`
   - **`variant`** → structural only (e.g. Button: `primary` · `text` · `icon` · `ai`)
 - Never invent a Figma-only variant with no code counterpart. If one seems needed, flag to Akash before creating it `[GATE]`.
+- **Options/version switchers use the `VersionBar` component** — don't draw a custom segmented control. Drop in the shared `VersionBar` (dark pill, yellow active) and configure its segments (≤3).
 
-## Tokens — Figma ↔ `app/globals.css`
+## Tokens & text styles — Figma ↔ `app/globals.css`
 
 - Figma variables/styles map **1:1** to the `:root` tokens in `app/globals.css`. Name them to match: `--color-text-medium` → `color/text/medium`.
-- **No raw hex on any layer** `[GATE]` — bind to a variable. If a required token is missing, flag to Akash; do not hardcode.
+- **Bind every text layer to a shared Figma text style** that matches the app's typography (font family, size, weight, line-height, letter-spacing) — no detached or one-off type. Text styling must be indistinguishable from the rest of the app `[GATE]`.
+- **No raw hex on any layer** `[GATE]` — bind to a variable. If a required token or text style is missing, flag to Akash; do not hardcode or improvise.
 - Shadows resolve to `--shadow-card`, `--shadow-drawer`, `--shadow-8` — not bespoke blurs.
 
 ## Coverage & real content
