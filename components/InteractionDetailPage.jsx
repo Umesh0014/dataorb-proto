@@ -515,8 +515,8 @@ const VERSION_TO_OPT = {
 };
 
 function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange }) {
-  // Default to v2 / i1 — the Updated-design canonical view.
-  const [opt, setOpt] = React.useState("O2");
+  // Default to v1 / i1 — the Updated-design canonical view.
+  const [opt, setOpt] = React.useState("O1");
   const [iter, setIter] = React.useState("i1");
   const [activeAgent, setActiveAgent] = React.useState(null);
 
@@ -539,9 +539,9 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
     if (versionId === "current" || versionId === "updated") {
       onDesignVerChange?.(versionId);
       clearAgent();
-      // Returning to Updated design lands on the canonical v2 / i1 view.
+      // Returning to Updated design lands on the canonical v1 / i1 view.
       if (versionId === "updated") {
-        setOpt("O2");
+        setOpt("O1");
         setIter("i1");
       }
       return;
@@ -567,8 +567,10 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
   };
 
   const shared = { data, activeAgent, onSetAgent: toggleAgent, onClearAgent: clearAgent };
-  // v2 / i1 has its own layout (numbered protocol + outcome chips).
-  // Other v2 iterations fall back to the existing Option B for now.
+  // v1 / i1 = the canonical Updated-design view (campaign title + agent-
+  // tinted timeline + evidence grid). v2 / i1 = the evidence-first sister
+  // layout. Other iterations fall back to the existing Options A/B/C.
+  const showV1I1 = opt === "O1" && iter === "i1";
   const showV2I1 = opt === "O2" && iter === "i1";
 
   return (
@@ -577,7 +579,8 @@ function AgentPlaybookDetail({ data, designVer = "updated", onDesignVerChange })
         <CurrentDesignPlaybook data={CURRENT_PLAYBOOK_MOCK} />
       ) : (
         <>
-          {opt === "O1" && <PlaybookOptionA {...shared} />}
+          {showV1I1 && <PlaybookV1I1 data={PLAYBOOK_V1_I1_MOCK} />}
+          {opt === "O1" && !showV1I1 && <PlaybookOptionA {...shared} />}
           {showV2I1 && <PlaybookV2I1 data={PLAYBOOK_V2_I1_MOCK} />}
           {opt === "O2" && !showV2I1 && <PlaybookOptionB {...shared} />}
           {opt === "O3" && <PlaybookOptionC {...shared} />}
@@ -833,6 +836,332 @@ const cdStyles = {
   },
 };
 
+// ---- v1 / i1 — campaign-title timeline + agent-tinted refs -------------
+// Canonical Updated-design view. Hero shows the campaign name (not the
+// generic "Agent playbook" label) + a "{N} stages · {protocol}" subline,
+// then three tag chips, the Why callout, a vertical connected timeline
+// (#N–M ref chip tinted by the agent who handled that stage), and the
+// "Built from {N} agent interactions" evidence grid at the bottom.
+// Shared agents-grid payload — identical for v1/i1 and v2/i1 so future
+// edits don't drift between the two variants.
+const PLAYBOOK_AGENTS_GRID = [
+  { id: "SI", name: "Sara I.",   messages: 6, stages: "greeting, Closing",      outcome: "Resolved, 1-touch" },
+  { id: "AM", name: "Aditi M.",  messages: 8, stages: "Authentication",         outcome: "Retained" },
+  { id: "TN", name: "Tarun N.",  messages: 6, stages: "Discovery",              outcome: "Cancelled cleanly" },
+  { id: "RK", name: "Rohan K.",  messages: 8, stages: "Solution, Resolution",   outcome: "Resolved" },
+];
+const PLAYBOOK_V1_I1_MOCK = {
+  campaignName: "Returns & cancellations",
+  subline: "6 stages · price-pressure protocol",
+  keyTag: "Price pressure",
+  secondaryTags: ["Returns", "Marked urgent"],
+  whyText:
+    "Full authentication up front and an early intent check kept the flow linear, so the price-driven cancellation resolved in a single pass.",
+  stages: [
+    { n: 1, name: "Initial greeting",         agent: "SI", refs: [1, 2],   bullets: ["Greeted customer and asked for name and concern."] },
+    { n: 2, name: "Authentication",           agent: "AM", refs: [5, 12],  bullets: ["Requested and received ID, full name, and last four of order number.", "Confirmed identity before sharing account details."] },
+    { n: 3, name: "Discovery & probing",      agent: "TN", refs: [13, 18], bullets: ["Confirmed customer had multiple returns.", "Identified specific handbag and price.", "Confirmed intent to cancel the return."] },
+    { n: 4, name: "Solution presentation",    agent: "RK", refs: [19, 23], bullets: ["Explained they would initiate cancellation and forward to the department.", "Marked the request as urgent."] },
+    { n: 5, name: "Resolution confirmation",  agent: "RK", refs: [28, 30], bullets: ["Customer confirmed understanding and satisfaction with the action taken.", "Agent confirmed no further assistance needed."] },
+    { n: 6, name: "Closing",                  agent: "SI", refs: [29, 32], bullets: ["Wished customer a nice afternoon.", "Customer reciprocated good wishes."] },
+  ],
+  agents: PLAYBOOK_AGENTS_GRID,
+};
+
+function PlaybookV1I1({ data }) {
+  const [whyOpen, setWhyOpen] = React.useState(false);
+  return (
+    <div style={v1i1.body}>
+      <div style={v1i1.hero}>
+        <span style={v1i1.heroTile}>
+          <BookOpen size={22} color="var(--color-icon-tertiary-fg)" />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={v1i1.heroTitle}>{data.campaignName}</h3>
+          <div style={v1i1.heroSub}>{data.subline}</div>
+        </div>
+      </div>
+
+      <div style={v1i1.tagRow}>
+        <span style={v1i1.keyTag}>{data.keyTag}</span>
+        {data.secondaryTags.map((t) => (
+          <span key={t} style={v1i1.outlineTag}>{t}</span>
+        ))}
+      </div>
+
+      <div style={v1i1.whyCard}>
+        <div style={v1i1.whyHeader}>
+          <span style={v1i1.whyBulb}>💡</span>
+          <span style={v1i1.whyTitle}>Why this approach works</span>
+        </div>
+        <p style={v1i1.whyText}>
+          {whyOpen ? data.whyText : `${data.whyText.slice(0, 130)}…`}
+        </p>
+        <button
+          type="button"
+          onClick={() => setWhyOpen((v) => !v)}
+          style={v1i1.whyMore}
+          aria-expanded={whyOpen}
+        >
+          {whyOpen ? "See less" : "See more"}
+        </button>
+      </div>
+
+      <div style={v1i1.timeline}>
+        <span style={v1i1.timelineLine} aria-hidden="true" />
+        {data.stages.map((s) => (
+          <V1I1StageRow key={s.n} stage={s} />
+        ))}
+      </div>
+
+      <div style={v1i1.evDivider} />
+
+      <div>
+        <div style={v1i1.sectLabel}>
+          <User size={14} color="var(--color-text-medium)" />
+          <span>Built from {data.agents.length} agent interactions</span>
+        </div>
+        <div style={v1i1.sectSub}>Each card is a source interaction · chip = the outcome it achieved</div>
+        <div style={v1i1.agentsGrid}>
+          {data.agents.map((a) => (
+            <V2I1AgentCard key={a.id} agent={a} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function V1I1StageRow({ stage }) {
+  const ramp = PB_AGENTS[stage.agent] || PB_AGENTS.SI;
+  return (
+    <div style={v1i1.stageRow}>
+      <span style={v1i1.stageNumber}>{stage.n}</span>
+      <div style={v1i1.stageBody}>
+        <div style={v1i1.stageHead}>
+          <span style={v1i1.stageTitle}>{stage.name}</span>
+          <span
+            style={{
+              ...v1i1.stageRefChip,
+              background: ramp.bg,
+              color: ramp.text,
+            }}
+          >
+            #{stage.refs[0]}–{stage.refs[1]}
+          </span>
+        </div>
+        <ul style={v1i1.bullets}>
+          {stage.bullets.map((b, i) => (
+            <li key={i} style={v1i1.bullet}>
+              <span aria-hidden="true" style={v1i1.bulletDot}>•</span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+const v1i1 = {
+  body: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+    paddingInline: 2,
+  },
+  hero: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  heroTile: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    background: "var(--color-icon-tertiary-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTitle: {
+    margin: 0,
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 22,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.15,
+  },
+  heroSub: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    marginTop: 4,
+  },
+  tagRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  keyTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: "#FAECE7",
+    color: "#712B13",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: "5px 10px",
+    borderRadius: 10,
+  },
+  outlineTag: {
+    fontSize: 12,
+    color: "var(--color-text-medium)",
+    padding: "5px 10px",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 10,
+  },
+  whyCard: {
+    background: "#EFF6FF",
+    borderRadius: 10,
+    padding: "14px 16px",
+  },
+  whyHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  whyBulb: { fontSize: 14, lineHeight: 1 },
+  whyTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  whyText: {
+    margin: 0,
+    fontSize: 13,
+    lineHeight: 1.55,
+    color: "var(--color-text-deep)",
+  },
+  whyMore: {
+    background: "transparent",
+    border: "none",
+    color: "var(--color-button-primary-bg)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: "6px 0 0",
+  },
+  timeline: {
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+    paddingLeft: 6,
+  },
+  timelineLine: {
+    position: "absolute",
+    left: 17,
+    top: 18,
+    bottom: 18,
+    width: 1,
+    background: "var(--color-divider-card)",
+  },
+  stageRow: {
+    position: "relative",
+    display: "grid",
+    gridTemplateColumns: "24px 1fr",
+    gap: 16,
+    alignItems: "flex-start",
+  },
+  stageNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: "50%",
+    background: "var(--surface-white)",
+    border: "1px solid var(--color-divider-card)",
+    color: "var(--color-text-medium)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+    fontWeight: 700,
+    flexShrink: 0,
+    zIndex: 1,
+  },
+  stageBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    minWidth: 0,
+  },
+  stageHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  stageTitle: {
+    fontFamily: '"Poppins", sans-serif',
+    fontSize: 16,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+  },
+  stageRefChip: {
+    flexShrink: 0,
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "3px 8px",
+    borderRadius: 6,
+    whiteSpace: "nowrap",
+    fontFamily: "var(--font-sans)",
+  },
+  bullets: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0,
+  },
+  bullet: {
+    fontSize: 13,
+    color: "var(--color-text-tertiary)",
+    lineHeight: 1.55,
+    paddingLeft: 16,
+    position: "relative",
+    marginTop: 2,
+  },
+  bulletDot: {
+    position: "absolute",
+    left: 4,
+    color: "var(--color-text-tertiary)",
+  },
+  evDivider: {
+    height: 1,
+    background: "var(--color-divider-card)",
+    margin: "4px 0",
+  },
+  sectLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+  },
+  sectSub: {
+    fontSize: 12,
+    color: "var(--color-text-tertiary)",
+    margin: "2px 0 10px",
+  },
+  agentsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  },
+};
+
 // ---- v2 / i1 — evidence-first + numbered protocol w/ outcome chips ------
 // Dedicated layout reached by picking v2 → i1 in the VersionBar. Sister
 // to PlaybookOptionB but: tag chips collapse to a single secondary, the
@@ -843,12 +1172,7 @@ const PLAYBOOK_V2_I1_MOCK = {
   secondaryTag: "Returns · Urgent",
   whyText:
     "Full authentication up front and an early intent check kept the flow linear, so the price-driven cancellation resolved in a single pass.",
-  agents: [
-    { id: "SI", name: "Sara I.",   messages: 6, stages: "greeting, Closing",      outcome: "Resolved, 1-touch" },
-    { id: "AM", name: "Aditi M.",  messages: 8, stages: "Authentication",         outcome: "Retained" },
-    { id: "TN", name: "Tarun N.",  messages: 6, stages: "Discovery",              outcome: "Cancelled cleanly" },
-    { id: "RK", name: "Rohan K.",  messages: 8, stages: "Solution, Resolution",   outcome: "Resolved" },
-  ],
+  agents: PLAYBOOK_AGENTS_GRID,
   protocol: [
     { n: 1, title: "Initial greeting",       description: "Greeted customer and asked for name and concern.",                                                                                         refs: [1, 2] },
     { n: 2, title: "Authentication",         description: "Requested and received ID, full name, and last four of order number. Confirmed identity before sharing account details.",                  refs: [5, 12] },
