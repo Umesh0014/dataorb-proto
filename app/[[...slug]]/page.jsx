@@ -757,10 +757,16 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
+    // Interactions canvas (listing + detail) reads better at the wider
+    // 1440 max-width — matches the Missions Kanban frame. Other Insights
+    // pages keep the 1068 default.
+    const insightsContentMaxWidth =
+      insightsNav === "interaction" ? "1440px" : undefined;
     moduleContent = (
       <PageLayout
         rightPanel={insightsRightPanel}
         onPanelClose={() => setFiltersOpen(false)}
+        contentMaxWidth={insightsContentMaxWidth}
       >
         {onInteractionDetail ? (
           <InteractionDetailPage
