@@ -188,17 +188,12 @@ function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent
             onChange={(v) => onCadence(team.id, v)}
             ariaLabel={`Quota cadence for ${team.name}`}
           />
-          <label style={styles.quotaInput}>
-            <input
-              type="number"
-              min={1}
-              value={team.perAgent}
-              onChange={(e) => onPerAgent(team.id, Number(e.target.value) || 0)}
-              aria-label={`Per-agent quota for ${team.name}`}
-              style={styles.quotaInputField}
-            />
-            <span style={styles.quotaSuffix}>min</span>
-          </label>
+          <QuotaInput
+            value={team.perAgent}
+            onChange={(v) => onPerAgent(team.id, v)}
+            suffix="min"
+            ariaLabel={`Per-agent quota for ${team.name}`}
+          />
         </div>
       </div>
 
@@ -219,23 +214,46 @@ function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent
                     {agent.used} / {quota} min{cad} · {aPct}%
                   </span>
                 </div>
-                <label style={styles.quotaInput}>
-                  <input
-                    type="number"
-                    min={1}
-                    value={quota}
-                    onChange={(e) => onSetAgentQuota(agent.id, Number(e.target.value) || 0)}
-                    aria-label={`Quota for ${agent.name}`}
-                    style={styles.quotaInputField}
-                  />
-                  <span style={styles.quotaSuffix}>min{cad}</span>
-                </label>
+                <QuotaInput
+                  value={quota}
+                  onChange={(v) => onSetAgentQuota(agent.id, v)}
+                  suffix={`min${cad}`}
+                  ariaLabel={`Quota for ${agent.name}`}
+                />
               </div>
             );
           })}
         </div>
       )}
     </div>
+  );
+}
+
+// QuotaInput — number field with a visible focus ring (the documented 2px
+// white + brand-blue ring) so the team/agent quota edits stay keyboard-
+// discoverable (WCAG-3). Mirrors the styling of the original inline input.
+function QuotaInput({ value, onChange, suffix, ariaLabel }) {
+  const [focus, setFocus] = React.useState(false);
+  return (
+    <label
+      style={{
+        ...styles.quotaInput,
+        boxShadow: focus ? "0 0 0 2px #FFFFFF, 0 0 0 4px var(--do-brand-blue)" : "none",
+        borderColor: focus ? "var(--do-brand-blue)" : "var(--color-border-card-soft)",
+      }}
+    >
+      <input
+        type="number"
+        min={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setFocus(false)}
+        aria-label={ariaLabel}
+        style={styles.quotaInputField}
+      />
+      <span style={styles.quotaSuffix}>{suffix}</span>
+    </label>
   );
 }
 
@@ -319,6 +337,7 @@ const styles = {
     border: "1px solid var(--color-border-card-soft)",
     borderRadius: 8,
     background: "#FFFFFF",
+    transition: "box-shadow 120ms ease, border-color 120ms ease",
   },
   quotaInputField: {
     width: 44,
