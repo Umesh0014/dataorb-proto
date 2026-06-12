@@ -21,7 +21,7 @@ const DEFAULT_VERSIONS = [
   { id: "current", label: "Current design", iterations: [] },
   { id: "v1", label: "v1", iterations: ["i1", "i2"] },
   { id: "v2", label: "v2", iterations: ["i1", "i2", "i3"] },
-  { id: "v3", label: "v3", iterations: ["i1", "i2"] },
+  { id: "v3", label: "v3", iterations: ["i1"] },
 ];
 
 // Baseline-block dropdown options. Picking one updates the baseline
