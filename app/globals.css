@@ -306,6 +306,28 @@ body {
   outline-offset: 2px;
 }
 
+/* Replay player — keyboard focus ring on the custom-styled buttons/chips
+   across the three playback layout variants (inline styles can't target
+   :focus-visible). Matches the .skill-card ring. */
+.replay-focusable:focus-visible {
+  outline: 2px solid var(--do-brand-blue);
+  outline-offset: 2px;
+}
+
+/* Replay player — honor reduced-motion across all three layout variants.
+   Inline styles can't reach the media query, so the host carries the
+   .replay-player class and this neutralizes the track-fill / dot / toggle
+   transitions for users who ask for less motion (WCAG 2.3.3 / MOT-4). */
+@media (prefers-reduced-motion: reduce) {
+  .replay-player *,
+  .replay-player *::before,
+  .replay-player *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .skills-search::placeholder,
 .tasks-search::placeholder {
   color: var(--color-text-placeholder);
