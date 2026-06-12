@@ -293,6 +293,33 @@ body {
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+/* DrillGuidedSessionPage — inline styles can't reach :focus-visible, so the
+   spec focus ring (0 0 0 2px #FFFFFF, 0 0 0 4px #004BEF) lives here and is
+   opted into via className on every interactive element of the guided-drill
+   surface. Mirrors the existing .skill-card:focus-visible precedent. */
+.drill-focusable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
+  border-radius: var(--radius-sm);
+}
+
+/* Respect reduced-motion across the session surfaces — neutralise the orb
+   pulse + push-in slides so nothing animates when the user has signalled
+   they don't want it (WCAG 2.3.1 / MOT-4). */
+@media (prefers-reduced-motion: reduce) {
+  .orbPulseAnimated,
+  [style*="orbPulse"],
+  [style*="panelSlideIn"],
+  [style*="drillStepIn"] {
+    animation: none !important;
+  }
+}
+
+@keyframes drillStepIn {
+  from { transform: translateY(6px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
 /* Hide the horizontal scrollbar on scroll-snap rails (Next Best Actions).
    Firefox honours scrollbar-width via the element's inline style. */
 .scrollbar-none::-webkit-scrollbar {

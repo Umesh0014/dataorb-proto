@@ -28,6 +28,7 @@ import SettingsPage from "../../components/SettingsPage";
 import CreditsUsagePage from "../../components/CreditsUsagePage";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
+import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
 import ReplayPage from "../../components/ReplayPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
@@ -599,6 +600,7 @@ export default function Page() {
   } else if (currentPage === "learning") {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
+    const onGuidedDrill = learningNav === "guided-drill";
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
     const onGuide = learningNav === "guide";
@@ -707,7 +709,14 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
-    if (onGuide && guideSessionId && !guideWizardStep) {
+    if (onGuidedDrill) {
+      // Guided Drill (assisted "safety wheel") is a live-session surface —
+      // like GuideSessionPage it bypasses PageLayout and owns its own 32px
+      // outer gutter (spec §3). Exiting returns to the Drill library.
+      moduleContent = (
+        <DrillGuidedSessionPage onEnd={() => router.push("/learning/drill")} />
+      );
+    } else if (onGuide && guideSessionId && !guideWizardStep) {
       // Guide session bypasses PageLayout — owns its own 32px outer
       // gutter so the chrome diverges from other module pages (spec §3).
       moduleContent = (
