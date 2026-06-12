@@ -402,7 +402,9 @@ const phStyles = {
     display: "grid",
     placeItems: "center",
     flexShrink: 0,
-    marginRight: 12,
+    // Logical inline-end so the chip sits before the label in both LTR
+    // and RTL (Learning Hub localization). Identical to marginRight in LTR.
+    marginInlineEnd: 12,
   },
   label: {
     fontFamily: '"Mulish", sans-serif',
@@ -410,7 +412,7 @@ const phStyles = {
     fontWeight: 600,
     color: "#1F232A",
     lineHeight: 1.4,
-    marginRight: 6,
+    marginInlineEnd: 6,
   },
   chevron: {
     fontSize: 18,
@@ -461,14 +463,14 @@ const phStyles = {
     width: 1,
     alignSelf: "stretch",
     margin: "12px 0",
-    marginLeft: "auto",
+    marginInlineStart: "auto",
     background: "var(--color-border-tab)",
   },
   filterPills: {
     display: "flex",
     alignItems: "center",
     gap: 4,
-    paddingLeft: 20,
+    paddingInlineStart: 20,
   },
   filterPill: {
     display: "inline-flex",
@@ -510,7 +512,7 @@ const phStyles = {
   menu: {
     position: "absolute",
     top: "calc(100% + 4px)",
-    left: 0,
+    insetInlineStart: 0,
     minWidth: 180,
     background: "#FFFFFF",
     borderRadius: 8,

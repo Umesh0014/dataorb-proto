@@ -7,8 +7,20 @@ import TabsRow from "./TabsRow";
 import DrillCard from "./DrillCard";
 import ComingSoon from "./ComingSoon";
 import Banner from "./Banner";
+import Modal from "./Modal";
+import DarkPillSwitcher from "./DarkPillSwitcher";
+import LocaleRibbon from "./LocaleRibbon";
+import LocaleCoverageBody from "./LocaleCoverageBody";
 import { DRILL_CARDS } from "./mocks/drillCards";
 import { evaluateRoleplayGate, gateCopy } from "./SettingsPage";
+import {
+  LH_LOCALES,
+  lhLocale,
+  lhDir,
+  lhText,
+  lhCategory,
+  lhDifficulty,
+} from "./learningHubLocale";
 
 const DrillAvatarIcon = () => (
   <span
@@ -23,98 +35,164 @@ const DrillAvatarIcon = () => (
   </span>
 );
 
-const DRILL_TABS = [
-  { id: "active",  label: "Active" },
-  { id: "library", label: "Library" },
-];
+// Localization design variants (ticket: GUI multilingual + RTL/Arabic).
+// One localization engine, three affordances for choosing language and
+// surfacing RTL readiness. Switcher value matches these strings 1:1.
+const VARIANT_OPTIONS = ["Inline", "Ribbon", "Coverage"];
 
-// LearningHubPage — Drill page. Default route when entering Learning Hub.
-// Header uses the shared PageHeader (same shape MissionsPage adopts) so
-// the Drill chrome stops being a one-off: identifier on the left, the
-// primary Roleplay CTA on the right of row 1, and a search input plus
-// filter toolbar in row 2. The TabsRow below renders Active/Library
-// without its trailing-action slot — the CTA now lives in the header.
+// LearningHubPage — Drill page + the localization layer. The page title,
+// primary CTA, search, Filters, tabs, and the taxonomy chips (category +
+// difficulty) all localize to the selected language; Arabic flips the
+// surface to RTL via the `dir` wrapper. The raw scenario body inside each
+// DrillCard stays in its source language (handled in DrillCard with
+// dir="auto") — eval/transcript content is never translated, per brief.
 //
-// Credits & Usage enforcement (spec §4) gates the Roleplay CTA:
-//   - A1 allowed  → button enabled, existing handler runs unchanged
-//   - A2 agentCap → button disabled, danger Banner above tabs
-//   - A3 poolMode B → button disabled, danger Banner above tabs
-//   - A4 overage → button enabled (informational), warning Banner above tabs
-// The gate is a *pre-start* check (spec §2): when allowed, `onCreateRoleplay`
-// fires unmodified; when blocked, the click is short-circuited before the
-// existing handler runs. Active sessions are never touched.
-//
-// Search + filter controls are surfaced per the Figma spec but the
-// filtering logic itself is not wired here; the inputs are presentational
-// stubs until product fills them in.
+// Credits & Usage enforcement (spec §4) still gates the Roleplay CTA, and
+// the existing handlers (onCreateRoleplay / onOpenDrill) are untouched —
+// only presentation is localized.
 export default function LearningHubPage({ onOpenDrill, onCreateRoleplay }) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [searchValue, setSearchValue] = React.useState("");
+  const [locale, setLocale] = React.useState("en");
+  const [variant, setVariant] = React.useState("Inline");
+  // Variant C stages the locale in the modal and commits it on Apply.
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [pendingLocale, setPendingLocale] = React.useState("en");
+
+  const dir = lhDir(locale);
+  const t = (key) => lhText(locale, key);
+  const activeLocale = lhLocale(locale);
 
   const gate = evaluateRoleplayGate();
   const isBlocked = gate.kind === "agentCap" || gate.kind === "poolBlocked";
   const copy = gateCopy(gate);
 
-  // Guard the existing handler. On the allowed path (and on the A4
-  // overage informational path), `onCreateRoleplay` runs verbatim. On
-  // A2/A3 the button is also disabled, but the guard exists in case a
-  // keyboard or A11Y bypass fires the click anyway.
   const handleRoleplayClick = () => {
     if (isBlocked) return;
     onCreateRoleplay?.();
   };
 
+  const drillTabs = [
+    { id: "active", label: t("tabActive") },
+    { id: "library", label: t("tabLibrary") },
+  ];
+
+  // Variant A — language as an inline header dropdown pill (FilterDropdown).
+  const localeFilter = {
+    id: "language",
+    label: t("language"),
+    value: activeLocale.native,
+    options: LH_LOCALES.map((l) => ({ label: `${l.native} · ${l.label}`, value: l.native })),
+    onSelect: (native) => {
+      const next = LH_LOCALES.find((l) => l.native === native);
+      if (next) setLocale(next.id);
+    },
+  };
+
+  const filtersTool = {
+    id: "filters",
+    icon: <SlidersHorizontal size={18} />,
+    label: t("filters"),
+    onClick: () => {},
+  };
+  // Variant C — language is a text-labeled header pill (visible affordance,
+  // not an icon-only button) that opens the Language & region modal. No
+  // `options` → PageHeader renders it as a plain pill that fires onClick.
+  const openLocaleModal = () => {
+    setPendingLocale(locale);
+    setModalOpen(true);
+  };
+  const coverageLanguagePill = {
+    id: "language",
+    label: t("language"),
+    value: activeLocale.native,
+    onClick: openLocaleModal,
+  };
+
+  const isInline = variant === "Inline";
+  const isCoverage = variant === "Coverage";
+  const headerFilters = isInline
+    ? [localeFilter]
+    : isCoverage
+      ? [coverageLanguagePill]
+      : undefined;
+
   return (
-    <div style={lhStyles.column}>
-      <PageHeader
-        identifier={{
-          icon: <DrillAvatarIcon />,
-          label: "Drill",
-          withDropdown: true,
-          // TODO: identifier dropdown menu — decorative for now.
-          onClick: () => {},
-        }}
-        primaryAction={{
-          label: "Roleplay",
-          icon: <Plus size={16} />,
-          onClick: handleRoleplayClick,
-          disabled: isBlocked,
-        }}
-        search={{
-          value: searchValue,
-          onChange: setSearchValue,
-          placeholder: "Search",
-        }}
-        toolbar={[
-          {
-            id: "filters",
-            icon: <SlidersHorizontal size={18} />,
-            label: "Filters",
-            // TODO: wire filters drawer when Drill filter set is defined.
+    <>
+      <div style={lhStyles.column} dir={dir} lang={locale}>
+        <PageHeader
+          identifier={{
+            icon: <DrillAvatarIcon />,
+            label: t("pageTitle"),
+            withDropdown: true,
             onClick: () => {},
-          },
-        ]}
+          }}
+          primaryAction={{
+            label: t("roleplay"),
+            icon: <Plus size={16} />,
+            onClick: handleRoleplayClick,
+            disabled: isBlocked,
+          }}
+          search={{
+            value: searchValue,
+            onChange: setSearchValue,
+            placeholder: t("search"),
+          }}
+          filters={headerFilters}
+          toolbar={[filtersTool]}
+        />
+
+        {variant === "Ribbon" && (
+          <LocaleRibbon locale={locale} onChange={setLocale} />
+        )}
+
+        {copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
+
+        <TabsRow tabs={drillTabs} activeTab={activeTab} onTabClick={setActiveTab} />
+
+        {activeTab === "active" ? (
+          <div style={lhStyles.grid}>
+            {DRILL_CARDS.map((card) => (
+              <DrillCard
+                key={card.id}
+                {...card}
+                categoryLabel={lhCategory(locale, card.category)}
+                difficultyLabel={lhDifficulty(locale, card.difficulty)}
+                ctaLabel={t("viewDetails")}
+                onViewDetails={() => onOpenDrill?.(card.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <ComingSoon pageName={t("tabLibrary")} />
+        )}
+      </div>
+
+      <Modal
+        open={modalOpen}
+        onDismiss={() => setModalOpen(false)}
+        title={lhText(pendingLocale, "langRegion")}
+        body={<LocaleCoverageBody pending={pendingLocale} onPick={setPendingLocale} />}
+        confirmLabel={lhText(pendingLocale, "apply")}
+        cancelLabel={lhText(pendingLocale, "cancel")}
+        onConfirm={() => {
+          setLocale(pendingLocale);
+          setModalOpen(false);
+        }}
       />
-      {copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
-      <TabsRow
-        tabs={DRILL_TABS}
-        activeTab={activeTab}
-        onTabClick={setActiveTab}
-      />
-      {activeTab === "active" ? (
-        <div style={lhStyles.grid}>
-          {DRILL_CARDS.map((card) => (
-            <DrillCard
-              key={card.id}
-              {...card}
-              onViewDetails={() => onOpenDrill?.(card.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <ComingSoon pageName="Library" />
-      )}
-    </div>
+
+      {/* Floating demo switcher for the three localization variants. Kept
+          LTR (meta-tooling) and outside the dir wrapper. */}
+      <div style={lhStyles.dock}>
+        <span style={lhStyles.dockCaption}>Localization variant</span>
+        <DarkPillSwitcher
+          ariaLabel="Localization variant"
+          value={variant}
+          options={VARIANT_OPTIONS}
+          onChange={setVariant}
+        />
+      </div>
+    </>
   );
 }
 
@@ -131,5 +209,23 @@ const lhStyles = {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
     gap: 24,
+  },
+  dock: {
+    position: "fixed",
+    bottom: 28,
+    right: 28,
+    zIndex: 60,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  dockCaption: {
+    fontFamily: "var(--font-mono)",
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    color: "var(--color-text-tertiary)",
   },
 };
