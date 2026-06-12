@@ -12,6 +12,7 @@ import InteractionsPage from "../../components/InteractionsPage";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
+import CoachingBriefShell from "../../components/CoachingBriefShell";
 import MissionDetailPage from "../../components/MissionDetailPage";
 import MissionWizardPage, {
   EMPTY_MISSION_DRAFT,
@@ -83,12 +84,13 @@ const INSIGHTS_PAGES = {
 };
 
 const LEARNING_PAGES = {
-  "drill":        { Component: LearningHubPage, pageName: "Drill" },
-  "interactions": { Component: InteractionsPage, pageName: "Interactions" },
-  "agents":       { Component: AgentsPage,      pageName: "Agents" },
-  "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
-  "guide":        { Component: GuidePage,       pageName: "Guide" },
-  "replay":       { Component: ReplayPage,      pageName: "Replay" },
+  "drill":          { Component: LearningHubPage, pageName: "Drill" },
+  "interactions":   { Component: InteractionsPage, pageName: "Interactions" },
+  "agents":         { Component: AgentsPage,      pageName: "Agents" },
+  "missions":       { Component: MissionsLandingShell, pageName: "Missions" },
+  "guide":          { Component: GuidePage,       pageName: "Guide" },
+  "replay":         { Component: ReplayPage,      pageName: "Replay" },
+  "coaching-brief": { Component: CoachingBriefShell, pageName: "Coaching Brief" },
 };
 
 const MIRA_PAGES = {
