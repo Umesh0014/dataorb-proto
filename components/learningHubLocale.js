@@ -873,7 +873,102 @@ const REPLAY = {
   pl_pause:        { en: "Pause",        ar: "إيقاف مؤقت" },
   pl_endOfReplay:  { en: "End of replay — you've reached the last coached moment.", ar: "نهاية الإعادة — لقد وصلت إلى آخر لحظة موجّهة." },
   pl_noMoments:    { en: "This replay has no moments yet.", ar: "لا تحتوي هذه الإعادة على لحظات بعد." },
+  // Create wizard (en + ar)
+  cw_step_setup:     { en: "Setup",               ar: "الإعداد" },
+  cw_step_configure: { en: "Configuration",       ar: "التهيئة" },
+  cw_step_preview:   { en: "Preview & Publish",   ar: "المعاينة والنشر" },
+  cw_setupTitle:     { en: "Set up the collection", ar: "إعداد المجموعة" },
+  cw_setupSubtitle:  { en: "What this collection teaches and which calls it draws from", ar: "ما تعلّمه هذه المجموعة والمكالمات التي تستند إليها" },
+  cw_configTitle:    { en: "Configure sampling & publishing", ar: "تهيئة أخذ العينات والنشر" },
+  cw_configSubtitle: { en: "How far back the AI looks, how many replays it builds, and who publishes them", ar: "إلى أي مدى يعود الذكاء الاصطناعي، وعدد الإعادات التي يبنيها، ومن ينشرها" },
+  cw_f_name:         { en: "Collection name",     ar: "اسم المجموعة" },
+  cw_ph_name:        { en: "E.g. Save the Switch", ar: "مثال: أنقذ التحوّل" },
+  cw_f_driver:       { en: "Driver",              ar: "المحرّك" },
+  cw_help_driver:    { en: "The behaviour the collection sits under. Outcome is the lane within it.", ar: "السلوك الذي تندرج تحته المجموعة. والنتيجة هي المسار ضمنه." },
+  cw_ph_driver:      { en: "E.g. Churn risk",     ar: "مثال: خطر التسرّب" },
+  cw_f_description:  { en: "Description",         ar: "الوصف" },
+  cw_ph_description: { en: "E.g. How top retention agents turn a switch threat into a save.", ar: "مثال: كيف يحوّل أفضل وكلاء الاحتفاظ تهديد التحوّل إلى عملية إنقاذ." },
+  cw_f_objective:    { en: "Learning objective",  ar: "الهدف التعليمي" },
+  cw_help_objective: { en: "What an agent should take away from this collection.", ar: "ما الذي يجب أن يخرج به الوكيل من هذه المجموعة." },
+  cw_ph_objective:   { en: "E.g. New hires hear a real save before their first retention shift.", ar: "مثال: يسمع الموظفون الجدد عملية إنقاذ حقيقية قبل أول نوبة احتفاظ لهم." },
+  cw_f_replayLang:   { en: "Replay language",     ar: "لغة الإعادة" },
+  cw_help_replayLang:{ en: "The language replays play back in — not a filter on the source calls.", ar: "اللغة التي تُشغَّل بها الإعادات — وليست عامل تصفية على المكالمات المصدر." },
+  cw_ph_chooseLang:  { en: "Choose output language", ar: "اختر لغة الإخراج" },
+  cw_f_businessOutcome:{ en: "Business outcome",  ar: "نتيجة العمل" },
+  cw_help_businessOutcome:{ en: "The lane within the driver — what a good call achieves.", ar: "المسار ضمن المحرّك — ما تحقّقه المكالمة الجيدة." },
+  cw_ph_businessOutcome:{ en: "E.g. Retention",   ar: "مثال: الاحتفاظ" },
+  cw_f_callOutcome:  { en: "Call outcome",        ar: "نتيجة المكالمة" },
+  cw_ph_callOutcome: { en: "E.g. Saved",          ar: "مثال: تم الإنقاذ" },
+  cw_f_domain:       { en: "Domain / line of business", ar: "المجال / خط العمل" },
+  cw_ph_domain:      { en: "E.g. Consumer",       ar: "مثال: الأفراد" },
+  cw_f_audience:     { en: "Target audience",     ar: "الجمهور المستهدف" },
+  cw_ph_audience:    { en: "E.g. New hires",      ar: "مثال: الموظفون الجدد" },
+  cw_f_window:       { en: "Call eligibility window", ar: "نافذة أهلية المكالمات" },
+  cw_help_window:    { en: "How far back the AI samples calls from.", ar: "إلى أي مدى يأخذ الذكاء الاصطناعي عينات المكالمات." },
+  cw_f_maxReplays:   { en: "Max replays in collection", ar: "الحد الأقصى للإعادات في المجموعة" },
+  cw_f_refresh:      { en: "Refresh frequency",   ar: "تكرار التحديث" },
+  cw_help_refresh:   { en: "Refresh runs automatically — there's no manual refresh.", ar: "يجري التحديث تلقائياً — لا يوجد تحديث يدوي." },
+  cw_f_publishing:   { en: "Publishing workflow", ar: "سير عمل النشر" },
+  cw_select:         { en: "Select",              ar: "اختر" },
+  cw_oneLanguage:    { en: "One language",        ar: "لغة واحدة" },
+  cw_next:           { en: "Next",                ar: "التالي" },
+  cw_publish:        { en: "Publish",             ar: "نشر" },
+  cw_back:           { en: "Back",                ar: "رجوع" },
+  cw_discard:        { en: "Discard changes? Your draft collection will be lost.", ar: "تجاهل التغييرات؟ ستُفقد مسودة مجموعتك." },
+  cw_activation:     { en: "On activation the AI starts sampling calls immediately. The first replays appear in the collection record view as they're built.", ar: "عند التفعيل يبدأ الذكاء الاصطناعي بأخذ عينات المكالمات فوراً. وتظهر أولى الإعادات في عرض سجل المجموعة فور بنائها." },
+  cw_panel_collection:{ en: "Collection",         ar: "المجموعة" },
+  cw_panel_config:   { en: "Configuration",       ar: "التهيئة" },
+  cw_rl_name:        { en: "NAME",                ar: "الاسم" },
+  cw_rl_driverOutcome:{ en: "DRIVER · OUTCOME",   ar: "المحرّك · النتيجة" },
+  cw_rl_description: { en: "DESCRIPTION",          ar: "الوصف" },
+  cw_rl_objective:   { en: "LEARNING OBJECTIVE",  ar: "الهدف التعليمي" },
+  cw_rl_replayLang:  { en: "REPLAY LANGUAGE",     ar: "لغة الإعادة" },
+  cw_rl_audience:    { en: "TARGET AUDIENCE",     ar: "الجمهور المستهدف" },
+  cw_rl_window:      { en: "ELIGIBILITY WINDOW",  ar: "نافذة الأهلية" },
+  cw_rl_maxReplays:  { en: "MAX REPLAYS",         ar: "الحد الأقصى للإعادات" },
+  cw_rl_refresh:     { en: "REFRESH",             ar: "التحديث" },
+  cw_rl_publishing:  { en: "PUBLISHING",          ar: "النشر" },
+  cw_editPanel:      { en: "Edit",                ar: "تعديل" },
 };
+
+// Replay create-wizard option terms (call outcomes, domains, audiences) +
+// the two radio-card mode sets (output language / publish), Arabic-only.
+const REPLAY_OPT_AR = {
+  // Call outcomes
+  "Saved": "تم الإنقاذ",
+  "Resolved": "تم الحل",
+  "Escalated": "تم التصعيد",
+  "Upsold": "تم البيع الإضافي",
+  "Unresolved": "لم يُحل",
+  "Callback booked": "تم حجز معاودة اتصال",
+  // Domains
+  "Consumer": "الأفراد",
+  "Business": "الأعمال",
+  "Enterprise": "المؤسسات",
+  "Public sector": "القطاع العام",
+  // Target audiences
+  "New hires (0–30 days)": "الموظفون الجدد (0–30 يوماً)",
+  "Tenured agents": "الوكلاء ذوو الخبرة",
+  "Retention specialists": "أخصائيو الاحتفاظ",
+  "Tier-2 technical": "الدعم التقني — المستوى الثاني",
+  "All agents": "جميع الوكلاء",
+};
+export function lhReplayOpt(id, value) {
+  if (id === "ar") return REPLAY_OPT_AR[value] ?? value;
+  return value;
+}
+
+// Replay output-language + publish modes (label + help), keyed by mode id.
+const REPLAY_MODE_AR = {
+  original:  { label: "إبقاء لغة المحادثة الأصلية", help: "تُشغَّل كل إعادة باللغة التي جرت بها المكالمة." },
+  unified:   { label: "عرض كل الإعادات بلغة واحدة", help: "تُوحَّد المكالمات الإسبانية/الفرنسية/المختلطة في لغة واحدة مختارة." },
+  auto:      { label: "ينشر الذكاء الاصطناعي مباشرة", help: "تُنشَر الإعادات الجديدة فور بنائها. المجموعة مُدارة بالذكاء الاصطناعي." },
+  manual:    { label: "أراجع قبل النشر", help: "تصل الإعادات الجديدة كاقتراحات. ولا يُنشأ الصوت إلا بعد اعتمادك أو تعديلك." },
+};
+export function lhReplayMode(id, modeId, field, fallback) {
+  if (id === "ar") return REPLAY_MODE_AR[modeId]?.[field] ?? fallback;
+  return fallback;
+}
 
 // Replay player — coached transcript moments in Arabic, keyed by moment id.
 const MOMENT_AR = {

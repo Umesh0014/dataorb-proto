@@ -47,7 +47,11 @@ import FilterPanel from "../../components/FilterPanel";
 import { insightsHubConfig } from "../../components/SideNav/configs/insightsHubConfig";
 import { learningHubConfig } from "../../components/SideNav/configs/learningHubConfig";
 import { askMiraConfig } from "../../components/SideNav/configs/askMiraConfig";
-import { lhDir, lhWizard, localizeLearningConfig } from "../../components/learningHubLocale";
+import { lhDir, lhWizard, localizeLearningConfig, LH_LOCALES } from "../../components/learningHubLocale";
+
+// Persisted across reloads + shared by every tab — selecting a language
+// once anywhere applies app-wide and survives a refresh.
+const LOCALE_STORAGE_KEY = "dataorb-locale";
 
 const MIRA_RESPONSE_DELAY_MS = 800;
 
@@ -284,8 +288,24 @@ export default function Page() {
   // Global GUI locale. Chosen on the Learning Hub Drill page but held at
   // the app root so the whole shell flips together: Arabic sets the
   // document `dir="rtl"` (rail moves to the right, layout mirrors via
-  // logical CSS properties) and `lang`. In-memory only (no storage).
-  const [locale, setLocale] = React.useState("en");
+  // logical CSS properties) and `lang`. The choice is global (one state at
+  // the app root, threaded to every tab as a controlled prop) AND persisted
+  // to localStorage, so selecting a language once in any tab applies
+  // everywhere and survives a reload — no need to re-select per tab.
+  const [locale, setLocaleState] = React.useState("en");
+  // Hydrate the saved choice once on mount (kept out of the initializer to
+  // avoid an SSR/client markup mismatch; persistence happens on change).
+  React.useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+      if (saved && LH_LOCALES.some((l) => l.id === saved)) setLocaleState(saved);
+    } catch { /* storage unavailable — fall back to default */ }
+  }, []);
+  // Single setter shared by every tab's selector: updates state + persists.
+  const setLocale = React.useCallback((next) => {
+    setLocaleState(next);
+    try { window.localStorage.setItem(LOCALE_STORAGE_KEY, next); } catch { /* ignore */ }
+  }, []);
   React.useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("dir", lhDir(locale));
