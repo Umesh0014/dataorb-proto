@@ -538,6 +538,120 @@ export function lhWizard(id, key) {
   return row[id] ?? row.en;
 }
 
+// Interactions tab — table chrome, sentiment, skills popover, filters
+// drawer, pagination, empty state. Full five-locale set (GUI chrome).
+// Customer IDs, agent names and timestamps are data/proper nouns and stay
+// in source. Composite keys (sent_*, ch_*, col_*, attr_*, fs_*, opt_*,
+// skill_*) localize the data-driven cells while their stored id stays stable.
+const INTERACTIONS = {
+  title:        { en: "Interactions",   es: "Interacciones",  de: "Interaktionen",   fr: "Interactions",   ar: "التفاعلات" },
+  searchBy:     { en: "Search by",      es: "Buscar por",     de: "Suchen nach",     fr: "Rechercher par", ar: "البحث حسب" },
+  clearSearch:  { en: "Clear search",   es: "Borrar búsqueda", de: "Suche löschen",  fr: "Effacer la recherche", ar: "مسح البحث" },
+  filterName:   { en: "Search by filter name", es: "Buscar por nombre de filtro", de: "Nach Filternamen suchen", fr: "Rechercher par nom de filtre", ar: "البحث باسم عامل التصفية" },
+  deselectAll:  { en: "Deselect all",   es: "Deseleccionar todo", de: "Alle abwählen", fr: "Tout désélectionner", ar: "إلغاء تحديد الكل" },
+  optionsPending:{ en: "Options pending", es: "Opciones pendientes", de: "Optionen ausstehend", fr: "Options en attente", ar: "الخيارات قيد الإعداد" },
+  emptyMessage: { en: "No Interactions matched your search criteria.", es: "Ninguna interacción coincidió con tu búsqueda.", de: "Keine Interaktionen entsprachen deinen Suchkriterien.", fr: "Aucune interaction ne correspond à vos critères de recherche.", ar: "لا توجد تفاعلات تطابق معايير بحثك." },
+  firstPage:    { en: "First page",     es: "Primera página", de: "Erste Seite",     fr: "Première page",  ar: "الصفحة الأولى" },
+  prevPage:     { en: "Previous page",  es: "Página anterior", de: "Vorherige Seite", fr: "Page précédente", ar: "الصفحة السابقة" },
+  nextPage:     { en: "Next page",      es: "Página siguiente", de: "Nächste Seite",  fr: "Page suivante",  ar: "الصفحة التالية" },
+  skillsDetail: { en: "Skills detail",  es: "Detalle de habilidades", de: "Skill-Details", fr: "Détail des compétences", ar: "تفاصيل المهارات" },
+  closeFilters: { en: "Close filters",  es: "Cerrar filtros", de: "Filter schließen", fr: "Fermer les filtres", ar: "إغلاق عوامل التصفية" },
+
+  // Columns
+  col_customerId: { en: "Customer ID", es: "ID de cliente", de: "Kunden-ID",   fr: "ID client",     ar: "معرّف العميل" },
+  col_channel:    { en: "Channel",     es: "Canal",         de: "Kanal",        fr: "Canal",         ar: "القناة" },
+  col_date:       { en: "Date",        es: "Fecha",         de: "Datum",        fr: "Date",          ar: "التاريخ" },
+  col_agent:      { en: "Agent",       es: "Agente",        de: "Agent",        fr: "Agent",         ar: "الوكيل" },
+  col_duration:   { en: "Duration",    es: "Duración",      de: "Dauer",        fr: "Durée",         ar: "المدة" },
+  col_sentiment:  { en: "Sentiment",   es: "Sentimiento",   de: "Stimmung",     fr: "Sentiment",     ar: "المشاعر" },
+  col_quality:    { en: "Quality",     es: "Calidad",       de: "Qualität",     fr: "Qualité",       ar: "الجودة" },
+  col_skills:     { en: "Skills",      es: "Habilidades",   de: "Skills",       fr: "Compétences",   ar: "المهارات" },
+
+  // Search attributes
+  attr_customer: { en: "Customer ID",    es: "ID de cliente",   de: "Kunden-ID",      fr: "ID client",         ar: "معرّف العميل" },
+  attr_agent:    { en: "Agent Name",     es: "Nombre del agente", de: "Agentenname",  fr: "Nom de l’agent",    ar: "اسم الوكيل" },
+  attr_reason:   { en: "Contact Reason", es: "Motivo de contacto", de: "Kontaktgrund", fr: "Motif du contact", ar: "سبب التواصل" },
+
+  // Sentiment
+  sent_positive: { en: "Positive", es: "Positivo", de: "Positiv", fr: "Positif", ar: "إيجابي" },
+  sent_neutral:  { en: "Neutral",  es: "Neutral",  de: "Neutral", fr: "Neutre",  ar: "محايد" },
+  sent_negative: { en: "Negative", es: "Negativo", de: "Negativ", fr: "Négatif", ar: "سلبي" },
+  sent_mixed:    { en: "Mixed",    es: "Mixto",    de: "Gemischt", fr: "Mitigé",  ar: "مختلط" },
+
+  // Channels (a11y titles)
+  ch_voice:    { en: "Voice call", es: "Llamada de voz", de: "Sprachanruf", fr: "Appel vocal", ar: "مكالمة صوتية" },
+  ch_whatsapp: { en: "WhatsApp",   es: "WhatsApp",       de: "WhatsApp",    fr: "WhatsApp",    ar: "واتساب" },
+  ch_sms:      { en: "SMS",        es: "SMS",            de: "SMS",         fr: "SMS",         ar: "رسالة نصية" },
+  ch_email:    { en: "Email",      es: "Correo",         de: "E-Mail",      fr: "E-mail",      ar: "بريد إلكتروني" },
+
+  // Skills popover
+  sk_strengths: { en: "Strengths",        es: "Fortalezas",       de: "Stärken",            fr: "Points forts",      ar: "نقاط القوة" },
+  sk_needs:     { en: "Needs Improvement", es: "Áreas de mejora", de: "Verbesserungsbedarf", fr: "À améliorer",       ar: "بحاجة إلى تحسين" },
+  sk_coaching:  { en: "Coaching recommendation", es: "Recomendación de coaching", de: "Coaching-Empfehlung", fr: "Recommandation de coaching", ar: "توصية التدريب" },
+  sk_top:       { en: "Top skill",        es: "Habilidad destacada", de: "Top-Skill",       fr: "Compétence clé",    ar: "أبرز مهارة" },
+  sk_tracked:   { en: "Skills tracked",   es: "Habilidades seguidas", de: "Erfasste Skills", fr: "Compétences suivies", ar: "المهارات المتتبَّعة" },
+
+  // Skill names (SKILL_REGISTRY)
+  skill_building_rapport:        { en: "Building rapport",        es: "Generar confianza",        de: "Beziehung aufbauen",       fr: "Établir le lien",           ar: "بناء الألفة" },
+  skill_uncovering_needs:        { en: "Uncovering needs",        es: "Descubrir necesidades",    de: "Bedürfnisse erkennen",     fr: "Cerner les besoins",        ar: "اكتشاف الاحتياجات" },
+  skill_demonstrating_ownership: { en: "Demonstrating ownership", es: "Demostrar responsabilidad", de: "Verantwortung zeigen",     fr: "Faire preuve d’initiative", ar: "إظهار المسؤولية" },
+  skill_expressing_empathy:      { en: "Expressing empathy",      es: "Expresar empatía",         de: "Empathie zeigen",          fr: "Exprimer de l’empathie",    ar: "التعبير عن التعاطف" },
+  skill_communicating_clearly:   { en: "Communicating clearly",   es: "Comunicar con claridad",   de: "Klar kommunizieren",       fr: "Communiquer clairement",    ar: "التواصل بوضوح" },
+  skill_problem_solving:         { en: "Problem solving",         es: "Resolución de problemas",  de: "Problemlösung",            fr: "Résolution de problèmes",   ar: "حل المشكلات" },
+
+  // Filter sections
+  fs_date:                 { en: "Date",                   es: "Fecha",                de: "Datum",                fr: "Date",                  ar: "التاريخ" },
+  fs_coaching_recommendation: { en: "Coaching recommendation", es: "Recomendación de coaching", de: "Coaching-Empfehlung", fr: "Recommandation de coaching", ar: "توصية التدريب" },
+  fs_business_category:    { en: "Business category",      es: "Categoría de negocio", de: "Geschäftskategorie",   fr: "Catégorie d’activité",  ar: "فئة العمل" },
+  fs_strengths:            { en: "Strengths",              es: "Fortalezas",           de: "Stärken",              fr: "Points forts",          ar: "نقاط القوة" },
+  fs_filter_name:          { en: "Filter name",            es: "Nombre de filtro",     de: "Filtername",           fr: "Nom de filtre",         ar: "اسم عامل التصفية" },
+  fs_channel:              { en: "Channel",                es: "Canal",                de: "Kanal",                fr: "Canal",                 ar: "القناة" },
+  fs_direction:            { en: "Direction",              es: "Dirección",            de: "Richtung",             fr: "Direction",             ar: "الاتجاه" },
+  fs_workspaces:           { en: "Workspaces",             es: "Espacios de trabajo",  de: "Arbeitsbereiche",      fr: "Espaces de travail",    ar: "مساحات العمل" },
+  fs_human_eval:           { en: "Human Eval",             es: "Evaluación humana",    de: "Manuelle Bewertung",   fr: "Évaluation humaine",    ar: "تقييم بشري" },
+
+  // Filter options
+  opt_today:         { en: "Today",          es: "Hoy",                de: "Heute",            fr: "Aujourd’hui",       ar: "اليوم" },
+  opt_last_7_days:   { en: "Last 7 days",    es: "Últimos 7 días",     de: "Letzte 7 Tage",    fr: "7 derniers jours",  ar: "آخر 7 أيام" },
+  opt_last_30_days:  { en: "Last 30 days",   es: "Últimos 30 días",    de: "Letzte 30 Tage",   fr: "30 derniers jours", ar: "آخر 30 يوماً" },
+  opt_last_90_days:  { en: "Last 90 days",   es: "Últimos 90 días",    de: "Letzte 90 Tage",   fr: "90 derniers jours", ar: "آخر 90 يوماً" },
+  opt_last_12_months:{ en: "Last 12 months", es: "Últimos 12 meses",   de: "Letzte 12 Monate", fr: "12 derniers mois",  ar: "آخر 12 شهراً" },
+  opt_yes:           { en: "Yes",            es: "Sí",                 de: "Ja",               fr: "Oui",               ar: "نعم" },
+  opt_no:            { en: "No",             es: "No",                 de: "Nein",             fr: "Non",               ar: "لا" },
+};
+
+export function lhI(id, key) {
+  const row = INTERACTIONS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// "Total {n} Interactions" — word order differs by locale, so build per id.
+export function lhTotalInteractions(id, n) {
+  // Western digits kept under Arabic to match the rest of the app's numerals.
+  const num = n.toLocaleString(id === "ar" ? "en-US" : id);
+  const T = {
+    en: `Total ${num} Interactions`,
+    es: `Total ${num} interacciones`,
+    de: `Insgesamt ${num} Interaktionen`,
+    fr: `Total ${num} interactions`,
+    ar: `إجمالي ${num} تفاعل`,
+  };
+  return T[id] ?? T.en;
+}
+
+// "Page {p} of {total}".
+export function lhPageOf(id, p, total) {
+  const T = {
+    en: `Page ${p} of ${total}`,
+    es: `Página ${p} de ${total}`,
+    de: `Seite ${p} von ${total}`,
+    fr: `Page ${p} sur ${total}`,
+    ar: `صفحة ${p} من ${total}`,
+  };
+  return T[id] ?? T.en;
+}
+
 // Persona-language option labels (Step 1 dropdown). Keyed on the canonical
 // English value that stays in the wizard's stored state.
 const LANGUAGE_NAME = {

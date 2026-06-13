@@ -28,6 +28,19 @@ import {
 import Card from "./Card";
 import Button from "./Button";
 import { formatDateTime } from "./formatDate";
+import { lhI, lhText, lhTotalInteractions, lhPageOf, lhDir } from "./learningHubLocale";
+
+// col.key → INTERACTIONS string key (adherence column reads "Quality").
+const COL_LABEL_KEY = {
+  customerId: "col_customerId",
+  channel:    "col_channel",
+  date:       "col_date",
+  agent:      "col_agent",
+  duration:   "col_duration",
+  sentiment:  "col_sentiment",
+  adherence:  "col_quality",
+  skills:     "col_skills",
+};
 
 // ⚠️ You said "don't rename" but the reference header reads "Quality".
 // Default below follows the image. If you meant keep the proto label,
@@ -180,7 +193,8 @@ function onApplyFilters(_draft) {
   // stub only; confirm the query/handler contract with Akash.
 }
 
-export default function InteractionsPage() {
+export default function InteractionsPage({ locale = "en" }) {
+  const isRtl = lhDir(locale) === "rtl";
   const [page, setPage] = React.useState(1);
   const totalPages = Math.ceil(TOTAL / PAGE_SIZE);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -229,18 +243,21 @@ export default function InteractionsPage() {
         onClearSearch={clearSearch}
         attr={attr}
         onAttrChange={setAttr}
+        locale={locale}
       />
       <Card padX={0} padY={0}>
         {isSearchEmpty ? (
-          <SearchEmptyState onClear={clearSearch} />
+          <SearchEmptyState onClear={clearSearch} locale={locale} />
         ) : (
           <>
-            <Table rows={filteredRows} />
+            <Table rows={filteredRows} locale={locale} />
             <Pagination
               page={page}
               totalPages={totalPages}
               totalCount={TOTAL}
               onPageChange={setPage}
+              locale={locale}
+              isRtl={isRtl}
             />
           </>
         )}
@@ -249,6 +266,7 @@ export default function InteractionsPage() {
         <FiltersPanel
           appliedFilters={appliedFilters}
           onApply={handleApply}
+          locale={locale}
           onClose={() => {
             setFiltersOpen(false);
             // Return focus to the trigger per drawer a11y conventions.
@@ -262,11 +280,12 @@ export default function InteractionsPage() {
 
 function InteractionsHeader({
   filtersOpen, onToggleFilters, filterBtnRef,
-  query, onQueryChange, onClearSearch, attr, onAttrChange,
+  query, onQueryChange, onClearSearch, attr, onAttrChange, locale,
 }) {
   const [open, setOpen] = React.useState(false);
   const ddRef = React.useRef(null);
   const selected = SEARCH_ATTRS.find((a) => a.id === attr) || SEARCH_ATTRS[0];
+  const attrLabel = (id) => lhI(locale, `attr_${id}`);
 
   React.useEffect(() => {
     if (!open) return;
@@ -291,7 +310,7 @@ function InteractionsHeader({
           <ChatBubbleIcon size={16} />
         </div>
         <span className="font-sans text-[16px] leading-[28px] font-normal text-text-medium">
-          Interactions
+          {lhI(locale, "title")}
         </span>
       </div>
 
@@ -311,15 +330,16 @@ function InteractionsHeader({
               }}
             >
               <span className="text-[13px] font-semibold text-text-medium">
-                {selected.label}
+                {attrLabel(selected.id)}
               </span>
               <ChevronDown size={14} className="text-text-tertiary" />
             </button>
             {open && (
               <div
-                className="absolute left-0 mt-1 bg-white rounded-md overflow-hidden z-50"
+                className="absolute mt-1 bg-white rounded-md overflow-hidden z-50"
                 style={{
                   top: "calc(100% + 4px)",
+                  insetInlineStart: 0,
                   minWidth: 160,
                   boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
                   border: "1px solid var(--color-border-tab)",
@@ -330,15 +350,16 @@ function InteractionsHeader({
                     key={a.id}
                     type="button"
                     onClick={() => { onAttrChange(a.id); setOpen(false); }}
-                    className="block w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
+                    className="block w-full px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
                     style={{
                       fontFamily: "var(--font-sans)",
+                      textAlign: "start",
                       color: a.id === attr ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
                       fontWeight: a.id === attr ? 600 : 500,
                       background: a.id === attr ? "var(--pill-bg)" : "transparent",
                     }}
                   >
-                    {a.label}
+                    {attrLabel(a.id)}
                   </button>
                 ))}
               </div>
@@ -350,7 +371,7 @@ function InteractionsHeader({
             type="text"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder={`Search by ${selected.label}`}
+            placeholder={`${lhI(locale, "searchBy")} ${attrLabel(selected.id)}`}
             className="flex-1 bg-transparent border-none outline-none font-sans text-[14px] leading-[22px] text-text-medium placeholder:text-text-placeholder"
           />
           {/* Clear (X) — visible only when the query is non-empty. */}
@@ -358,19 +379,22 @@ function InteractionsHeader({
             <button
               type="button"
               onClick={onClearSearch}
-              aria-label="Clear search"
+              aria-label={lhI(locale, "clearSearch")}
               className="w-8 h-8 flex items-center justify-center bg-transparent border-none cursor-pointer text-text-medium"
             >
               <X size={18} />
             </button>
           )}
         </div>
-        <div className="flex items-center pl-2 border-l border-border-tab self-stretch">
+        <div
+          className="flex items-center self-stretch"
+          style={{ paddingInlineStart: 8, borderInlineStart: "1px solid var(--color-border-tab)" }}
+        >
           <button
             ref={filterBtnRef}
             type="button"
             onClick={onToggleFilters}
-            aria-label="Filters"
+            aria-label={lhText(locale, "filters")}
             aria-expanded={filtersOpen}
             aria-haspopup="dialog"
             className="w-8 h-8 flex items-center justify-center bg-transparent border-none cursor-pointer text-text-medium"
@@ -383,7 +407,7 @@ function InteractionsHeader({
   );
 }
 
-function Table({ rows }) {
+function Table({ rows, locale }) {
   return (
     <div className="overflow-x-auto">
       <table
@@ -408,7 +432,7 @@ function Table({ rows }) {
                 aria-sort={col.sorted ? "descending" : undefined}
                 style={{
                   padding: "14px 16px",
-                  textAlign: col.align,
+                  textAlign: col.align === "left" ? "start" : col.align,
                   fontSize: 12,
                   fontWeight: 700,
                   color: "rgba(0,0,0,0.87)",
@@ -417,7 +441,7 @@ function Table({ rows }) {
                 }}
               >
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {col.label}
+                  {lhI(locale, COL_LABEL_KEY[col.key] ?? col.key)}
                   {col.sorted && (
                     <span aria-hidden="true" style={{ color: "var(--do-ink)" }}>↓</span>
                   )}
@@ -428,7 +452,7 @@ function Table({ rows }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <Row key={row.customerId + i} row={row} isLast={i === rows.length - 1} />
+            <Row key={row.customerId + i} row={row} isLast={i === rows.length - 1} locale={locale} />
           ))}
         </tbody>
       </table>
@@ -436,7 +460,7 @@ function Table({ rows }) {
   );
 }
 
-function Row({ row, isLast }) {
+function Row({ row, isLast, locale }) {
   const [hover, setHover] = React.useState(false);
   return (
     <tr
@@ -456,7 +480,7 @@ function Row({ row, isLast }) {
         </span>
       </Cell>
       <Cell>
-        <ChannelIcon channel={row.channel} />
+        <ChannelIcon channel={row.channel} locale={locale} />
       </Cell>
       <Cell>
         <span style={{ fontSize: 13, color: "var(--do-ink)", fontWeight: 500 }}>
@@ -472,13 +496,13 @@ function Row({ row, isLast }) {
         </span>
       </Cell>
       <Cell>
-        <SentimentTag value={row.sentiment} />
+        <SentimentTag value={row.sentiment} locale={locale} />
       </Cell>
       <Cell>
         <QualityCell value={row.adherence} channel={row.channel} />
       </Cell>
       <Cell>
-        <SkillsCell skills={row.skills} onOpenDetail={() => onSkillsClick(row)} />
+        <SkillsCell skills={row.skills} onOpenDetail={() => onSkillsClick(row)} locale={locale} />
       </Cell>
     </tr>
   );
@@ -488,7 +512,7 @@ function onSkillsClick(row) {
   // TODO: open skills detail. Target TBD (side curtain vs modal vs route) — confirm with Akash.
 }
 
-function Cell({ children, align = "left" }) {
+function Cell({ children, align = "start" }) {
   return (
     <td
       style={{
@@ -505,12 +529,13 @@ function Cell({ children, align = "left" }) {
   );
 }
 
-function ChannelIcon({ channel }) {
+function ChannelIcon({ channel, locale }) {
   if (channel === "whatsapp") {
+    const t = lhI(locale, "ch_whatsapp");
     return (
       <span
-        title="WhatsApp"
-        aria-label="WhatsApp"
+        title={t}
+        aria-label={t}
         style={{ display: "inline-flex", alignItems: "center", color: "#25D366" }}
       >
         <MessageCircle size={18} fill="#25D366" stroke="#FFFFFF" strokeWidth={1.5} />
@@ -518,10 +543,11 @@ function ChannelIcon({ channel }) {
     );
   }
   if (channel === "sms" || channel === "chat") {
+    const t = lhI(locale, "ch_sms");
     return (
       <span
-        title="SMS"
-        aria-label="SMS"
+        title={t}
+        aria-label={t}
         style={{ display: "inline-flex", alignItems: "center", color: "var(--color-text-medium)" }}
       >
         <MessageSquare size={18} />
@@ -529,20 +555,22 @@ function ChannelIcon({ channel }) {
     );
   }
   if (channel === "email") {
+    const t = lhI(locale, "ch_email");
     return (
       <span
-        title="Email"
-        aria-label="Email"
+        title={t}
+        aria-label={t}
         style={{ display: "inline-flex", alignItems: "center", color: "var(--color-text-medium)" }}
       >
         <Mail size={18} />
       </span>
     );
   }
+  const t = lhI(locale, "ch_voice");
   return (
     <span
-      title="Voice call"
-      aria-label="Voice call"
+      title={t}
+      aria-label={t}
       style={{ display: "inline-flex", alignItems: "center", color: "var(--color-text-medium)" }}
     >
       <Phone size={18} />
@@ -574,14 +602,15 @@ function AgentCell({ agent }) {
   );
 }
 
-function SentimentTag({ value }) {
+function SentimentTag({ value, locale }) {
   const map = {
-    positive: { bg: "#EDF7ED", fg: "#1E4620", label: "Positive" },
-    neutral:  { bg: "#F1F3F9", fg: "#5A5D72", label: "Neutral"  },
-    negative: { bg: "#FDEDED", fg: "#5F2120", label: "Negative" },
-    mixed:    { bg: "#FFF4E5", fg: "#663C00", label: "Mixed"    },
+    positive: { bg: "#EDF7ED", fg: "#1E4620" },
+    neutral:  { bg: "#F1F3F9", fg: "#5A5D72" },
+    negative: { bg: "#FDEDED", fg: "#5F2120" },
+    mixed:    { bg: "#FFF4E5", fg: "#663C00" },
   };
   const s = map[value] || map.neutral;
+  const label = lhI(locale, `sent_${value in map ? value : "neutral"}`);
   return (
     <span
       style={{
@@ -595,7 +624,7 @@ function SentimentTag({ value }) {
         borderRadius: 4,
       }}
     >
-      {s.label}
+      {label}
     </span>
   );
 }
@@ -628,14 +657,14 @@ function QualityCell({ value, channel }) {
 // row the detail link, so the icon is now hover/focus-only (no click action).
 // Confirm: should clicking the icon *also* open the detail, or is the in-card
 // CTA the only click-through?
-function SkillsCell({ skills, onOpenDetail }) {
+function SkillsCell({ skills, onOpenDetail, locale }) {
   if (!skills || (skills.variant !== "tracked" && skills.variant !== "top")) {
     return <span style={{ color: "var(--color-text-placeholder)", fontSize: 13 }}>--</span>;
   }
-  return <SkillsTrigger skills={skills} onOpenDetail={onOpenDetail} />;
+  return <SkillsTrigger skills={skills} onOpenDetail={onOpenDetail} locale={locale} />;
 }
 
-function SkillsTrigger({ skills, onOpenDetail }) {
+function SkillsTrigger({ skills, onOpenDetail, locale }) {
   const [open, setOpen] = React.useState(false);
   const [rect, setRect] = React.useState(null);
   const triggerRef = React.useRef(null);
@@ -669,7 +698,7 @@ function SkillsTrigger({ skills, onOpenDetail }) {
   }, []);
 
   const Icon = skills.variant === "top" ? Trophy : Radar;
-  const label = skills.variant === "top" ? "Top skill" : "Skills tracked";
+  const label = lhI(locale, skills.variant === "top" ? "sk_top" : "sk_tracked");
 
   return (
     <>
@@ -706,6 +735,7 @@ function SkillsTrigger({ skills, onOpenDetail }) {
           onOpenDetail={onOpenDetail}
           onPointerEnter={showPopover}
           onPointerLeave={hidePopover}
+          locale={locale}
         />
       )}
     </>
@@ -720,7 +750,7 @@ function SkillsTrigger({ skills, onOpenDetail }) {
 // sections render nothing, so a top-performer row (strengths-only payload)
 // becomes a strengths-only card automatically. Confirm trophy isn't meant to
 // be a distinct strengths-only layout.
-function SkillsPopover({ rect, skills, onOpenDetail, onPointerEnter, onPointerLeave }) {
+function SkillsPopover({ rect, skills, onOpenDetail, onPointerEnter, onPointerLeave, locale }) {
   const POPOVER_W = 300;
   const GUTTER = 8;
   // Open below the trigger, right-aligned to it so the card grows leftward
@@ -741,7 +771,7 @@ function SkillsPopover({ rect, skills, onOpenDetail, onPointerEnter, onPointerLe
   return (
     <div
       role="dialog"
-      aria-label="Skills detail"
+      aria-label={lhI(locale, "skillsDetail")}
       onMouseEnter={onPointerEnter}
       onMouseLeave={onPointerLeave}
       style={{
@@ -757,18 +787,20 @@ function SkillsPopover({ rect, skills, onOpenDetail, onPointerEnter, onPointerLe
         {hasStrengths && (
           <SkillsSection
             icon={<Trophy size={14} color="var(--color-text-tertiary)" />}
-            title="Strengths"
+            title={lhI(locale, "sk_strengths")}
             items={skills.strengths}
             tone="brand"
+            locale={locale}
           />
         )}
         {hasStrengths && hasNeeds && <div style={popStyles.divider} />}
         {hasNeeds && (
           <SkillsSection
             icon={<Quote size={14} color="var(--color-text-tertiary)" />}
-            title="Needs Improvement"
+            title={lhI(locale, "sk_needs")}
             items={skills.needsImprovement}
             tone="muted"
+            locale={locale}
           />
         )}
         {(hasStrengths || hasNeeds) && <div style={popStyles.divider} />}
@@ -779,14 +811,14 @@ function SkillsPopover({ rect, skills, onOpenDetail, onPointerEnter, onPointerLe
           style={popStyles.cta}
         >
           <Radar size={14} color="var(--color-icon-tertiary-fg)" />
-          <span style={popStyles.ctaLabel}>Coaching recommendation</span>
+          <span style={popStyles.ctaLabel}>{lhI(locale, "sk_coaching")}</span>
         </button>
       </Card>
     </div>
   );
 }
 
-function SkillsSection({ icon, title, items, tone }) {
+function SkillsSection({ icon, title, items, tone, locale }) {
   return (
     <div style={popStyles.section}>
       <div style={popStyles.sectionHead}>
@@ -798,7 +830,7 @@ function SkillsSection({ icon, title, items, tone }) {
           <li key={item.id} style={popStyles.row}>
             <SkillBadge id={item.id} tone={tone} />
             <span style={popStyles.skillLabel}>
-              {SKILL_REGISTRY[item.id]?.label ?? item.id}
+              {lhI(locale, `skill_${item.id}`)}
             </span>
           </li>
         ))}
@@ -879,7 +911,7 @@ const popStyles = {
     background: "transparent",
     padding: "4px 0",
     width: "100%",
-    textAlign: "left",
+    textAlign: "start",
   },
   ctaLabel: {
     fontSize: 12,
@@ -904,7 +936,7 @@ const popStyles = {
 //
 // 🚩 FLAG — search scope. Search filters by section LABEL only. Confirm
 // whether it should also match option labels inside sections.
-function FiltersPanel({ appliedFilters, onApply, onClose }) {
+function FiltersPanel({ appliedFilters, onApply, onClose, locale }) {
   const [draft, setDraft] = React.useState(appliedFilters);
   const [query, setQuery] = React.useState("");
   const [expanded, setExpanded] = React.useState(() => new Set());
@@ -946,7 +978,7 @@ function FiltersPanel({ appliedFilters, onApply, onClose }) {
   };
 
   const visibleSections = FILTER_SECTIONS.filter(
-    (s) => !query || s.label.toLowerCase().includes(query.trim().toLowerCase()),
+    (s) => !query || lhI(locale, `fs_${s.id}`).toLowerCase().includes(query.trim().toLowerCase()),
   );
 
   const draftHasSelection = Object.entries(draft).some(([, v]) => {
@@ -961,14 +993,14 @@ function FiltersPanel({ appliedFilters, onApply, onClose }) {
     <div
       ref={panelRef}
       role="dialog"
-      aria-label="Filters"
+      aria-label={lhText(locale, "filters")}
       tabIndex={-1}
       style={fpStyles.panel}
     >
       {/* Header */}
       <div style={fpStyles.header}>
-        <span style={fpStyles.title}>Filters</span>
-        <Button variant="icon" onClick={onClose} aria-label="Close filters">
+        <span style={fpStyles.title}>{lhText(locale, "filters")}</span>
+        <Button variant="icon" onClick={onClose} aria-label={lhI(locale, "closeFilters")}>
           <X size={18} />
         </Button>
       </div>
@@ -980,7 +1012,7 @@ function FiltersPanel({ appliedFilters, onApply, onClose }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by filter name"
+          placeholder={lhI(locale, "filterName")}
           style={fpStyles.searchInput}
         />
       </div>
@@ -996,6 +1028,7 @@ function FiltersPanel({ appliedFilters, onApply, onClose }) {
             onToggleExpanded={() => toggleExpanded(section.id)}
             onSetValue={(v) => setValue(section.id, v)}
             onToggleMulti={(v) => toggleMulti(section.id, v)}
+            locale={locale}
           />
         ))}
       </div>
@@ -1008,11 +1041,11 @@ function FiltersPanel({ appliedFilters, onApply, onClose }) {
           disabled={!draftHasSelection}
           onClick={handleDeselectAll}
         >
-          Deselect all
+          {lhI(locale, "deselectAll")}
         </Button>
         <div style={{ display: "inline-flex", gap: 8 }}>
           <Button variant="text" uppercase={false} onClick={onClose}>
-            Cancel
+            {lhText(locale, "cancel")}
           </Button>
           <Button
             variant="primary"
@@ -1021,7 +1054,7 @@ function FiltersPanel({ appliedFilters, onApply, onClose }) {
             onClick={() => onApply(draft)}
             style={{ minWidth: 0, height: 32, paddingInline: 16, fontSize: 13 }}
           >
-            Apply
+            {lhText(locale, "apply")}
           </Button>
         </div>
       </div>
@@ -1029,15 +1062,17 @@ function FiltersPanel({ appliedFilters, onApply, onClose }) {
   );
 }
 
-function FilterSection({ section, value, expanded, onToggleExpanded, onSetValue, onToggleMulti }) {
+function FilterSection({ section, value, expanded, onToggleExpanded, onSetValue, onToggleMulti, locale }) {
+  const sectionLabel = lhI(locale, `fs_${section.id}`);
   // Date renders inline (row-level dropdown showing current preset, per
   // reference). Other types use the accordion-expand treatment.
   if (section.type === "single-select" && section.id === "date") {
+    const localizedOptions = section.options.map((o) => ({ ...o, label: lhI(locale, `opt_${o.value}`) }));
     return (
       <div style={fpStyles.sectionRow}>
-        <span style={fpStyles.sectionLabel}>{section.label}</span>
+        <span style={fpStyles.sectionLabel}>{sectionLabel}</span>
         <SingleSelectDropdown
-          options={section.options}
+          options={localizedOptions}
           value={value ?? section.defaultValue}
           onChange={onSetValue}
         />
@@ -1055,7 +1090,7 @@ function FilterSection({ section, value, expanded, onToggleExpanded, onSetValue,
           aria-expanded={expanded}
           style={fpStyles.accordionHead}
         >
-          <span style={fpStyles.sectionLabel}>{section.label}</span>
+          <span style={fpStyles.sectionLabel}>{sectionLabel}</span>
           {expanded
             ? <ChevronUp size={16} color="var(--color-text-tertiary)" />
             : <ChevronDown size={16} color="var(--color-text-tertiary)" />}
@@ -1071,7 +1106,7 @@ function FilterSection({ section, value, expanded, onToggleExpanded, onSetValue,
                     onChange={() => onToggleMulti(opt.value)}
                     style={fpStyles.checkbox}
                   />
-                  {opt.label}
+                  {lhI(locale, `opt_${opt.value}`)}
                 </label>
               </li>
             ))}
@@ -1089,9 +1124,9 @@ function FilterSection({ section, value, expanded, onToggleExpanded, onSetValue,
       onClick={onToggleExpanded}
       style={{ ...fpStyles.sectionRow, cursor: "default" }}
       aria-disabled="true"
-      title="Options pending"
+      title={lhI(locale, "optionsPending")}
     >
-      <span style={fpStyles.sectionLabel}>{section.label}</span>
+      <span style={fpStyles.sectionLabel}>{sectionLabel}</span>
       <ChevronDown size={16} color="var(--color-text-tertiary)" />
     </button>
   );
@@ -1134,9 +1169,10 @@ function SingleSelectDropdown({ options, value, onChange }) {
       </button>
       {open && (
         <div
-          className="absolute right-0 mt-1 bg-white rounded-md overflow-hidden z-50"
+          className="absolute mt-1 bg-white rounded-md overflow-hidden z-50"
           style={{
             top: "calc(100% + 4px)",
+            insetInlineEnd: 0,
             minWidth: 160,
             boxShadow: "0 4px 12px rgba(15,20,60,0.10)",
             border: "1px solid var(--color-border-tab)",
@@ -1147,9 +1183,10 @@ function SingleSelectDropdown({ options, value, onChange }) {
               key={o.value}
               type="button"
               onClick={() => { onChange(o.value); setOpen(false); }}
-              className="block w-full text-left px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
+              className="block w-full px-3 py-2 text-[13px] hover:bg-pill-bg cursor-pointer"
               style={{
                 fontFamily: "var(--font-sans)",
+                textAlign: "start",
                 color: o.value === value ? "var(--color-text-tab-active)" : "var(--color-text-medium)",
                 fontWeight: o.value === value ? 600 : 500,
                 background: o.value === value ? "var(--pill-bg)" : "transparent",
@@ -1172,11 +1209,11 @@ const fpStyles = {
   panel: {
     position: "fixed",
     top: 0,
-    right: 0,
+    insetInlineEnd: 0,
     bottom: 0,
     width: FILTERS_DRAWER_WIDTH,
     background: "var(--surface-white)",
-    borderLeft: "1px solid var(--color-divider-card)",
+    borderInlineStart: "1px solid var(--color-divider-card)",
     boxShadow: "var(--shadow-drawer)",
     display: "flex",
     flexDirection: "column",
@@ -1232,7 +1269,7 @@ const fpStyles = {
     border: "none",
     borderBottom: "1px solid var(--color-divider-card)",
     width: "100%",
-    textAlign: "left",
+    textAlign: "start",
     cursor: "pointer",
   },
   sectionLabel: {
@@ -1255,7 +1292,7 @@ const fpStyles = {
     background: "transparent",
     border: "none",
     width: "100%",
-    textAlign: "left",
+    textAlign: "start",
     cursor: "pointer",
   },
   optionsList: {
@@ -1319,13 +1356,13 @@ const fpStyles = {
 // 🚩 FLAG — other empty variants. This is the search-empty case only.
 // Filter-empty ("Clear filters") and first-run no-data states need
 // different copy + CTAs and aren't built here.
-function SearchEmptyState({ onClear }) {
+function SearchEmptyState({ onClear, locale }) {
   return (
     <div style={emptyStyles.wrap}>
       <EmptyStateIllustration />
-      <p style={emptyStyles.message}>No Interactions matched your search criteria.</p>
+      <p style={emptyStyles.message}>{lhI(locale, "emptyMessage")}</p>
       <Button variant="primary" uppercase={false} onClick={onClear}>
-        Clear search
+        {lhI(locale, "clearSearch")}
       </Button>
     </div>
   );
@@ -1381,9 +1418,10 @@ const emptyStyles = {
   },
 };
 
-function Pagination({ page, totalPages, totalCount, onPageChange }) {
+function Pagination({ page, totalPages, totalCount, onPageChange, locale, isRtl }) {
   const canPrev = page > 1;
   const canNext = page < totalPages;
+  const flip = isRtl ? { transform: "scaleX(-1)" } : undefined;
   return (
     <div
       style={{
@@ -1395,23 +1433,23 @@ function Pagination({ page, totalPages, totalCount, onPageChange }) {
       }}
     >
       <div style={{ color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 500 }}>
-        Total {totalCount.toLocaleString()} Interactions
+        {lhTotalInteractions(locale, totalCount)}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <PageBtn ariaLabel="First page" disabled={!canPrev} onClick={() => onPageChange(1)}>
-          <ChevronsLeft size={16} />
+        <PageBtn ariaLabel={lhI(locale, "firstPage")} disabled={!canPrev} onClick={() => onPageChange(1)}>
+          <ChevronsLeft size={16} style={flip} />
         </PageBtn>
         <span
           aria-live="polite"
           style={{ color: "var(--do-ink)", fontSize: 13, fontWeight: 500, padding: "0 4px" }}
         >
-          Page {page} of {totalPages}
+          {lhPageOf(locale, page, totalPages)}
         </span>
-        <PageBtn ariaLabel="Previous page" disabled={!canPrev} onClick={() => canPrev && onPageChange(page - 1)}>
-          <ChevronLeft size={16} />
+        <PageBtn ariaLabel={lhI(locale, "prevPage")} disabled={!canPrev} onClick={() => canPrev && onPageChange(page - 1)}>
+          <ChevronLeft size={16} style={flip} />
         </PageBtn>
-        <PageBtn ariaLabel="Next page" disabled={!canNext} onClick={() => canNext && onPageChange(page + 1)}>
-          <ChevronRight size={16} />
+        <PageBtn ariaLabel={lhI(locale, "nextPage")} disabled={!canNext} onClick={() => canNext && onPageChange(page + 1)}>
+          <ChevronRight size={16} style={flip} />
         </PageBtn>
       </div>
     </div>
