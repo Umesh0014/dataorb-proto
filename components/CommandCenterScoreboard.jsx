@@ -2,16 +2,19 @@
 
 import React from "react";
 import Card from "./Card";
+import PageHeader from "./PageHeader";
 import CircularProgress from "./CircularProgress";
 import MetricSparkline from "./MetricSparkline";
 import ScoreTrend from "./ScoreTrend";
+import { CommandCenterIcon } from "./SideNav/icons";
 import { TEAM_SCORE, TEAM_KPIS, TEAM_CONTEXT } from "./mocks/commandCenter";
 
-// CommandCenterScoreboard — the dashboard's top band: page identity, then a
-// "team performance" card with the four team metrics in a 2×2 grid. The
-// composite (ring + trendline) and CSAT (number + trendline) carry deltas and
-// dotted targets; engagement and needs-attention are supporting counts.
-// Reuses CircularProgress + MetricSparkline + ScoreTrend.
+// CommandCenterScoreboard — the dashboard's top band: the shared PageHeader
+// (so the Dashboard's chrome matches every other module page), then a "team
+// performance" card with the four team metrics in a 2×2 grid. The composite
+// (ring + trendline) and CSAT (number + trendline) carry deltas and dotted
+// targets; engagement and needs-attention are supporting counts. Reuses
+// PageHeader + CircularProgress + MetricSparkline + ScoreTrend.
 
 const RING = 92;
 
@@ -33,12 +36,15 @@ export default function CommandCenterScoreboard({ subtitle }) {
 
   return (
     <div style={sbStyles.wrap}>
-      <div style={sbStyles.identity}>
-        <h1 style={sbStyles.title}>Dashboard</h1>
-        <p style={sbStyles.context}>
-          {subtitle || `${TEAM_CONTEXT.team} · ${TEAM_CONTEXT.lead} (you) · coach by exception`}
-        </p>
-      </div>
+      <PageHeader
+        identifier={{
+          icon: <CommandCenterIcon size={18} color="#245BFF" />,
+          label: "Dashboard",
+          withDropdown: true,
+          onClick: () => {},
+        }}
+        subtitle={subtitle || `${TEAM_CONTEXT.team} · ${TEAM_CONTEXT.lead} (you) · coach by exception`}
+      />
 
       <Card padX={24} padY={24}>
         <div style={sbStyles.cardHead}>
@@ -114,9 +120,6 @@ function DeltaChip({ text, dir }) {
 
 const sbStyles = {
   wrap: { display: "flex", flexDirection: "column", gap: 16 },
-  identity: { display: "flex", flexDirection: "column", gap: 4 },
-  title: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 24, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1.2 },
-  context: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 400, color: "var(--text-secondary)" },
   cardHead: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 20 },
   cardTitle: { fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)", marginBottom: 2 },
   cardSub: { fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 400, color: "var(--text-secondary)" },
