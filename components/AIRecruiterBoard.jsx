@@ -98,21 +98,24 @@ export default function AIRecruiterBoard({ candidates, onAdvance, onOpenCandidat
   );
 }
 
-// coverageLabel — the one-line, judgement-free coverage cue on a lightweight
-// card. Coverage is never framed as a score (G4); a draft reads "Not screened",
-// in progress reads "Screening…", never a bare 0%.
-function coverageLabel(screen) {
+// coverageMeta — the card's bar-chart value. Coverage is never framed as a
+// score (G4); a draft reads "Not screened", in progress reads "Screening…",
+// never a bare 0%. pct drives both the bar width and the labelled value.
+function coverageMeta(screen) {
   const { status, coverage } = screen;
+  const pct = coverage.total > 0 ? Math.round((coverage.covered / coverage.total) * 100) : 0;
   if (status === "completed") {
-    const pct = coverage.total > 0 ? Math.round((coverage.covered / coverage.total) * 100) : 0;
-    return `${pct}% covered · ${coverage.covered}/${coverage.total} topics`;
+    return { pct, value: `${pct}%`, running: false, aria: `Screening coverage: ${pct}% — ${coverage.covered} of ${coverage.total} topics covered` };
   }
-  if (status === "in_progress") return "AI screening in progress";
-  return "Not screened yet";
+  if (status === "in_progress") {
+    return { pct, value: "Screening…", running: true, aria: `AI screening in progress: ${coverage.covered} of ${coverage.total} topics covered so far` };
+  }
+  return { pct: 0, value: "Not screened", running: false, aria: `Not screened: 0 of ${coverage.total} topics covered` };
 }
 
 function CandidateCard({ candidate, selected, onOpen }) {
   const [hover, setHover] = React.useState(false);
+  const cov = coverageMeta(candidate.screen);
   return (
     <button
       type="button"
@@ -134,10 +137,11 @@ function CandidateCard({ candidate, selected, onOpen }) {
         />
       </div>
       <span style={s.cardRole}>{candidate.role}</span>
-      <div style={s.cardDivider} aria-hidden="true" />
-      <div style={s.cardMetaRow}>
-        <span style={s.familyChip}>{FAMILY_LABELS[candidate.family]}</span>
-        <span style={s.coverageText}>{coverageLabel(candidate.screen)}</span>
+      <div style={s.cardCoverage}>
+        <span style={s.cardBarTrack} role="img" aria-label={cov.aria}>
+          <span style={{ ...s.cardBarFill, width: `${cov.pct}%`, background: cov.running ? "var(--color-text-tertiary)" : "var(--chart-blue)" }} />
+        </span>
+        <span style={s.cardBarValue}>{cov.value}</span>
       </div>
     </button>
   );
@@ -232,14 +236,10 @@ const s = {
   cardTitleRow: { display: "flex", alignItems: "center", gap: 8 },
   cardTitle: { flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.3, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
   cardRole: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", lineHeight: 1.35, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
-  cardDivider: { height: 1, width: "100%", background: "var(--color-divider-card)" },
-  cardMetaRow: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0 },
-  familyChip: {
-    alignSelf: "flex-start", display: "inline-flex", alignItems: "center", height: 20,
-    padding: "0 8px", borderRadius: 4, background: "var(--pill-bg)", color: "var(--color-text-medium)",
-    fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis",
-  },
-  coverageText: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
+  cardCoverage: { display: "flex", alignItems: "center", gap: 8 },
+  cardBarTrack: { flex: 1, height: 6, borderRadius: 999, background: "var(--grey-200)", overflow: "hidden" },
+  cardBarFill: { display: "block", height: "100%", borderRadius: 999, transition: "width 150ms ease" },
+  cardBarValue: { flexShrink: 0, fontSize: 11, fontWeight: 700, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums", minWidth: 32, textAlign: "right" },
 
   // Detail curtain
   curtain: {

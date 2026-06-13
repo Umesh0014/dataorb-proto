@@ -1,11 +1,14 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Play, CheckCircle2, Circle, Clock } from "lucide-react";
+import {
+  ArrowLeft, Play, CheckCircle2, Circle, Clock, Download, Briefcase,
+  GraduationCap, MessageSquareText, FileBadge,
+} from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import { formatDate } from "./formatDate";
-import { FAMILY_LABELS } from "./mocks/recruiter";
+import { FAMILY_LABELS, getProfile, getFeedback, getOffer } from "./mocks/recruiter";
 import {
   CandidateMonogram, StageBadge, CoverageMeter, RecordedTag, AdvanceButton,
   COMPLIANCE_COPY,
@@ -24,6 +27,13 @@ export default function CandidateRecordPage({ candidate, onBack, onAdvance }) {
   const { screen } = candidate;
   const completed = screen.status === "completed";
   const toProbe = Math.max(0, screen.coverage.total - screen.coverage.covered);
+  const profile = getProfile(candidate.id);
+  const feedback = getFeedback(candidate.id);
+  const offer = getOffer(candidate.id);
+
+  // Résumé download is a net-new flow — logged, not wired (no real file in the
+  // prototype); the CTA is present and labelled so the affordance is reviewable.
+  const downloadResume = () => console.log("AI Recruiter — download résumé", profile?.resume || candidate.id);
 
   return (
     <div style={s.column}>
@@ -50,6 +60,9 @@ export default function CandidateRecordPage({ candidate, onBack, onAdvance }) {
         <div style={s.heroAction}>
           <StageBadge stage={candidate.stage} />
           <AdvanceButton candidate={candidate} onAdvance={onAdvance} />
+          <Button variant="text" uppercase={false} leadingIcon={<Download size={15} />} onClick={downloadResume}>
+            Download résumé
+          </Button>
         </div>
       </Card>
 
@@ -86,6 +99,68 @@ export default function CandidateRecordPage({ candidate, onBack, onAdvance }) {
               <span style={s.recordNote}>Recording playback — coming soon</span>
             </div>
           </Card>
+
+          {profile && (
+            <Card padX={24} padY={22} style={s.section}>
+              <span style={s.sectionTitle}>Candidate profile</span>
+              <div style={s.profileBlock}>
+                <span style={s.profileHead}><Briefcase size={15} color="var(--color-text-tertiary)" aria-hidden="true" /> Work experience</span>
+                <ul style={s.entryList}>
+                  {profile.experience.map((e, i) => (
+                    <li key={i} style={s.entry}>
+                      <span style={s.entryTitle}>{e.title}</span>
+                      <span style={s.entryMeta}>{e.org} · {e.period}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div style={s.profileBlock}>
+                <span style={s.profileHead}><GraduationCap size={15} color="var(--color-text-tertiary)" aria-hidden="true" /> Education</span>
+                <ul style={s.entryList}>
+                  {profile.education.map((e, i) => (
+                    <li key={i} style={s.entry}>
+                      <span style={s.entryTitle}>{e.credential}</span>
+                      <span style={s.entryMeta}>{e.org} · {e.year}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Card>
+          )}
+
+          {candidate.stage === "interview" && feedback.length > 0 && (
+            <Card padX={24} padY={22} style={s.section}>
+              <span style={s.sectionTitle}>Interview feedback</span>
+              <ul style={s.feedbackList}>
+                {feedback.map((f, i) => (
+                  <li key={i} style={s.feedback}>
+                    <div style={s.feedbackHead}>
+                      <MessageSquareText size={15} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
+                      <span style={s.feedbackBy}>{f.by}</span>
+                      <span style={s.feedbackRole}>{f.role}</span>
+                      <span style={s.feedbackDate}>{formatDate(f.date)}</span>
+                    </div>
+                    <p style={s.feedbackNotes}>{f.notes}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {candidate.stage === "offer" && offer && (
+            <Card padX={24} padY={22} style={s.section}>
+              <div style={s.sectionHead}>
+                <span style={s.sectionTitle}>Offer details</span>
+                <span style={s.offerStatus}><FileBadge size={14} aria-hidden="true" /> {offer.status}</span>
+              </div>
+              <div style={s.offerGrid}>
+                <Meta label="Role" value={offer.title} />
+                <Meta label="Band" value={offer.band} />
+                <Meta label="Start date" value={formatDate(offer.start)} />
+                <Meta label="Extended on" value={formatDate(offer.extendedOn)} />
+              </div>
+            </Card>
+          )}
 
           <Card padX={24} padY={22} style={s.section}>
             <span style={s.sectionTitle}>Activity</span>
@@ -194,6 +269,24 @@ const s = {
 
   recordRow: { display: "flex", alignItems: "center", gap: 10, paddingTop: 4, borderTop: "1px solid var(--color-divider-card)" },
   recordNote: { fontSize: 12, fontWeight: 400, color: "var(--color-text-placeholder)" },
+
+  profileBlock: { display: "flex", flexDirection: "column", gap: 8 },
+  profileHead: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
+  entryList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 },
+  entry: { display: "flex", flexDirection: "column", gap: 2 },
+  entryTitle: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.4 },
+  entryMeta: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)" },
+
+  feedbackList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 16 },
+  feedback: { display: "flex", flexDirection: "column", gap: 6 },
+  feedbackHead: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  feedbackBy: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
+  feedbackRole: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  feedbackDate: { marginLeft: "auto", fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
+  feedbackNotes: { margin: 0, fontSize: 13, fontWeight: 400, color: "var(--color-text-medium)", lineHeight: 1.55 },
+
+  offerStatus: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--color-success-text)", background: "var(--color-success-bg)", padding: "3px 10px", borderRadius: 999 },
+  offerGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 },
 
   timeline: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 12 },
   timelineRow: { display: "flex", alignItems: "flex-start", gap: 10 },

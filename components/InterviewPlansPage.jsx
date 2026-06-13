@@ -8,6 +8,8 @@ import Card from "./Card";
 import Banner from "./Banner";
 import { FaceScanIcon } from "./SideNav/icons";
 import { formatDate } from "./formatDate";
+import InterviewPlanRecordPage from "./InterviewPlanRecordPage";
+import AddPlanModal from "./AddPlanModal";
 import { FAMILY_TINTS, FAMILY_LABELS } from "./mocks/recruiter";
 import { INTERVIEW_PLANS, PLAN_STATUS, planCounts } from "./mocks/interviewPlans";
 
@@ -22,15 +24,18 @@ import { INTERVIEW_PLANS, PLAN_STATUS, planCounts } from "./mocks/interviewPlans
 export default function InterviewPlansPage({ pageName }) {
   const [tab, setTab] = React.useState("live");
   const [search, setSearch] = React.useState("");
+  const [allPlans, setAllPlans] = React.useState(INTERVIEW_PLANS);
+  const [openPlanId, setOpenPlanId] = React.useState(null);
+  const [addOpen, setAddOpen] = React.useState(false);
 
-  const counts = planCounts(INTERVIEW_PLANS);
+  const counts = planCounts(allPlans);
   const TABS = [
     { id: "live", label: "Live", count: counts.live },
     { id: "draft", label: "Draft", count: counts.draft },
     { id: "archived", label: "Archived", count: counts.archived },
   ];
 
-  const inTab = INTERVIEW_PLANS.filter((p) => p.status === tab);
+  const inTab = allPlans.filter((p) => p.status === tab);
   const plans = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return inTab;
@@ -42,10 +47,18 @@ export default function InterviewPlansPage({ pageName }) {
     );
   }, [inTab, search]);
 
-  // Plan create + open are net-new flows out of scope here — logged, not
-  // wired, so the page stays interactive without inventing the plan editor.
-  const onOpenPlan = (id) => console.log("AI Recruiter — open interview plan", id);
-  const onCreatePlan = () => console.log("AI Recruiter — create interview plan");
+  const onOpenPlan = (id) => setOpenPlanId(id);
+  const onCreatePlan = () => setAddOpen(true);
+  const addPlan = (plan) => {
+    setAllPlans((prev) => [plan, ...prev]);
+    setAddOpen(false);
+    setTab(plan.status);
+  };
+
+  const openPlan = openPlanId ? allPlans.find((p) => p.id === openPlanId) : null;
+  if (openPlan) {
+    return <InterviewPlanRecordPage plan={openPlan} onBack={() => setOpenPlanId(null)} />;
+  }
 
   return (
     <div style={s.column}>
@@ -78,6 +91,8 @@ export default function InterviewPlansPage({ pageName }) {
           ))}
         </div>
       )}
+
+      <AddPlanModal open={addOpen} onClose={() => setAddOpen(false)} onAdd={addPlan} />
     </div>
   );
 }

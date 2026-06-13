@@ -163,3 +163,130 @@ export function stageCounts(candidates) {
     return acc;
   }, {});
 }
+
+// CANDIDATE_PROFILES — résumé-derived profile shown on the candidate detail
+// view: a downloadable résumé handle plus work experience and education. Keyed
+// by candidate id; candidates added in-session (no résumé on file) fall back
+// to a placeholder via getProfile().
+export const CANDIDATE_PROFILES = {
+  "c-aanya": {
+    resume: "AanyaSharma_Resume.pdf",
+    experience: [
+      { title: "Customer Support Associate", org: "BrightTel", period: "2023 – 2026" },
+      { title: "Helpdesk Intern", org: "NimbusCare", period: "2022 – 2023" },
+    ],
+    education: [{ credential: "B.Com, Commerce", org: "University of Pune", year: "2022" }],
+  },
+  "c-diego": {
+    resume: "DiegoFernandez_Resume.pdf",
+    experience: [
+      { title: "SDR", org: "Vela Software", period: "2022 – 2026" },
+      { title: "Retail Associate", org: "Mercado Sur", period: "2020 – 2022" },
+    ],
+    education: [{ credential: "BBA, Marketing", org: "Universidad de Sevilla", year: "2020" }],
+  },
+  "c-meera": {
+    resume: "MeeraIyer_Resume.pdf",
+    experience: [{ title: "Account Manager", org: "Skylark Telecom", period: "2021 – 2026" }],
+    education: [{ credential: "BA, Economics", org: "Christ University", year: "2021" }],
+  },
+  "c-pavel": {
+    resume: "PavelNovak_Resume.pdf",
+    experience: [{ title: "Operations Trainee", org: "CzechConnect", period: "2024 – 2026" }],
+    education: [{ credential: "BSc, Business Informatics", org: "Charles University", year: "2024" }],
+  },
+  "c-leila": {
+    resume: "LeilaHaddad_Resume.pdf",
+    experience: [
+      { title: "Compliance Analyst", org: "Atlas Bank", period: "2022 – 2026" },
+      { title: "AML Intern", org: "Atlas Bank", period: "2021 – 2022" },
+    ],
+    education: [{ credential: "LLB, Law", org: "American University of Beirut", year: "2021" }],
+  },
+  "c-tomas": {
+    resume: "TomasRibeiro_Resume.pdf",
+    experience: [{ title: "Field Technician", org: "IberFibra", period: "2020 – 2026" }],
+    education: [{ credential: "Diploma, Electronics", org: "IPL Leiria", year: "2020" }],
+  },
+  "c-hana": {
+    resume: "HanaKobayashi_Resume.pdf",
+    experience: [
+      { title: "Premium Care Advisor", org: "Sakura Mobile", period: "2021 – 2026" },
+      { title: "Concierge", org: "Hotel Ginza", period: "2019 – 2021" },
+    ],
+    education: [{ credential: "BA, Hospitality", org: "Waseda University", year: "2019" }],
+  },
+  "c-omar": {
+    resume: "OmarAlRashid_Resume.pdf",
+    experience: [
+      { title: "Support Team Lead", org: "GulfNet", period: "2020 – 2026" },
+      { title: "Support Advisor", org: "GulfNet", period: "2018 – 2020" },
+    ],
+    education: [{ credential: "BSc, Computer Science", org: "Qatar University", year: "2018" }],
+  },
+  "c-sofia": {
+    resume: "SofiaAlmeida_Resume.pdf",
+    experience: [
+      { title: "Retention Specialist", org: "LusoMobile", period: "2021 – 2026" },
+      { title: "Customer Advisor", org: "LusoMobile", period: "2019 – 2021" },
+    ],
+    education: [{ credential: "BA, Communication", org: "University of Lisbon", year: "2019" }],
+  },
+  "c-noah": {
+    resume: "NoahWilliams_Resume.pdf",
+    experience: [{ title: "Onboarding Coordinator", org: "Northstar BPO", period: "2022 – 2026" }],
+    education: [{ credential: "BA, Psychology", org: "University of Leeds", year: "2022" }],
+  },
+  "c-yuki": {
+    resume: "YukiTanaka_Resume.pdf",
+    experience: [{ title: "Inside Sales Rep", org: "Tokyo Cloud", period: "2021 – 2026" }],
+    education: [{ credential: "BBA, Business", org: "Keio University", year: "2021" }],
+  },
+  "c-fatima": {
+    resume: "FatimaZahra_Resume.pdf",
+    experience: [{ title: "Compliance Associate", org: "Maghreb Finance", period: "2020 – 2025" }],
+    education: [{ credential: "MSc, Risk & Compliance", org: "Mohammed V University", year: "2020" }],
+  },
+  "c-victor": {
+    resume: "VictorCosta_Resume.pdf",
+    experience: [{ title: "Field Service Tech", org: "BrasilFibra", period: "2019 – 2025" }],
+    education: [{ credential: "Technical Diploma, Telecom", org: "SENAI São Paulo", year: "2019" }],
+  },
+};
+
+export function getProfile(id) {
+  return CANDIDATE_PROFILES[id] || null;
+}
+
+// INTERVIEW_FEEDBACK — human interviewer notes, shown on candidates at the
+// Interview stage. This is the human's record (not an AI verdict — G4 applies
+// only to AI output); the hiring manager owns it.
+export const INTERVIEW_FEEDBACK = {
+  "c-hana": [
+    { by: "Priya Menon", role: "Hiring Manager", date: "2026-06-11", notes: "Strong on consent capture and offer-fit discovery; walked through a real save scenario cleanly. Probe pricing edge-cases in the next round." },
+  ],
+  "c-omar": [
+    { by: "Daniel Cho", role: "Support Lead", date: "2026-06-10", notes: "Confident on escalation thresholds and billing disputes. Coverage gap on disclosure rules matched the AI screening — confirmed live, worth a short follow-up." },
+  ],
+};
+
+export function getFeedback(id) {
+  return INTERVIEW_FEEDBACK[id] || [];
+}
+
+// OFFERS — offer details, shown on candidates at the Offer stage. Status is a
+// factual state (Extended / Accepted / Declined), never a recommendation.
+export const OFFERS = {
+  "c-sofia": {
+    title: "Retention Specialist",
+    band: "Band 3 · Mid",
+    start: "2026-07-07",
+    status: "Extended",
+    extendedOn: "2026-06-05",
+  },
+};
+
+export function getOffer(id) {
+  return OFFERS[id] || null;
+}
+
