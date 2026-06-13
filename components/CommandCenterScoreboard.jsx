@@ -8,15 +8,15 @@ import ScoreTrend from "./ScoreTrend";
 import { TEAM_SCORE, TEAM_KPIS, TEAM_CONTEXT } from "./mocks/commandCenter";
 
 // CommandCenterScoreboard — the dashboard's top band: page identity, then a
-// "team performance" card carrying the team **composite** (ring + trendline)
-// and **CSAT** (number + trendline), each with a delta and a dotted target,
-// plus supporting team stats. Reuses CircularProgress + MetricSparkline +
-// ScoreTrend so it reads exactly like the Performance-score hero.
+// "team performance" card with the four team metrics in a 2×2 grid. The
+// composite (ring + trendline) and CSAT (number + trendline) carry deltas and
+// dotted targets; engagement and needs-attention are supporting counts.
+// Reuses CircularProgress + MetricSparkline + ScoreTrend.
 
-const RING = 132;
+const RING = 92;
 
-// Composite-score banding → ring colour + badge tone (mirrors the agent
-// Performance-score bands).
+// Composite-score banding → ring colour only (the score number + target carry
+// the meaning; no tier-label tag).
 const BANDS = [
   { min: 85, ring: "var(--chart-green)" },
   { min: 75, ring: "var(--chart-blue)" },
@@ -28,12 +28,13 @@ const bandFor = (s) => BANDS.find((b) => s >= b.min) || BANDS[BANDS.length - 1];
 export default function CommandCenterScoreboard({ subtitle }) {
   const { composite, csat } = TEAM_SCORE;
   const band = bandFor(composite.value);
-  const stats = TEAM_KPIS.filter((k) => k.id === "engagement" || k.id === "attention");
+  const engagement = TEAM_KPIS.find((k) => k.id === "engagement");
+  const attention = TEAM_KPIS.find((k) => k.id === "attention");
 
   return (
     <div style={sbStyles.wrap}>
       <div style={sbStyles.identity}>
-        <h1 style={sbStyles.title}>Command Center</h1>
+        <h1 style={sbStyles.title}>Dashboard</h1>
         <p style={sbStyles.context}>
           {subtitle || `${TEAM_CONTEXT.team} · ${TEAM_CONTEXT.lead} (you) · coach by exception`}
         </p>
@@ -48,47 +49,48 @@ export default function CommandCenterScoreboard({ subtitle }) {
           <span style={sbStyles.evalChip}>{TEAM_CONTEXT.size} agents · last 30 days</span>
         </div>
 
-        <div style={sbStyles.hero}>
+        <div style={sbStyles.grid}>
           {/* Composite — ring + trendline */}
-          <div style={sbStyles.composite}>
-            <div style={sbStyles.ringWrap}>
-              <CircularProgress pct={composite.value} size={RING} stroke={11} ringColor={band.ring} trackColor="var(--color-divider-card)" label={false} />
-              <div style={sbStyles.ringCenter}>
-                <span style={sbStyles.ringScore}>{composite.value}</span>
-                <span style={sbStyles.ringOutOf}>/ {composite.outOf}</span>
+          <div style={sbStyles.tile}>
+            <span style={sbStyles.tileLabel}>Composite score</span>
+            <div style={sbStyles.compositeRow}>
+              <div style={sbStyles.ringWrap}>
+                <CircularProgress pct={composite.value} size={RING} stroke={9} ringColor={band.ring} trackColor="var(--color-divider-card)" label={false} />
+                <div style={sbStyles.ringCenter}>
+                  <span style={sbStyles.ringScore}>{composite.value}</span>
+                  <span style={sbStyles.ringOutOf}>/ {composite.outOf}</span>
+                </div>
               </div>
-            </div>
-            <div style={sbStyles.compositeRight}>
-              <span style={sbStyles.compositeLabel}>Composite score</span>
-              <div style={sbStyles.chipRow}>
+              <div style={sbStyles.compositeRight}>
                 <DeltaChip text={composite.delta} dir={composite.dir} />
+                <span style={sbStyles.spark} role="img" aria-label={`Composite trend, now ${composite.value}, target ${composite.target}`}>
+                  <MetricSparkline points={composite.trend} target={composite.target} color="var(--chart-green)" formatValue={(v) => `${Math.round(v)}`} />
+                </span>
+                <span style={sbStyles.targetCap}><span aria-hidden="true" style={sbStyles.dash} /> target {composite.target}</span>
               </div>
-              <span style={sbStyles.spark} role="img" aria-label={`Composite trend, now ${composite.value}, target ${composite.target}`}>
-                <MetricSparkline points={composite.trend} target={composite.target} color="var(--chart-green)" formatValue={(v) => `${Math.round(v)}`} />
-              </span>
-              <span style={sbStyles.targetCap}><span aria-hidden="true" style={sbStyles.dash} /> target {composite.target}</span>
             </div>
           </div>
-
-          <span style={sbStyles.divider} aria-hidden="true" />
 
           {/* CSAT — number + trendline */}
-          <div style={sbStyles.csat}>
-            <ScoreTrend label="Team CSAT" value={`${csat.value}%`} unit="%" points={csat.trend} target={csat.target} width={200} size="lg" />
-            <DeltaChip text={csat.delta} dir={csat.dir} />
+          <div style={sbStyles.tile}>
+            <div style={sbStyles.csatTop}>
+              <ScoreTrend label="Team CSAT" value={`${csat.value}%`} unit="%" points={csat.trend} target={csat.target} width={150} size="lg" />
+              <DeltaChip text={csat.delta} dir={csat.dir} />
+            </div>
           </div>
 
-          <span style={sbStyles.divider} aria-hidden="true" />
+          {/* Learning engagement */}
+          <div style={sbStyles.tile}>
+            <span style={sbStyles.tileLabel}>{engagement.label}</span>
+            <span style={sbStyles.statValue}>{engagement.value}</span>
+            <span style={sbStyles.statSub}>{engagement.sublabel}</span>
+          </div>
 
-          {/* Supporting team stats */}
-          <div style={sbStyles.stats}>
-            {stats.map((s) => (
-              <div key={s.id} style={sbStyles.statTile}>
-                <span style={sbStyles.statLabel}>{s.label}</span>
-                <span style={sbStyles.statValue}>{s.value}</span>
-                <span style={sbStyles.statSub}>{s.sublabel}</span>
-              </div>
-            ))}
+          {/* Needs attention */}
+          <div style={sbStyles.tile}>
+            <span style={sbStyles.tileLabel}>{attention.label}</span>
+            <span style={sbStyles.statValue}>{attention.value}</span>
+            <span style={sbStyles.statSub}>{attention.sublabel}</span>
           </div>
         </div>
       </Card>
@@ -123,24 +125,24 @@ const sbStyles = {
     background: "var(--pill-bg)", color: "var(--color-text-tertiary)", fontFamily: "var(--font-sans)",
     fontSize: 12, fontWeight: 600, whiteSpace: "nowrap",
   },
-  hero: { display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" },
-  composite: { display: "flex", alignItems: "center", gap: 18, flexShrink: 0 },
+  grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 },
+  tile: {
+    display: "flex", flexDirection: "column", gap: 8,
+    background: "var(--color-card-emoji-bg)", borderRadius: 12, padding: "16px 18px",
+    minHeight: 116, justifyContent: "center",
+  },
+  tileLabel: { fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
+  compositeRow: { display: "flex", alignItems: "center", gap: 16 },
   ringWrap: { position: "relative", width: RING, height: RING, flexShrink: 0 },
   ringCenter: { position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" },
-  ringScore: { fontFamily: "var(--font-sans)", fontSize: 34, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1 },
-  ringOutOf: { fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
-  compositeRight: { display: "flex", flexDirection: "column", gap: 8 },
-  compositeLabel: { fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
-  chipRow: { display: "flex", alignItems: "center", gap: 8 },
-  spark: { display: "block", width: 180 },
+  ringScore: { fontFamily: "var(--font-sans)", fontSize: 24, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1 },
+  ringOutOf: { fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  compositeRight: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1 },
+  spark: { display: "block", width: "100%", maxWidth: 160 },
   targetCap: { display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 600, color: "var(--color-text-tertiary)" },
   dash: { width: 12, height: 0, borderTop: "1px dashed var(--color-text-tertiary)", display: "inline-block" },
-  divider: { width: 1, alignSelf: "stretch", background: "var(--color-divider-card)", flexShrink: 0 },
-  csat: { display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 },
-  stats: { display: "flex", flexDirection: "column", gap: 16 },
-  statTile: { display: "flex", flexDirection: "column", gap: 2 },
-  statLabel: { fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
-  statValue: { fontFamily: "var(--font-sans)", fontSize: 20, fontWeight: 700, color: "var(--color-text-deep)" },
+  csatTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  statValue: { fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1 },
   statSub: { fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 400, color: "var(--text-secondary)" },
-  deltaChip: { display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 4, fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" },
+  deltaChip: { display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 4, fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", alignSelf: "flex-start" },
 };
