@@ -322,7 +322,7 @@ const styles = {
   chevron: { display: "flex", color: "var(--color-text-tertiary)", flexShrink: 0, marginTop: 2 },
   identityText: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
   teamTitleRow: { display: "flex", alignItems: "center", gap: 8 },
-  teamName: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
+  teamName: { fontSize: 15, fontWeight: 600, color: "var(--color-text-deep)" },
   teamAgentCount: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
 
   usage: { display: "flex", flexDirection: "column", gap: 7, flex: 1, minWidth: 0 },
@@ -374,7 +374,7 @@ const styles = {
     justifyContent: "center",
     color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: 700,
+    fontWeight: 600,
     letterSpacing: "0.2px",
     flexShrink: 0,
   },

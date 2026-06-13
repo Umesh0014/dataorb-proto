@@ -331,10 +331,10 @@ const styles = {
     border: "1px solid var(--color-border-card-soft)",
   },
   capacityTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 },
-  capacityTitle: { margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
+  capacityTitle: { margin: 0, fontSize: 16, fontWeight: 600, color: "var(--color-text-deep)" },
   capacitySub: { margin: "4px 0 0", fontSize: 12, color: "var(--color-text-tertiary)" },
   capacityBarRow: { display: "flex", alignItems: "center", gap: 12 },
-  capacityPct: { fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums", minWidth: 56 },
+  capacityPct: { fontSize: 22, fontWeight: 600, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums", minWidth: 56 },
   kpiRow: { display: "flex", gap: 12 },
 
   // Two-pane
@@ -406,7 +406,7 @@ const styles = {
     minHeight: 420,
   },
   detailHeader: { padding: "16px 20px", borderBottom: "1px solid #F9F9FF" },
-  detailTitle: { margin: 0, fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
+  detailTitle: { margin: 0, fontSize: 15, fontWeight: 600, color: "var(--color-text-deep)" },
   detailDesc: { margin: "4px 0 0", fontSize: 12, color: "var(--color-text-tertiary)" },
   detailBody: { display: "flex", flexDirection: "column", gap: 20, padding: 20 },
 
@@ -455,7 +455,7 @@ const styles = {
     justifyContent: "center",
     color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: 700,
+    fontWeight: 600,
     letterSpacing: "0.2px",
     flexShrink: 0,
   },
