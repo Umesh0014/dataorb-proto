@@ -37,6 +37,7 @@ const CLOSE_SIZE = 52;
 export default function VersionBar({
   versions = DEFAULT_VERSIONS,
   baselineOptions = BASELINE_OPTIONS,
+  staticBaseline = false,
   defaultActiveId = "current",
   value,
   onChange,
@@ -273,6 +274,7 @@ export default function VersionBar({
                 active={activeId === baselineSelected.id}
                 menuOpen={baselineMenuOpen}
                 onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
+                isStatic={staticBaseline}
               />
               {hasChips && <span className="vb-divider" aria-hidden="true" />}
               {chips.map((v) =>
@@ -315,7 +317,7 @@ export default function VersionBar({
             </div>
           </div>
           <span className="vb-badge" aria-hidden="true">
-            {baselineOptions.length + chips.length}
+            {(staticBaseline ? 0 : baselineOptions.length) + chips.length}
           </span>
         </div>
         <button
@@ -416,7 +418,24 @@ function useAnchorRect(ref, active, ...deps) {
 
 // ---- Bar children --------------------------------------------------------
 
-function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu }) {
+function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu, isStatic }) {
+  // Static mode (e.g. Credits & Usage): the baseline is a plain label,
+  // not a design-phase dropdown — no chevron, no menu, not interactive.
+  if (isStatic) {
+    return (
+      <span
+        style={{
+          ...vbStyles.baseline,
+          background: "var(--vb-pill)",
+          color: "var(--vb-txt)",
+          fontWeight: 500,
+          cursor: "default",
+        }}
+      >
+        <span>{selected.label}</span>
+      </span>
+    );
+  }
   return (
     <button
       ref={btnRef}

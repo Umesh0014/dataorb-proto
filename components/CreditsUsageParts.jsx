@@ -56,13 +56,22 @@ export function FieldNote({ children }) {
 }
 
 export function NumberInput({ value, onChange, suffix, ariaLabel }) {
+  const [focus, setFocus] = React.useState(false);
   return (
-    <label style={partStyles.numberInput}>
+    <label
+      style={{
+        ...partStyles.numberInput,
+        boxShadow: focus ? FOCUS_RING : "none",
+        borderColor: focus ? "var(--do-brand-blue)" : "var(--color-border-card-soft)",
+      }}
+    >
       <input
         type="number"
         min={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setFocus(false)}
         aria-label={ariaLabel}
         style={partStyles.numberInputField}
       />
@@ -71,26 +80,68 @@ export function NumberInput({ value, onChange, suffix, ariaLabel }) {
   );
 }
 
-export function EmailInput({ value, onChange, placeholder, ariaLabel, hasError }) {
+// FOCUS_RING — the documented visible focus indicator (2px white + brand
+// blue) used by the inputs that render outline:none inner fields.
+const FOCUS_RING = "0 0 0 2px #FFFFFF, 0 0 0 4px var(--do-brand-blue)";
+
+// RingInput — number input with a visible focus ring (the documented
+// 2px white + brand-blue ring), for the master-detail and monitor variants
+// where inputs sit on tinted surfaces. NumberInput stays outline-only for
+// the incumbent; this keeps the new variants gate-clean on focus (WCAG-3).
+export function RingInput({ value, onChange, suffix, ariaLabel, width = 64 }) {
+  const [focus, setFocus] = React.useState(false);
+  return (
+    <label
+      style={{
+        ...partStyles.ringInput,
+        boxShadow: focus ? FOCUS_RING : "none",
+        borderColor: focus ? "var(--do-brand-blue)" : "var(--color-border-card-soft)",
+      }}
+    >
+      <input
+        type="number"
+        min={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setFocus(false)}
+        aria-label={ariaLabel}
+        style={{ ...partStyles.ringInputField, width }}
+      />
+      {suffix && <span style={partStyles.numberInputSuffix}>{suffix}</span>}
+    </label>
+  );
+}
+
+export function EmailInput({ value, onChange, placeholder, ariaLabel, hasError, describedBy }) {
+  const [focus, setFocus] = React.useState(false);
   return (
     <input
       type="email"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
       placeholder={placeholder}
       aria-label={ariaLabel}
       aria-invalid={hasError || undefined}
+      aria-describedby={describedBy}
       style={{
         ...partStyles.emailInput,
-        borderColor: hasError ? "var(--color-error)" : "var(--color-border-card-soft)",
+        borderColor: hasError
+          ? "var(--color-error)"
+          : focus
+            ? "var(--do-brand-blue)"
+            : "var(--color-border-card-soft)",
+        boxShadow: focus ? FOCUS_RING : "none",
       }}
     />
   );
 }
 
-export function InlineError({ message }) {
+export function InlineError({ message, id }) {
   return (
-    <div style={partStyles.inlineError} role="alert">
+    <div id={id} style={partStyles.inlineError} role="alert">
       {message}
     </div>
   );
@@ -201,6 +252,7 @@ function SegmentedOption({ selected, onClick, label, description }) {
 }
 
 export function RequestRoutingField({ value, onChange, error }) {
+  const errorId = "cu-routing-error";
   return (
     <Field label="Route requests to">
       <EmailInput
@@ -209,8 +261,9 @@ export function RequestRoutingField({ value, onChange, error }) {
         placeholder="admin@yourcompany.example"
         ariaLabel="Request routing email address"
         hasError={Boolean(error)}
+        describedBy={error ? errorId : undefined}
       />
-      {error && <InlineError message={error} />}
+      {error && <InlineError id={errorId} message={error} />}
       <FieldNote>
         Teams are inherited from the Contact Center hierarchy — once mapped,
         requests route to the relevant team lead automatically.
@@ -348,7 +401,7 @@ const partStyles = {
   metricTileValueRow: { display: "flex", alignItems: "center", gap: 10 },
   metricTileValue: {
     fontSize: 20,
-    fontWeight: 700,
+    fontWeight: 600,
     lineHeight: "28px",
     color: "var(--color-text-deep)",
     fontVariantNumeric: "tabular-nums",
@@ -401,6 +454,7 @@ const partStyles = {
     borderRadius: 8,
     background: "#FFFFFF",
     cursor: "text",
+    transition: "box-shadow 120ms ease, border-color 120ms ease",
   },
   numberInputField: {
     width: 80,
@@ -415,6 +469,28 @@ const partStyles = {
   },
   numberInputSuffix: { fontSize: 12, color: "var(--color-text-tertiary)", whiteSpace: "nowrap" },
 
+  ringInput: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "8px 12px",
+    border: "1px solid var(--color-border-card-soft)",
+    borderRadius: 8,
+    background: "#FFFFFF",
+    cursor: "text",
+    transition: "box-shadow 120ms ease, border-color 120ms ease",
+  },
+  ringInputField: {
+    border: "none",
+    outline: "none",
+    fontFamily: "inherit",
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text-deep)",
+    background: "transparent",
+    appearance: "textfield",
+  },
+
   emailInput: {
     width: "100%",
     maxWidth: 360,
@@ -428,7 +504,7 @@ const partStyles = {
     color: "var(--color-text-deep)",
     outline: "none",
     boxSizing: "border-box",
-    transition: "border-color 120ms ease",
+    transition: "box-shadow 120ms ease, border-color 120ms ease",
   },
   inlineError: {
     padding: "8px 12px",
@@ -490,14 +566,14 @@ const partStyles = {
     border: "1px solid rgba(239, 108, 0, 0.18)",
   },
   agentBannerTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  agentBannerTitle: { fontSize: 12, fontWeight: 700, color: "var(--color-warning-text)", letterSpacing: "0.2px" },
+  agentBannerTitle: { fontSize: 12, fontWeight: 600, color: "var(--color-warning-text)", letterSpacing: "0.2px" },
   agentBannerTag: {
     padding: "2px 8px",
     borderRadius: 999,
     background: "#FFFFFF",
     color: "var(--color-warning)",
     fontSize: 10,
-    fontWeight: 700,
+    fontWeight: 600,
     textTransform: "uppercase",
     letterSpacing: "0.4px",
   },

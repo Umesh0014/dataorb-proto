@@ -25,7 +25,7 @@ import SkillRecordPage from "../../components/SkillRecordPage";
 import TasksPage from "../../components/TasksPage";
 import TaskRecordPage from "../../components/TaskRecordPage";
 import SettingsPage from "../../components/SettingsPage";
-import CreditsUsagePage from "../../components/CreditsUsagePage";
+import CreditsUsageShell from "../../components/CreditsUsageShell";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import ReplayPage from "../../components/ReplayPage";
@@ -489,7 +489,7 @@ export default function Page() {
       router.push(pathForCurrentPage(page));
     };
     const settingsContent = settingsSubpage === "credits-usage"
-      ? <CreditsUsagePage onBack={() => router.push("/settings")} />
+      ? <CreditsUsageShell onBack={() => router.push("/settings")} />
       : <SettingsPage onSelectCard={(cardId) => {
           if (cardId === "credits-usage") router.push("/settings/credits-usage");
         }} />;
