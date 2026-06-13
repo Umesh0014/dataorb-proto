@@ -63,6 +63,7 @@ export default function MetricSparkline({
   color = "var(--chart-blue)",
   formatValue,
   labels,
+  target,
 }) {
   const [containerRef, measuredWidth] = useMeasuredWidth(96);
   const width = Math.max(1, measuredWidth);
@@ -79,7 +80,8 @@ export default function MetricSparkline({
   }
 
   const n = points.length;
-  const max = Math.max(...points) || 1;
+  const hasTarget = typeof target === "number";
+  const max = Math.max(...points, hasTarget ? target : 0) || 1;
   const xAt =
     n === 1 ? () => width / 2 : (i) => PAD_X + (i / (n - 1)) * (width - 2 * PAD_X);
   const yAt = (v) => PAD_TOP + (1 - v / max) * (HEIGHT - PAD_TOP);
@@ -134,6 +136,19 @@ export default function MetricSparkline({
               strokeLinecap="round"
             />
           </>
+        )}
+
+        {hasTarget && (
+          <line
+            x1={PAD_X}
+            y1={yAt(target)}
+            x2={width - PAD_X}
+            y2={yAt(target)}
+            stroke="var(--color-text-tertiary)"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+            opacity={0.7}
+          />
         )}
 
         {xy.map((pt, i) => (

@@ -87,13 +87,17 @@ export const SIGNAL_META = {
   regression:  { label: "Regression",       icon: "Activity" },
 };
 
-// Recommended-intervention kind → verb + lucide icon name.
+// Recommended-intervention kind → verb + lucide icon name + short task type.
+// `type` is the action-type label surfaced on the task cards (Guided drill /
+// Replay / Probe / …).
 export const INTERVENTION_META = {
-  replay:          { label: "Assign replay clip",       icon: "Repeat" },
-  guide:           { label: "Assign guide",             icon: "GraduationCap" },
-  mission:         { label: "Create 2-roleplay mission", icon: "Target" },
-  "add-to-mission": { label: "Add to mission",          icon: "Plus" },
-  "one-on-one":    { label: "Log a 1:1",                icon: "MessageSquare" },
+  drill:            { label: "Guided drill",       icon: "Target",        type: "Guided drill" },
+  replay:           { label: "Replay review",      icon: "Repeat",        type: "Replay" },
+  probe:            { label: "Probe interview",    icon: "Search",        type: "Probe" },
+  guide:            { label: "Assign guide",       icon: "GraduationCap", type: "Guide" },
+  mission:          { label: "2-roleplay mission", icon: "Flag",          type: "Mission" },
+  "add-to-mission": { label: "Add to mission",     icon: "Plus",          type: "Mission" },
+  "one-on-one":     { label: "Log a 1:1",          icon: "MessageSquare", type: "1:1" },
 };
 
 // toneInk — accessible *text* colour for a tone label rendered on a white
@@ -137,7 +141,7 @@ export const ATTENTION_ITEMS = [
     recencyDays: 2,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "replay", asset: "De-escalation: angry billing dispute", duration: "12 min" },
+    intervention: { kind: "drill", asset: "De-escalation: angry billing dispute", duration: "12 min" },
     sampleNote: "Based on 41 scored calls this window.",
   },
   {
@@ -154,7 +158,7 @@ export const ATTENTION_ITEMS = [
     recencyDays: 1,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "guide", asset: "Setting Clear Resolutions", duration: "15 min" },
+    intervention: { kind: "drill", asset: "Setting Clear Resolutions", duration: "15 min" },
     sampleNote: "Based on 4 of 36 calls flagged.",
   },
   {
@@ -239,7 +243,7 @@ export const ATTENTION_ITEMS = [
     recencyDays: 3,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "replay", asset: "Advanced Conversation Pacing", duration: "10 min" },
+    intervention: { kind: "probe", asset: "Probe interview — pacing regression", duration: "15 min" },
     sampleNote: null,
   },
   {
@@ -256,7 +260,7 @@ export const ATTENTION_ITEMS = [
     recencyDays: 5,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "guide", asset: "Efficient Resolution Paths", duration: "12 min" },
+    intervention: { kind: "replay", asset: "Efficient Resolution Paths", duration: "12 min" },
     sampleNote: null,
   },
   {
@@ -336,13 +340,42 @@ export const TEAM_CONTEXT = {
   size: 11,
 };
 
+// scoreTrend — deterministic ~8-point series ending near `base`, gently
+// rising. Stable across reloads (no Math.random); oldest value first. Used
+// for the score trendlines beside every CSAT / composite number.
+export function scoreTrend(base, seed = 0) {
+  const n = 8;
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    const drift = (n - 1 - i) * 1.4; // older points sit a little lower
+    const noise = Math.sin((i + seed) * 1.1) * 1.4;
+    out.push(Math.max(0, Math.round(base - drift + noise)));
+  }
+  return out;
+}
+
+// ---- Team-level scores (top scoreboard) ---------------------------------
+// The composite (ring) and CSAT each carry a trendline + target + delta,
+// mirroring the Performance-score hero. Every number has a label + unit.
+export const TEAM_SCORE = {
+  composite: {
+    value: 62, outOf: 100, target: 75,
+    delta: "4 pts this week", dir: "up",
+    trend: scoreTrend(62, 1),
+  },
+  csat: {
+    value: 71, unit: "%", target: 80,
+    delta: "2 pts this week", dir: "up",
+    trend: scoreTrend(71, 4),
+  },
+};
+
 // ---- Agent roster -------------------------------------------------------
-// Every agent on the team with their CSAT + composite score, the target to
-// lift them to, and Learning Hub engagement. Action items per agent are the
-// ATTENTION_ITEMS keyed by agent id (agentActionItems). composite/target are
-// read-only scores (0–100); the goal framing is "improve the score", never
-// an employment judgement (gate G4).
-export const TEAM_ROSTER = [
+// Every agent on the team with their CSAT + composite score, the targets to
+// lift them to, Learning Hub engagement, and a trend series for each score.
+// composite/csat are read-only scores; the goal framing is "improve the
+// score", never an employment judgement (gate G4).
+const ROSTER_BASE = [
   { id: "215566", name: "Ravi Patel",       initials: "RP", csat: 61, composite: 38, target: 70, engagement: "none" },
   { id: "203891", name: "Mukesh Patil",     initials: "MP", csat: 66, composite: 34, target: 65, engagement: "none" },
   { id: "217430", name: "Priya Nair",       initials: "PN", csat: 67, composite: 40, target: 70, engagement: "active" },
@@ -355,6 +388,16 @@ export const TEAM_ROSTER = [
   { id: "222019", name: "Grace Okafor",     initials: "GO", csat: 88, composite: 91, target: 80, engagement: "active" },
   { id: "193845", name: "Aaliyah Tillman",  initials: "AT", csat: 90, composite: 92, target: 85, engagement: "active" },
 ];
+
+// Each agent carries a CSAT target (team standard 80) plus a trend series for
+// CSAT and composite, so every score renders as number + trendline + dotted
+// target line.
+export const TEAM_ROSTER = ROSTER_BASE.map((a, i) => ({
+  ...a,
+  csatTarget: 80,
+  csatTrend: scoreTrend(a.csat, i + 1),
+  compositeTrend: scoreTrend(a.composite, i + 9),
+}));
 
 // Learning Hub engagement → label + tone. "none"/"stalled" both read as a
 // distinct state with a paired label (never colour alone).

@@ -15,6 +15,7 @@ import {
   Target,
   Plus,
   MessageSquare,
+  Search,
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
@@ -48,7 +49,7 @@ const SIGNAL_ICON = {
   TrendingDown, LayoutGrid, ClipboardCheck, Flag, CalendarClock, Activity,
 };
 const INTERVENTION_ICON = {
-  Repeat, GraduationCap, Target, Plus, MessageSquare,
+  Repeat, GraduationCap, Target, Plus, MessageSquare, Search, Flag,
 };
 
 export default function AttentionItemCard({
@@ -56,6 +57,7 @@ export default function AttentionItemCard({
   status = "open",
   dense = false,
   hideAgent = false,
+  showTaskType = false,
   onLaunch,
   onOpenDetail,
   onOpenAgent,
@@ -76,6 +78,12 @@ export default function AttentionItemCard({
 
   return (
     <Card padX={dense ? 16 : 20} padY={dense ? 16 : 18} tone="outline" style={cardStyles.shell}>
+      {showTaskType && (
+        <span style={cardStyles.taskTypeChip}>
+          <IntervIcon size={12} aria-hidden="true" style={{ flexShrink: 0 }} />
+          {interv.type}
+        </span>
+      )}
       <div style={cardStyles.headerRow}>
         {!hideAgent && (
           <button
@@ -250,6 +258,19 @@ export function ItemKebab({ onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
 
 const cardStyles = {
   shell: { display: "flex", flexDirection: "column", gap: 12 },
+  taskTypeChip: {
+    alignSelf: "flex-start",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    padding: "3px 10px",
+    borderRadius: 999,
+    background: "var(--color-icon-tertiary-bg)",
+    color: "var(--color-icon-tertiary-fg)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 11,
+    fontWeight: 700,
+  },
   headerRow: { display: "flex", alignItems: "flex-start", gap: 12 },
   avatar: {
     flexShrink: 0,
