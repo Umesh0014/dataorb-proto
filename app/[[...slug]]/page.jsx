@@ -759,6 +759,7 @@ export default function Page() {
         <GuideSessionPage
           guide={{ id: guideSessionId }}
           onEnd={closeGuideSession}
+          locale={locale}
         />
       );
     } else if (onMissions && missionDetailId && !missionWizardStep) {

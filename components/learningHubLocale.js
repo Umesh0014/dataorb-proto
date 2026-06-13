@@ -1374,6 +1374,77 @@ export function lhMW(id, key) {
   if (!row) return key;
   return row[id] ?? row.en;
 }
+// Guide AI Tutor session. en + ar chrome + content maps.
+const GS = {
+  interactionId: { en: "Interaction ID –", ar: "معرّف التفاعل –" },
+  sources:       { en: "Sources",         ar: "المصادر" },
+  micMuted:      { en: "Mic Muted",       ar: "الميكروفون مكتوم" },
+  listening:     { en: "Listening To You", ar: "أستمع إليك" },
+  tapResume:     { en: "Tap mic to resume", ar: "اضغط الميكروفون للاستئناف" },
+  pauseDone:     { en: "Pause whenever you're done", ar: "توقّف متى انتهيت" },
+  minLeft:       { en: "min left",        ar: "دقيقة متبقية" },
+  unmute:        { en: "Unmute mic",      ar: "إلغاء كتم الميكروفون" },
+  mute:          { en: "Mute mic",        ar: "كتم الميكروفون" },
+  endSession:    { en: "End session",     ar: "إنهاء الجلسة" },
+  disclaimer:    { en: "AI tutor — can make mistakes. Confirm anything customer-facing with your Team Lead.", ar: "مدرّب بالذكاء الاصطناعي — قد يُخطئ. تأكّد من أي محتوى موجَّه للعميل مع قائد فريقك." },
+  guide:         { en: "GUIDE",           ar: "المرشد" },
+  advisor:       { en: "ADVISOR",         ar: "المستشار" },
+  thinking:      { en: "Thinking…",       ar: "يفكّر…" },
+  closeSources:  { en: "Close sources",   ar: "إغلاق المصادر" },
+  searchSources: { en: "Search sources",  ar: "البحث في المصادر" },
+  noSources:     { en: "No sources match your search.", ar: "لا توجد مصادر تطابق بحثك." },
+  open:          { en: "Open",            ar: "فتح" },
+  title:         { en: "Vodafone Retention", ar: "الاحتفاظ — فودافون" },
+};
+export function lhGS(id, key) {
+  const row = GS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+export function lhRetrieved(id, n) {
+  const T = { en: `Retrieved from ${n} artifacts`, ar: `مُستخرَج من ${n} عناصر` };
+  return T[id] ?? T.en;
+}
+const SOURCE_TYPE_AR = { Playbook: "دليل عمل", SOP: "إجراء تشغيل قياسي", FAQ: "أسئلة شائعة" };
+export function lhSourceType(id, type) {
+  if (id === "ar") return SOURCE_TYPE_AR[type] ?? type;
+  return type;
+}
+
+// Guide session transcript turns (Arabic), keyed by turn id.
+const GUIDE_TURN_AR = {
+  "t-1": "مرحباً آنيا — أنا جاهز متى شئت. اسألني أي شيء عن التعامل مع تهديدات التحوّل إلى فودافون من العملاء ذوي الإيراد المرتفع، وسأستند إلى إطار الاحتفاظ الخاص بماريا إضافةً إلى أحدث الأدلة.",
+  "t-2": "ما أنظف طريقة للبدء عندما يستهل العميل الحديث بالعرض المنافس؟",
+  "t-3": "ابدأ بالإقرار قبل الرد. يدعو الإطار إلى لحظة تعاطف من جملة واحدة — «شكراً لإخباري مسبقاً» — ثم سؤال توضيحي واحد لتثبيت التكلفة مقابل التغطية. أجِّل مطابقة السعر حتى تسمع ما الذي ينقص فعلاً.\n\nإذا ذكر العميل مشغّلاً وتعرفة محددين، فأعِد صياغة العرض بكلماتك. يمنحك ذلك 4–6 ثوانٍ لمسح الحساب بحثاً عن الرد المناسب دون صمت.",
+  "t-4": "وإذا استمر في الضغط على السعر؟",
+  "t-5": "انتقل من السعر إلى القيمة الإجمالية في خطوة واحدة. ابدأ بالحزمة التي لا يشملها المنافس — عادةً بدل تجوال أو خصم باقة عائلية أو نافذة ترقية جهاز. اعرض الفارق كتوفير شهري على مدى 12 شهراً، لا كتعرفة معلنة.\n\nإذا ظل العميل متمسكاً بسعر المنافس بعد ردّين، فصعّد إلى مسار رصيد حسن النية — تتيح لك المصفوفة منح ما يصل إلى شهرين خدمة مجانية دون موافقة المشرف. استخدم ذلك كإغلاق، لا كافتتاح.",
+};
+export function lhGuideTurn(id, turnId, fallback) {
+  if (id === "ar") return GUIDE_TURN_AR[turnId] ?? fallback;
+  return fallback;
+}
+
+// Guide session source artifacts (Arabic): title + pre-formatted date,
+// keyed by source id. Type localizes via lhSourceType.
+const GUIDE_SOURCE_AR = {
+  "s-1":  { title: "من صدمة الفاتورة إلى باقة أفضل — تحويل شكوى الفوترة إلى تحسين للباقة", date: "20 أبريل 2026" },
+  "s-2":  { title: "عملية الاحتفاظ بالعملاء بفعالية.", date: "16 أبريل 2026" },
+  "s-3":  { title: "ما بعض استراتيجيات الاحتفاظ بالعملاء الفعّالة؟", date: "12 أبريل 2026" },
+  "s-4":  { title: "حلقات ملاحظات العملاء — استخدام المُدخلات لتحسين الخدمات", date: "22 أغسطس 2025" },
+  "s-5":  { title: "استراتيجيات البيع المتقاطع — تعظيم الإيراد عبر العروض المرتبطة", date: "15 يوليو 2025" },
+  "s-6":  { title: "تدخّل التسرّب القائم على التعاطف — إطار الإنقاذ", date: "9 أبريل 2026" },
+  "s-7":  { title: "مصفوفة تصعيد سياسة الاسترداد — مالكو المستوى 1/2/3", date: "2 مايو 2026" },
+  "s-8":  { title: "كيفية طرح التعرفة الجديدة على العملاء ذوي الإيراد المرتفع", date: "22 أبريل 2026" },
+  "s-9":  { title: "صوت العلامة — النبرة المكتوبة والعبارات المرفوضة", date: "8 مارس 2026" },
+  "s-10": { title: "تحسين برنامج الولاء — إبقاء الاحتفاظ فوق 92%", date: "18 أبريل 2026" },
+  "s-11": { title: "متى نصعّد إلى الهندسة مقابل العمليات؟", date: "7 أبريل 2026" },
+  "s-12": { title: "نص الامتثال — قائمة تحقق نزاع الفوترة", date: "2 أبريل 2026" },
+};
+export function lhGuideSource(id, sourceId) {
+  if (id === "ar") return GUIDE_SOURCE_AR[sourceId] ?? null;
+  return null;
+}
+
 // Duration options "N Weeks" / "1 Week" → localized (Arabic plural rules).
 export function lhDurationWeeks(id, str) {
   if (id !== "ar" || typeof str !== "string") return str;
