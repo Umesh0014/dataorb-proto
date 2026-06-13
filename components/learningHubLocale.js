@@ -1247,6 +1247,102 @@ export function lhNba(id, nbaId) {
   if (id === "ar") return NBA_CONTENT_AR[nbaId] ?? null;
   return null;
 }
+
+// Agent profile — Missions card (active + closed). en + ar chrome.
+const AM = {
+  subtitle:      { en: "Evaluate performance across quality metrics.", ar: "قيّم الأداء عبر مقاييس الجودة." },
+  viewMission:   { en: "View mission",   ar: "عرض المهمة" },
+  fa_name:       { en: "Focus Area",     ar: "مجال التركيز" },
+  fa_target:     { en: "Target",         ar: "الهدف" },
+  fa_achieved:   { en: "Achieved",       ar: "المُحقَّق" },
+  fa_status:     { en: "Status",         ar: "الحالة" },
+  met:           { en: "Met",            ar: "تحقّق" },
+  below:         { en: "Below",          ar: "دون الهدف" },
+  col_closed:    { en: "Closed Missions", ar: "المهام المغلقة" },
+  col_roleplays: { en: "Roleplays",      ar: "تمثيلات الأدوار" },
+  col_closingDate:{ en: "Closing Date",  ar: "تاريخ الإغلاق" },
+  col_completion:{ en: "Completion Status", ar: "حالة الإكمال" },
+  tile_closed:   { en: "Closed Missions", ar: "المهام المغلقة" },
+  tile_totalRoleplays: { en: "Total Roleplays", ar: "إجمالي تمثيلات الأدوار" },
+  tile_targetsAchieved:{ en: "Targets Achieved", ar: "الأهداف المُحقَّقة" },
+  st_closed:     { en: "Closed",         ar: "مغلقة" },
+  st_expired:    { en: "Expired",        ar: "منتهية" },
+  st_completed:  { en: "Completed",      ar: "مكتملة" },
+  active:        { en: "Active",         ar: "نشطة" },
+  closed:        { en: "Closed",         ar: "مغلقة" },
+};
+export function lhAM(id, key) {
+  const row = AM[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+export function lhRoleplaysOf(id, a, b) {
+  const T = { en: `${a}/${b} Roleplays`, ar: `${a}/${b} تمثيل أدوار` };
+  return T[id] ?? T.en;
+}
+export function lhMissionSummary(id, met, below) {
+  if (below === 0) return id === "ar" ? `تحقّقت كلها (${met})` : `All ${met} met`;
+  if (met === 0) return id === "ar" ? `كلها دون الهدف (${below})` : `All ${below} below`;
+  return id === "ar" ? `${met} محقّق، ${below} دون الهدف` : `${met} met, ${below} below`;
+}
+export function lhBelowGap(id, gap) {
+  if (gap == null) return lhAM(id, "below");
+  const T = { en: `Below ${gap}%`, ar: `دون الهدف ${gap}%` };
+  return T[id] ?? T.en;
+}
+export function lhClosedCount(id, a, b) {
+  const T = { en: `${a} of ${b} closed missions`, ar: `${a} من ${b} مهمة مغلقة` };
+  return T[id] ?? T.en;
+}
+export function lhCompletionStatus(id, status) {
+  return lhAM(id, `st_${status}`);
+}
+
+// Skill / focus-area / closed-mission names in Arabic, keyed by English.
+const SKILL_AR = {
+  "Active listening": "الإنصات الفعّال",
+  "Solution clarity": "وضوح الحل",
+  "Follow-up quality": "جودة المتابعة",
+  "Feedback loops": "حلقات الملاحظات",
+  "Refund / extension policy": "سياسة الاسترداد / التمديد",
+  "Save / retention offer usage": "استخدام عروض الإنقاذ / الاحتفاظ",
+  "Step-by-step guidance": "إرشاد خطوة بخطوة",
+  "Service area awareness": "الوعي بمنطقة الخدمة",
+  "Empathy & tone": "التعاطف والنبرة",
+  "Customer support enhancement": "تحسين دعم العملاء",
+  "Retention save readiness — Q2": "جاهزية إنقاذ الاحتفاظ — الربع الثاني",
+  "Empathy in communication": "التعاطف في التواصل",
+  "Conflict resolution": "حل النزاعات",
+  "Persuasive communication": "التواصل الإقناعي",
+  "Clarity of speech": "وضوح الكلام",
+  "Non-verbal cues": "الإشارات غير اللفظية",
+  "Tone modulation": "تعديل النبرة",
+  "Closing the sale": "إغلاق البيع",
+  "Handling escalations": "التعامل مع التصعيدات",
+  "Product knowledge depth": "عمق معرفة المنتج",
+  "Discovery questioning": "أسئلة الاستكشاف",
+  "Objection reframing": "إعادة صياغة الاعتراضات",
+  "Call control": "التحكم في المكالمة",
+  "Summarizing accurately": "التلخيص الدقيق",
+  "Setting expectations": "ضبط التوقعات",
+  "Cross-sell timing": "توقيت البيع المتقاطع",
+  "Compliance adherence": "الالتزام بالامتثال",
+  "Rapport building": "بناء الألفة",
+  "Note-taking discipline": "انضباط تدوين الملاحظات",
+  "Warm transfers": "التحويلات السلسة",
+  "Hold etiquette": "آداب الانتظار",
+  "Upsell positioning": "طرح البيع الإضافي",
+  "Sentiment recovery": "استعادة المشاعر الإيجابية",
+  "First-contact resolution": "الحل من أول تواصل",
+  "Knowledge base usage": "استخدام قاعدة المعرفة",
+  "Brand voice consistency": "اتساق صوت العلامة",
+  "Callback commitment": "الالتزام بمعاودة الاتصال",
+  "Survey invitation": "دعوة الاستبيان",
+};
+export function lhSkill(id, name) {
+  if (id === "ar") return SKILL_AR[name] ?? name;
+  return name;
+}
 export function lhTerm(id, value) {
   if (id === "ar") return TERMS_AR[value] ?? value;
   return value;

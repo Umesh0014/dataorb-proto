@@ -5,6 +5,7 @@ import Card from "./Card";
 import TabsRow from "./TabsRow";
 import ActiveMissionCard from "./ActiveMissionCard";
 import ClosedMissions from "./ClosedMissions";
+import { lhM, lhAM } from "./learningHubLocale";
 
 // Active missions seed.
 const activeMissions = [
@@ -80,14 +81,14 @@ const closedMissions = [
 ];
 
 const SCOPE_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "closed", label: "Closed" },
+  { value: "active", labelKey: "active" },
+  { value: "closed", labelKey: "closed" },
 ];
 
 // Missions — interior of the Agent Profile "Missions" card. A tabs row below
 // the title switches between the Active Missions stack (mission sub-cards
 // with spider charts) and the Closed Missions metric strip + table.
-export default function Missions({ onViewMission }) {
+export default function Missions({ onViewMission, locale = "en" }) {
   const [scope, setScope] = React.useState("active");
   // Single-open accordion: the first active mission is expanded on load; one
   // open at a time. null means every mission is collapsed (a valid state —
@@ -102,14 +103,14 @@ export default function Missions({ onViewMission }) {
     <Card>
       <div style={mxStyles.header}>
         <div>
-          <div style={mxStyles.title}>Missions</div>
-          <div style={mxStyles.subtitle}>Evaluate performance across quality metrics.</div>
+          <div style={mxStyles.title}>{lhM(locale, "title")}</div>
+          <div style={mxStyles.subtitle}>{lhAM(locale, "subtitle")}</div>
         </div>
       </div>
 
       <div style={mxStyles.tabs}>
         <TabsRow
-          tabs={SCOPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+          tabs={SCOPE_OPTIONS.map((o) => ({ id: o.value, label: lhAM(locale, o.labelKey) }))}
           activeTab={scope}
           onTabClick={setScope}
         />
@@ -124,11 +125,12 @@ export default function Missions({ onViewMission }) {
               expanded={openMissionId === mission.id}
               onToggle={() => handleToggle(mission.id)}
               onViewMission={onViewMission}
+              locale={locale}
             />
           ))}
         </div>
       ) : (
-        <ClosedMissions metrics={closedMissionsMetrics} rows={closedMissions} />
+        <ClosedMissions metrics={closedMissionsMetrics} rows={closedMissions} locale={locale} />
       )}
     </Card>
   );

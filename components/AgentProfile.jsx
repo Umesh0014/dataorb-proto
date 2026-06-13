@@ -88,7 +88,7 @@ export default function AgentProfile({ agentId, onBack, onViewMission, locale = 
           </div>
         </div>
       </div>
-      <Missions onViewMission={onViewMission} />
+      <Missions onViewMission={onViewMission} locale={locale} />
       <CoachingRecommendations onNbaAssign={setAssignAsset} />
       <RoleplayCoverage onNbaAssign={setAssignAsset} />
       <QualityAdherence onNbaAssign={setAssignAsset} />
