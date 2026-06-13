@@ -1343,6 +1343,47 @@ export function lhSkill(id, name) {
   if (id === "ar") return SKILL_AR[name] ?? name;
   return name;
 }
+
+// Mission create wizard. en + ar.
+const MW = {
+  step_define:   { en: "Define Mission",  ar: "تحديد المهمة" },
+  step_coverage: { en: "Coverage",        ar: "التغطية" },
+  step_focus:    { en: "Focus Area",      ar: "مجال التركيز" },
+  step_recruit:  { en: "Recruit",         ar: "الترشيح" },
+  step_preview:  { en: "Preview & Publish", ar: "المعاينة والنشر" },
+  subtitle:      { en: "Set the scope and timeline for this mission.", ar: "حدّد نطاق هذه المهمة وجدولها الزمني." },
+  name:          { en: "Name",            ar: "الاسم" },
+  description:   { en: "Description",     ar: "الوصف" },
+  startDate:     { en: "Start date",      ar: "تاريخ البدء" },
+  duration:      { en: "Duration",        ar: "المدة" },
+  sessionsField: { en: "Minimum practice sessions per driver", ar: "الحد الأدنى لجلسات التدريب لكل محرّك" },
+  sessionsInfo:  { en: "The minimum number of practice sessions each agent must complete during this mission.", ar: "أدنى عدد من جلسات التدريب التي يجب أن يكملها كل وكيل خلال هذه المهمة." },
+  ph_name:       { en: "E.g. Billing Objection Readiness — Q2", ar: "مثال: جاهزية اعتراضات الفوترة — الربع الثاني" },
+  ph_description:{ en: "E.g. Prepare agents to handle billing disputes with confident de-escalation and accurate resolution.", ar: "مثال: تأهيل الوكلاء للتعامل مع نزاعات الفوترة بتهدئة واثقة وحل دقيق." },
+  selectDate:    { en: "Select a date",   ar: "اختر تاريخاً" },
+  sessions:      { en: "sessions",        ar: "جلسات" },
+  select:        { en: "Select",          ar: "اختر" },
+  save:          { en: "Save",            ar: "حفظ" },
+  next:          { en: "Next",            ar: "التالي" },
+  publish:       { en: "Publish",         ar: "نشر" },
+  back:          { en: "Back",            ar: "رجوع" },
+  discard:       { en: "Discard changes? Your draft mission will be lost.", ar: "تجاهل التغييرات؟ ستُفقد مسودة مهمتك." },
+};
+export function lhMW(id, key) {
+  const row = MW[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+// Duration options "N Weeks" / "1 Week" → localized (Arabic plural rules).
+export function lhDurationWeeks(id, str) {
+  if (id !== "ar" || typeof str !== "string") return str;
+  const n = parseInt(str, 10);
+  if (!Number.isFinite(n)) return str;
+  if (n === 1) return "أسبوع واحد";
+  if (n === 2) return "أسبوعان";
+  if (n <= 10) return `${n} أسابيع`;
+  return `${n} أسبوعاً`;
+}
 export function lhTerm(id, value) {
   if (id === "ar") return TERMS_AR[value] ?? value;
   return value;

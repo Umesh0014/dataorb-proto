@@ -665,6 +665,7 @@ export default function Page() {
           onCancel={closeMissionWizard}
           onSave={saveMissionDraft}
           onPublish={publishMission}
+          locale={locale}
         />
       );
     } else if (onDrill && roleplayStep === "generated") {
