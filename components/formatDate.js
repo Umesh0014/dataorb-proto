@@ -127,4 +127,10 @@ function toUtcDate(input) {
   return null;
 }
 
+// Localized short-month array for callers that build their own date format
+// (e.g. GuidePage uses a day-first layout) but still want localized months.
+export function localizedMonths(locale = "en") {
+  return MONTHS_BY_LOCALE[locale] || MONTHS_SHORT;
+}
+
 export { MONTHS_SHORT };

@@ -772,6 +772,49 @@ export function lhM(id, key) {
   return row[id] ?? row.en;
 }
 
+// Guide tab — landing chrome (tabs, card meta, empty states). Guide
+// titles/descriptions and author monograms are mock content (queued).
+const GUIDE = {
+  title:          { en: "Guide",          es: "Guía",             de: "Leitfaden",        fr: "Guide",            ar: "الدليل" },
+  tab_active:     { en: "Active",         es: "Activas",          de: "Aktiv",            fr: "Actifs",           ar: "نشطة" },
+  tab_calibration:{ en: "In Calibration", es: "En calibración",   de: "In Kalibrierung",  fr: "En calibrage",     ar: "قيد المعايرة" },
+  tab_draft:      { en: "Draft",          es: "Borrador",         de: "Entwurf",          fr: "Brouillon",        ar: "مسودة" },
+  tab_archived:   { en: "Archived",       es: "Archivadas",       de: "Archiviert",       fr: "Archivés",         ar: "مؤرشفة" },
+  artefacts:      { en: "Artefacts",      es: "Artefactos",       de: "Artefakte",        fr: "Artéfacts",        ar: "العناصر" },
+  emptyNoMatch:   { en: "No guides match your search", es: "Ninguna guía coincide con tu búsqueda", de: "Keine Leitfäden entsprechen deiner Suche", fr: "Aucun guide ne correspond à votre recherche", ar: "لا توجد أدلة تطابق بحثك" },
+  emptyBodyLane:  { en: "Once guides land in this lane, they appear here.", es: "Cuando haya guías en esta columna, aparecerán aquí.", de: "Sobald Leitfäden in dieser Spalte sind, erscheinen sie hier.", fr: "Dès que des guides arrivent dans cette colonne, ils apparaissent ici.", ar: "بمجرد ظهور أدلة في هذا العمود، ستظهر هنا." },
+};
+
+export function lhG(id, key) {
+  const row = GUIDE[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// Guide empty-state heading (no guides in a given lane).
+export function lhGuideEmptyLane(id, laneLabel) {
+  const T = {
+    en: `No guides in ${laneLabel}`,
+    es: `No hay guías en ${laneLabel}`,
+    de: `Keine Leitfäden in ${laneLabel}`,
+    fr: `Aucun guide dans ${laneLabel}`,
+    ar: `لا توجد أدلة في ${laneLabel}`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Guide empty-state body when a search returns nothing.
+export function lhGuideEmptySearchBody(id, laneLabel) {
+  const T = {
+    en: `Try a different keyword or clear the search to see all ${laneLabel} guides.`,
+    es: `Prueba otra palabra clave o borra la búsqueda para ver todas las guías ${laneLabel}.`,
+    de: `Versuche ein anderes Stichwort oder lösche die Suche, um alle ${laneLabel}-Leitfäden zu sehen.`,
+    fr: `Essayez un autre mot-clé ou effacez la recherche pour voir tous les guides ${laneLabel}.`,
+    ar: `جرّب كلمة مفتاحية أخرى أو امسح البحث لعرض جميع أدلة ${laneLabel}.`,
+  };
+  return T[id] ?? T.en;
+}
+
 // "+ N more" (kanban upcoming overflow).
 export function lhMore(id, n) {
   const T = {
