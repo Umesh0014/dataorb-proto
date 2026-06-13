@@ -114,6 +114,7 @@ export default function ReplayPage({ pageName, locale = "en", onLocaleChange }) 
         onStepChange={setWizardStep}
         onCancel={backToLanding}
         onPublish={publishCollection}
+        locale={locale}
       />
     );
   }
@@ -126,6 +127,7 @@ export default function ReplayPage({ pageName, locale = "en", onLocaleChange }) 
         onApprove={approveReplay}
         onArchive={archiveReplay}
         onSaveEdit={updateReplay}
+        locale={locale}
       />
     );
   }
@@ -135,6 +137,7 @@ export default function ReplayPage({ pageName, locale = "en", onLocaleChange }) 
         collection={collection}
         replay={replay}
         onBack={() => setScreen("record")}
+        locale={locale}
       />
     );
   }

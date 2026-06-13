@@ -830,6 +830,34 @@ const REPLAY = {
   emptyNoMatch:    { en: "No collections match your search", es: "Ninguna colección coincide con tu búsqueda", de: "Keine Sammlungen entsprechen deiner Suche", fr: "Aucune collection ne correspond à votre recherche", ar: "لا توجد مجموعات تطابق بحثك" },
   emptyNoMatchBody:{ en: "Try a different keyword or clear the search.", es: "Prueba otra palabra clave o borra la búsqueda.", de: "Versuche ein anderes Stichwort oder lösche die Suche.", fr: "Essayez un autre mot-clé ou effacez la recherche.", ar: "جرّب كلمة مفتاحية أخرى أو امسح البحث." },
   emptyLaneBody:   { en: "Collections you create appear here once the AI starts sampling calls.", es: "Las colecciones que crees aparecerán aquí cuando la IA empiece a muestrear llamadas.", de: "Von dir erstellte Sammlungen erscheinen hier, sobald die KI Anrufe auswertet.", fr: "Les collections que vous créez apparaissent ici dès que l’IA échantillonne des appels.", ar: "تظهر المجموعات التي تنشئها هنا بمجرد أن يبدأ الذكاء الاصطناعي بأخذ عينات من المكالمات." },
+  // Record sub-page (en + ar; other locales fall back to en)
+  rec_published:   { en: "Published",   ar: "منشورة" },
+  rec_suggested:   { en: "Suggested",   ar: "مُقترَحة" },
+  rec_generating:  { en: "Generating",  ar: "قيد الإنشاء" },
+  rec_archived:    { en: "Archived",    ar: "مؤرشفة" },
+  rec_toReview:    { en: "To review",   ar: "للمراجعة" },
+  rec_objective:   { en: "Objective",   ar: "الهدف" },
+  rec_aiPublishes: { en: "AI publishes", ar: "ينشر الذكاء الاصطناعي" },
+  rec_manualReview:{ en: "Manual review", ar: "مراجعة يدوية" },
+  rec_max:         { en: "Max",         ar: "حد أقصى" },
+  rec_auto:        { en: "auto",        ar: "تلقائي" },
+  rec_edit:        { en: "Edit",        ar: "تعديل" },
+  rec_approve:     { en: "Approve",     ar: "اعتماد" },
+  rec_play:        { en: "Play",        ar: "تشغيل" },
+  rec_editReplay:  { en: "Edit replay", ar: "تعديل الإعادة" },
+  rec_moveColl:    { en: "Move to another collection", ar: "نقل إلى مجموعة أخرى" },
+  rec_archiveAction:{ en: "Archive",    ar: "أرشفة" },
+  rec_genAudio:    { en: "Generating audio…", ar: "جارٍ إنشاء الصوت…" },
+  rec_aiGenerated: { en: "AI-generated · unedited", ar: "مُنشأ بالذكاء الاصطناعي · غير مُحرَّر" },
+  rec_audioReady:  { en: "Audio ready", ar: "الصوت جاهز" },
+  rec_audioGen:    { en: "Audio generating…", ar: "جارٍ إنشاء الصوت…" },
+  rec_audioOnApproval: { en: "Audio generates on approval", ar: "يُنشأ الصوت عند الاعتماد" },
+  rec_emptySamplingH: { en: "The AI is still building replays", ar: "لا يزال الذكاء الاصطناعي يبني الإعادات" },
+  rec_emptySamplingB: { en: "Replays appear here as the AI samples eligible calls. Check back shortly.", ar: "تظهر الإعادات هنا بينما يأخذ الذكاء الاصطناعي عينات من المكالمات المؤهلة. عاوِد التحقق قريباً." },
+  rec_emptyReviewH:   { en: "Nothing waiting on you", ar: "لا شيء بانتظارك" },
+  rec_emptyReviewB:   { en: "Every suggested replay has been reviewed.", ar: "تمت مراجعة كل إعادة مُقترَحة." },
+  rec_emptyPublishedH:{ en: "No published replays yet", ar: "لا توجد إعادات منشورة بعد" },
+  rec_emptyPublishedB:{ en: "Approve a suggested replay to publish it here.", ar: "اعتمد إعادة مُقترَحة لنشرها هنا." },
 };
 
 export function lhR(id, key) {
@@ -955,7 +983,36 @@ const TERMS_AR = {
   "German": "الألمانية",
   "Italian": "الإيطالية",
   "Portuguese": "البرتغالية",
+  // Replay collection config values (eligibility window + refresh cadence)
+  "Last 7 days": "آخر 7 أيام",
+  "Last 30 days": "آخر 30 يوماً",
+  "Last 90 days": "آخر 90 يوماً",
+  "Last 6 months": "آخر 6 أشهر",
+  "Daily": "يومياً",
+  "Weekly": "أسبوعياً",
+  "Fortnightly": "كل أسبوعين",
+  "Monthly": "شهرياً",
 };
+
+// Replay (recording) titles in Arabic, keyed by replay id.
+const REPLAY_TITLE_AR = {
+  "rp-save-1": "عكس رسوم زائدة صامتة عند تهديد بالتحوّل",
+  "rp-save-2": "استعادة أسرة متعددة الخطوط بحجّة السعر",
+  "rp-save-3": "تهدئة مفاجأة فوترة ثالثة",
+  "rp-save-4": "محاولة إنقاذ خسرت حجّة نقطة الاتصال",
+  "rp-save-5": "التعافي بعد وعد لم يُنفَّذ في مكالمة سابقة",
+};
+export function lhReplayTitle(id, replayId, fallback) {
+  if (id === "ar") return REPLAY_TITLE_AR[replayId] ?? fallback;
+  return fallback;
+}
+export function lhEditedBy(id, name) {
+  const T = {
+    en: `Edited by ${name}`, es: `Editado por ${name}`, de: `Bearbeitet von ${name}`,
+    fr: `Modifié par ${name}`, ar: `حرّره ${name}`,
+  };
+  return T[id] ?? T.en;
+}
 export function lhTerm(id, value) {
   if (id === "ar") return TERMS_AR[value] ?? value;
   return value;
