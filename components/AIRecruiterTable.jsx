@@ -342,7 +342,7 @@ const s = {
   // Sidecar shell
   scrim: { position: "fixed", inset: 0, background: "var(--overlay-hover)", zIndex: 39 },
   drawer: {
-    position: "fixed", top: 0, right: 0, bottom: 0, width: 360,
+    position: "fixed", top: 0, right: 0, bottom: 0, width: 440, maxWidth: "94vw",
     background: "var(--surface-white)", boxShadow: "var(--shadow-drawer)",
     display: "flex", flexDirection: "column", zIndex: 40, fontFamily: "var(--font-sans)",
   },

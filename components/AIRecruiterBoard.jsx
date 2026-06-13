@@ -243,7 +243,7 @@ const s = {
 
   // Detail curtain
   curtain: {
-    position: "fixed", top: 0, right: 0, bottom: 0, width: 420, maxWidth: "92vw",
+    position: "fixed", top: 0, right: 0, bottom: 0, width: 480, maxWidth: "94vw",
     background: "var(--surface-white)", boxShadow: "var(--shadow-drawer)",
     borderLeft: "1px solid var(--color-divider-card)",
     display: "flex", flexDirection: "column", zIndex: 45, fontFamily: "var(--font-sans)",

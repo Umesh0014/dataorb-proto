@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { X, Sparkles, Pencil } from "lucide-react";
+import { X, Sparkles, Pencil, Briefcase, GraduationCap } from "lucide-react";
 import Button from "./Button";
 import MultiLineInput from "./MultiLineInput";
 import { formatDate } from "./formatDate";
-import { FAMILY_LABELS } from "./mocks/recruiter";
+import { FAMILY_LABELS, getProfile } from "./mocks/recruiter";
 import {
   CandidateMonogram, StageBadge, CoverageMeter, RecordedTag, AdvanceButton,
   COMPLIANCE_COPY,
@@ -35,6 +35,7 @@ export function CandidateDetailHeader({ candidate, onClose, closeRef }) {
 }
 
 export function CandidateDetailBody({ candidate }) {
+  const profile = getProfile(candidate.id);
   return (
     <div style={s.body}>
       <div style={s.rowTop}>
@@ -53,11 +54,45 @@ export function CandidateDetailBody({ candidate }) {
         <Meta label="Follow-up topics" value={thinLabel(candidate)} />
       </div>
 
+      {profile && <CandidateProfile profile={profile} />}
+
       <EvidenceBlock candidate={candidate} />
 
       <div style={s.complianceNote}>
         <p style={s.complianceTitle}>{COMPLIANCE_COPY.heading}</p>
         <p style={s.complianceBody}>{COMPLIANCE_COPY.body}</p>
+      </div>
+    </div>
+  );
+}
+
+// CandidateProfile — résumé-derived work experience + education, shown inside
+// the detail curtain/sidecar so the hiring manager sees who the candidate is
+// without leaving the pipeline. Read-only factual record (not AI output).
+function CandidateProfile({ profile }) {
+  return (
+    <div style={s.profile}>
+      <div style={s.profileBlock}>
+        <span style={s.profileHead}><Briefcase size={14} color="var(--color-text-tertiary)" aria-hidden="true" /> Work experience</span>
+        <ul style={s.entryList}>
+          {profile.experience.map((e, i) => (
+            <li key={i} style={s.entry}>
+              <span style={s.entryTitle}>{e.title}</span>
+              <span style={s.entryMeta}>{e.org} · {e.period}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div style={s.profileBlock}>
+        <span style={s.profileHead}><GraduationCap size={14} color="var(--color-text-tertiary)" aria-hidden="true" /> Education</span>
+        <ul style={s.entryList}>
+          {profile.education.map((e, i) => (
+            <li key={i} style={s.entry}>
+              <span style={s.entryTitle}>{e.credential}</span>
+              <span style={s.entryMeta}>{e.org} · {e.year}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -198,6 +233,14 @@ const s = {
   meta: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
   metaLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
   metaValue: { fontSize: 13, fontWeight: 500, color: "var(--color-text-deep)", lineHeight: 1.4 },
+
+  profile: { display: "flex", flexDirection: "column", gap: 16, paddingTop: 4, borderTop: "1px solid var(--color-divider-card)" },
+  profileBlock: { display: "flex", flexDirection: "column", gap: 8 },
+  profileHead: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
+  entryList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 },
+  entry: { display: "flex", flexDirection: "column", gap: 2 },
+  entryTitle: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.4 },
+  entryMeta: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)" },
 
   evidence: { display: "flex", flexDirection: "column", gap: 8 },
   evidenceHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
