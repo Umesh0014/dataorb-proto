@@ -486,3 +486,80 @@ export function lhDetail(id, key) {
   if (!row) return key;
   return row[id] ?? row.en;
 }
+
+// New Roleplay wizard (Step 1 persona + Step 2 context + breadcrumb).
+// Full five-locale set, matching the rest of the engine: the wizard is GUI
+// chrome (labels, placeholders, helper text), so it localizes everywhere,
+// not just Arabic. Field VALUES (category, complexity, language) reuse the
+// taxonomy maps / LANGUAGE_NAME below so the stored canonical key is stable
+// while only the display label localizes.
+const WIZARD = {
+  bcPersona:    { en: "Enter Persona Details",        es: "Introducir detalles del perfil", de: "Persona-Details eingeben",      fr: "Saisir les détails du profil",    ar: "إدخال تفاصيل الشخصية" },
+  bcContext:    { en: "Add Conversation Context",     es: "Añadir contexto de conversación", de: "Gesprächskontext hinzufügen",  fr: "Ajouter le contexte de conversation", ar: "إضافة سياق المحادثة" },
+  viewSample:   { en: "View Sample",                  es: "Ver ejemplo",                de: "Beispiel ansehen",             fr: "Voir un exemple",                 ar: "عرض نموذج" },
+  step1Subtitle:{ en: "Build intelligent customer personas to train and coach the agents", es: "Crea perfiles de cliente inteligentes para formar y orientar a los agentes", de: "Erstellen Sie intelligente Kundenpersonas, um Agenten zu schulen und zu coachen", fr: "Créez des profils clients intelligents pour former et coacher les agents", ar: "أنشئ شخصيات عملاء ذكية لتدريب الوكلاء وتوجيههم" },
+  step2Title:   { en: "Add Supporting Information",    es: "Añadir información de apoyo", de: "Unterstützende Informationen hinzufügen", fr: "Ajouter des informations complémentaires", ar: "إضافة معلومات داعمة" },
+  next:         { en: "Next",                          es: "Siguiente",                  de: "Weiter",                       fr: "Suivant",                         ar: "التالي" },
+  previous:     { en: "Previous",                      es: "Anterior",                   de: "Zurück",                       fr: "Précédent",                       ar: "السابق" },
+  cancel:       { en: "Cancel",                        es: "Cancelar",                   de: "Abbrechen",                    fr: "Annuler",                         ar: "إلغاء" },
+  generate:     { en: "Generate",                      es: "Generar",                    de: "Generieren",                   fr: "Générer",                         ar: "إنشاء" },
+  skipGenerate: { en: "Skip and Generate with AI",     es: "Omitir y generar con IA",    de: "Überspringen und mit KI generieren", fr: "Ignorer et générer avec l’IA", ar: "تخطٍّ والإنشاء بالذكاء الاصطناعي" },
+
+  fldCategory:  { en: "Roleplay category",             es: "Categoría de juego de rol",  de: "Rollenspiel-Kategorie",        fr: "Catégorie de jeu de rôle",        ar: "فئة تمثيل الأدوار" },
+  fldLanguage:  { en: "Persona language",              es: "Idioma del perfil",          de: "Persona-Sprache",              fr: "Langue du profil",                ar: "لغة الشخصية" },
+  fldReason:    { en: "Why is the customer reaching out?", es: "¿Por qué contacta el cliente?", de: "Warum meldet sich der Kunde?", fr: "Pourquoi le client vous contacte-t-il ?", ar: "لماذا يتواصل العميل؟" },
+  fldObjective: { en: "What is the customer’s overall objective from the contact?", es: "¿Cuál es el objetivo general del cliente con el contacto?", de: "Was ist das übergeordnete Ziel des Kunden beim Kontakt?", fr: "Quel est l’objectif global du client lors du contact ?", ar: "ما هو هدف العميل العام من التواصل؟" },
+  fldComplexity:{ en: "Persona Complexity",            es: "Complejidad del perfil",     de: "Persona-Komplexität",          fr: "Complexité du profil",            ar: "تعقيد الشخصية" },
+  fldDuration:  { en: "Max allowed duration",          es: "Duración máxima permitida",  de: "Maximal zulässige Dauer",      fr: "Durée maximale autorisée",        ar: "الحد الأقصى للمدة المسموح بها" },
+  minutes:      { en: "Minutes",                       es: "Minutos",                    de: "Minuten",                      fr: "Minutes",                         ar: "دقيقة" },
+  minShort:     { en: "min",                           es: "min",                        de: "Min.",                         fr: "min",                             ar: "دقيقة" },
+
+  phCategory:   { en: "E.g. Sales",                    es: "P. ej. Ventas",              de: "Z. B. Vertrieb",               fr: "P. ex. Ventes",                   ar: "مثال: المبيعات" },
+  phLanguage:   { en: "E.g. English (UK)",             es: "P. ej. Inglés (Reino Unido)", de: "Z. B. Englisch (UK)",         fr: "P. ex. Anglais (R.-U.)",          ar: "مثال: الإنجليزية (المملكة المتحدة)" },
+  phReason:     { en: "E.g. Billing and payment issues", es: "P. ej. Problemas de facturación y pago", de: "Z. B. Probleme mit Abrechnung und Zahlung", fr: "P. ex. Problèmes de facturation et de paiement", ar: "مثال: مشكلات الفوترة والدفع" },
+  phObjective:  { en: "E.g. Billing and payment issues", es: "P. ej. Problemas de facturación y pago", de: "Z. B. Probleme mit Abrechnung und Zahlung", fr: "P. ex. Problèmes de facturation et de paiement", ar: "مثال: مشكلات الفوترة والدفع" },
+
+  fldObjections:{ en: "What are the key objections?",  es: "¿Cuáles son las objeciones clave?", de: "Was sind die wichtigsten Einwände?", fr: "Quelles sont les principales objections ?", ar: "ما هي الاعتراضات الرئيسية؟" },
+  fldProducts:  { en: "What products or services will be discussed?", es: "¿Qué productos o servicios se tratarán?", de: "Welche Produkte oder Dienstleistungen werden besprochen?", fr: "Quels produits ou services seront abordés ?", ar: "ما المنتجات أو الخدمات التي ستتم مناقشتها؟" },
+  fldContext:   { en: "Any additional context?",       es: "¿Algún contexto adicional?", de: "Zusätzlicher Kontext?",        fr: "Un contexte supplémentaire ?",    ar: "أي سياق إضافي؟" },
+  phObjections: { en: "E.g. The customer is not interested in the product/service", es: "P. ej. El cliente no está interesado en el producto/servicio", de: "Z. B. Der Kunde ist nicht am Produkt/Service interessiert", fr: "P. ex. Le client n’est pas intéressé par le produit/service", ar: "مثال: العميل غير مهتم بالمنتج/الخدمة" },
+  phProducts:   { en: "E.g. international roaming plan", es: "P. ej. plan de itinerancia internacional", de: "Z. B. internationaler Roaming-Tarif", fr: "P. ex. forfait d’itinérance internationale", ar: "مثال: باقة التجوال الدولي" },
+  phContext:    { en: "E.g. The customer is a long term user and has been loyal to the company since 2 years.", es: "P. ej. El cliente es usuario desde hace tiempo y ha sido fiel a la empresa durante 2 años.", de: "Z. B. Der Kunde ist langjähriger Nutzer und seit 2 Jahren treu.", fr: "P. ex. Le client est un utilisateur de longue date, fidèle à l’entreprise depuis 2 ans.", ar: "مثال: العميل مستخدم منذ مدة طويلة وظل وفياً للشركة منذ عامين." },
+
+  capLabel:     { en: "Per-roleplay monthly minute cap", es: "Límite mensual de minutos por juego de rol", de: "Monatliches Minutenlimit pro Rollenspiel", fr: "Plafond mensuel de minutes par jeu de rôle", ar: "حد الدقائق الشهري لكل تمثيل أدوار" },
+  capHelper:    { en: "Optional. Caps the minutes this roleplay can consume each month. Off by default; existing sessions are never interrupted.", es: "Opcional. Limita los minutos que este juego de rol puede consumir cada mes. Desactivado por defecto; las sesiones existentes nunca se interrumpen.", de: "Optional. Begrenzt die Minuten, die dieses Rollenspiel pro Monat verbrauchen kann. Standardmäßig aus; laufende Sitzungen werden nie unterbrochen.", fr: "Facultatif. Limite les minutes que ce jeu de rôle peut consommer chaque mois. Désactivé par défaut ; les sessions en cours ne sont jamais interrompues.", ar: "اختياري. يحدّ من الدقائق التي يمكن أن يستهلكها تمثيل الأدوار هذا كل شهر. مُعطَّل افتراضياً؛ ولا تُقطَع الجلسات الجارية أبداً." },
+  capSuffix:    { en: "min / month",                   es: "min / mes",                  de: "Min. / Monat",                 fr: "min / mois",                      ar: "دقيقة / شهر" },
+  genTitle:     { en: "Roleplay Generation",           es: "Generación de juego de rol", de: "Rollenspiel-Generierung",      fr: "Génération de jeu de rôle",       ar: "إنشاء تمثيل الأدوار" },
+};
+
+export function lhWizard(id, key) {
+  const row = WIZARD[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// Persona-language option labels (Step 1 dropdown). Keyed on the canonical
+// English value that stays in the wizard's stored state.
+const LANGUAGE_NAME = {
+  "English (UK)": { en: "English (UK)", es: "Inglés (Reino Unido)", de: "Englisch (UK)",  fr: "Anglais (R.-U.)",  ar: "الإنجليزية (المملكة المتحدة)" },
+  "English (US)": { en: "English (US)", es: "Inglés (EE. UU.)",     de: "Englisch (USA)", fr: "Anglais (É.-U.)",  ar: "الإنجليزية (الولايات المتحدة)" },
+  "Spanish":      { en: "Spanish",      es: "Español",              de: "Spanisch",       fr: "Espagnol",         ar: "الإسبانية" },
+  "German":       { en: "German",       es: "Alemán",               de: "Deutsch",        fr: "Allemand",         ar: "الألمانية" },
+  "French":       { en: "French",       es: "Francés",              de: "Französisch",    fr: "Français",         ar: "الفرنسية" },
+};
+export function lhLanguageName(id, value) {
+  return LANGUAGE_NAME[value]?.[id] ?? value;
+}
+
+// Per-roleplay cap inline error (Step 2 §5). Localized template with the
+// consumed/cap minutes interpolated; Western digits kept across locales.
+export function lhCapError(id, cap, consumed) {
+  const T = {
+    en: `Cap (${cap} min) is below already-consumed (${consumed} min) for this month. Choose ≥${consumed} or wait until the next cycle.`,
+    es: `El límite (${cap} min) es inferior a lo ya consumido (${consumed} min) este mes. Elija ≥${consumed} o espere al próximo ciclo.`,
+    de: `Das Limit (${cap} Min.) liegt unter dem bereits verbrauchten Wert (${consumed} Min.) für diesen Monat. Wählen Sie ≥${consumed} oder warten Sie auf den nächsten Zyklus.`,
+    fr: `Le plafond (${cap} min) est inférieur à ce qui est déjà consommé (${consumed} min) ce mois-ci. Choisissez ≥${consumed} ou attendez le prochain cycle.`,
+    ar: `الحد (${cap} دقيقة) أقل من المستهلَك بالفعل (${consumed} دقيقة) لهذا الشهر. اختر ≥${consumed} أو انتظر حتى الدورة التالية.`,
+  };
+  return T[id] ?? T.en;
+}

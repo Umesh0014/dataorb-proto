@@ -6,6 +6,7 @@ import Card from "./Card";
 import Button from "./Button";
 import MultiLineInput from "./MultiLineInput";
 import RoleplayBreadcrumb from "./RoleplayBreadcrumb";
+import { lhWizard, lhCategory, lhDifficulty, lhLanguageName, lhDir } from "./learningHubLocale";
 
 const ROLEPLAY_CATEGORIES = ["Sales", "Retention", "Service", "Technical Support"];
 const PERSONA_LANGUAGES = ["English (UK)", "English (US)", "Spanish", "German", "French"];
@@ -23,9 +24,11 @@ const OBJECTIVE_MAX = 500;
 //
 // Footer Cancel / Next sits inside the form Card (not viewport-sticky).
 // Next is disabled until every required field has a value.
-export default function NewRoleplayPage({ value, onChange, onCancel, onNext, onViewSample }) {
+export default function NewRoleplayPage({ value, onChange, onCancel, onNext, onViewSample, locale = "en" }) {
   const setField = (key) => (next) => onChange({ ...value, [key]: next });
   const { category, language, reason, objective, complexity, duration } = value;
+  const t = (key) => lhWizard(locale, key);
+  const isRtl = lhDir(locale) === "rtl";
 
   const isValid =
     category &&
@@ -44,73 +47,71 @@ export default function NewRoleplayPage({ value, onChange, onCancel, onNext, onV
   return (
     <div style={nrStyles.page}>
       <Card padX={32} padY={32} style={nrStyles.formCard}>
-        <RoleplayBreadcrumb active="persona" onViewSample={onViewSample} />
+        <RoleplayBreadcrumb active="persona" onViewSample={onViewSample} locale={locale} />
 
         <div style={nrStyles.titleBlock}>
-          <div style={nrStyles.title}>Enter Persona Details</div>
-          <div style={nrStyles.subtitle}>
-            Build intelligent customer personas to train and coach the agents
-          </div>
+          <div style={nrStyles.title}>{t("bcPersona")}</div>
+          <div style={nrStyles.subtitle}>{t("step1Subtitle")}</div>
         </div>
 
         <div style={nrStyles.fieldGrid}>
           <div style={nrStyles.row2}>
-            <Field label="Roleplay category" required>
+            <Field label={t("fldCategory")} required>
               <Dropdown
                 value={category}
                 onChange={setField("category")}
-                placeholder="E.g. Sales"
+                placeholder={t("phCategory")}
                 options={ROLEPLAY_CATEGORIES}
+                renderLabel={(o) => lhCategory(locale, o)}
               />
             </Field>
-            <Field label="Persona language" required>
+            <Field label={t("fldLanguage")} required>
               <Dropdown
                 value={language}
                 onChange={setField("language")}
-                placeholder="E.g. English (UK)"
+                placeholder={t("phLanguage")}
                 options={PERSONA_LANGUAGES}
+                renderLabel={(o) => lhLanguageName(locale, o)}
               />
             </Field>
           </div>
 
-          <Field label="Why is the customer reaching out?" required>
+          <Field label={t("fldReason")} required>
             <SingleLineInput
               value={reason}
               onChange={setField("reason")}
               max={REASON_MAX}
-              placeholder="E.g. Billing and payment issues"
+              placeholder={t("phReason")}
             />
           </Field>
 
-          <Field
-            label="What is the customer’s overall objective from the contact?"
-            required
-          >
+          <Field label={t("fldObjective")} required>
             <MultiLineInput
               value={objective}
               onChange={setField("objective")}
               max={OBJECTIVE_MAX}
-              placeholder="E.g. Billing and payment issues"
+              placeholder={t("phObjective")}
             />
           </Field>
 
-          <Field label="Persona Complexity" required>
+          <Field label={t("fldComplexity")} required>
             <PillGroup
               value={complexity}
               onChange={setField("complexity")}
               options={COMPLEXITY_OPTIONS}
+              renderLabel={(o) => lhDifficulty(locale, o)}
             />
           </Field>
 
-          <Field label="Max allowed duration" required>
-            <DurationControl value={duration} onChange={setField("duration")} />
+          <Field label={t("fldDuration")} required>
+            <DurationControl value={duration} onChange={setField("duration")} t={t} isRtl={isRtl} />
           </Field>
         </div>
 
         <div style={nrStyles.footer}>
-          <Button variant="text" onClick={onCancel}>Cancel</Button>
+          <Button variant="text" onClick={onCancel}>{t("cancel")}</Button>
           <Button variant="primary" disabled={!isValid} onClick={submit}>
-            Next
+            {t("next")}
           </Button>
         </div>
       </Card>
@@ -134,7 +135,7 @@ function Field({ label, required, children }) {
 
 // ---------- Dropdown ----------
 
-function Dropdown({ value, onChange, placeholder, options }) {
+function Dropdown({ value, onChange, placeholder, options, renderLabel = (o) => o }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
 
@@ -160,7 +161,7 @@ function Dropdown({ value, onChange, placeholder, options }) {
             color: value ? "var(--color-text-deep)" : "var(--color-text-placeholder)",
           }}
         >
-          {value || placeholder}
+          {value ? renderLabel(value) : placeholder}
         </span>
         <ChevronDown size={18} color="var(--color-text-tertiary)" />
       </button>
@@ -178,7 +179,7 @@ function Dropdown({ value, onChange, placeholder, options }) {
                 setOpen(false);
               }}
             >
-              {opt}
+              {renderLabel(opt)}
             </div>
           ))}
         </div>
@@ -211,7 +212,7 @@ function SingleLineInput({ value, onChange, max, placeholder }) {
 
 // ---------- Pill group ----------
 
-function PillGroup({ value, onChange, options }) {
+function PillGroup({ value, onChange, options, renderLabel = (o) => o }) {
   return (
     <div style={nrStyles.pillRow}>
       {options.map((opt) => {
@@ -226,7 +227,7 @@ function PillGroup({ value, onChange, options }) {
               ...(active ? nrStyles.pillActive : null),
             }}
           >
-            {opt}
+            {renderLabel(opt)}
           </button>
         );
       })}
@@ -236,7 +237,7 @@ function PillGroup({ value, onChange, options }) {
 
 // ---------- Duration: number input + slider ----------
 
-function DurationControl({ value, onChange }) {
+function DurationControl({ value, onChange, t, isRtl }) {
   const clamp = (n) => Math.min(DURATION_MAX, Math.max(DURATION_MIN, n));
 
   const handleNumber = (e) => {
@@ -265,7 +266,7 @@ function DurationControl({ value, onChange }) {
           onChange={handleNumber}
           style={nrStyles.numberInput}
         />
-        <span style={nrStyles.numberSuffix}>Minutes</span>
+        <span style={nrStyles.numberSuffix}>{t("minutes")}</span>
       </div>
       <div style={nrStyles.sliderColumn}>
         <input
@@ -276,12 +277,12 @@ function DurationControl({ value, onChange }) {
           onChange={handleSlider}
           style={{
             ...nrStyles.slider,
-            background: `linear-gradient(to right, var(--color-icon-tertiary-fg) 0%, var(--color-icon-tertiary-fg) ${pct}%, var(--color-divider-card) ${pct}%, var(--color-divider-card) 100%)`,
+            background: `linear-gradient(to ${isRtl ? "left" : "right"}, var(--color-icon-tertiary-fg) 0%, var(--color-icon-tertiary-fg) ${pct}%, var(--color-divider-card) ${pct}%, var(--color-divider-card) 100%)`,
           }}
         />
         <div style={nrStyles.sliderEnds}>
-          <span>{DURATION_MIN} min</span>
-          <span>{DURATION_MAX} min</span>
+          <span>{DURATION_MIN} {t("minShort")}</span>
+          <span>{DURATION_MAX} {t("minShort")}</span>
         </div>
       </div>
     </div>
@@ -369,7 +370,7 @@ const nrStyles = {
     color: "var(--color-text-deep)",
     lineHeight: 1.4,
   },
-  required: { color: "var(--color-error)", marginLeft: 2 },
+  required: { color: "var(--color-error)", marginInlineStart: 2 },
 
   // Dropdown
   ddWrap: { position: "relative" },
@@ -418,7 +419,9 @@ const nrStyles = {
   singleInput: {
     width: "100%",
     height: 56,
-    padding: "0 80px 0 16px",
+    paddingBlock: 0,
+    paddingInlineStart: 16,
+    paddingInlineEnd: 80,
     borderRadius: 8,
     border: "1px solid var(--color-divider-card)",
     background: "var(--surface-white)",
@@ -447,7 +450,7 @@ const nrStyles = {
   counter: {
     position: "absolute",
     top: "50%",
-    right: 16,
+    insetInlineEnd: 16,
     transform: "translateY(-50%)",
     fontFamily: '"Mulish", sans-serif',
     fontSize: 12,
@@ -504,7 +507,7 @@ const nrStyles = {
     fontFamily: '"Mulish", sans-serif',
     fontSize: 13,
     color: "var(--color-text-tertiary)",
-    marginLeft: 8,
+    marginInlineStart: 8,
   },
   sliderColumn: { flex: 1, display: "flex", flexDirection: "column", gap: 8 },
   slider: {

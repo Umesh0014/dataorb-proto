@@ -47,7 +47,7 @@ import FilterPanel from "../../components/FilterPanel";
 import { insightsHubConfig } from "../../components/SideNav/configs/insightsHubConfig";
 import { learningHubConfig } from "../../components/SideNav/configs/learningHubConfig";
 import { askMiraConfig } from "../../components/SideNav/configs/askMiraConfig";
-import { lhDir, localizeLearningConfig } from "../../components/learningHubLocale";
+import { lhDir, lhWizard, localizeLearningConfig } from "../../components/learningHubLocale";
 
 const MIRA_RESPONSE_DELAY_MS = 800;
 
@@ -648,7 +648,7 @@ export default function Page() {
         />
       );
     } else if (onDrill && roleplayStep === "generated") {
-      drillContent = <ComingSoon pageName="Roleplay Generation" />;
+      drillContent = <ComingSoon pageName={lhWizard(locale, "genTitle")} />;
     } else if (onDrill && roleplayStep === "context") {
       drillContent = (
         <NewRoleplayContextPage
@@ -659,6 +659,7 @@ export default function Page() {
           onGenerate={() => setRoleplayStep("generated")}
           onSkipAndGenerate={() => setRoleplayStep("generated")}
           onViewSample={() => console.log("View sample — out of scope")}
+          locale={locale}
         />
       );
     } else if (onDrill && roleplayStep === "persona") {
@@ -669,6 +670,7 @@ export default function Page() {
           onCancel={cancelRoleplay}
           onNext={() => setRoleplayStep("context")}
           onViewSample={() => console.log("View sample — out of scope")}
+          locale={locale}
         />
       );
     } else if (onDrill && drillDetailId) {
