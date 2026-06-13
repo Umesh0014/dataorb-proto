@@ -88,28 +88,29 @@ with a composite ScoreBar, and the nested `AttentionItemCard` action items):
 The original 10-direction exploration below still informs the atoms (reuse, sidecar
 drawer, severity affordances, the loop); the *primary surface* is now the agent dashboard.
 
-## Final scores (design-evaluator, 2 refine passes)
+## Final scores (design-evaluator — agent-roster dashboard)
 
-Pass 1 found a single shared gate failure (G8 — the warning/info severity-label
-text failed 4.5:1 on white); fixed at the atom level via `toneInk()` (label text
-uses the accessible `*-text` token; the bright tone stays only on the paired dot).
-Pass 2 confirmed all three clear 13/13 gates; the top variant's weighted gain was
-< 5 points, so the loop converged.
+The first dashboard pass found one shared weak item (WCAG-10 — the `Toast`
+confirmations weren't announced) and a thin drill path on Scorecards (INT-2). Both
+fixed (`Toast` got `role="status"`/`aria-live`; Scorecards now surfaces the open-action
+count + "View plan"). The re-score confirmed all three clear 13/13 gates and the top
+variant held at 88% (gain < 5), so the loop converged.
 
-| Variant | Direction | Gates | Weighted | GTH | Verdict |
-|---------|-----------|:-----:|:--------:|:---:|---------|
-| **A — Queue** | Ranked triage worklist + sidecar | 13/13 | **92%** | +2 | Handoff-ready |
-| **C — Focus** | Monday-morning editorial digest | 13/13 | **90%** | +3 | Handoff-ready |
-| **B — Board** | Loop pipeline kanban | 13/13 | **87%** | +2 | Handoff-ready |
+| Variant | Layout | Gates | Weighted | GTH | Verdict |
+|---------|--------|:-----:|:--------:|:---:|---------|
+| **A — Roster** (default) | Expandable agent rows, CSAT + composite, nested action items | 13/13 | **88%** | +2 | Handoff-ready |
+| **C — Focus** | Most-at-risk agent featured + at-risk roster + downloadable recap | 13/13 | **88%** | +3 | Handoff-ready |
+| **B — Scorecards** | Agent scorecard grid, top action per card | 13/13 | **85%** | +1 | Handoff-ready |
 
-Remaining (non-gate) partials carried for a later pass, not blockers:
-- **WCAG-6** — the kebab icon button (36px) / text buttons (32px) sit just under the
-  44px effective hit target.
-- **UI-5** — items render from a flat mock; no per-container schema/version field, so
-  the "v1 brief renders in v1 UI" guarantee isn't structurally expressed (fine for a
-  prototype, but scored a 1).
-- **WCAG-9 (Board only)** — the resolved-lane outcome cards show the delta inline but
-  don't open the sidecar, so that metric has no tabular alternative.
+Remaining (non-gate) partials, carried not blocking:
+- **INT-5 (A, B)** — the "needs-attention-only" filtered-empty case (Roster) and the
+  all-on-track grid case (Scorecards) don't yet have a designed zero-state message;
+  Focus already solves this with its all-on-track Banner. Lift that pattern across to
+  push A/B toward ~90%.
+- **UI-9 (A, B)** — per-agent detail expands inline / opens via the nested card rather
+  than the row itself being a tabular-primary + sidecar; acceptable for a dashboard.
+- **WCAG-6** — the kebab (36px) / text buttons (32px) sit just under the 44px target.
+- **UI-5** — flat mock; no per-container schema/version field (fine for a prototype).
 
 ## Carried as flagged (not built in v1)
 
