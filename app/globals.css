@@ -311,6 +311,15 @@ body {
   color: var(--color-text-placeholder);
 }
 
+/* Command Center — shared keyboard focus ring for the custom (non-Button)
+   interactive surfaces (attention-item cards, kebab triggers, group/filter
+   pills). Replaces the default outline with the design-system ring rather
+   than removing it (WCAG-3). Tokenised: white inner halo + brand-blue ring. */
+.cc-focusable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
+}
+
 /* Missions kanban lanes — scrollbar hidden at rest, fades in on lane hover
    (and shown by the OS while actively scrolling). Inline styles can't reach
    the ::-webkit-scrollbar pseudo-elements, so it lives here. */

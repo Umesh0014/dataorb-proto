@@ -108,6 +108,30 @@ export default [
       ],
     },
   },
+  // Command Center triage surfaces. <Button> has no variant for an avatar
+  // chip, a segmented group-by control, a full-width clickable summary row,
+  // or a kebab menu item — and the codebase has no shared Avatar / PillGroup
+  // / Dropdown primitive yet. The Launch CTA, Details link, and kebab trigger
+  // already use <Button>; the remaining raw <button>s are promotion
+  // candidates once a 3rd callsite appears. Kept as warn until those land.
+  {
+    files: [
+      "components/AttentionItemCard.jsx",
+      "components/CommandCenterQueue.jsx",
+      "components/CommandCenterBoard.jsx",
+      "components/CommandCenterFocus.jsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or shared Avatar / PillGroup / Dropdown) when this component is next touched.",
+        },
+      ],
+    },
+  },
   // MilestoneSideRail — a self-contained meta-tooling side rail + popover
   // (dark surface, monospace, yellow accent) beside the Performance score
   // card. Its controls (state-switcher buttons, info trigger, close,

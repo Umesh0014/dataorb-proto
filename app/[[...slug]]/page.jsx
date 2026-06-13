@@ -12,6 +12,7 @@ import InteractionsPage from "../../components/InteractionsPage";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
+import CommandCenterShell from "../../components/CommandCenterShell";
 import MissionDetailPage from "../../components/MissionDetailPage";
 import MissionWizardPage, {
   EMPTY_MISSION_DRAFT,
@@ -83,6 +84,7 @@ const INSIGHTS_PAGES = {
 };
 
 const LEARNING_PAGES = {
+  "command-center": { Component: CommandCenterShell, pageName: "Command Center" },
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
@@ -680,7 +682,12 @@ export default function Page() {
           onCreateMission={openMissionWizard}
           onCreateGuide={openGuideWizard}
           onOpenGuide={openGuideSession}
-          onOpenAgent={(id) => setAgentProfileId(id)}
+          onOpenAgent={(id) => {
+            setAgentProfileId(id);
+            // From the Command Center the agent profile lives on the Agents
+            // route — navigate there; on Agents we're already home.
+            if (learningNav !== "agents") router.push(pathForLearning("agents"));
+          }}
         />
       );
     }
