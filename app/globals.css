@@ -277,6 +277,18 @@ body {
   to   { transform: rotate(360deg); }
 }
 
+/* Honor prefers-reduced-motion globally (WCAG 2.3.3 / MOT-4): neutralize
+   transitions and animations for users who request reduced motion. Essential
+   spinners keep a minimal duration rather than vanishing. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* GuideSessionPage — orb pulse + sources-panel slide-in. The orb's two
    blurred rings breathe at offset durations so the motion never repeats
    in lockstep. Sources panel pushes in from the right edge of the card. */
