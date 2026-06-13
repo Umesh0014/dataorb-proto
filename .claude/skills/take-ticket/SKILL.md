@@ -42,10 +42,15 @@ merge runs without him.
 
 1. Inside the cloned repo, on a clean working tree (`git status`).
 2. `design-guidelines.md` exists at the repo root and is readable.
-3. `gh auth status` and `vercel whoami` both succeed (needed to push and read the
-   preview URL — Vercel MCP is unreliable for this project, see Step 8).
-4. Repo is wired to Vercel with Preview Deployments on (a branch push auto-creates
-   a preview). If unsure, say so rather than guessing.
+3. GitHub access works: you push via the configured git remote, and you read the
+   preview URL through the **GitHub MCP** (`mcp__github__*`), which is scoped to
+   this repo. There is **no `vercel` or `gh` CLI** in this environment, and the
+   Vercel MCP can't address this project (the connected account exposes no team,
+   so every Vercel MCP call fails on a missing `teamId`). The GitHub MCP is the
+   path — see Step 9.
+4. Repo is wired to Vercel with Preview Deployments on, and the **Vercel GitHub
+   App is installed** — it builds a preview for each PR and comments the Ready
+   URL. If unsure, say so rather than guessing.
 
 ## Pipeline
 
@@ -124,19 +129,55 @@ and his alone.
 > the gate to `main` only, or treat this step as a single confirm checkpoint.
 > Flag this to Umesh on the first run rather than guessing.
 
-### 9. Get the Vercel preview URL
-After push, resolve the preview link (Vercel MCP returns 403 for this project — don't
-rely on it):
-1. `vercel ls dataorb-proto` — find this branch's deployment.
-2. Else `gh api` on the branch's deployment status (the Vercel GitHub App posts it).
-Wait for the build to finish before grabbing the URL.
+### 9. Get the Vercel preview URL (open a PR, read the Vercel bot comment)
+A branch push alone gives you no readable URL here. There is **no `vercel` or `gh`
+CLI** in this environment; the Vercel MCP can't address this project (no team →
+every call fails on a missing `teamId`); and the branch-preview alias is **not
+constructible** — Vercel truncates the branch name and injects a random hash
+(`patch-7-settings-card` → `…-git-patch-7-setti-a136a3-…`). Don't attempt any of
+those; they are the reason this step used to "always error."
+
+The one reliable source is the **Vercel GitHub App**, which builds a preview for
+every PR and posts the Ready URL as a `vercel[bot]` comment. Read it through the
+**GitHub MCP** (`mcp__github__*`):
+
+1. **Open a PR** for the ticket branch into `main` (draft is fine — opening a PR
+   is **not** merging, and the merge gate stays Umesh's). Reuse the branch's
+   existing PR if one is already open.
+2. **Poll the PR for the preview URL** with `pull_request_read`:
+   - `method: get_comments` → find the comment from user `vercel[bot]`. It carries
+     the URL two ways — use either the markdown **Preview** link in the status
+     table, or the `previewUrl` field inside the base64 `[vc]: …` payload on the
+     first line.
+   - The deployment is finished when that comment's status table shows **Ready**
+     (equivalently: `get_check_runs` → "Vercel Preview Comments" = success, and
+     the decoded payload's `nextCommitStatus` = `DEPLOYED`). Don't grab the URL
+     until it's Ready.
+3. **Append the ticket's route** to the preview origin so the link lands on the
+   right surface (e.g. `…vercel.app/settings/credits-usage`), matching how prior
+   tickets posted it.
+
+Previews are usually Ready within ~1–2 min of opening the PR; poll a few times with
+a short wait between. Do **not** fall back to the production `dataorb-proto.vercel.app`
+origin — that serves `main`, not the branch, so it wouldn't show the variants.
 
 ### 10. Comment the result to Notion
-Post a comment on the ticket containing: the preview URL, the branch name, a short
-A/B/C legend mapping each variant to the direction it explores, and the **scorecard**
-— per variant: gates passed, weighted %, verdict (Handoff-ready / Minor / Major /
-Rework / Blocked), and any flagged item. Keep it scannable; this is what Umesh reads
-before deciding. Link the `directions.md` audit file.
+Post a comment on the ticket (`notion-create-comment`, `page_id` + `markdown`)
+containing: the preview URL, the branch name, the PR link, a short A/B/C legend
+mapping each variant to the direction it explores, and the **scorecard** — per
+variant: gates passed, weighted %, verdict (Handoff-ready / Minor / Major /
+Rework / Blocked), and any flagged item. Keep it scannable; this is what Umesh
+reads before deciding. Link the `directions.md` audit file.
+
+Comments render **inline** markdown only — bold, italic, inline code, and links.
+Block markdown (headings, tables, fenced code) is flattened to plain text, so lay
+the scorecard out as short bold-labelled lines, not a table, and give the URL as a
+real inline link.
+
+If the preview still isn't Ready after a few polls in Step 9, **post the PR link
+instead of a bare "pending"** — the PR surfaces the Vercel preview and lets Umesh
+open it in one click. Never leave the comment with an unresolved error as the only
+signal.
 
 ### 11. Move the ticket to In review
 Update `Stage` to `In review`. Done — Umesh opens the preview, flips the switcher,
@@ -150,6 +191,10 @@ reads the scorecard, picks the winner, and merges the branch himself.
 ## Stop conditions
 Halt and report (don't push, comment, or move stage) if: the brief is too thin to
 design from, `design-guidelines.md` is missing, `npm run build` fails and can't be
-fixed, the preview URL can't be resolved, or any auth/precondition check fails. A
-clean failure that leaves the board untouched beats a half-finished pipeline. **Never
-merge to `main` — that gate is always Umesh's.**
+fixed, or any auth/precondition check fails. A clean failure that leaves the board
+untouched beats a half-finished pipeline. **Never merge to `main` — that gate is
+always Umesh's.**
+
+A preview URL that isn't Ready in time is **not** a stop condition — fall back to
+the PR link per Step 10 and finish the handback. Only a failure to open the PR at
+all (no GitHub access) blocks Step 9.
