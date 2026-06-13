@@ -7,10 +7,6 @@ import TabsRow from "./TabsRow";
 import DrillCard from "./DrillCard";
 import ComingSoon from "./ComingSoon";
 import Banner from "./Banner";
-import Modal from "./Modal";
-import DarkPillSwitcher from "./DarkPillSwitcher";
-import LocaleRibbon from "./LocaleRibbon";
-import LocaleCoverageBody from "./LocaleCoverageBody";
 import { DRILL_CARDS } from "./mocks/drillCards";
 import { evaluateRoleplayGate, gateCopy } from "./SettingsPage";
 import {
@@ -36,11 +32,6 @@ const DrillAvatarIcon = () => (
   </span>
 );
 
-// Localization design variants (ticket: GUI multilingual + RTL/Arabic).
-// One localization engine, three affordances for choosing language and
-// surfacing RTL readiness. Switcher value matches these strings 1:1.
-const VARIANT_OPTIONS = ["Inline", "Ribbon", "Coverage"];
-
 // LearningHubPage — Drill page + the localization layer. The page title,
 // primary CTA, search, Filters, tabs, and the taxonomy chips (category +
 // difficulty) all localize to the selected language; Arabic flips the
@@ -64,10 +55,6 @@ export default function LearningHubPage({
 }) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [searchValue, setSearchValue] = React.useState("");
-  const [variant, setVariant] = React.useState("Inline");
-  // Variant C stages the locale in the modal and commits it on Apply.
-  const [modalOpen, setModalOpen] = React.useState(false);
-  const [pendingLocale, setPendingLocale] = React.useState(locale);
 
   const setLocale = (next) => onLocaleChange?.(next);
   const dir = lhDir(locale);
@@ -88,7 +75,8 @@ export default function LearningHubPage({
     { id: "library", label: t("tabLibrary") },
   ];
 
-  // Variant A — language as an inline header dropdown pill (FilterDropdown).
+  // Language as an inline header dropdown pill — native name + locale list,
+  // lifting the new selection to the app root.
   const localeFilter = {
     id: "language",
     label: t("language"),
@@ -106,31 +94,9 @@ export default function LearningHubPage({
     label: t("filters"),
     onClick: () => {},
   };
-  // Variant C — language is a text-labeled header pill (visible affordance,
-  // not an icon-only button) that opens the Language & region modal. No
-  // `options` → PageHeader renders it as a plain pill that fires onClick.
-  const openLocaleModal = () => {
-    setPendingLocale(locale);
-    setModalOpen(true);
-  };
-  const coverageLanguagePill = {
-    id: "language",
-    label: t("language"),
-    value: activeLocale.native,
-    onClick: openLocaleModal,
-  };
-
-  const isInline = variant === "Inline";
-  const isCoverage = variant === "Coverage";
-  const headerFilters = isInline
-    ? [localeFilter]
-    : isCoverage
-      ? [coverageLanguagePill]
-      : undefined;
 
   return (
-    <>
-      <div style={lhStyles.column} dir={dir} lang={locale}>
+    <div style={lhStyles.column} dir={dir} lang={locale}>
         <PageHeader
           identifier={{
             icon: <DrillAvatarIcon />,
@@ -149,13 +115,9 @@ export default function LearningHubPage({
             onChange: setSearchValue,
             placeholder: t("search"),
           }}
-          filters={headerFilters}
+          filters={[localeFilter]}
           toolbar={[filtersTool]}
         />
-
-        {variant === "Ribbon" && (
-          <LocaleRibbon locale={locale} onChange={setLocale} />
-        )}
 
         {copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
 
@@ -185,33 +147,7 @@ export default function LearningHubPage({
         ) : (
           <ComingSoon pageName={t("tabLibrary")} />
         )}
-      </div>
-
-      <Modal
-        open={modalOpen}
-        onDismiss={() => setModalOpen(false)}
-        title={lhText(pendingLocale, "langRegion")}
-        body={<LocaleCoverageBody pending={pendingLocale} onPick={setPendingLocale} />}
-        confirmLabel={lhText(pendingLocale, "apply")}
-        cancelLabel={lhText(pendingLocale, "cancel")}
-        onConfirm={() => {
-          setLocale(pendingLocale);
-          setModalOpen(false);
-        }}
-      />
-
-      {/* Floating demo switcher for the three localization variants. Kept
-          LTR (meta-tooling) and outside the dir wrapper. */}
-      <div style={lhStyles.dock}>
-        <span style={lhStyles.dockCaption}>Localization variant</span>
-        <DarkPillSwitcher
-          ariaLabel="Localization variant"
-          value={variant}
-          options={VARIANT_OPTIONS}
-          onChange={setVariant}
-        />
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -228,23 +164,5 @@ const lhStyles = {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
     gap: 24,
-  },
-  dock: {
-    position: "fixed",
-    bottom: 28,
-    right: 28,
-    zIndex: 60,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-end",
-    gap: 6,
-  },
-  dockCaption: {
-    fontFamily: "var(--font-mono)",
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    color: "var(--color-text-tertiary)",
   },
 };
