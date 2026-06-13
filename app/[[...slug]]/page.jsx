@@ -29,6 +29,7 @@ import CreditsUsagePage from "../../components/CreditsUsagePage";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
+import VersionBar from "../../components/VersionBar";
 import ReplayPage from "../../components/ReplayPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
@@ -91,6 +92,12 @@ const LEARNING_PAGES = {
   "guide":        { Component: GuidePage,       pageName: "Guide" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
 };
+
+// Drill persona switch options (Team Leader ↔ Agent) for the VersionBar.
+const DRILL_PERSONAS = [
+  { id: "tl", label: "Team Leader" },
+  { id: "agent", label: "Agent" },
+];
 
 const MIRA_PAGES = {
   "chat":    { Component: AskMiraProPage, pageName: "Ask Mira Pro" },
@@ -336,6 +343,10 @@ export default function Page() {
   }, [router]);
 
   const [drillDetailId, setDrillDetailId] = React.useState(null);
+  // Drill persona (Team Leader ↔ Agent). Team Leader sees the current
+  // management landing + detail; Agent sees a use-only landing whose
+  // "Run drill" launches the guided runtime. In-memory only.
+  const [drillPersona, setDrillPersona] = React.useState("tl");
   const [agentProfileId, setAgentProfileId] = React.useState(null);
   const [selectedMissionId, setSelectedMissionId] = React.useState(null);
   const [roleplayStep, setRoleplayStep] = React.useState(null); // null | 'persona' | 'context' | 'generated'
@@ -601,6 +612,7 @@ export default function Page() {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
     const onGuidedDrill = learningNav === "guided-drill";
+    const isAgentDrill = drillPersona === "agent";
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
     const onGuide = learningNav === "guide";
@@ -660,7 +672,8 @@ export default function Page() {
         <DrillDetailPage
           cardId={drillDetailId}
           onBack={() => setDrillDetailId(null)}
-          onStartGuided={() => router.push("/learning/guided-drill")}
+          isAgent={isAgentDrill}
+          onStartGuided={isAgentDrill ? () => router.push("/learning/guided-drill") : undefined}
         />
       );
     } else if (onAgents && agentProfileId) {
@@ -675,6 +688,7 @@ export default function Page() {
       drillContent = (
         <LearningPage
           pageName={pageName}
+          isAgent={onDrill ? isAgentDrill : false}
           onOpenDrill={(id) => setDrillDetailId(id)}
           onCreateRoleplay={() => {
             setRoleplay(EMPTY_ROLEPLAY);
@@ -689,7 +703,9 @@ export default function Page() {
     }
 
     sidenavConfig = learningHubConfig;
-    sidenavActiveId = learningNav;
+    // Guided-drill runtime has no rail item of its own (it's reached via
+    // the Agent drill flow) — keep "Drill" lit while on it.
+    sidenavActiveId = onGuidedDrill ? "drill" : learningNav;
     handleSidenavSelect = (id) => {
       setDrillDetailId(null);
       setAgentProfileId(null);
@@ -741,7 +757,26 @@ export default function Page() {
         />
       );
     } else {
-      moduleContent = <PageLayout>{drillContent}</PageLayout>;
+      // Drill landing + detail carry the Team Leader ↔ Agent persona
+      // switch (VersionBar, mirroring Missions). Not shown during the
+      // Roleplay wizard or on the Agents/Guide sub-surfaces.
+      const showDrillPersona = onDrill && !roleplayStep;
+      moduleContent = (
+        <>
+          <PageLayout>{drillContent}</PageLayout>
+          {showDrillPersona && (
+            <VersionBar
+              versions={[]}
+              baselineOptions={DRILL_PERSONAS}
+              value={{ versionId: drillPersona, iterationId: null }}
+              onChange={({ versionId }) => {
+                setDrillDetailId(null);
+                setDrillPersona(versionId);
+              }}
+            />
+          )}
+        </>
+      );
     }
   } else {
     const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");

@@ -19,15 +19,6 @@ export const learningHubConfig = {
       route: "/learning/drill",
     },
     {
-      id: "guided-drill",
-      label: "Guided Drill",
-      Icon: DrillIcon,
-      route: "/learning/guided-drill",
-      // Assisted "safety wheel" drill — design-review surface, marked WIP
-      // on the rail like Guide until the workflow authoring side lands.
-      wip: true,
-    },
-    {
       id: "interactions",
       label: "Interactions",
       Icon: InteractionsIcon,

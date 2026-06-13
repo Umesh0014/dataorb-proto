@@ -47,13 +47,19 @@ const DRILL_TABS = [
 // Search + filter controls are surfaced per the Figma spec but the
 // filtering logic itself is not wired here; the inputs are presentational
 // stubs until product fills them in.
-export default function LearningHubPage({ onOpenDrill, onCreateRoleplay }) {
+export default function LearningHubPage({ onOpenDrill, onCreateRoleplay, isAgent = false }) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [searchValue, setSearchValue] = React.useState("");
 
   const gate = evaluateRoleplayGate();
   const isBlocked = gate.kind === "agentCap" || gate.kind === "poolBlocked";
   const copy = gateCopy(gate);
+
+  // Agent experience (use, don't edit): no Roleplay create CTA, and only
+  // the active drills are surfaced — the Library tab is hidden. Everything
+  // else mirrors the Team Leader landing.
+  const tabs = isAgent ? [{ id: "active", label: "Active" }] : DRILL_TABS;
+  const showLibrary = !isAgent && activeTab === "library";
 
   // Guard the existing handler. On the allowed path (and on the A4
   // overage informational path), `onCreateRoleplay` runs verbatim. On
@@ -74,7 +80,8 @@ export default function LearningHubPage({ onOpenDrill, onCreateRoleplay }) {
           // TODO: identifier dropdown menu — decorative for now.
           onClick: () => {},
         }}
-        primaryAction={{
+        // Agent view is use-only: no Roleplay create/edit CTA.
+        primaryAction={isAgent ? undefined : {
           label: "Roleplay",
           icon: <Plus size={16} />,
           onClick: handleRoleplayClick,
@@ -95,13 +102,15 @@ export default function LearningHubPage({ onOpenDrill, onCreateRoleplay }) {
           },
         ]}
       />
-      {copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
+      {!isAgent && copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
       <TabsRow
-        tabs={DRILL_TABS}
-        activeTab={activeTab}
+        tabs={tabs}
+        activeTab={isAgent ? "active" : activeTab}
         onTabClick={setActiveTab}
       />
-      {activeTab === "active" ? (
+      {showLibrary ? (
+        <ComingSoon pageName="Library" />
+      ) : (
         <div style={lhStyles.grid}>
           {DRILL_CARDS.map((card) => (
             <DrillCard
@@ -111,8 +120,6 @@ export default function LearningHubPage({ onOpenDrill, onCreateRoleplay }) {
             />
           ))}
         </div>
-      ) : (
-        <ComingSoon pageName="Library" />
       )}
     </div>
   );

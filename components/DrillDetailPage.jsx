@@ -13,17 +13,7 @@ import StatCard from "./StatCard";
 import TabsRow from "./TabsRow";
 import Toggle from "./Toggle";
 import ComingSoon from "./ComingSoon";
-import VersionBar from "./VersionBar";
 import { DRILL_CARDS } from "./mocks/drillCards";
-
-// Persona switch (Team Leader ↔ Agent), surfaced via the house VersionBar
-// like Missions. Team Leader sees the full management UI; Agent sees a
-// read-only, practice-oriented view — they use the roleplay, they don't
-// edit it.
-const DRILL_PERSONAS = [
-  { id: "tl", label: "Team Leader" },
-  { id: "agent", label: "Agent" },
-];
 
 const DIFFICULTY_PALETTE = {
   Simple:   { bg: "var(--color-success-bg)",  text: "var(--color-success-text)" },
@@ -35,10 +25,8 @@ const DIFFICULTY_PALETTE = {
 // Composed from existing primitives: Card, TabsRow, Toggle, ComingSoon.
 // All visual decisions inherit from existing tokens (no new colors,
 // fonts, shadows, or component primitives).
-export default function DrillDetailPage({ cardId, onBack, onStartGuided }) {
+export default function DrillDetailPage({ cardId, onBack, onStartGuided, isAgent }) {
   const card = DRILL_CARDS.find((c) => c.id === cardId);
-  const [persona, setPersona] = React.useState("tl");
-  const isAgent = persona === "agent";
 
   React.useEffect(() => {
     if (typeof document !== "undefined") {
@@ -53,22 +41,14 @@ export default function DrillDetailPage({ cardId, onBack, onStartGuided }) {
   if (!card) return <ComingSoon pageName="Drill Details" />;
 
   return (
-    <>
-      <div style={dpStyles.page}>
-        <DetailHeader card={card} onBack={onBack} onStartGuided={onStartGuided} isAgent={isAgent} />
-        <StatRow card={card} />
-        <AgentBriefSection card={card} />
-        {/* Persona Details are manager-only — hidden in the Agent (use,
-            don't edit) view. */}
-        {!isAgent && <PersonaDetailsSection card={card} />}
-      </div>
-      <VersionBar
-        versions={[]}
-        baselineOptions={DRILL_PERSONAS}
-        value={{ versionId: persona, iterationId: null }}
-        onChange={({ versionId }) => setPersona(versionId)}
-      />
-    </>
+    <div style={dpStyles.page}>
+      <DetailHeader card={card} onBack={onBack} onStartGuided={onStartGuided} isAgent={isAgent} />
+      <StatRow card={card} />
+      <AgentBriefSection card={card} />
+      {/* Persona Details are manager-only — hidden in the Agent (use,
+          don't edit) view. */}
+      {!isAgent && <PersonaDetailsSection card={card} />}
+    </div>
   );
 }
 
@@ -109,7 +89,7 @@ function DetailHeader({ card, onBack, onStartGuided, isAgent }) {
             onClick={onStartGuided}
             style={{ height: 36, minWidth: 0, paddingInline: 18 }}
           >
-            {isAgent ? "Take guided roleplay" : "Start guided drill"}
+            Run drill
           </Button>
         )}
 
