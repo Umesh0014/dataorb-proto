@@ -96,6 +96,21 @@ export const INTERVENTION_META = {
   "one-on-one":    { label: "Log a 1:1",                icon: "MessageSquare" },
 };
 
+// toneInk — accessible *text* colour for a tone label rendered on a white
+// surface. The bright tone stays on the paired dot (a non-text UI element,
+// ≥3:1 is enough); the label text uses the darker -text token so it clears
+// the 4.5:1 body-text floor (WCAG-1 / gate G8). warning #EF6C00 (3.08:1) and
+// info #0288D1 (3.86:1) fail as bare text; their -text tokens pass.
+export function toneInk(tone) {
+  return {
+    danger: "var(--color-error-text)",
+    warning: "var(--color-warning-text)",
+    info: "var(--color-info-text)",
+    success: "var(--color-success-text)",
+    tertiary: "var(--color-text-tertiary)",
+  }[tone] || "var(--color-text-medium)";
+}
+
 // Loop status → label + tone. open = no badge. Pairs colour with text.
 export const LOOP_META = {
   open:      { label: "Open",                  tone: "tertiary" },

@@ -20,7 +20,7 @@ import Card from "./Card";
 import Button from "./Button";
 import InlineStatusAffordance from "./InlineStatusAffordance";
 import MetricSparkline from "./MetricSparkline";
-import { SEVERITY_META, SIGNAL_META, INTERVENTION_META, LOOP_META } from "./mocks/commandCenter";
+import { SEVERITY_META, SIGNAL_META, INTERVENTION_META, LOOP_META, toneInk } from "./mocks/commandCenter";
 
 // AttentionItemCard — the shared atom for the Team Leader Command Center.
 // One Attention Item = (agent × driver/competency × signal) → recommended
@@ -93,7 +93,7 @@ export default function AttentionItemCard({
           </div>
         </div>
         <div style={cardStyles.headerEnd}>
-          <InlineStatusAffordance tone={sev.tone} icon={<SeverityDot tone={sev.tone} />}>
+          <InlineStatusAffordance tone={sev.tone} icon={<SeverityDot tone={sev.tone} />} style={{ color: toneInk(sev.tone) }}>
             {sev.label}
           </InlineStatusAffordance>
           <Button
@@ -122,7 +122,7 @@ export default function AttentionItemCard({
 
       <p style={cardStyles.evidence}>{item.evidence}</p>
 
-      {!dense && item.metric && (
+      {item.metric && (
         <div style={cardStyles.metricRow}>
           <span style={cardStyles.sparkWrap} role="img" aria-label={metricLabel}>
             <MetricSparkline
@@ -162,7 +162,7 @@ export default function AttentionItemCard({
             />
           </>
         ) : (
-          <InlineStatusAffordance tone={LOOP_META[status].tone} icon={<SeverityDot tone={LOOP_META[status].tone} />}>
+          <InlineStatusAffordance tone={LOOP_META[status].tone} icon={<SeverityDot tone={LOOP_META[status].tone} />} style={{ color: toneInk(LOOP_META[status].tone) }}>
             {LOOP_META[status].label}
           </InlineStatusAffordance>
         )}
@@ -186,7 +186,7 @@ function SeverityDot({ tone }) {
   );
 }
 
-function ItemKebab({ onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
+export function ItemKebab({ onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
 

@@ -5,7 +5,7 @@ import { X, Sparkles } from "lucide-react";
 import Button from "./Button";
 import InlineStatusAffordance from "./InlineStatusAffordance";
 import MetricSparkline from "./MetricSparkline";
-import { SEVERITY_META, SIGNAL_META, INTERVENTION_META, LOOP_META } from "./mocks/commandCenter";
+import { SEVERITY_META, SIGNAL_META, INTERVENTION_META, LOOP_META, toneInk } from "./mocks/commandCenter";
 
 // AttentionItemDrawer — the sidecar reveal for one Attention Item, shared by
 // the Queue and Board variants. Mirrors the NbaSideSheet drawer precedent
@@ -57,7 +57,7 @@ export default function AttentionItemDrawer({ item, status = "open", onClose, on
             <div style={dStyles.tagRow}>
               <span style={dStyles.competencyTag}>{item.competency}</span>
               {item.driver && <span style={dStyles.driverTag}>{item.driver}</span>}
-              <InlineStatusAffordance tone={sev.tone} icon={<Dot tone={sev.tone} />}>
+              <InlineStatusAffordance tone={sev.tone} icon={<Dot tone={sev.tone} />} style={{ color: toneInk(sev.tone) }}>
                 {sev.label}
               </InlineStatusAffordance>
             </div>
@@ -65,7 +65,7 @@ export default function AttentionItemDrawer({ item, status = "open", onClose, on
 
           <div style={dStyles.body}>
             {status !== "open" && (
-              <InlineStatusAffordance tone={LOOP_META[status].tone} icon={<Dot tone={LOOP_META[status].tone} />}>
+              <InlineStatusAffordance tone={LOOP_META[status].tone} icon={<Dot tone={LOOP_META[status].tone} />} style={{ color: toneInk(LOOP_META[status].tone) }}>
                 {LOOP_META[status].label}
               </InlineStatusAffordance>
             )}
@@ -159,7 +159,7 @@ function CoachingNote({ item }) {
       <label htmlFor="cc-note" style={dStyles.noteLabel}>
         <Sparkles size={13} aria-hidden="true" style={{ color: "var(--color-button-primary-bg)" }} />
         Coaching note
-        <span style={dStyles.noteMeta}>{edited ? "Edited by you" : "AI draft · editable"}</span>
+        <span role="status" style={dStyles.noteMeta}>{edited ? "Edited by you" : "AI draft · editable"}</span>
       </label>
       <textarea
         id="cc-note"

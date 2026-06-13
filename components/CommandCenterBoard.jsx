@@ -7,7 +7,7 @@ import Banner from "./Banner";
 import AttentionItemCard from "./AttentionItemCard";
 import CommandCenterTeamStrip from "./CommandCenterTeamStrip";
 import InlineStatusAffordance from "./InlineStatusAffordance";
-import { rankItems } from "./mocks/commandCenter";
+import { rankItems, toneInk } from "./mocks/commandCenter";
 
 // CommandCenterBoard (Variant B) — pipeline view. The lanes ARE the loop:
 // Needs attention → Acted → Improved → No change. Reuses the Missions Kanban
@@ -90,9 +90,11 @@ export default function CommandCenterBoard({
                   ))
               )}
 
-              {lane.id === "improved" && improved.map((r) => (
-                <OutcomeCard key={r.id} item={r} onOpenAgent={onOpenAgent} />
-              ))}
+              {lane.id === "improved" && (
+                improved.length === 0
+                  ? <LaneEmpty text="Improved interventions will collect here once a metric moves." />
+                  : improved.map((r) => <OutcomeCard key={r.id} item={r} onOpenAgent={onOpenAgent} />)
+              )}
               {lane.id === "nochange" && (
                 noChange.length === 0
                   ? <LaneEmpty text="Nothing stalled." />
@@ -126,7 +128,7 @@ function OutcomeCard({ item, onOpenAgent }) {
         <span style={bStyles.outcomeName}>{item.agent.name}</span>
       </button>
       <span style={bStyles.outcomeComp}>{item.competency}</span>
-      <InlineStatusAffordance tone={tone}>
+      <InlineStatusAffordance tone={tone} style={{ color: toneInk(tone) }}>
         {arrow} {item.delta.label} {item.delta.value} {item.delta.window}
       </InlineStatusAffordance>
     </Card>

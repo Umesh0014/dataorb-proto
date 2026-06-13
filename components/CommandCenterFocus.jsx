@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
-import { PartyPopper, Repeat, GraduationCap, Target, Plus, MessageSquare } from "lucide-react";
+import { PartyPopper, Repeat, GraduationCap, Target, Plus, MessageSquare, Download } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import Banner from "./Banner";
 import InlineStatusAffordance from "./InlineStatusAffordance";
 import MetricSparkline from "./MetricSparkline";
-import AttentionItemCard from "./AttentionItemCard";
+import AttentionItemCard, { ItemKebab } from "./AttentionItemCard";
 import CommandCenterTeamStrip from "./CommandCenterTeamStrip";
-import { rankItems, SEVERITY_META, INTERVENTION_META } from "./mocks/commandCenter";
+import { rankItems, SEVERITY_META, INTERVENTION_META, toneInk } from "./mocks/commandCenter";
 
 // CommandCenterFocus (Variant C) — editorial "Monday-morning" digest. Reads
 // top-down in one ~760px column: the single highest-priority action as a
@@ -45,6 +45,8 @@ export default function CommandCenterFocus({
           onOpenDetail={() => onOpenDetail(hero.id)}
           onOpenAgent={onOpenAgent}
           onSnooze={() => onSnooze(hero.id)}
+          onDismiss={() => onDismiss(hero.id)}
+          onMarkHandled={() => onMarkHandled(hero.id)}
         />
       ) : (
         <Banner
@@ -78,7 +80,17 @@ export default function CommandCenterFocus({
 
       {improved.length > 0 && (
         <section style={fStyles.section}>
-          <h2 style={fStyles.sectionTitle}>This worked last week</h2>
+          <div style={fStyles.recapHeader}>
+            <h2 style={fStyles.sectionTitle}>This worked last week</h2>
+            <Button
+              variant="text"
+              uppercase={false}
+              trailingIcon={<Download size={15} aria-hidden="true" />}
+              onClick={() => downloadRecap(improved)}
+            >
+              Download
+            </Button>
+          </div>
           <p style={fStyles.sectionLede}>Take these into a 1:1 or up-report — coaching that moved the metric.</p>
           <Card tone="outline" padX={20} padY={8}>
             {improved.map((r, i) => (
@@ -94,7 +106,7 @@ export default function CommandCenterFocus({
                   <span style={fStyles.recapName}>{r.agent.name}</span>
                   <span style={fStyles.recapComp}>{r.competency} · {r.intervention.asset}</span>
                 </span>
-                <InlineStatusAffordance tone="success">↑ {r.delta.label} {r.delta.value}</InlineStatusAffordance>
+                <InlineStatusAffordance tone="success" style={{ color: toneInk("success") }}>↑ {r.delta.label} {r.delta.value}</InlineStatusAffordance>
               </button>
             ))}
           </Card>
@@ -107,7 +119,7 @@ export default function CommandCenterFocus({
 // FocusHero — the single "start here" action, given editorial weight: large
 // type, the evidence + trend, the recommended intervention, and a prominent
 // Launch. Reuses MetricSparkline / Button / InlineStatusAffordance.
-function FocusHero({ item, onLaunch, onOpenDetail, onOpenAgent, onSnooze }) {
+function FocusHero({ item, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
   const sev = SEVERITY_META[item.severity];
   const interv = INTERVENTION_META[item.intervention.kind];
   const IntervIcon = INTERVENTION_ICON[interv.icon] || Target;
@@ -115,7 +127,7 @@ function FocusHero({ item, onLaunch, onOpenDetail, onOpenAgent, onSnooze }) {
     <Card padX={28} padY={26} shadow style={fStyles.hero}>
       <div style={fStyles.heroEyebrow}>
         <span style={fStyles.startHere}>Start here</span>
-        <InlineStatusAffordance tone={sev.tone} icon={<Dot tone={sev.tone} />}>{sev.label} priority</InlineStatusAffordance>
+        <InlineStatusAffordance tone={sev.tone} icon={<Dot tone={sev.tone} />} style={{ color: toneInk(sev.tone) }}>{sev.label} priority</InlineStatusAffordance>
       </div>
       <div style={fStyles.heroIdentity}>
         <button
@@ -163,10 +175,35 @@ function FocusHero({ item, onLaunch, onOpenDetail, onOpenAgent, onSnooze }) {
       <div style={fStyles.heroActions}>
         <Button variant="primary" onClick={onLaunch}>Launch intervention</Button>
         <Button variant="text" uppercase={false} onClick={onOpenDetail}>View details</Button>
-        <Button variant="text" uppercase={false} onClick={onSnooze}>Snooze</Button>
+        <ItemKebab
+          onOpenAgent={() => onOpenAgent?.(item.agent.id)}
+          onSnooze={onSnooze}
+          onDismiss={onDismiss}
+          onMarkHandled={onMarkHandled}
+        />
       </div>
     </Card>
   );
+}
+
+// downloadRecap — exports the "this worked" outcomes as a plain-text file the
+// lead can drop into a 1:1 or up-report. Real client-side download (Blob +
+// anchor), no new deps; satisfies the editorial downloadable-artifact lever.
+function downloadRecap(improved) {
+  const lines = ["This worked last week — coaching that moved the metric", ""];
+  improved.forEach((r) => {
+    lines.push(`- ${r.agent.name} · ${r.competency}: ${r.intervention.asset} → ${r.delta.label} ${r.delta.value} ${r.delta.window}`);
+  });
+  if (typeof document === "undefined") return;
+  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "command-center-this-worked.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function Dot({ tone }) {
@@ -180,6 +217,7 @@ function Dot({ tone }) {
 const fStyles = {
   column: { maxWidth: 760, marginInline: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 28 },
   section: { display: "flex", flexDirection: "column", gap: 12 },
+  recapHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   sectionTitle: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)" },
   sectionLede: { margin: "-4px 0 4px", fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 400, color: "var(--text-secondary)" },
   list: { display: "flex", flexDirection: "column", gap: 14 },
