@@ -150,3 +150,64 @@ export function localizeLearningConfig(config, id) {
     })),
   };
 }
+
+// Drill scenario content (title + description) in Arabic, keyed by card id.
+// Gate-2 requires the Drill tab to read fully in Arabic, not just its
+// chrome — so the sample scenario copy is translated here. Customer names
+// stay in Latin (proper nouns) and render dir="auto" in the card, matching
+// native-RTL practice for foreign names / brand strings. Only Arabic is
+// provided; other locales fall back to the source string in the mock.
+const DRILL_CONTENT_AR = {
+  "david-evans": {
+    title: "استفسار حول ترقية جهاز محمول",
+    description:
+      "أنت تتحدث مع ديفيد إيفانز، وهو عميل حالي. يتصل للاستفسار عن ترقية جهازه المحمول. يذكر أنه مع المشغّل منذ ست سنوات ويريد معرفة عروض الاستبدال التي يكون مؤهلاً لها.",
+  },
+  "javier-sanz": {
+    title: "نزاع على الفاتورة بسبب سعر غير صحيح بعد العرض الترويجي",
+    description:
+      "أنت تتحدث مع خافيير سانز، عميل يتصل بسبب اختلاف في فاتورته. يؤكد أنه جدّد عرضه قبل شهرين وأن السعر المحصَّل لا يطابق ما تم الاتفاق عليه. يريد توضيحاً واضحاً وتعديلاً بأثر رجعي.",
+  },
+  "klaus-schmidt": {
+    title: "تغيير مالك خط الهاتف المحمول",
+    description:
+      "أنت تتحدث مع كلاوس شميت، وهو عميل تواصل بعد تلقّيه مكالمة مشبوهة. إنه متحفّظ ويريد التحقق من طلب تغيير مالك خط هاتفه المحمول، ويتوقع شرح جميع خطوات الأمان بعناية.",
+  },
+  "amelie-dubois": {
+    title: "زيادة غير متوقعة في الفاتورة بعد انتهاء العرض",
+    description:
+      "أنت تتحدث مع أميلي دوبوا، عميلة تتصل بشأن فاتورتها الأخيرة. لاحظت زيادة في السعر لا تفهمها وتريد معرفة ما إذا كان عرض ترويجي قد انتهى للتو. تبقى مهذّبة ومنفتحة على التوضيح.",
+  },
+  "oliver-sterling": {
+    title: "تثبيت طابعة محطة العمل",
+    description:
+      "أنت تتحدث مع أوليفر ستيرلينغ، موظف منذ زمن طويل يواجه صعوبة في إعداد طابعة جديدة على محطة عمله. إنه صبور لكنه غير معتاد على تثبيت برامج التشغيل ويرغب في إرشادات خطوة بخطوة.",
+  },
+  "lucia-martin-garcia": {
+    title: "زيادة السعر بعد انتهاء العرض الترويجي",
+    description:
+      "ستتعامل مع لوسيا مارتن غارسيا، عميلة انتهى خصمها الترويجي لمدة عام، ما أدى إلى ارتفاع رسومها الشهرية. إنها منزعجة وتفكّر في تغيير المشغّل إن لم يُقدَّم لها بديل معقول.",
+  },
+  "andres-navarro": {
+    title: "عميل بدأ نقل رقمه إلى مشغّل آخر",
+    description:
+      "أنت تتحدث مع أندريس نافارو، عميل منذ زمن طويل يعاود الاتصال بعد ملاحظته عدة مكالمات فائتة من الشركة. لقد بدأ بالفعل عملية نقل رقمه إلى مشغّل آخر ويريد فهم خياراته قبل أن يصبح التغيير سارياً.",
+  },
+  "gregory-vance": {
+    title: "عدم تسليم طلب iPhone 15",
+    description:
+      "أنت تتحدث مع غريغوري فانس، عميل منذ زمن طويل يتصل بخصوص طلب أجهزة عالي القيمة (iPhone 15) كان من المفترض تسليمه قبل أربعة أيام. لا تزال صفحة التتبّع تعرض «قيد النقل»، وهو يريد إما بديلاً فورياً أو استرداداً كاملاً.",
+  },
+  "diana-sterling": {
+    title: "تجاوز الذكاء الاصطناعي لتوثيق الضرر",
+    description:
+      "أنت تتعامل مع عضوة في Zalando Plus تلقّت قميصاً حريرياً عالي القيمة متضرراً. حاولت بالفعل استخدام مسار الإبلاغ الرقمي عن الضرر ورُفض طلبها عبر الفحص الآلي. تريد تصعيد الأمر إلى مراجِع بشري.",
+  },
+};
+
+// lhDrillContent — localized { title, description } for a Drill card, or
+// null when the locale has no override (caller keeps the source strings).
+export function lhDrillContent(id, cardId) {
+  if (id === "ar") return DRILL_CONTENT_AR[cardId] ?? null;
+  return null;
+}

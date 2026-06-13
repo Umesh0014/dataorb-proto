@@ -20,6 +20,7 @@ import {
   lhText,
   lhCategory,
   lhDifficulty,
+  lhDrillContent,
 } from "./learningHubLocale";
 
 const DrillAvatarIcon = () => (
@@ -162,16 +163,24 @@ export default function LearningHubPage({
 
         {activeTab === "active" ? (
           <div style={lhStyles.grid}>
-            {DRILL_CARDS.map((card) => (
-              <DrillCard
-                key={card.id}
-                {...card}
-                categoryLabel={lhCategory(locale, card.category)}
-                difficultyLabel={lhDifficulty(locale, card.difficulty)}
-                ctaLabel={t("viewDetails")}
-                onViewDetails={() => onOpenDrill?.(card.id)}
-              />
-            ))}
+            {DRILL_CARDS.map((card) => {
+              // Gate 2: when Arabic is active the scenario copy is shown in
+              // Arabic too (not just the chrome). Falls back to the source
+              // string for locales without an override.
+              const content = lhDrillContent(locale, card.id);
+              return (
+                <DrillCard
+                  key={card.id}
+                  {...card}
+                  title={content?.title ?? card.title}
+                  description={content?.description ?? card.description}
+                  categoryLabel={lhCategory(locale, card.category)}
+                  difficultyLabel={lhDifficulty(locale, card.difficulty)}
+                  ctaLabel={t("viewDetails")}
+                  onViewDetails={() => onOpenDrill?.(card.id)}
+                />
+              );
+            })}
           </div>
         ) : (
           <ComingSoon pageName={t("tabLibrary")} />
