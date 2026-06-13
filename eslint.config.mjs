@@ -133,6 +133,23 @@ export default [
       ],
     },
   },
+  // Toast — shared bottom-left notification atom. Its inline action button
+  // (white-on-tone "Undo") and close ✕ predate the rule and don't map to a
+  // Button variant (Button carries product chrome, not on-colour toast
+  // styling). Kept as warn until a toast-action primitive is factored out.
+  {
+    files: ["components/Toast.jsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Toast action/close controls — raw <button> kept until a toast-action primitive lands.",
+        },
+      ],
+    },
+  },
   // MilestoneSideRail — a self-contained meta-tooling side rail + popover
   // (dark surface, monospace, yellow accent) beside the Performance score
   // card. Its controls (state-switcher buttons, info trigger, close,

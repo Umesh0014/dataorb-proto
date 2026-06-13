@@ -28,7 +28,7 @@ const TONE_BG = {
 
 export default function Toast({ tone = "success", message, action, onDismiss }) {
   return (
-    <div style={wrapStyle}>
+    <div style={wrapStyle} role="status" aria-live="polite">
       <div style={{ ...innerStyle, background: TONE_BG[tone] || TONE_BG.success }}>
         <span style={textStyle}>{message}</span>
         {action && (

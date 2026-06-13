@@ -31,22 +31,26 @@ export default function CommandCenterScorecards({
       <CommandCenterTeamStrip subtitle="Scorecard view — every agent's CSAT, composite score, and next action" />
       <h2 style={sStyles.heading}>Agents</h2>
       <div style={sStyles.grid}>
-        {ordered.map((agent) => (
-          <AgentScorecard
-            key={agent.id}
-            agent={agent}
-            topItem={itemsFor(agent.id)[0] || null}
-            onLaunch={onLaunch}
-            onOpenDetail={onOpenDetail}
-            onOpenAgent={onOpenAgent}
-          />
-        ))}
+        {ordered.map((agent) => {
+          const agentItems = itemsFor(agent.id);
+          return (
+            <AgentScorecard
+              key={agent.id}
+              agent={agent}
+              topItem={agentItems[0] || null}
+              actionCount={agentItems.length}
+              onLaunch={onLaunch}
+              onOpenDetail={onOpenDetail}
+              onOpenAgent={onOpenAgent}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function AgentScorecard({ agent, topItem, onLaunch, onOpenDetail, onOpenAgent }) {
+function AgentScorecard({ agent, topItem, actionCount = 0, onLaunch, onOpenDetail, onOpenAgent }) {
   const onTrack = rosterStatus(agent) === "on_track";
   const eng = ENGAGEMENT_META[agent.engagement];
   const interv = topItem ? INTERVENTION_META[topItem.intervention.kind] : null;
@@ -93,6 +97,10 @@ function AgentScorecard({ agent, topItem, onLaunch, onOpenDetail, onOpenAgent })
           </div>
         ) : (
           <>
+            <div style={sStyles.actionHead}>
+              <span style={sStyles.actionLabel}>Top action</span>
+              {actionCount > 1 && <span style={sStyles.moreChip}>{actionCount} open</span>}
+            </div>
             <div style={sStyles.topItem}>
               <Target size={14} aria-hidden="true" style={{ color: "var(--color-text-tertiary)", flexShrink: 0, marginTop: 2 }} />
               <span style={sStyles.topItemText}>
@@ -102,7 +110,9 @@ function AgentScorecard({ agent, topItem, onLaunch, onOpenDetail, onOpenAgent })
             </div>
             <div style={sStyles.actionRow}>
               <Button variant="primary" onClick={() => onLaunch(topItem.id)} style={sStyles.launch}>Launch</Button>
-              <Button variant="text" uppercase={false} onClick={() => onOpenDetail(topItem.id)}>Details</Button>
+              <Button variant="text" uppercase={false} onClick={() => onOpenDetail(topItem.id)}>
+                {actionCount > 1 ? "View plan" : "Details"}
+              </Button>
             </div>
           </>
         )}
@@ -153,6 +163,16 @@ const sStyles = {
   metricValue: { fontFamily: "var(--font-sans)", fontSize: 18, fontWeight: 700, color: "var(--color-text-deep)" },
   scoreMax: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
   action: { display: "flex", flexDirection: "column", gap: 12 },
+  actionHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  actionLabel: {
+    fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+    textTransform: "uppercase", color: "var(--color-text-tertiary)",
+  },
+  moreChip: {
+    fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 700,
+    color: "var(--color-text-medium)", background: "var(--pill-bg)",
+    padding: "2px 8px", borderRadius: 999,
+  },
   topItem: { display: "flex", alignItems: "flex-start", gap: 8 },
   topItemText: { display: "flex", flexDirection: "column", gap: 1, minWidth: 0 },
   topItemComp: { fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
