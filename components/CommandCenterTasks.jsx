@@ -4,7 +4,7 @@ import React from "react";
 import { CheckCircle2 } from "lucide-react";
 import Button from "./Button";
 import AttentionItemCard from "./AttentionItemCard";
-import { rankItems } from "./mocks/commandCenter";
+import { SEVERITY_META, rankScore } from "./mocks/commandCenter";
 
 // CommandCenterTasks — the dashboard's action queue. When an agent needs
 // assistance, the recommended action (guided drill / replay / probe / guide /
@@ -20,7 +20,15 @@ export default function CommandCenterTasks({
   onDismiss,
   onMarkHandled,
 }) {
-  const tasks = React.useMemo(() => rankItems(items.filter((it) => it.status === "open")), [items]);
+  // Ordered strictly critical → low (severity band), ties broken by the
+  // weighted rank score.
+  const tasks = React.useMemo(
+    () =>
+      items
+        .filter((it) => it.status === "open")
+        .sort((a, b) => SEVERITY_META[a.severity].order - SEVERITY_META[b.severity].order || rankScore(b) - rankScore(a)),
+    [items],
+  );
   const [showAll, setShowAll] = React.useState(false);
   const visible = showAll ? tasks : tasks.slice(0, 3);
 
@@ -50,7 +58,6 @@ export default function CommandCenterTasks({
               key={item.id}
               item={item}
               status={item.status}
-              showTaskType
               onLaunch={() => onLaunch(item.id)}
               onOpenDetail={() => onOpenDetail(item.id)}
               onOpenAgent={onOpenAgent}
@@ -70,7 +77,7 @@ const tStyles = {
   head: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   title: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)" },
   lede: { margin: "2px 0 0", fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 400, color: "var(--text-secondary)" },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16, alignItems: "start" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16, alignItems: "stretch", gridAutoRows: "1fr" },
   empty: {
     display: "flex", alignItems: "center", gap: 10, padding: "16px 18px",
     background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 12,

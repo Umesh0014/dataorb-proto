@@ -18,10 +18,10 @@ const RING = 132;
 // Composite-score banding → ring colour + badge tone (mirrors the agent
 // Performance-score bands).
 const BANDS = [
-  { min: 85, label: "Excellent", ring: "var(--chart-green)", bg: "var(--color-success-bg)", fg: "var(--color-success-text)" },
-  { min: 75, label: "Strong", ring: "var(--chart-blue)", bg: "var(--color-info-bg)", fg: "var(--color-info-text)" },
-  { min: 60, label: "Watch", ring: "var(--chart-amber)", bg: "var(--color-warning-bg)", fg: "var(--color-warning-text)" },
-  { min: 0, label: "Needs attention", ring: "var(--chart-coral)", bg: "var(--color-error-bg)", fg: "var(--color-error-text)" },
+  { min: 85, ring: "var(--chart-green)" },
+  { min: 75, ring: "var(--chart-blue)" },
+  { min: 60, ring: "var(--chart-amber)" },
+  { min: 0, ring: "var(--chart-coral)" },
 ];
 const bandFor = (s) => BANDS.find((b) => s >= b.min) || BANDS[BANDS.length - 1];
 
@@ -62,7 +62,6 @@ export default function CommandCenterScoreboard({ subtitle }) {
               <span style={sbStyles.compositeLabel}>Composite score</span>
               <div style={sbStyles.chipRow}>
                 <DeltaChip text={composite.delta} dir={composite.dir} />
-                <span style={{ ...sbStyles.tierChip, background: band.bg, color: band.fg }}>{band.label}</span>
               </div>
               <span style={sbStyles.spark} role="img" aria-label={`Composite trend, now ${composite.value}, target ${composite.target}`}>
                 <MetricSparkline points={composite.trend} target={composite.target} color="var(--chart-green)" formatValue={(v) => `${Math.round(v)}`} />
@@ -143,6 +142,5 @@ const sbStyles = {
   statLabel: { fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
   statValue: { fontFamily: "var(--font-sans)", fontSize: 20, fontWeight: 700, color: "var(--color-text-deep)" },
   statSub: { fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 400, color: "var(--text-secondary)" },
-  tierChip: { display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 4, fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 700 },
   deltaChip: { display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 4, fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" },
 };
