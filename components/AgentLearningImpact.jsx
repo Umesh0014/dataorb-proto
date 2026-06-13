@@ -18,8 +18,18 @@ const ACTIVITY_TYPES = ["Replay", "Drill", "Guide", "Probe", "Mission"];
 
 export default function AgentLearningImpact({ agent }) {
   const [range, setRange] = React.useState("1Y");
+  // The point under the scrubber; null = not scrubbing, so the headline shows
+  // the latest (current) value. Set live from the chart as the cursor moves.
+  const [scrub, setScrub] = React.useState(null);
   const full = React.useMemo(() => getAgentImpact(agent), [agent]);
   const view = React.useMemo(() => windowImpact(full, range), [full, range]);
+
+  const changeRange = (next) => {
+    setScrub(null);
+    setRange(next);
+  };
+  const qaValue = scrub ? `${Math.round(scrub.qa)}%` : `${full.qaEnd}%`;
+  const csatValue = scrub ? `${Math.round(scrub.csat)}%` : `${full.csatEnd}%`;
 
   return (
     <Card padX={24} padY={24}>
@@ -32,14 +42,14 @@ export default function AgentLearningImpact({ agent }) {
           </div>
         </div>
         <div style={aliStyles.headerRight}>
-          <RangeSwitcher value={range} onChange={setRange} />
+          <RangeSwitcher value={range} onChange={changeRange} />
           <ExportButton formats={["table-copy", "csv", "png"]} />
         </div>
       </div>
 
       <div style={aliStyles.legendRow}>
-        <LineKey color="var(--chart-green)" label="QA score" value={`${full.qaEnd}%`} />
-        <LineKey color="var(--chart-blue)" label="CSAT" value={`${full.csatEnd}%`} />
+        <LineKey color="var(--chart-green)" label="QA score" value={qaValue} />
+        <LineKey color="var(--chart-blue)" label="CSAT" value={csatValue} />
       </div>
 
       <div style={aliStyles.markerRow}>
@@ -54,7 +64,7 @@ export default function AgentLearningImpact({ agent }) {
         ))}
       </div>
 
-      <AgentImpactChart data={view} />
+      <AgentImpactChart data={view} onScrub={setScrub} />
     </Card>
   );
 }

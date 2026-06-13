@@ -25,8 +25,9 @@ function clamp(v, lo, hi) {
 function smoothstep(t) {
   return t * t * (3 - 2 * t);
 }
-function dayLabel(d) {
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+// Full label for the scrubber readout, e.g. "Mar 25, 2026".
+function fullLabel(d) {
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 // valAt — long-run trend (start→end) plus multi-frequency volatility, windowed
@@ -92,7 +93,7 @@ export function getAgentImpact(agent) {
       x: t * tenure, // months since join
       qa: valAt(t, qaStart, qaEnd, 3.4, 1),
       csat: valAt(t, csatStart, csatEnd, 2.8, 4),
-      date: dayLabel(date),
+      date: fullLabel(date),
     });
   }
 
@@ -106,35 +107,10 @@ export function getAgentImpact(agent) {
       missionN += 1;
       title = `Mission — ${m ? m.name : "Customer support enhancement"}`;
     }
-    return { kind: a.kind, x: a.at, date: dayLabel(date), title };
+    return { kind: a.kind, x: a.at, date: fullLabel(date), title };
   });
 
-  return { firstName, qaEnd, csatEnd, series, activities, tenure, joinTime };
-}
-
-// buildTicks — ~5 evenly spaced x ticks across [xMin, xMax] (months from join).
-// Short spans label the day ("Mar 12"); longer spans label the month and show
-// the year only when it changes ("Mar '25 · Jun · Sep").
-function buildTicks(joinTime, xMin, xMax) {
-  const span = xMax - xMin;
-  const count = 5;
-  const ticks = [];
-  let prevYear = null;
-  for (let i = 0; i < count; i += 1) {
-    const m = xMin + (span * i) / (count - 1);
-    const d = new Date(joinTime + m * MONTH_MS);
-    let label;
-    if (span <= 3.5) {
-      label = dayLabel(d);
-    } else {
-      const yr = d.getFullYear();
-      const show = prevYear === null || yr !== prevYear;
-      prevYear = yr;
-      label = show ? `${MONTHS[d.getMonth()]} '${String(yr).slice(2)}` : MONTHS[d.getMonth()];
-    }
-    ticks.push({ x: m, label });
-  }
-  return ticks;
+  return { firstName, qaEnd, csatEnd, series, activities, tenure };
 }
 
 // windowImpact — slice the trailing range for the timeline switcher.
@@ -151,7 +127,6 @@ export function windowImpact(data, rangeId) {
     csatEnd: data.csatEnd,
     series,
     activities,
-    ticks: buildTicks(data.joinTime, xMin, xMax),
     xMin,
     xMax,
   };
