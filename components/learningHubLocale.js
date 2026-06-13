@@ -1172,6 +1172,81 @@ export function lhEditedBy(id, name) {
   };
   return T[id] ?? T.en;
 }
+
+// Agent profile — performance hero card + Next Best Actions. en + ar.
+const PERF = {
+  score:        { en: "Performance score", ar: "درجة الأداء" },
+  nba:          { en: "Next best actions", ar: "أفضل الإجراءات التالية" },
+  subtitle:     { en: "Weighted composite of quality, mastery, engagement, and responsiveness.", ar: "مركّب مرجّح من الجودة والإتقان والتفاعل والاستجابة." },
+  viewAll:      { en: "View all",        ar: "عرض الكل" },
+  allNba:       { en: "All next best actions", ar: "جميع أفضل الإجراءات التالية" },
+  assign:       { en: "Assign",          ar: "تعيين" },
+  close:        { en: "Close",           ar: "إغلاق" },
+  moreActions:  { en: "More actions",    ar: "إجراءات إضافية" },
+  viewDetails:  { en: "View details",    ar: "عرض التفاصيل" },
+  snooze7:      { en: "Snooze 7 days",   ar: "تأجيل 7 أيام" },
+  dismiss:      { en: "Dismiss",         ar: "تجاهل" },
+  emptyNba:     { en: "No critical actions needed. Aaliyah is meeting all quality targets this week.", ar: "لا حاجة لإجراءات حرجة. تحقّق أاليّا جميع أهداف الجودة هذا الأسبوع." },
+  m_quality:    { en: "Quality adherence", ar: "الالتزام بالجودة" },
+  m_mastery:    { en: "Mission mastery", ar: "إتقان المهام" },
+  m_engagement: { en: "Roleplay engagement", ar: "التفاعل مع تمثيل الأدوار" },
+  m_responsiveness: { en: "Coaching responsiveness", ar: "الاستجابة للتدريب" },
+  band_excellent:{ en: "Excellent",      ar: "ممتاز" },
+  band_strong:  { en: "Strong",          ar: "قوي" },
+  band_watch:   { en: "Watch",           ar: "يحتاج متابعة" },
+  band_attention:{ en: "Needs attention", ar: "يحتاج اهتماماً" },
+  stable:       { en: "Stable",          ar: "مستقر" },
+  pr_critical:  { en: "Critical",        ar: "حرج" },
+  pr_recommended:{ en: "Recommended",    ar: "موصى به" },
+  pr_opportunity:{ en: "Opportunity",    ar: "فرصة" },
+};
+export function lhP(id, key) {
+  const row = PERF[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+export function lhPts(id, n) {
+  const T = { en: `${n} pts`, ar: `${n} نقطة` };
+  return T[id] ?? T.en;
+}
+export function lhPtsThisWeek(id, n) {
+  const T = { en: `${n} pts this week`, ar: `${n} نقطة هذا الأسبوع` };
+  return T[id] ?? T.en;
+}
+export function lhOfGoal(id, ratio) {
+  const T = { en: `${ratio}% of goal`, ar: `${ratio}% من الهدف` };
+  return T[id] ?? T.en;
+}
+export function lhTargetPct(id, n) {
+  const T = { en: `target ${n}%`, ar: `الهدف ${n}%` };
+  return T[id] ?? T.en;
+}
+export function lhEvalChip(id, a, b) {
+  const T = { en: `${a}/${b} interactions evaluated`, ar: `تم تقييم ${a}/${b} تفاعل` };
+  return T[id] ?? T.en;
+}
+// "15 min" → localized minutes unit (Arabic: "15 دقيقة").
+export function lhDurationMin(id, str) {
+  if (id !== "ar" || typeof str !== "string") return str;
+  return str.replace(/(\d+)\s*min\b/g, "$1 دقيقة");
+}
+
+// Next Best Action content (title, evidence, asset, outcome) in Arabic,
+// keyed by NBA id. Covers the rail (1–4) + side-sheet extras (5–8).
+const NBA_CONTENT_AR = {
+  "nba-1": { title: "تعزيز حلول المكالمات", evidence: "لدى «الحل والتوقعات» 10 توصيات مفتوحة، بارتفاع 4% هذا الأسبوع.", asset: "وضع حلول واضحة", outcome: "+18% في الالتزام بالحل خلال أسبوعين (بناءً على مجموعة من 142 وكيلاً)" },
+  "nba-2": { title: "تحسين عبارات الإقرار", evidence: "8 لحظات إقرار فائتة في آخر 7 أيام، ضمن الربع الأدنى في قائمة الانتظار.", asset: "تمرين التعاطف والإقرار", outcome: "+15% في معدل الإقرار خلال 4 أيام" },
+  "nba-3": { title: "تعزيز بروتوكول افتتاح المكالمة", evidence: "تراجع «افتتاح التفاعل» بمقدار 6. وكان آخر تمثيل أدوار على هذه المهارة قبل 9 أيام.", asset: "بروتوكول الترحيب الصحيح", outcome: "العودة إلى المستوى الأساسي خلال 5 أيام" },
+  "nba-4": { title: "البناء على زخم التعامل مع الصمت", evidence: "تحسّن «التعامل الصحيح مع الصمت» بمقدار 7. وأاليّا جاهزة للوحدة المتقدمة.", asset: "إيقاع المحادثة المتقدم", outcome: "الوصول إلى الربع الأعلى خلال 3 أسابيع" },
+  "nba-5": { title: "صقل عرض الخيارات والمزايا", evidence: "ظهر «الخيارات والمزايا» في 4 جلسات هذا الأسبوع، باتجاه صاعد.", asset: "الخيارات والمزايا" },
+  "nba-6": { title: "إضافة عبارات الطمأنة", evidence: "ظهرت «عبارات الطمأنة» في جلستين، بانخفاض 4% — أرضية ثابتة للبناء عليها.", asset: "عبارات الطمأنة" },
+  "nba-7": { title: "تعزيز لغة النظرة الإيجابية", evidence: "تم رصد «النظرة الإيجابية» في جلستين، بانخفاض 2% هذا الأسبوع.", asset: "النظرة الإيجابية" },
+  "nba-8": { title: "تعميق اكتشاف الاحتياجات", evidence: "ظهر «استكشاف الاحتياجات» في جلستين، بارتفاع 5% — يستحق دفعة مبكرة.", asset: "استكشاف الاحتياجات" },
+};
+export function lhNba(id, nbaId) {
+  if (id === "ar") return NBA_CONTENT_AR[nbaId] ?? null;
+  return null;
+}
 export function lhTerm(id, value) {
   if (id === "ar") return TERMS_AR[value] ?? value;
   return value;

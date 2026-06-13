@@ -80,6 +80,7 @@ export default function AgentProfile({ agentId, onBack, onViewMission, locale = 
           onAssign={setAssignAsset}
           dateRange={dateRange}
           milestone={scoreMilestone}
+          locale={locale}
         />
         <div style={profileStyles.railMount}>
           <div style={profileStyles.railSticky}>
