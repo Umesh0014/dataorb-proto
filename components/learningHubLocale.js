@@ -764,6 +764,11 @@ const MISSIONS = {
   undo:            { en: "Undo",           es: "Deshacer",          de: "Rückgängig",         fr: "Annuler",             ar: "تراجع" },
   missionActions:  { en: "Mission actions", es: "Acciones de misión", de: "Missionsaktionen",  fr: "Actions de mission",  ar: "إجراءات المهمة" },
   close:           { en: "Close",          es: "Cerrar",            de: "Schließen",          fr: "Fermer",              ar: "إغلاق" },
+  agents:          { en: "Agents",         es: "Agentes",           de: "Agenten",            fr: "Agents",              ar: "الوكلاء" },
+  closed:          { en: "Closed",         es: "Cerrada",           de: "Geschlossen",        fr: "Clôturée",            ar: "مغلقة" },
+  endsToday:       { en: "Ends Today",     es: "Termina hoy",       de: "Endet heute",        fr: "Se termine aujourd’hui", ar: "تنتهي اليوم" },
+  startsSoon:      { en: "Starts soon",    es: "Comienza pronto",   de: "Beginnt bald",       fr: "Bientôt",             ar: "تبدأ قريباً" },
+  continueSetup:   { en: "Continue setup", es: "Continuar configuración", de: "Einrichtung fortsetzen", fr: "Continuer la configuration", ar: "متابعة الإعداد" },
 };
 
 export function lhM(id, key) {
@@ -888,6 +893,123 @@ export function lhDeleteDraftBody(id, name) {
     ar: `ستتم إزالة «${name}» من مسوداتك. يمكنك التراجع خلال 5 ثوانٍ.`,
   };
   return T[id] ?? T.en;
+}
+
+// "{n} days left" / "Starts in {n} days" — mission card status lines.
+export function lhDaysLeft(id, n) {
+  const T = {
+    en: `${n} days left`, es: `Quedan ${n} días`, de: `Noch ${n} Tage`,
+    fr: `${n} jours restants`, ar: `${n} يوماً متبقياً`,
+  };
+  return T[id] ?? T.en;
+}
+export function lhStartsIn(id, n) {
+  const T = {
+    en: `Starts in ${n} days`, es: `Comienza en ${n} días`, de: `Beginnt in ${n} Tagen`,
+    fr: `Commence dans ${n} jours`, ar: `تبدأ خلال ${n} يوماً`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Shared short-term glossary — mission tags, replay drivers/outcome labels,
+// and content language names. Keyed on the English source value; Arabic-only
+// (other locales fall back to source). One map so a tag and the matching
+// driver/outcome read identically wherever they appear.
+const TERMS_AR = {
+  // Mission tags
+  "Onboarding": "الإعداد",
+  "Initial Coaching": "تدريب أولي",
+  "First-Call Resolution": "الحل من أول مكالمة",
+  "Empathy": "التعاطف",
+  "Implement Feedback": "تطبيق الملاحظات",
+  "Refresher": "تنشيطي",
+  "Chat": "الدردشة",
+  "Compliance": "الامتثال",
+  "Disclosure": "الإفصاح",
+  "Payments": "المدفوعات",
+  "Collections": "التحصيل",
+  "Retention": "الاحتفاظ",
+  "Loyalty": "الولاء",
+  "Coaching": "التدريب",
+  "Soft Skills": "المهارات الناعمة",
+  "Discovery": "الاستكشاف",
+  "Objection Handling": "معالجة الاعتراضات",
+  "Active Listening": "الإنصات الفعّال",
+  "Policy Accuracy": "دقة السياسات",
+  // Replay drivers
+  "Churn risk": "خطر التسرّب",
+  "Billing dispute": "نزاع الفوترة",
+  "Plan change": "تغيير الباقة",
+  "New activation": "تفعيل جديد",
+  "Technical fault": "عطل تقني",
+  "Complaint": "شكوى",
+  // Replay business-outcome labels
+  "Acquisition": "الاكتساب",
+  "First-call Resolution": "الحل من أول مكالمة",
+  "Upsell": "البيع الإضافي",
+  "CSAT": "رضا العملاء",
+  // Content language names (guide/replay chips)
+  "English": "الإنجليزية",
+  "Spanish": "الإسبانية",
+  "French": "الفرنسية",
+  "German": "الألمانية",
+  "Italian": "الإيطالية",
+  "Portuguese": "البرتغالية",
+};
+export function lhTerm(id, value) {
+  if (id === "ar") return TERMS_AR[value] ?? value;
+  return value;
+}
+
+// Mission card content (name + description) in Arabic, keyed by mission id.
+// Covers the kanban landing set (running/completed/upcoming + drafts).
+const MISSION_CONTENT_AR = {
+  "kanban-just-started": { name: "نبض الاستعادة — دفعة يونيو", description: "جولة تدريب أولية لأخصائيي الاستعادة المُلتحقين حديثاً." },
+  "kanban-on-track": { name: "تحسين دعم العملاء", description: "تحسين رضا العملاء من خلال الحل أثناء المكالمة والتعاطف المتسق تحت الضغط." },
+  "kanban-ending-soon": { name: "تنشيط نبض التعاطف", description: "تنشيط أساسيات التعاطف لدى الوكلاء المخضرمين قبل المراجعة الفصلية." },
+  "kanban-ends-today-behind": { name: "إعداد قناة الدردشة", description: "إعداد أخصائيي الدردشة الجدد." },
+  "kanban-ready-to-close": { name: "جاهزية الامتثال — الربع الأول", description: "نصوص الإفصاح، وتفويض الدفع، وتوقيت تسليم السياسات." },
+  "kanban-completed": { name: "تدريب خطط السداد", description: "تدريب على عرض خطط السداد عبر فرق التحصيل." },
+  "kanban-upcoming-1": { name: "تمرين إنقاذ الولاء المميّز", description: "تدرّب على إطار الإنقاذ لمواجهة تهديدات تسرّب العملاء ذوي الإيراد المرتفع قبل ذروة أغسطس." },
+  "kanban-upcoming-2": { name: "تنشيط الامتثال — الربع الثالث", description: "جولة امتثال فصلية تغطي الإفصاح عن التعرفة وتصعيد سقف التنازلات." },
+  "kanban-upcoming-3": { name: "تعزيز التعاطف — المستوى الثاني", description: "تدريب جولة ثانية للوكلاء الذين سجّلوا دون حد التعاطف في مايو." },
+  "mission-g-draft": { name: "معايرة المبيعات الصادرة", description: "صقل نصوص حديث الوكلاء لمكالمات الاستكشاف الصادرة." },
+  "mission-i-draft-complete": { name: "جاهزية الاستعادة — الربع الثالث", description: "تأهيل الوكلاء للتعامل مع طلبات الإلغاء بمعالجة واثقة للاعتراضات، وشرح دقيق لشروط الالتزام، وطرح استباقي للعروض." },
+};
+export function lhMissionContent(id, missionId) {
+  if (id === "ar") return MISSION_CONTENT_AR[missionId] ?? null;
+  return null;
+}
+
+// Guide card content (title + description) in Arabic, keyed by guide id.
+const GUIDE_CONTENT_AR = {
+  "guide-tariff-change-1": { title: "إدارة محادثة تغيير التعرفة", description: "استخدمه عند التعامل مع تهديدات التحوّل إلى فودافون من العملاء ذوي الإيراد المرتفع الذين لديهم عرض منافس بالفعل. مبني على إطار الاحتفاظ الخاص بماريا — الذي حقّق 34 عملية إنقاذ الربع الماضي." },
+  "guide-upselling-opportunities": { title: "فرص البيع الإضافي", description: "تفاعل مع العملاء الذين يبدون اهتماماً بالباقات الأعلى. أبرِز المزايا والميزات الحصرية التي تتوافق مع أنماط استخدامهم." },
+  "guide-customer-loyalty": { title: "تعزيز ولاء العملاء", description: "طبّق هذه الاستراتيجية لتعزيز الاحتفاظ بالعملاء المعرّضين لخطر التسرّب. ركّز على أساليب تواصل مخصّصة تبرز القيمة ومكافآت الولاء." },
+  "guide-feedback-loop": { title: "تطبيق حلقة الملاحظات", description: "أدمج ملاحظات العملاء في تحسينات الخدمة. استخدم بيانات الاستبيانات لتوجيه تطوير المنتج وتحسين خدمة العملاء." },
+  "guide-retention-improvement": { title: "استراتيجية تحسين الاحتفاظ", description: "استخدم هذا النهج مع العملاء الذين عبّروا عن عدم رضاهم. عالج مخاوفهم استباقياً وقدّم حلولاً مخصّصة لتحسين الرضا العام." },
+  "guide-tariff-change-2": { title: "إدارة محادثة تغيير التعرفة", description: "استخدمه عند التعامل مع تهديدات التحوّل إلى فودافون من العملاء ذوي الإيراد المرتفع الذين لديهم عرض منافس بالفعل. مبني على إطار الاحتفاظ الخاص بماريا — الذي حقّق 34 عملية إنقاذ الربع الماضي." },
+  "guide-onboarding-pulse": { title: "نبض الترحيب بالإعداد", description: "حدّد نبرة التعامل مع العملاء الجدد في أول 14 يوماً. ركّز على معالم التفعيل وتوقعات المكالمة الأولى." },
+  "guide-billing-recovery": { title: "دليل استرداد الفواتير", description: "استرجع الفواتير المتعثّرة عبر إقرار متعاطف يليه مسار دفع واضح. توقّف قبل التنازل الثاني." },
+  "guide-network-incident-q4": { title: "حادثة الشبكة — الربع الرابع (متقاعدة)", description: "مؤرشف. للرجوع المرجعي فقط؛ استُبدل بدليل اتصالات الحوادث الموحّد في مارس 2026." },
+};
+export function lhGuideContent(id, guideId) {
+  if (id === "ar") return GUIDE_CONTENT_AR[guideId] ?? null;
+  return null;
+}
+
+// Replay collection content (name + description) in Arabic, keyed by id.
+const REPLAY_CONTENT_AR = {
+  "col-save-the-switch": { name: "أنقذ التحوّل", description: "كيف يحوّل أفضل وكلاء الاحتفاظ تهديد التحوّل إلى عملية إنقاذ — مبني من أعلى عمليات الإنقاذ قيمةً الربع الماضي." },
+  "col-first-call-fix": { name: "الحل من أول مكالمة", description: "إغلاق الأعطال التقنية في مكالمة واحدة دون تصعيد — الأنماط التي يطلب المستوى الثاني توثيقها باستمرار." },
+  "col-billing-empathy": { name: "تعاطف الفوترة", description: "محادثات فوترة تبدأ بالإقرار وتُبقي رضا العملاء مرتفعاً حتى عندما يكون الجواب لا." },
+  "col-upsell-without-pushing": { name: "بيع إضافي دون إلحاح", description: "قراءة النية الحقيقية وعرض الباقة الأعلى فقط عندما تناسب استخدام العميل فعلاً." },
+  "col-activation-day-one": { name: "اليوم الأول للتفعيل", description: "مكالمات التفعيل في أول 14 يوماً — ضبط التوقعات حتى لا تحدث المكالمة الثانية أبداً." },
+  "col-incident-comms-q4": { name: "اتصالات الحوادث — الربع الرابع (متقاعدة)", description: "مؤرشف. استُبدل بمجموعة اتصالات الحوادث الموحّدة في مارس 2026." },
+};
+export function lhReplayContent(id, collectionId) {
+  if (id === "ar") return REPLAY_CONTENT_AR[collectionId] ?? null;
+  return null;
 }
 
 // Persona-language option labels (Step 1 dropdown). Keyed on the canonical

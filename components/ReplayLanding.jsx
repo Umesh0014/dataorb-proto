@@ -14,7 +14,7 @@ import {
   OUTCOME_TINTS, OUTCOME_LABELS, tabCounts, actionBoxItems,
 } from "./mocks/replays";
 import {
-  lhR, lhText, lhReplayToReview, lhReplayEmptyLane, lhCreatedBy, buildLocaleFilter,
+  lhR, lhText, lhReplayToReview, lhReplayEmptyLane, lhCreatedBy, lhReplayContent, lhTerm, buildLocaleFilter,
 } from "./learningHubLocale";
 
 // ReplayLanding — Replay collections list. Cards follow the skills-card
@@ -129,6 +129,7 @@ function CollectionCard({ collection, onClick, locale = "en" }) {
   const tint = OUTCOME_TINTS[collection.outcome] || OUTCOME_TINTS.retention;
   const Icon = OUTCOME_ICONS[collection.outcome] || ShieldCheck;
   const isAi = collection.maintainedBy === "ai";
+  const content = lhReplayContent(locale, collection.id);
 
   return (
     <button
@@ -148,9 +149,9 @@ function CollectionCard({ collection, onClick, locale = "en" }) {
       </div>
 
       <div style={s.cardBody}>
-        <span style={s.cardTitle}>{collection.name}</span>
-        <span style={s.outcomeLine}>{OUTCOME_LABELS[collection.outcome]} · {collection.driver}</span>
-        <p style={s.cardDesc}>{collection.description}</p>
+        <span style={s.cardTitle} dir="auto">{content?.name ?? collection.name}</span>
+        <span style={s.outcomeLine}>{lhTerm(locale, OUTCOME_LABELS[collection.outcome])} · {lhTerm(locale, collection.driver)}</span>
+        <p style={s.cardDesc} dir="auto">{content?.description ?? collection.description}</p>
       </div>
 
       <div style={s.cardFooter}>

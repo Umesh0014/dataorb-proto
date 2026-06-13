@@ -14,7 +14,7 @@ import Modal from "./Modal";
 import Toast from "./Toast";
 import Button from "./Button";
 import { isTeamViewer } from "./lib/currentUser";
-import { lhM, lhMore, lhDeleteDraftBody, lhDir, buildLocaleFilter } from "./learningHubLocale";
+import { lhM, lhMore, lhDeleteDraftBody, lhDir, lhMissionContent, buildLocaleFilter } from "./learningHubLocale";
 
 // MissionsKanbanLayout — Option 3. Urgency-first swimlanes (Active / At
 // Risk / Ending Soon / Completed) derived directly from state + daysLeft,
@@ -316,6 +316,7 @@ function UpcomingSubSection({ items, maxCardsInUpcoming = 1, openId, onOpenMissi
           mission={m}
           selected={openId === m.id}
           onClick={() => onOpenMission(m.id)}
+          locale={locale}
         />
       ))}
       {overflow > 0 && (
@@ -350,6 +351,7 @@ function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount 
               mission={m}
               selected={openId === m.id}
               onClick={() => onOpenMission(m.id)}
+              locale={locale}
             />
           ) : (
             <MissionCardCompact
@@ -358,6 +360,7 @@ function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount 
               selected={openId === m.id}
               onClick={() => onOpenMission(m.id)}
               hideAgentCount={hideAgentCount}
+              locale={locale}
             />
           ),
         )}
@@ -422,7 +425,8 @@ function CurtainHeader({ mission, onClose, onDeleteDraft, locale = "en" }) {
 
   if (isDraft) {
     const { state: draftState } = resolveDraftState(mission);
-    title = mission.name && mission.name.trim() ? mission.name : lhM(locale, "untitledDraft");
+    const draftName = lhMissionContent(locale, mission.id)?.name ?? mission.name;
+    title = draftName && draftName.trim() ? draftName : lhM(locale, "untitledDraft");
     status =
       draftState === "complete"
         ? { tone: "success", icon: <CheckCircle2 size={14} />, label: lhM(locale, "readyToPublish") }
@@ -431,10 +435,8 @@ function CurtainHeader({ mission, onClose, onDeleteDraft, locale = "en" }) {
       { label: lhM(locale, "deleteDraft"), onClick: () => onDeleteDraft?.() },
     ];
   } else {
-    title = mission.name;
-    // Running/completed status label comes from the shared affordance
-    // helper (deep mission content — localized in a later pass).
-    status = missionStatusAffordance(mission);
+    title = lhMissionContent(locale, mission.id)?.name ?? mission.name;
+    status = missionStatusAffordance(mission, locale);
     items = completed
       ? [
           { label: lhM(locale, "duplicateMission"), onClick: () => console.log("duplicate mission") },
@@ -462,7 +464,11 @@ function CurtainHeader({ mission, onClose, onDeleteDraft, locale = "en" }) {
           </Button>
         </div>
       </div>
-      {mission.description && <p style={curtainHeaderStyles.desc}>{mission.description}</p>}
+      {mission.description && (
+        <p style={curtainHeaderStyles.desc} dir="auto">
+          {lhMissionContent(locale, mission.id)?.description ?? mission.description}
+        </p>
+      )}
     </div>
   );
 }

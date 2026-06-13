@@ -8,7 +8,7 @@ import Card from "./Card";
 import { GUIDES, GUIDE_TAB_COUNTS } from "./mocks/guides";
 import { localizedMonths } from "./formatDate";
 import {
-  lhG, lhText, lhGuideEmptyLane, lhGuideEmptySearchBody, buildLocaleFilter,
+  lhG, lhText, lhGuideEmptyLane, lhGuideEmptySearchBody, lhGuideContent, lhTerm, buildLocaleFilter,
 } from "./learningHubLocale";
 
 // GuidePage — Learning Hub Guide landing.
@@ -109,6 +109,7 @@ function GuideCard({ guide, onClick, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   const langs = guide.languages || [];
   const extraLangs = Math.max(0, langs.length - 1);
+  const content = lhGuideContent(locale, guide.id);
 
   return (
     <button
@@ -137,12 +138,12 @@ function GuideCard({ guide, onClick, locale = "en" }) {
       </div>
 
       <div style={styles.body}>
-        <span style={styles.title}>{guide.title}</span>
-        <p style={styles.description}>{guide.description}</p>
+        <span style={styles.title} dir="auto">{content?.title ?? guide.title}</span>
+        <p style={styles.description} dir="auto">{content?.description ?? guide.description}</p>
         <div style={styles.langRow}>
           {langs.length > 0 && (
-            <span style={styles.langChip} title={langs[0]}>
-              {truncate(langs[0], TAG_MAX)}
+            <span style={styles.langChip} title={lhTerm(locale, langs[0])}>
+              {truncate(lhTerm(locale, langs[0]), TAG_MAX)}
             </span>
           )}
           {extraLangs > 0 && (
