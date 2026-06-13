@@ -3,7 +3,7 @@
 import React from "react";
 import Card from "./Card";
 import ExportButton from "./ExportButton";
-import AgentImpactChart, { ActivityIcon } from "./AgentImpactChart";
+import AgentImpactChart from "./AgentImpactChart";
 import { getAgentImpact, windowImpact, RANGES } from "./mocks/agentLearningImpact";
 
 // AgentLearningImpact — "Learning Hub impact" section on the Agent detail page.
@@ -12,9 +12,6 @@ import { getAgentImpact, windowImpact, RANGES } from "./mocks/agentLearningImpac
 // point: you can see practice — drills, guides, replays, probes, missions —
 // translate into rising performance. A timeline switcher (1M…All) scopes the
 // window. Read-only (G4).
-
-// Activity types shown as marker pins on the chart, listed in the legend.
-const ACTIVITY_TYPES = ["Replay", "Drill", "Guide", "Probe", "Mission"];
 
 export default function AgentLearningImpact({ agent }) {
   const [range, setRange] = React.useState("1Y");
@@ -50,18 +47,6 @@ export default function AgentLearningImpact({ agent }) {
       <div style={aliStyles.legendRow}>
         <LineKey color="var(--chart-green)" label="QA score" value={qaValue} />
         <LineKey color="var(--chart-blue)" label="CSAT" value={csatValue} />
-      </div>
-
-      <div style={aliStyles.markerRow}>
-        <span style={aliStyles.markerLead}>Learning Hub activity</span>
-        {ACTIVITY_TYPES.map((kind) => (
-          <span key={kind} style={aliStyles.markerKey}>
-            <span style={aliStyles.markerPin} aria-hidden="true">
-              <ActivityIcon kind={kind} size={12} />
-            </span>
-            {kind}
-          </span>
-        ))}
       </div>
 
       <AgentImpactChart data={view} onScrub={setScrub} />
@@ -167,63 +152,31 @@ const aliStyles = {
     display: "flex",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: 40,
-    marginBottom: 14,
+    gap: 48,
+    marginBottom: 16,
   },
-  lineKey: { display: "inline-flex", alignItems: "center", gap: 10 },
+  lineKey: { display: "inline-flex", alignItems: "center", gap: 12 },
   lineSwatch: {
-    width: 16,
+    width: 18,
     height: 4,
     borderRadius: 2,
     flexShrink: 0,
+    alignSelf: "flex-start",
+    marginTop: 12,
   },
-  lineKeyText: { display: "flex", flexDirection: "column", gap: 1 },
+  lineKeyText: { display: "flex", flexDirection: "column", gap: 2 },
   lineLabel: {
     fontFamily: '"Mulish", sans-serif',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
     color: "var(--color-text-tertiary)",
   },
   lineValue: {
     fontFamily: '"Mulish", sans-serif',
-    fontSize: 26,
+    fontSize: 40,
     fontWeight: 800,
     color: "var(--color-text-deep)",
-    lineHeight: 1.1,
-    letterSpacing: "-0.01em",
-  },
-  markerRow: {
-    display: "flex",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 18,
-    paddingTop: 14,
-    marginBottom: 10,
-    borderTop: "1px solid var(--color-divider-card)",
-  },
-  markerLead: {
-    fontFamily: '"Mulish", sans-serif',
-    fontSize: 12,
-    fontWeight: 700,
-    color: "var(--color-text-tertiary)",
-    letterSpacing: "0.02em",
-  },
-  markerKey: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 7,
-    fontFamily: '"Mulish", sans-serif',
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-medium)",
-  },
-  markerPin: {
-    display: "grid",
-    placeItems: "center",
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    background: "var(--grey-800)",
-    flexShrink: 0,
+    lineHeight: 1.05,
+    letterSpacing: "-0.02em",
   },
 };
