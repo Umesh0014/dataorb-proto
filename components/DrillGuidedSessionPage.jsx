@@ -237,8 +237,9 @@ export default function DrillGuidedSessionPage({ onEnd }) {
 
       {!ended && (
         <VersionBar
+          tabsMode
           versions={DIRECTION_VERSIONS}
-          baselineOptions={DIRECTIONS}
+          baselineOptions={[]}
           value={{ versionId: variant, iterationId: null }}
           onChange={({ versionId }) => setVariant(versionId)}
         />

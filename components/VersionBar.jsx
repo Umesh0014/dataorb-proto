@@ -43,6 +43,10 @@ export default function VersionBar({
   figmaHref,
   onOpenFigma,
   help,
+  // tabsMode: drop the baseline dropdown and render every option as a chip
+  // (single-axis switchers where a baseline + chips would just duplicate
+  // the options). Default off so existing callers are unchanged.
+  tabsMode = false,
 }) {
   // The help (?) button is disabled until the consumer wires content.
   // Pass `help` as a React node (string / JSX) and it renders inside
@@ -230,8 +234,11 @@ export default function VersionBar({
   const baselineSelected =
     baselineOptions.find((o) => o.id === baselineId) || baselineOptions[0];
   // Chips = every version that isn't the baseline option being displayed.
-  // Empty versions array → no chips, no first divider.
-  const chips = versions.filter((v) => v.id !== baselineSelected?.id);
+  // Empty versions array → no chips, no first divider. In tabsMode there is
+  // no baseline block, so every version renders as a chip.
+  const chips = tabsMode
+    ? versions
+    : versions.filter((v) => v.id !== baselineSelected?.id);
   const hasChips = chips.length > 0;
 
   return (
@@ -262,14 +269,18 @@ export default function VersionBar({
             }}
           >
             <div className="vb-m-bar" ref={barInnerRef}>
-              <Baseline
-                btnRef={baselineBtnRef}
-                selected={baselineSelected}
-                active={activeId === baselineSelected.id}
-                menuOpen={baselineMenuOpen}
-                onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
-              />
-              {hasChips && <span className="vb-divider" aria-hidden="true" />}
+              {!tabsMode && baselineSelected && (
+                <>
+                  <Baseline
+                    btnRef={baselineBtnRef}
+                    selected={baselineSelected}
+                    active={activeId === baselineSelected.id}
+                    menuOpen={baselineMenuOpen}
+                    onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
+                  />
+                  {hasChips && <span className="vb-divider" aria-hidden="true" />}
+                </>
+              )}
               {chips.map((v) =>
                 expandedId === v.id ? (
                   <VGroup
@@ -310,7 +321,7 @@ export default function VersionBar({
             </div>
           </div>
           <span className="vb-badge" aria-hidden="true">
-            {baselineOptions.length + chips.length}
+            {(tabsMode ? 0 : baselineOptions.length) + chips.length}
           </span>
         </div>
         <button

@@ -56,9 +56,9 @@ export default function LearningHubPage({ onOpenDrill, onCreateRoleplay, isAgent
   const copy = gateCopy(gate);
 
   // Agent experience (use, don't edit): no Roleplay create CTA, and only
-  // the active drills are surfaced — the Library tab is hidden. Everything
-  // else mirrors the Team Leader landing.
-  const tabs = isAgent ? [{ id: "active", label: "Active" }] : DRILL_TABS;
+  // the active drills are surfaced — the tab row is dropped entirely (no
+  // Library, and an "Active"-only row is redundant). Everything else
+  // mirrors the Team Leader landing.
   const showLibrary = !isAgent && activeTab === "library";
 
   // Guard the existing handler. On the allowed path (and on the A4
@@ -103,11 +103,13 @@ export default function LearningHubPage({ onOpenDrill, onCreateRoleplay, isAgent
         ]}
       />
       {!isAgent && copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
-      <TabsRow
-        tabs={tabs}
-        activeTab={isAgent ? "active" : activeTab}
-        onTabClick={setActiveTab}
-      />
+      {!isAgent && (
+        <TabsRow
+          tabs={DRILL_TABS}
+          activeTab={activeTab}
+          onTabClick={setActiveTab}
+        />
+      )}
       {showLibrary ? (
         <ComingSoon pageName="Library" />
       ) : (

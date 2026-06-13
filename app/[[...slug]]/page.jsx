@@ -93,10 +93,11 @@ const LEARNING_PAGES = {
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
 };
 
-// Drill persona switch options (Team Leader ↔ Agent) for the VersionBar.
+// Drill persona switch options (Team Leader ↔ Agent), rendered as tabs in
+// the VersionBar.
 const DRILL_PERSONAS = [
-  { id: "tl", label: "Team Leader" },
-  { id: "agent", label: "Agent" },
+  { id: "tl", label: "Team Leader", iterations: [] },
+  { id: "agent", label: "Agent", iterations: [] },
 ];
 
 const MIRA_PAGES = {
@@ -766,8 +767,9 @@ export default function Page() {
           <PageLayout>{drillContent}</PageLayout>
           {showDrillPersona && (
             <VersionBar
-              versions={[]}
-              baselineOptions={DRILL_PERSONAS}
+              tabsMode
+              versions={DRILL_PERSONAS}
+              baselineOptions={[]}
               value={{ versionId: drillPersona, iterationId: null }}
               onChange={({ versionId }) => {
                 setDrillDetailId(null);
