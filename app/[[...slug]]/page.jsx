@@ -676,6 +676,7 @@ export default function Page() {
         <DrillDetailPage
           cardId={drillDetailId}
           onBack={() => setDrillDetailId(null)}
+          locale={locale}
         />
       );
     } else if (onAgents && agentProfileId) {
