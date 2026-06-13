@@ -4,11 +4,12 @@
 > question was resolved: Learning Impact is **agent-centric** and lives on the **Agent
 > detail page**, reached via the **Agents tab** (Learning Hub › Agents → click an agent).
 > The standalone `/learning/impact` rollup and its A/B/C variants were **removed**; the
-> shared atoms (`LearningImpactParts`, the `metric()`/method/confidence/sample-honesty
-> primitives) were kept and now power a per-agent **Learning impact** section
-> (`AgentLearningImpact.jsx`) that shows the agent's overall performance movement plus the
-> Learning Hub help they received (drill / guide / replay / probe / mission) and its
-> attributed effect. The exploration below is retained as the design record that led here.
+> shared atoms were kept initially, then the section was simplified again to a single
+> **"Learning Hub impact"** timeline chart: two trend lines (QA score + CSAT, Y-axis %)
+> over the year since the agent joined, with each Learning Hub activity (drill / guide /
+> replay / probe / mission) marked on the time axis — the "news-on-price" model, showing
+> practice lifting performance. The method/confidence/sample/caveat chrome was dropped in
+> favour of that one chart. The exploration below is retained as the design record that led here.
 
 ---
 

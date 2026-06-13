@@ -1,94 +1,99 @@
-// agentLearningImpact.js — per-agent Learning Impact, derived deterministically
-// from an agent's existing Learning-Hub fields (qaScore, trend, roleplay count,
-// missions). Powers the "Learning impact" section on the Agent detail page:
-// how/when this agent got help from Learning Hub (drill / guide / replay /
-// probe / mission) and how production performance moved.
-//
-// Real impl: an impact/attribution service joining the recorded intervention
-// ledger to production metrics over a window. Here it's a stable mock — same
-// agent always yields the same record — so the honesty rules (method, caveat,
-// High/Med/Low confidence, "N of M" sample, withheld-% under the floor) are
-// demonstrated across the existing agent roster without new data plumbing.
-
-import { metric, IMPACT_WINDOW } from "./learningImpact";
+// agentLearningImpact.js — per-agent "Learning Hub impact" chart data, derived
+// deterministically from an agent's existing fields (qaScore, trend, roleplay
+// count, missions). One year of monthly QA and CSAT scores since the agent
+// joined, plus the Learning Hub activities (drill / guide / replay / probe /
+// mission) placed on that same timeline — so the chart shows practice turning
+// into performance. Stable mock: same agent always yields the same data.
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
-
-// shortDate — "MMM D" label `daysBefore` days before an ISO anchor date.
-function shortDate(anchorIso, daysBefore) {
-  const d = new Date(anchorIso);
-  d.setDate(d.getDate() - daysBefore);
+function smoothstep(t) {
+  return t * t * (3 - 2 * t);
+}
+function dayLabel(d) {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
-
-// confidenceFor — more practice → more interactions to attribute against.
-function confidenceFor(roleplays) {
-  if (roleplays >= 12) return "high";
-  if (roleplays >= 6) return "med";
-  return "low";
+function monthLabel(d) {
+  return `${MONTHS[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`;
 }
 
-// getAgentImpact — build the agent's impact record. `agent` is a LEARNING_AGENTS
-// row (id, name, qaScore, qaScoreTrend, roleplaysCount, lastRoleplayDate,
-// missions). Deterministic: no randomness, no state.
+// buildLine — 13 monthly points easing from `start` to `end` with small,
+// repeatable noise so the rise reads as organic, not a ruler line.
+function buildLine(start, end, seed) {
+  const pts = [];
+  for (let i = 0; i <= 12; i += 1) {
+    const t = i / 12;
+    const base = start + (end - start) * smoothstep(t);
+    const noise = Math.sin(i * 0.9 + seed) * 1.1;
+    pts.push({ x: i, v: Math.round((base + noise) * 10) / 10 });
+  }
+  return pts;
+}
+
+// Activity templates in calendar order across the year. monthPos is the point
+// on the 0–12 month axis; the title names the competency the activity targeted.
+const ACTIVITY_PLAN = [
+  { kind: "Drill", code: "D", monthPos: 1.6, title: "Mock drill — objection handling" },
+  { kind: "Guide", code: "G", monthPos: 3.2, title: "Guide — empathy openers" },
+  { kind: "Replay", code: "R", monthPos: 4.7, title: "Replay — live call review" },
+  { kind: "Drill", code: "D", monthPos: 6.2, title: "Mock drill — de-escalation" },
+  { kind: "Probe", code: "P", monthPos: 7.6, title: "Probe — skills interview" },
+  { kind: "Guide", code: "G", monthPos: 9.1, title: "Guide — billing scenarios" },
+  { kind: "Mission", code: "M", monthPos: 10.9, title: "Mission" },
+];
+
+// getAgentImpact — chart-ready record for one agent (a LEARNING_AGENTS row).
 export function getAgentImpact(agent) {
   const firstName = agent.name.split(/\s+/)[0];
   const qa = agent.qaScore == null ? 70 : agent.qaScore;
-  const trend = agent.qaScoreTrend || { direction: "up", deltaPct: 2 };
   const roleplays = agent.roleplaysCount ?? 0;
-  const anchor = agent.lastRoleplayDate || "2026-03-22";
+  const nowIso = agent.lastRoleplayDate || "2026-03-22";
+  const nowTime = new Date(nowIso).getTime();
+  const joinTime = nowTime - YEAR_MS;
 
-  // Improvement magnitude scales with practice; direction follows the agent's
-  // trend so a declining agent honestly shows a smaller / negative movement.
-  const magnitude = clamp(Math.round(roleplays * 0.6), 2, 9);
-  const signed = trend.direction === "down" ? -clamp(trend.deltaPct + 1, 1, magnitude) : magnitude;
+  // A year of growth: starts well below today's score, climbs to it. More
+  // practice → a bigger journey.
+  const rise = clamp(Math.round(roleplays * 0.9) + 7, 9, 24);
+  const qaEnd = qa;
+  const qaStart = clamp(qa - rise, 32, qa - 3);
+  const csatEnd = clamp(Math.round(70 + (qa - 60) / 4), 60, 93);
+  const csatStart = clamp(csatEnd - Math.round(rise * 0.8), 42, csatEnd - 3);
 
-  const qaBaseline = clamp(qa - signed, 30, 99);
-  const csatCurrent = clamp(Math.round(70 + (qa - 60) / 4), 58, 94);
-  const csatBaseline = clamp(csatCurrent - Math.round(signed * 0.7), 40, 99);
+  const qaLine = buildLine(qaStart, qaEnd, 1);
+  const csatLine = buildLine(csatStart, csatEnd, 4);
 
-  const metrics = [
-    metric("qa", "QA score", "%", qaBaseline, qa, 85, true, 1),
-    metric("csat", "CSAT", "%", csatBaseline, csatCurrent, 85, true, 2),
-  ];
-
-  // Sample scales with practice; low-practice agents fall below the floor and
-  // their % is withheld (honest small-N handling).
-  const sampleN = roleplays * 2 + 6;
-  const samplePool = sampleN + Math.round(sampleN * 0.4) + 6;
-
+  // Fewer activities for low-practice agents (drop the 2nd drill).
+  const plan = roleplays >= 8 ? ACTIVITY_PLAN : ACTIVITY_PLAN.filter((a) => a.monthPos !== 6.2);
   const mission = agent.missions?.[0];
-  const missionState = mission?.status === "on_target" ? "completed" : "partial";
+  const activities = plan.map((a) => {
+    const date = new Date(joinTime + (a.monthPos / 12) * YEAR_MS);
+    return {
+      kind: a.kind,
+      code: a.code,
+      x: a.monthPos,
+      date: dayLabel(date),
+      title: a.kind === "Mission" ? `Mission — ${mission ? mission.name : "Customer support enhancement"}` : a.title,
+    };
+  });
 
-  // The Learning Hub help this agent received, newest first — covers the
-  // activity types the agent gets help through: replay, drill, guide, probe,
-  // mission. Title carries the competency/driver the activity targeted.
-  const interventions = [
-    { kind: "Replay", title: "Replay — Reviewed live call, de-escalation", date: shortDate(anchor, 0), state: "completed" },
-    { kind: "Drill", title: "Drill — Roleplay practice, objection handling", date: shortDate(anchor, 6), state: "completed" },
-    { kind: "Guide", title: "Guide — Empathy openers walkthrough", date: shortDate(anchor, 13), state: roleplays >= 6 ? "completed" : "partial" },
-    { kind: "Probe", title: "Probe — Skills interview, billing scenarios", date: shortDate(anchor, 21), state: "completed" },
-    {
-      kind: "Mission",
-      title: `Mission — ${mission ? mission.name : "Customer support enhancement"}`,
-      date: shortDate(anchor, 28),
-      state: missionState,
-    },
-  ];
+  // Axis ticks every quarter.
+  const ticks = [0, 3, 6, 9, 12].map((i) => ({
+    x: i,
+    label: monthLabel(new Date(joinTime + (i / 12) * YEAR_MS)),
+  }));
 
   return {
     firstName,
-    window: IMPACT_WINDOW,
-    method: "prepost",
-    confidence: confidenceFor(roleplays),
-    sampleN,
-    samplePool,
-    timeToImpact: `${clamp(28 - roleplays, 7, 26)} days`,
-    metrics,
-    interventions,
+    joinedLabel: monthLabel(new Date(joinTime)),
+    qaLine,
+    csatLine,
+    qaEnd,
+    csatEnd,
+    activities,
+    ticks,
   };
 }
