@@ -40,6 +40,8 @@ const AGENT_MISSION_IDS = new Set([
 export default function MissionsLandingShell({
   onCreateMission,
   onOpenMission,
+  locale = "en",
+  onLocaleChange,
 }) {
   const [persona, setPersona] = React.useState("Team Leader");
   // Variant default M2 = current Team Leader view (spec §F3). Persists
@@ -85,6 +87,8 @@ export default function MissionsLandingShell({
         onOpenMission={onOpenMission}
         persona={persona}
         variant={variant}
+        locale={locale}
+        onLocaleChange={onLocaleChange}
       />
       <VersionBar
         versions={versionsForBar}

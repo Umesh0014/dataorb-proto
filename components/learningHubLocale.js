@@ -732,6 +732,66 @@ export function lhMissionsSummary(id, below, total) {
   return T[id] ?? T.en;
 }
 
+// Missions tab — kanban landing chrome (lanes, header, curtain actions,
+// delete flow, toast). Mission names/descriptions/tags are mock content
+// (queued for a content pass); this covers the static board chrome.
+const MISSIONS = {
+  title:           { en: "Missions",       es: "Misiones",          de: "Missionen",          fr: "Missions",            ar: "المهام" },
+  mission:         { en: "Mission",        es: "Misión",            de: "Mission",            fr: "Mission",             ar: "مهمة" },
+  searchMissions:  { en: "Search missions", es: "Buscar misiones",  de: "Missionen suchen",   fr: "Rechercher des missions", ar: "البحث في المهام" },
+  team:            { en: "Team",           es: "Equipo",            de: "Team",               fr: "Équipe",              ar: "الفريق" },
+  createdDate:     { en: "Created Date",   es: "Fecha de creación", de: "Erstelldatum",       fr: "Date de création",    ar: "تاريخ الإنشاء" },
+  all:             { en: "All",            es: "Todos",             de: "Alle",               fr: "Tous",                ar: "الكل" },
+  last7:           { en: "Last 7 days",    es: "Últimos 7 días",    de: "Letzte 7 Tage",      fr: "7 derniers jours",    ar: "آخر 7 أيام" },
+  lane_draft:      { en: "Draft",          es: "Borrador",          de: "Entwurf",            fr: "Brouillon",           ar: "مسودة" },
+  lane_active:     { en: "Active",         es: "Activas",           de: "Aktiv",              fr: "Actives",             ar: "نشطة" },
+  lane_at_risk:    { en: "At Risk",        es: "En riesgo",         de: "Gefährdet",          fr: "À risque",            ar: "معرّضة للخطر" },
+  lane_completed:  { en: "Completed",      es: "Completadas",       de: "Abgeschlossen",      fr: "Terminées",           ar: "مكتملة" },
+  lane_upcoming:   { en: "Upcoming",       es: "Próximas",          de: "Bevorstehend",       fr: "À venir",             ar: "قادمة" },
+  upcoming:        { en: "Upcoming",       es: "Próximas",          de: "Bevorstehend",       fr: "À venir",             ar: "قادمة" },
+  sortTargetMet:   { en: "% target met",   es: "% de objetivo alcanzado", de: "% Ziel erreicht", fr: "% d’objectif atteint", ar: "٪ تحقيق الهدف" },
+  sortAria:        { en: "Sort: % target met (ascending)", es: "Ordenar: % de objetivo (ascendente)", de: "Sortieren: % Ziel erreicht (aufsteigend)", fr: "Trier : % d’objectif (croissant)", ar: "ترتيب: ٪ تحقيق الهدف (تصاعدي)" },
+  readyToPublish:  { en: "Ready to publish", es: "Lista para publicar", de: "Bereit zur Veröffentlichung", fr: "Prête à publier", ar: "جاهزة للنشر" },
+  editMission:     { en: "Edit mission",      es: "Editar misión",      de: "Mission bearbeiten",  fr: "Modifier la mission",  ar: "تعديل المهمة" },
+  duplicateMission:{ en: "Duplicate mission", es: "Duplicar misión",    de: "Mission duplizieren", fr: "Dupliquer la mission", ar: "تكرار المهمة" },
+  closeMission:    { en: "Close mission",     es: "Cerrar misión",      de: "Mission schließen",   fr: "Clôturer la mission",  ar: "إغلاق المهمة" },
+  deleteMission:   { en: "Delete mission",    es: "Eliminar misión",    de: "Mission löschen",     fr: "Supprimer la mission", ar: "حذف المهمة" },
+  deleteDraft:     { en: "Delete draft",      es: "Eliminar borrador",  de: "Entwurf löschen",     fr: "Supprimer le brouillon", ar: "حذف المسودة" },
+  untitledDraft:   { en: "Untitled draft",    es: "Borrador sin título", de: "Unbenannter Entwurf", fr: "Brouillon sans titre", ar: "مسودة بلا عنوان" },
+  deleteDraftTitle:{ en: "Delete this draft?", es: "¿Eliminar este borrador?", de: "Diesen Entwurf löschen?", fr: "Supprimer ce brouillon ?", ar: "حذف هذه المسودة؟" },
+  delete:          { en: "Delete",         es: "Eliminar",          de: "Löschen",            fr: "Supprimer",           ar: "حذف" },
+  draftDeleted:    { en: "Draft deleted",  es: "Borrador eliminado", de: "Entwurf gelöscht",  fr: "Brouillon supprimé",  ar: "تم حذف المسودة" },
+  undo:            { en: "Undo",           es: "Deshacer",          de: "Rückgängig",         fr: "Annuler",             ar: "تراجع" },
+  missionActions:  { en: "Mission actions", es: "Acciones de misión", de: "Missionsaktionen",  fr: "Actions de mission",  ar: "إجراءات المهمة" },
+  close:           { en: "Close",          es: "Cerrar",            de: "Schließen",          fr: "Fermer",              ar: "إغلاق" },
+};
+
+export function lhM(id, key) {
+  const row = MISSIONS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// "+ N more" (kanban upcoming overflow).
+export function lhMore(id, n) {
+  const T = {
+    en: `+ ${n} more`, es: `+ ${n} más`, de: `+ ${n} weitere`, fr: `+ ${n} de plus`, ar: `+ ${n} المزيد`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Delete-draft confirmation body, with the draft name interpolated.
+export function lhDeleteDraftBody(id, name) {
+  const T = {
+    en: `"${name}" will be removed from your drafts. You can undo this for 5 seconds.`,
+    es: `"${name}" se eliminará de tus borradores. Puedes deshacerlo durante 5 segundos.`,
+    de: `„${name}“ wird aus deinen Entwürfen entfernt. Du kannst dies 5 Sekunden lang rückgängig machen.`,
+    fr: `« ${name} » sera retiré de vos brouillons. Vous pouvez annuler pendant 5 secondes.`,
+    ar: `ستتم إزالة «${name}» من مسوداتك. يمكنك التراجع خلال 5 ثوانٍ.`,
+  };
+  return T[id] ?? T.en;
+}
+
 // Persona-language option labels (Step 1 dropdown). Keyed on the canonical
 // English value that stays in the wizard's stored state.
 const LANGUAGE_NAME = {

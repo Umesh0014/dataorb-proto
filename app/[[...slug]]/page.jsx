@@ -752,6 +752,8 @@ export default function Page() {
         <MissionsLandingShell
           onCreateMission={openMissionWizard}
           onOpenMission={(id) => router.push(`/learning/missions/${id}`)}
+          locale={locale}
+          onLocaleChange={setLocale}
         />
       );
     } else {
