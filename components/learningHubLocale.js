@@ -652,6 +652,63 @@ export function lhPageOf(id, p, total) {
   return T[id] ?? T.en;
 }
 
+// Agents tab — list table chrome + agent profile. Agent names, ids, emails
+// and dates are data/proper nouns and stay in source.
+const AGENTS = {
+  title:            { en: "Agents",          es: "Agentes",            de: "Agenten",            fr: "Agents",             ar: "الوكلاء" },
+  searchById:       { en: "Agent ID",        es: "ID de agente",       de: "Agenten-ID",         fr: "ID d’agent",         ar: "معرّف الوكيل" },
+  searchByName:     { en: "Agent name",      es: "Nombre del agente",  de: "Agentenname",        fr: "Nom de l’agent",     ar: "اسم الوكيل" },
+  searchPlaceholder:{ en: "Search by ID and name", es: "Buscar por ID y nombre", de: "Nach ID und Name suchen", fr: "Rechercher par ID et nom", ar: "البحث بالمعرّف والاسم" },
+  sort:             { en: "Sort",            es: "Ordenar",            de: "Sortieren",          fr: "Trier",              ar: "ترتيب" },
+  filter:           { en: "Filter",          es: "Filtrar",            de: "Filtern",            fr: "Filtrer",            ar: "تصفية" },
+  col_agent:        { en: "Agents",          es: "Agentes",            de: "Agenten",            fr: "Agents",             ar: "الوكلاء" },
+  col_lastRoleplay: { en: "Last Roleplay",   es: "Último juego de rol", de: "Letztes Rollenspiel", fr: "Dernier jeu de rôle", ar: "آخر تمثيل أدوار" },
+  col_roleplays:    { en: "Roleplays",       es: "Juegos de rol",      de: "Rollenspiele",       fr: "Jeux de rôle",       ar: "تمثيلات الأدوار" },
+  col_qaScore:      { en: "QA Score",        es: "Puntuación QA",      de: "QA-Score",           fr: "Score QA",           ar: "درجة الجودة" },
+  col_missions:     { en: "Missions",        es: "Misiones",           de: "Missionen",          fr: "Missions",           ar: "المهام" },
+  noAgents:         { en: "No agents found", es: "No se encontraron agentes", de: "Keine Agenten gefunden", fr: "Aucun agent trouvé", ar: "لم يُعثر على وكلاء" },
+  na:               { en: "N/A",             es: "N/D",                de: "k. A.",              fr: "N/D",                ar: "غير متاح" },
+  belowTarget:      { en: "Below target",    es: "Por debajo del objetivo", de: "Unter Ziel",    fr: "Sous l’objectif",    ar: "دون الهدف" },
+  onTarget:         { en: "On target",       es: "En objetivo",        de: "Im Ziel",            fr: "Dans l’objectif",    ar: "ضمن الهدف" },
+  readinessProfile: { en: "Readiness Profile", es: "Perfil de preparación", de: "Bereitschaftsprofil", fr: "Profil de préparation", ar: "ملف الجاهزية" },
+  productionProfile:{ en: "Production Profile", es: "Perfil de producción", de: "Produktionsprofil", fr: "Profil de production", ar: "ملف الإنتاج" },
+  agentProfile:     { en: "Agent Profile",   es: "Perfil del agente",  de: "Agentenprofil",      fr: "Profil de l’agent",  ar: "ملف الوكيل" },
+};
+
+export function lhA(id, key) {
+  const row = AGENTS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+export function lhTotalAgents(id, n) {
+  const num = n.toLocaleString(id === "ar" ? "en-US" : id);
+  const T = {
+    en: `Total ${num} Agents`, es: `Total ${num} agentes`, de: `Insgesamt ${num} Agenten`,
+    fr: `Total ${num} agents`, ar: `إجمالي ${num} وكيل`,
+  };
+  return T[id] ?? T.en;
+}
+
+export function lhAssignedTo(id, name) {
+  const T = {
+    en: `Assigned to ${name}.`, es: `Asignado a ${name}.`, de: `Zugewiesen an ${name}.`,
+    fr: `Attribué à ${name}.`,  ar: `تم التعيين إلى ${name}.`,
+  };
+  return T[id] ?? T.en;
+}
+
+export function lhMissionsSummary(id, below, total) {
+  const T = {
+    en: `Missions: ${below} of ${total} below target`,
+    es: `Misiones: ${below} de ${total} por debajo del objetivo`,
+    de: `Missionen: ${below} von ${total} unter Ziel`,
+    fr: `Missions : ${below} sur ${total} sous l’objectif`,
+    ar: `المهام: ${below} من ${total} دون الهدف`,
+  };
+  return T[id] ?? T.en;
+}
+
 // Persona-language option labels (Step 1 dropdown). Keyed on the canonical
 // English value that stays in the wizard's stored state.
 const LANGUAGE_NAME = {

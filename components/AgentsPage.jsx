@@ -9,24 +9,25 @@ import TrendArrow from "./TrendArrow";
 import { AgentsIcon } from "./SideNav/icons";
 import { LEARNING_AGENTS } from "./mocks/learningAgents";
 import { formatDate } from "./formatDate";
+import { lhA, lhI, lhPageOf, lhTotalAgents, lhMissionsSummary, lhDir } from "./learningHubLocale";
 
 const PAGE_SIZE = 9;
 
 // Search-by selector options. The screenshot defaults to "Agent ID".
+// labelKey resolves through the AGENTS engine group at render time.
 // TODO: confirm the full search-by option list (spec: other options TBD).
 const SEARCH_BY_OPTIONS = [
-  { id: "id", label: "Agent ID" },
-  { id: "name", label: "Agent name" },
+  { id: "id", labelKey: "searchById" },
+  { id: "name", labelKey: "searchByName" },
 ];
 
-// Column labels follow the written spec. The reference screenshot shows
-// "Last Session" / "Sessions"; the spec labels are authoritative.
+// Column labels follow the written spec. labelKey → AGENTS engine group.
 const COLS = [
-  { key: "agent", label: "Agents", width: "30%" },
-  { key: "lastRoleplay", label: "Last Roleplay", width: "20%" },
-  { key: "roleplays", label: "Roleplays", width: "16%" },
-  { key: "qaScore", label: "QA Score", width: "18%" },
-  { key: "missions", label: "Missions", width: "16%" },
+  { key: "agent", labelKey: "col_agent", width: "30%" },
+  { key: "lastRoleplay", labelKey: "col_lastRoleplay", width: "20%" },
+  { key: "roleplays", labelKey: "col_roleplays", width: "16%" },
+  { key: "qaScore", labelKey: "col_qaScore", width: "18%" },
+  { key: "missions", labelKey: "col_missions", width: "16%" },
 ];
 
 const TREND_VARIANTS = {
@@ -39,12 +40,14 @@ const TREND_VARIANTS = {
 // AgentsPage — Learning Hub › Agents sub-page. Resolved by app/page.jsx
 // (LEARNING_PAGES) and rendered inside <PageLayout>. Self-contained: holds
 // its own mock data, search, and pagination state — mirrors InteractionsPage.
-export default function AgentsPage({ onOpenAgent }) {
+export default function AgentsPage({ onOpenAgent, locale = "en" }) {
+  const isRtl = lhDir(locale) === "rtl";
   const [searchBy, setSearchBy] = React.useState("id");
   const [query, setQuery] = React.useState("");
   const [page, setPage] = React.useState(1);
 
   const selected = SEARCH_BY_OPTIONS.find((o) => o.id === searchBy) || SEARCH_BY_OPTIONS[0];
+  const optLabel = (o) => lhA(locale, o.labelKey);
 
   // TODO: confirm client-side vs server-side search — client-side filter
   // over the full list is used for the prototype.
@@ -63,10 +66,10 @@ export default function AgentsPage({ onOpenAgent }) {
   const searchByFilter = {
     id: "search-by",
     label: "",
-    value: selected.label,
-    options: SEARCH_BY_OPTIONS.map((o) => ({ label: o.label, value: o.label })),
+    value: optLabel(selected),
+    options: SEARCH_BY_OPTIONS.map((o) => ({ label: optLabel(o), value: optLabel(o) })),
     onSelect: (label) => {
-      const opt = SEARCH_BY_OPTIONS.find((o) => o.label === label);
+      const opt = SEARCH_BY_OPTIONS.find((o) => optLabel(o) === label);
       if (opt) setSearchBy(opt.id);
       setPage(1);
     },
@@ -77,7 +80,7 @@ export default function AgentsPage({ onOpenAgent }) {
       <PageHeader
         identifier={{
           icon: <AgentsIcon size={18} />,
-          label: "Agents",
+          label: lhA(locale, "title"),
           withDropdown: true,
           // TODO: connect the Learning Hub sub-page list to this dropdown.
           onClick: () => {},
@@ -89,32 +92,35 @@ export default function AgentsPage({ onOpenAgent }) {
             setQuery(v);
             setPage(1);
           },
-          placeholder: "Search by ID and name",
+          placeholder: lhA(locale, "searchPlaceholder"),
         }}
         toolbar={[
           // TODO: wire the sort menu.
-          { id: "sort", icon: <SortIcon />, label: "Sort", onClick: () => {} },
+          { id: "sort", icon: <SortIcon />, label: lhA(locale, "sort"), onClick: () => {} },
           // TODO: wire the filter panel.
-          { id: "filter", icon: <SlidersHorizontal size={20} />, label: "Filter", onClick: () => {} },
+          { id: "filter", icon: <SlidersHorizontal size={20} />, label: lhA(locale, "filter"), onClick: () => {} },
         ]}
       />
       <Card padX={0} padY={0} style={{ overflow: "hidden" }}>
         <Table
           rows={pageRows}
           onRowClick={(agent) => onOpenAgent?.(agent.id)}
+          locale={locale}
         />
         <Pagination
           page={safePage}
           totalPages={totalPages}
           total={filtered.length}
           onPageChange={(next) => setPage(Math.min(Math.max(1, next), totalPages))}
+          locale={locale}
+          isRtl={isRtl}
         />
       </Card>
     </div>
   );
 }
 
-function Table({ rows, onRowClick }) {
+function Table({ rows, onRowClick, locale }) {
   return (
     <table style={apStyles.table}>
       <colgroup>
@@ -126,7 +132,7 @@ function Table({ rows, onRowClick }) {
         <tr style={apStyles.headRow}>
           {COLS.map((c) => (
             <th key={c.key} scope="col" style={apStyles.th}>
-              {c.label}
+              {lhA(locale, c.labelKey)}
             </th>
           ))}
         </tr>
@@ -135,7 +141,7 @@ function Table({ rows, onRowClick }) {
         {rows.length === 0 ? (
           <tr>
             <td colSpan={COLS.length} style={apStyles.emptyCell}>
-              No agents found
+              {lhA(locale, "noAgents")}
             </td>
           </tr>
         ) : (
@@ -145,6 +151,7 @@ function Table({ rows, onRowClick }) {
               agent={agent}
               isLast={i === rows.length - 1}
               onClick={() => onRowClick(agent)}
+              locale={locale}
             />
           ))
         )}
@@ -153,7 +160,7 @@ function Table({ rows, onRowClick }) {
   );
 }
 
-function Row({ agent, isLast, onClick }) {
+function Row({ agent, isLast, onClick, locale }) {
   const [hover, setHover] = React.useState(false);
   return (
     <tr
@@ -176,10 +183,10 @@ function Row({ agent, isLast, onClick }) {
         <CountChip value={agent.roleplaysCount} />
       </Cell>
       <Cell>
-        <ScoreCell score={agent.qaScore} trend={agent.qaScoreTrend} />
+        <ScoreCell score={agent.qaScore} trend={agent.qaScoreTrend} locale={locale} />
       </Cell>
       <Cell>
-        <MissionsCell missions={agent.missions} />
+        <MissionsCell missions={agent.missions} locale={locale} />
       </Cell>
     </tr>
   );
@@ -222,8 +229,8 @@ function DarkTooltip({ rect, agent }) {
   );
 }
 
-function ScoreCell({ score, trend }) {
-  if (score == null) return <ScoreUnavailable />;
+function ScoreCell({ score, trend, locale }) {
+  if (score == null) return <ScoreUnavailable locale={locale} />;
   return (
     <span style={apStyles.scoreCell}>
       {/* TODO: confirm whether the QA Score % is threshold-coloured
@@ -238,7 +245,7 @@ function ScoreCell({ score, trend }) {
 // ScoreUnavailable — rendered when qaScore is null.
 // TODO: confirm the unavailable-score icon component (spec describes a
 // broken / incomplete pie with an exclamation mark).
-function ScoreUnavailable() {
+function ScoreUnavailable({ locale }) {
   return (
     <span style={apStyles.unavailable}>
       <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -246,7 +253,7 @@ function ScoreUnavailable() {
         <line x1={8} y1={5} x2={8} y2={8.6} stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
         <circle cx={8} cy={11} r={0.9} fill="currentColor" />
       </svg>
-      <span style={{ fontSize: 13 }}>N/A</span>
+      <span style={{ fontSize: 13 }}>{lhA(locale, "na")}</span>
     </span>
   );
 }
@@ -267,7 +274,7 @@ function CountChip({ value }) {
 
 // MissionsCell — neutral count chip; hovering shows a light card with the
 // per-mission breakdown. The hover card is position:fixed (never clipped).
-function MissionsCell({ missions }) {
+function MissionsCell({ missions, locale }) {
   const [rect, setRect] = React.useState(null);
   return (
     <span
@@ -276,13 +283,13 @@ function MissionsCell({ missions }) {
       onMouseLeave={() => setRect(null)}
     >
       <CountChip value={missions.length} />
-      {rect && missions.length > 0 && <MissionsHoverCard rect={rect} missions={missions} />}
+      {rect && missions.length > 0 && <MissionsHoverCard rect={rect} missions={missions} locale={locale} />}
     </span>
   );
 }
 
 // TODO: confirm the rich hover-card component — composed here from <Card>.
-function MissionsHoverCard({ rect, missions }) {
+function MissionsHoverCard({ rect, missions, locale }) {
   const below = missions.filter((m) => m.status === "below_target").length;
   return (
     <Card
@@ -292,13 +299,13 @@ function MissionsHoverCard({ rect, missions }) {
       style={{ position: "fixed", left: rect.left, top: rect.bottom + 8, width: 280, zIndex: 1000 }}
     >
       <div style={apStyles.hoverHeader}>
-        Missions: {below} of {missions.length} below target
+        {lhMissionsSummary(locale, below, missions.length)}
       </div>
       <div style={apStyles.hoverList}>
         {missions.map((m) => (
           <div key={m.id} style={apStyles.hoverRow}>
             <span style={apStyles.hoverName}>{m.name}</span>
-            <MissionStatusIcon status={m.status} />
+            <MissionStatusIcon status={m.status} locale={locale} />
           </div>
         ))}
       </div>
@@ -306,7 +313,7 @@ function MissionsHoverCard({ rect, missions }) {
   );
 }
 
-function MissionStatusIcon({ status }) {
+function MissionStatusIcon({ status, locale }) {
   const below = status === "below_target";
   const color = below ? "var(--color-error)" : "var(--color-success)";
   return (
@@ -315,7 +322,7 @@ function MissionStatusIcon({ status }) {
       height={16}
       viewBox="0 0 16 16"
       role="img"
-      aria-label={below ? "Below target" : "On target"}
+      aria-label={below ? lhA(locale, "belowTarget") : lhA(locale, "onTarget")}
       style={{ flexShrink: 0 }}
     >
       <circle cx={8} cy={8} r={8} fill={color} />
@@ -361,24 +368,25 @@ function SortIcon() {
   );
 }
 
-function Pagination({ page, totalPages, total, onPageChange }) {
+function Pagination({ page, totalPages, total, onPageChange, locale, isRtl }) {
   const canPrev = page > 1;
   const canNext = page < totalPages;
+  const flip = isRtl ? { transform: "scaleX(-1)" } : undefined;
   return (
     <div style={apStyles.pagination}>
-      <div style={apStyles.paginationCount}>Total {total} Agents</div>
+      <div style={apStyles.paginationCount}>{lhTotalAgents(locale, total)}</div>
       <div style={apStyles.paginationCtrls}>
-        <PageBtn ariaLabel="First page" disabled={!canPrev} onClick={() => onPageChange(1)}>
-          <ChevronsLeft size={16} />
+        <PageBtn ariaLabel={lhI(locale, "firstPage")} disabled={!canPrev} onClick={() => onPageChange(1)}>
+          <ChevronsLeft size={16} style={flip} />
         </PageBtn>
         <span style={apStyles.pageLabel} aria-live="polite">
-          Page {page} of {totalPages}
+          {lhPageOf(locale, page, totalPages)}
         </span>
-        <PageBtn ariaLabel="Previous page" disabled={!canPrev} onClick={() => onPageChange(page - 1)}>
-          <ChevronLeft size={16} />
+        <PageBtn ariaLabel={lhI(locale, "prevPage")} disabled={!canPrev} onClick={() => onPageChange(page - 1)}>
+          <ChevronLeft size={16} style={flip} />
         </PageBtn>
-        <PageBtn ariaLabel="Next page" disabled={!canNext} onClick={() => onPageChange(page + 1)}>
-          <ChevronRight size={16} />
+        <PageBtn ariaLabel={lhI(locale, "nextPage")} disabled={!canNext} onClick={() => onPageChange(page + 1)}>
+          <ChevronRight size={16} style={flip} />
         </PageBtn>
         {/* TODO: confirm last-page button inclusion — omitted to match the
             existing InteractionsPage pagination. */}
@@ -407,7 +415,7 @@ const apStyles = {
   },
   th: {
     padding: "14px 16px",
-    textAlign: "left",
+    textAlign: "start",
     fontSize: 12,
     fontWeight: 700,
     color: "var(--text-primary)",

@@ -687,6 +687,7 @@ export default function Page() {
           agentId={agentProfileId}
           onBack={() => setAgentProfileId(null)}
           onViewMission={openMission}
+          locale={locale}
         />
       );
     } else if (!missionsPopulated) {
