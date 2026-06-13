@@ -117,8 +117,9 @@ export default [
   {
     files: [
       "components/AttentionItemCard.jsx",
-      "components/CommandCenterQueue.jsx",
-      "components/CommandCenterBoard.jsx",
+      "components/AgentScoreRow.jsx",
+      "components/CommandCenterRoster.jsx",
+      "components/CommandCenterScorecards.jsx",
       "components/CommandCenterFocus.jsx",
     ],
     rules: {

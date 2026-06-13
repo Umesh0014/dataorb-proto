@@ -2,18 +2,20 @@
 
 import React from "react";
 import DarkPillSwitcher from "./DarkPillSwitcher";
-import CommandCenterQueue from "./CommandCenterQueue";
-import CommandCenterBoard from "./CommandCenterBoard";
+import CommandCenterRoster from "./CommandCenterRoster";
+import CommandCenterScorecards from "./CommandCenterScorecards";
 import CommandCenterFocus from "./CommandCenterFocus";
 import AttentionItemDrawer from "./AttentionItemDrawer";
 import Modal from "./Modal";
 import Toast from "./Toast";
 import { ATTENTION_ITEMS, RESOLVED_ITEMS } from "./mocks/commandCenter";
 
-// CommandCenterShell — the Team Leader Command Center entry point. Hosts the
-// three switcher variants behind a floating 3-way DarkPillSwitcher (Queue /
-// Board / Focus) and owns the shared, in-memory triage state so the loop is
-// consistent across variants: launch → Acted, snooze / dismiss / mark
+// CommandCenterShell — the Team Leader Command Center entry point. The
+// surface is a team-leader dashboard: team-level metrics on top, then every
+// agent with their CSAT + composite score and per-agent action items. Hosts
+// the three dashboard layouts behind a floating 3-way DarkPillSwitcher
+// (Roster / Scorecards / Focus) and owns the shared, in-memory state so the
+// loop is consistent across variants: launch → Acted, snooze / dismiss / mark
 // handled drop the item, Undo restores it. The shared sidecar drawer, the
 // confirm/dismiss Modal, and the Toast live here once and are reused by every
 // variant. All state resets on reload — no persistence by design (G5).
@@ -22,11 +24,11 @@ import { ATTENTION_ITEMS, RESOLVED_ITEMS } from "./mocks/commandCenter";
 // Whether the production home is a dedicated rail item or a role-aware
 // default route is a product decision flagged to Akash/Neil, not settled here.
 
-const VARIANTS = ["Queue", "Board", "Focus"];
+const VARIANTS = ["Roster", "Scorecards", "Focus"];
 const HIDDEN = new Set(["snoozed", "dismissed", "handled"]);
 
 export default function CommandCenterShell({ onOpenAgent }) {
-  const [variant, setVariant] = React.useState("Queue");
+  const [variant, setVariant] = React.useState("Roster");
   // statusById: id → "acted" | "snoozed" | "dismissed" | "handled".
   // Absent means the item is still Open.
   const [statusById, setStatusById] = React.useState({});
@@ -117,8 +119,8 @@ export default function CommandCenterShell({ onOpenAgent }) {
 
   return (
     <div style={shellStyles.wrap}>
-      {variant === "Queue" && <CommandCenterQueue {...variantProps} />}
-      {variant === "Board" && <CommandCenterBoard {...variantProps} />}
+      {variant === "Roster" && <CommandCenterRoster {...variantProps} />}
+      {variant === "Scorecards" && <CommandCenterScorecards {...variantProps} />}
       {variant === "Focus" && <CommandCenterFocus {...variantProps} />}
 
       <AttentionItemDrawer

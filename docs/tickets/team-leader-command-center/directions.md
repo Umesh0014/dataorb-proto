@@ -63,6 +63,31 @@ next" and leans on an open scope question; #7 risks flattening hierarchy; #9 los
 ranked scan order; #10 inverts the brief's priority. A/B/C cover the operational,
 pipeline, and editorial strengths with the most distinct IAs.
 
+## Direction change (Jun 13) — agent-roster dashboard
+
+After the first build, Umesh redirected: the Command Center should be a **team-leader
+dashboard**, not a board/kanban. Concretely — team-level org metrics on top, then
+*every agent* on the team with their **CSAT + composite score**, each expandable to
+per-agent **action items** ("this agent isn't taking help from Learning Hub", "needs
+help in this area"), all oriented to **improving that agent's score**.
+
+The kanban (old Variant B) was dropped outright, and the item-first triage queue was
+re-centred on the agent. The three switcher variants are now three *dashboard* layouts
+of the same agent-roster concept (shared atoms: the team-metrics strip, `AgentScoreRow`
+with a composite ScoreBar, and the nested `AttentionItemCard` action items):
+
+- **A — Roster (default):** team metrics, then every agent as an expandable row with
+  CSAT + composite-vs-target bar + engagement; expand reveals that agent's action items
+  under a "lift composite X → Y" goal. Needs-help agents float up; on-track sit below.
+- **B — Scorecards:** the same roster as an at-a-glance card grid — CSAT, composite bar,
+  and the single highest-priority action per agent with a 1-click launch.
+- **C — Focus:** the 5-minute Monday read — the one agent who needs the most help
+  featured with their full plan, then the rest of the at-risk roster, then a downloadable
+  "this worked" recap.
+
+The original 10-direction exploration below still informs the atoms (reuse, sidecar
+drawer, severity affordances, the loop); the *primary surface* is now the agent dashboard.
+
 ## Final scores (design-evaluator, 2 refine passes)
 
 Pass 1 found a single shared gate failure (G8 — the warning/info severity-label

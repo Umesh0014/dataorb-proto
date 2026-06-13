@@ -1,24 +1,23 @@
 "use client";
 
 import React from "react";
-import { PartyPopper, Repeat, GraduationCap, Target, Plus, MessageSquare, Download } from "lucide-react";
+import { PartyPopper, Download } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import Banner from "./Banner";
 import InlineStatusAffordance from "./InlineStatusAffordance";
-import MetricSparkline from "./MetricSparkline";
-import AttentionItemCard, { ItemKebab } from "./AttentionItemCard";
+import AttentionItemCard from "./AttentionItemCard";
+import AgentScoreRow, { ScoreBar } from "./AgentScoreRow";
 import CommandCenterTeamStrip from "./CommandCenterTeamStrip";
-import { rankItems, SEVERITY_META, INTERVENTION_META, toneInk } from "./mocks/commandCenter";
+import {
+  TEAM_ROSTER, ENGAGEMENT_META, rosterStatus, rankItems, toneInk,
+} from "./mocks/commandCenter";
 
-// CommandCenterFocus (Variant C) — editorial "Monday-morning" digest. Reads
-// top-down in one ~760px column: the single highest-priority action as a
-// hero ("start here"), a short "also needs you today" list, then a "this
-// worked last week" recap. Answers JTBD-1/2 ("in 5 minutes, who needs me and
-// what do I do") with an editorial, white-surface treatment (UI-10) rather
-// than an operational grid.
-
-const INTERVENTION_ICON = { Repeat, GraduationCap, Target, Plus, MessageSquare };
+// CommandCenterFocus (Variant C) — the same agent dashboard read top-down for
+// a 5-minute Monday triage. Team metrics, then the one agent who needs the
+// most help featured with their scores + action plan, then the rest of the
+// at-risk roster, then a "this worked last week" recap (downloadable). Same
+// data as the Roster variant, prioritised and editorial.
 
 export default function CommandCenterFocus({
   items,
@@ -30,48 +29,50 @@ export default function CommandCenterFocus({
   onDismiss,
   onMarkHandled,
 }) {
-  const open = rankItems(items.filter((it) => it.status === "open"));
-  const [hero, ...rest] = open;
+  const needsHelp = React.useMemo(
+    () => TEAM_ROSTER.filter((a) => rosterStatus(a) === "needs_help").sort((a, b) => a.composite - b.composite),
+    [],
+  );
+  const [hero, ...rest] = needsHelp;
   const improved = resolved.filter((r) => r.status === "improved");
+  const [openIds, setOpenIds] = React.useState(() => new Set());
+  const toggle = (id) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const itemsFor = (agentId) => rankItems(items.filter((it) => it.agent.id === agentId));
+
+  const handlers = { onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
 
   return (
     <div style={fStyles.column}>
-      <CommandCenterTeamStrip subtitle="Your 5-minute Monday read — who needs you, and what to do first" />
+      <CommandCenterTeamStrip subtitle="Your 5-minute Monday read — who needs you most, and how to lift their score" />
 
       {hero ? (
-        <FocusHero
-          item={hero}
-          onLaunch={() => onLaunch(hero.id)}
-          onOpenDetail={() => onOpenDetail(hero.id)}
-          onOpenAgent={onOpenAgent}
-          onSnooze={() => onSnooze(hero.id)}
-          onDismiss={() => onDismiss(hero.id)}
-          onMarkHandled={() => onMarkHandled(hero.id)}
-        />
+        <FocusAgentHero agent={hero} items={itemsFor(hero.id)} {...handlers} />
       ) : (
         <Banner
           tone="success"
           leading={<PartyPopper size={20} style={{ color: "var(--color-success)", flexShrink: 0 }} />}
-          heading="Nothing needs you first thing"
-          body={`Your team is on track. ${improved.length} interventions improved a metric this cycle — see below.`}
+          heading="Every agent is on track"
+          body={`No agent is below target or stalled right now. ${improved.length} interventions moved a score this cycle.`}
         />
       )}
 
       {rest.length > 0 && (
         <section style={fStyles.section}>
-          <h2 style={fStyles.sectionTitle}>Also needs you today</h2>
+          <h2 style={fStyles.sectionTitle}>Also needs you</h2>
           <div style={fStyles.list}>
-            {rest.map((item) => (
-              <AttentionItemCard
-                key={item.id}
-                item={item}
-                status="open"
-                onLaunch={() => onLaunch(item.id)}
-                onOpenDetail={() => onOpenDetail(item.id)}
-                onOpenAgent={onOpenAgent}
-                onSnooze={() => onSnooze(item.id)}
-                onDismiss={() => onDismiss(item.id)}
-                onMarkHandled={() => onMarkHandled(item.id)}
+            {rest.map((agent) => (
+              <AgentScoreRow
+                key={agent.id}
+                agent={agent}
+                items={itemsFor(agent.id)}
+                expanded={openIds.has(agent.id)}
+                onToggle={() => toggle(agent.id)}
+                {...handlers}
               />
             ))}
           </div>
@@ -91,7 +92,7 @@ export default function CommandCenterFocus({
               Download
             </Button>
           </div>
-          <p style={fStyles.sectionLede}>Take these into a 1:1 or up-report — coaching that moved the metric.</p>
+          <p style={fStyles.sectionLede}>Take these into a 1:1 or up-report — coaching that moved a score.</p>
           <Card tone="outline" padX={20} padY={8}>
             {improved.map((r, i) => (
               <button
@@ -116,71 +117,63 @@ export default function CommandCenterFocus({
   );
 }
 
-// FocusHero — the single "start here" action, given editorial weight: large
-// type, the evidence + trend, the recommended intervention, and a prominent
-// Launch. Reuses MetricSparkline / Button / InlineStatusAffordance.
-function FocusHero({ item, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
-  const sev = SEVERITY_META[item.severity];
-  const interv = INTERVENTION_META[item.intervention.kind];
-  const IntervIcon = INTERVENTION_ICON[interv.icon] || Target;
+// FocusAgentHero — the single agent to start with, given editorial weight:
+// large scores, the goal, and their action plan inline.
+function FocusAgentHero({ agent, items, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
+  const eng = ENGAGEMENT_META[agent.engagement];
+  const gap = agent.target - agent.composite;
   return (
     <Card padX={28} padY={26} shadow style={fStyles.hero}>
-      <div style={fStyles.heroEyebrow}>
-        <span style={fStyles.startHere}>Start here</span>
-        <InlineStatusAffordance tone={sev.tone} icon={<Dot tone={sev.tone} />} style={{ color: toneInk(sev.tone) }}>{sev.label} priority</InlineStatusAffordance>
-      </div>
+      <span style={fStyles.startHere}>Start with</span>
       <div style={fStyles.heroIdentity}>
         <button
           type="button"
           className="cc-focusable"
-          onClick={() => onOpenAgent?.(item.agent.id)}
+          onClick={() => onOpenAgent?.(agent.id)}
           style={fStyles.heroAvatar}
-          aria-label={`Open ${item.agent.name}'s profile`}
+          aria-label={`Open ${agent.name}'s profile`}
         >
-          {item.agent.initials}
+          {agent.initials}
         </button>
         <div style={{ minWidth: 0 }}>
-          <h2 style={fStyles.heroName}>{item.agent.name}</h2>
-          <div style={fStyles.heroTags}>
-            <span style={fStyles.heroComp}>{item.competency}</span>
-            {item.driver && <span style={fStyles.heroDriver}>{item.driver}</span>}
+          <h2 style={fStyles.heroName}>{agent.name}</h2>
+          <InlineStatusAffordance tone={eng.tone} icon={<Dot tone={eng.tone} />} style={{ color: toneInk(eng.tone) }}>
+            {eng.label}
+          </InlineStatusAffordance>
+        </div>
+      </div>
+
+      <div style={fStyles.heroScores}>
+        <div style={fStyles.heroCsat}>
+          <span style={fStyles.metricLabel}>CSAT</span>
+          <span style={fStyles.heroBig}>{agent.csat}%</span>
+        </div>
+        <div style={fStyles.heroComposite}>
+          <div style={fStyles.scoreTop}>
+            <span style={fStyles.metricLabel}>Composite</span>
+            <span style={fStyles.heroBig}>{agent.composite} <span style={fStyles.scoreMax}>/ 100</span></span>
           </div>
+          <ScoreBar composite={agent.composite} target={agent.target} onTrack={false} />
         </div>
       </div>
 
-      <p style={fStyles.heroEvidence}>{item.evidence}</p>
+      <p style={fStyles.goal}>Goal — lift composite {agent.composite} → {agent.target} (+{gap} pts)</p>
 
-      {item.metric && (
-        <div style={fStyles.heroMetric}>
-          <span style={fStyles.heroSpark} role="img" aria-label={`${item.competency} trend, now ${item.metric.current}${item.metric.unit}`}>
-            <MetricSparkline
-              points={item.metric.points}
-              labels={item.metric.labels}
-              color="var(--color-error)"
-              formatValue={(v) => `${Math.round(v)}${item.metric.unit}`}
-            />
-          </span>
-          <span style={fStyles.heroNow}>{item.metric.current}{item.metric.unit}</span>
-        </div>
-      )}
-
-      <div style={fStyles.heroInterv}>
-        <IntervIcon size={16} aria-hidden="true" style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={fStyles.heroIntervVerb}>{interv.label}</span>
-          <span style={fStyles.heroIntervAsset}>{item.intervention.asset} · {item.intervention.duration}</span>
-        </div>
-      </div>
-
-      <div style={fStyles.heroActions}>
-        <Button variant="primary" onClick={onLaunch}>Launch intervention</Button>
-        <Button variant="text" uppercase={false} onClick={onOpenDetail}>View details</Button>
-        <ItemKebab
-          onOpenAgent={() => onOpenAgent?.(item.agent.id)}
-          onSnooze={onSnooze}
-          onDismiss={onDismiss}
-          onMarkHandled={onMarkHandled}
-        />
+      <div style={fStyles.heroItems}>
+        {items.map((item) => (
+          <AttentionItemCard
+            key={item.id}
+            item={item}
+            status={item.status}
+            hideAgent
+            onLaunch={() => onLaunch(item.id)}
+            onOpenDetail={() => onOpenDetail(item.id)}
+            onOpenAgent={onOpenAgent}
+            onSnooze={() => onSnooze(item.id)}
+            onDismiss={() => onDismiss(item.id)}
+            onMarkHandled={() => onMarkHandled(item.id)}
+          />
+        ))}
       </div>
     </Card>
   );
@@ -188,9 +181,9 @@ function FocusHero({ item, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDism
 
 // downloadRecap — exports the "this worked" outcomes as a plain-text file the
 // lead can drop into a 1:1 or up-report. Real client-side download (Blob +
-// anchor), no new deps; satisfies the editorial downloadable-artifact lever.
+// anchor), no new deps.
 function downloadRecap(improved) {
-  const lines = ["This worked last week — coaching that moved the metric", ""];
+  const lines = ["This worked last week — coaching that moved a score", ""];
   improved.forEach((r) => {
     lines.push(`- ${r.agent.name} · ${r.competency}: ${r.intervention.asset} → ${r.delta.label} ${r.delta.value} ${r.delta.window}`);
   });
@@ -215,15 +208,14 @@ function Dot({ tone }) {
 }
 
 const fStyles = {
-  column: { maxWidth: 760, marginInline: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 28 },
+  column: { maxWidth: 820, marginInline: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 28 },
   section: { display: "flex", flexDirection: "column", gap: 12 },
   recapHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   sectionTitle: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)" },
   sectionLede: { margin: "-4px 0 4px", fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 400, color: "var(--text-secondary)" },
-  list: { display: "flex", flexDirection: "column", gap: 14 },
+  list: { display: "flex", flexDirection: "column", gap: 12 },
 
   hero: { display: "flex", flexDirection: "column", gap: 16, borderRadius: 16 },
-  heroEyebrow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   startHere: {
     fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
     textTransform: "uppercase", color: "var(--color-button-primary-bg)",
@@ -235,34 +227,23 @@ const fStyles = {
     fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 700, cursor: "pointer",
     display: "inline-flex", alignItems: "center", justifyContent: "center",
   },
-  heroName: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1.2 },
-  heroTags: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 },
-  heroComp: {
-    fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600,
-    color: "var(--color-icon-tertiary-fg)", background: "var(--color-icon-tertiary-bg)",
-    padding: "2px 10px", borderRadius: 999,
+  heroName: { margin: "0 0 4px", fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1.2 },
+  heroScores: { display: "flex", gap: 24, alignItems: "flex-end" },
+  heroCsat: { display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 },
+  heroComposite: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6, maxWidth: 360 },
+  scoreTop: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 },
+  metricLabel: {
+    fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+    textTransform: "uppercase", color: "var(--color-text-tertiary)",
   },
-  heroDriver: {
-    fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600,
-    color: "var(--color-text-tertiary)", background: "var(--pill-bg)",
-    padding: "2px 10px", borderRadius: 999,
-  },
-  heroEvidence: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 400, color: "var(--text-primary)", lineHeight: 1.5 },
-  heroMetric: { display: "flex", alignItems: "center", gap: 14 },
-  heroSpark: { flex: 1, minWidth: 0 },
-  heroNow: { fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 800, color: "var(--color-text-deep)", flexShrink: 0 },
-  heroInterv: {
-    display: "flex", alignItems: "center", gap: 12,
-    background: "var(--color-card-emoji-bg)", borderRadius: 12, padding: "14px 16px",
-  },
-  heroIntervVerb: { display: "block", fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
-  heroIntervAsset: { display: "block", fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 400, color: "var(--text-secondary)", marginTop: 1 },
-  heroActions: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" },
+  heroBig: { fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1 },
+  scoreMax: { fontSize: 14, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  goal: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
+  heroItems: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14, alignItems: "start" },
 
   recapRow: {
     display: "flex", alignItems: "center", gap: 12, width: "100%",
-    background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-    padding: "12px 0",
+    background: "transparent", border: "none", cursor: "pointer", textAlign: "left", padding: "12px 0",
   },
   recapAvatar: {
     flexShrink: 0, width: 32, height: 32, borderRadius: "50%",

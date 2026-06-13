@@ -158,12 +158,29 @@ export const ATTENTION_ITEMS = [
     sampleNote: "Based on 4 of 36 calls flagged.",
   },
   {
+    id: "ai-ravi-engagement",
+    agent: { id: "215566", name: "Ravi Patel", initials: "RP" },
+    competency: "Learning Hub engagement",
+    driver: null,
+    signal: "undone",
+    evidence: "Not taking help from Learning Hub — 0 practice sessions in 14 days.",
+    metric: null,
+    severity: "medium",
+    centrality: 2,
+    reach: 1,
+    recencyDays: 1,
+    overdueDays: 14,
+    deadline: null,
+    intervention: { kind: "one-on-one", asset: "1:1 — unblock and re-assign practice", duration: "10 min" },
+    sampleNote: null,
+  },
+  {
     id: "ai-mukesh-overdue",
     agent: { id: "203891", name: "Mukesh Patil", initials: "MP" },
     competency: "Compliance scripting",
     driver: "Compliance",
     signal: "undone",
-    evidence: "Assigned 'Compliance refresh' replay not started — 5 days past the due date.",
+    evidence: "Hasn't opened the assigned 'Compliance refresh' in Learning Hub — 5 days overdue.",
     metric: null,
     severity: "medium",
     centrality: 2,
@@ -248,7 +265,7 @@ export const ATTENTION_ITEMS = [
     competency: "Upsell confidence",
     driver: "Account management",
     signal: "undone",
-    evidence: "Assigned 'Upsell confidence' guide untouched — 2 days past due.",
+    evidence: "Not taking help from Learning Hub — 'Upsell confidence' guide untouched, 2 days overdue.",
     metric: null,
     severity: "low",
     centrality: 1,
@@ -303,17 +320,58 @@ export const RESOLVED_ITEMS = [
   },
 ];
 
-// ---- Team strip KPIs (StatCard row) -------------------------------------
+// ---- Team-level org metrics (top of the dashboard) ----------------------
 // Every value carries a label + unit (WCAG composite-number rule). Trend
 // sublabels pair the arrow glyph with text, never colour alone.
 export const TEAM_KPIS = [
-  { id: "attention", label: "Needs attention", value: "6 agents", sublabel: "of 18 on your team" },
-  { id: "coverage",  label: "Coaching coverage", value: "11 / 18", sublabel: "agents touched this week" },
-  { id: "improved",  label: "Interventions improved", value: "4", sublabel: "of 7 in last cycle" },
-  { id: "ttfa",      label: "Time to first action", value: "1.4 days", sublabel: "↓ 0.6 vs last week" },
+  { id: "csat",       label: "Team CSAT", value: "71%", sublabel: "team average · ↑ 2pp vs last week" },
+  { id: "composite",  label: "Avg composite score", value: "62 / 100", sublabel: "target 75" },
+  { id: "engagement", label: "Learning engagement", value: "6 / 11", sublabel: "agents practising this week" },
+  { id: "attention",  label: "Needs attention", value: "7 agents", sublabel: "below target or stalled" },
 ];
 
 export const TEAM_CONTEXT = {
   team: "Billing & Retention",
   lead: "Maria Santos",
+  size: 11,
 };
+
+// ---- Agent roster -------------------------------------------------------
+// Every agent on the team with their CSAT + composite score, the target to
+// lift them to, and Learning Hub engagement. Action items per agent are the
+// ATTENTION_ITEMS keyed by agent id (agentActionItems). composite/target are
+// read-only scores (0–100); the goal framing is "improve the score", never
+// an employment judgement (gate G4).
+export const TEAM_ROSTER = [
+  { id: "215566", name: "Ravi Patel",       initials: "RP", csat: 61, composite: 38, target: 70, engagement: "none" },
+  { id: "203891", name: "Mukesh Patil",     initials: "MP", csat: 66, composite: 34, target: 65, engagement: "none" },
+  { id: "217430", name: "Priya Nair",       initials: "PN", csat: 67, composite: 40, target: 70, engagement: "active" },
+  { id: "184775", name: "Hiroshi Tanaka",   initials: "HT", csat: 70, composite: 45, target: 70, engagement: "active" },
+  { id: "198320", name: "Willis Jast",      initials: "WJ", csat: 54, composite: 61, target: 75, engagement: "stalled" },
+  { id: "201357", name: "Liam Donovan",     initials: "LD", csat: 56, composite: 52, target: 70, engagement: "stalled" },
+  { id: "213846", name: "Sofia Russo",      initials: "SR", csat: 62, composite: 62, target: 70, engagement: "none" },
+  { id: "188214", name: "Devon Hartmann",   initials: "DH", csat: 84, composite: 81, target: 75, engagement: "active" },
+  { id: "209188", name: "Elena Vasquez",    initials: "EV", csat: 89, composite: 88, target: 80, engagement: "active" },
+  { id: "222019", name: "Grace Okafor",     initials: "GO", csat: 88, composite: 91, target: 80, engagement: "active" },
+  { id: "193845", name: "Aaliyah Tillman",  initials: "AT", csat: 90, composite: 92, target: 85, engagement: "active" },
+];
+
+// Learning Hub engagement → label + tone. "none"/"stalled" both read as a
+// distinct state with a paired label (never colour alone).
+export const ENGAGEMENT_META = {
+  active:  { label: "Practising",     tone: "success" },
+  stalled: { label: "Slowing down",   tone: "warning" },
+  none:    { label: "Not practising", tone: "danger" },
+};
+
+// rosterStatus — an agent needs help if they're below their composite target
+// OR not actively practising. Otherwise they're on track.
+export function rosterStatus(agent) {
+  if (agent.composite < agent.target || agent.engagement !== "active") return "needs_help";
+  return "on_track";
+}
+
+// agentActionItems — the open action items for one agent, rank-ordered.
+export function agentActionItems(agentId, items = ATTENTION_ITEMS) {
+  return rankItems(items.filter((it) => it.agent.id === agentId));
+}

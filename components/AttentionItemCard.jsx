@@ -55,6 +55,7 @@ export default function AttentionItemCard({
   item,
   status = "open",
   dense = false,
+  hideAgent = false,
   onLaunch,
   onOpenDetail,
   onOpenAgent,
@@ -76,17 +77,19 @@ export default function AttentionItemCard({
   return (
     <Card padX={dense ? 16 : 20} padY={dense ? 16 : 18} tone="outline" style={cardStyles.shell}>
       <div style={cardStyles.headerRow}>
-        <button
-          type="button"
-          className="cc-focusable"
-          onClick={() => onOpenAgent?.(item.agent.id)}
-          style={cardStyles.avatar}
-          aria-label={`Open ${item.agent.name}'s profile`}
-        >
-          {item.agent.initials}
-        </button>
+        {!hideAgent && (
+          <button
+            type="button"
+            className="cc-focusable"
+            onClick={() => onOpenAgent?.(item.agent.id)}
+            style={cardStyles.avatar}
+            aria-label={`Open ${item.agent.name}'s profile`}
+          >
+            {item.agent.initials}
+          </button>
+        )}
         <div style={cardStyles.identity}>
-          <span style={cardStyles.name}>{item.agent.name}</span>
+          {!hideAgent && <span style={cardStyles.name}>{item.agent.name}</span>}
           <div style={cardStyles.tagRow}>
             <span style={cardStyles.competencyTag}>{item.competency}</span>
             {item.driver && <span style={cardStyles.driverTag}>{item.driver}</span>}
