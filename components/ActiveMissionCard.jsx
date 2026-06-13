@@ -5,6 +5,7 @@ import { Clipboard, Clock, BadgeCheck, Sparkles, ArrowRight, ChevronRight } from
 import Button from "./Button";
 import Card from "./Card";
 import InlineStatusAffordance from "./InlineStatusAffordance";
+import { lhAM, lhSkill, lhDaysLeft, lhRoleplaysOf, lhMissionSummary, lhBelowGap } from "./learningHubLocale";
 
 // ActiveMissionCard — one active mission as a collapsible card-within-the-card.
 // Collapsed shows the header row only (toggle chevron, title, roleplay /
@@ -12,7 +13,7 @@ import InlineStatusAffordance from "./InlineStatusAffordance";
 // adds the focus-area table below. The single-open accordion is owned by the
 // parent (Missions.jsx) via the `expanded` / `onToggle` props; the table is
 // unmounted-by-height (max-height collapse) when not expanded.
-export default function ActiveMissionCard({ mission, expanded, onToggle, onViewMission }) {
+export default function ActiveMissionCard({ mission, expanded, onToggle, onViewMission, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   // TODO: confirm days-left urgency threshold (red at <= 3 days for now).
   const urgent = mission.daysLeft <= 3;
@@ -57,12 +58,12 @@ export default function ActiveMissionCard({ mission, expanded, onToggle, onViewM
                 transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
               }}
             />
-            <span style={amStyles.title}>{mission.title}</span>
+            <span style={amStyles.title} dir="auto">{lhSkill(locale, mission.title)}</span>
           </span>
           <div style={amStyles.meta}>
             <span style={amStyles.metaItem}>
               <Clipboard size={14} />
-              {mission.roleplaysCompleted}/{mission.roleplaysTotal} Roleplays
+              {lhRoleplaysOf(locale, mission.roleplaysCompleted, mission.roleplaysTotal)}
             </span>
             <span
               style={{
@@ -71,11 +72,11 @@ export default function ActiveMissionCard({ mission, expanded, onToggle, onViewM
               }}
             >
               <Clock size={14} />
-              {mission.daysLeft} days left
+              {lhDaysLeft(locale, mission.daysLeft)}
             </span>
             {!expanded && (
               <InlineStatusAffordance tone={summaryTone(met, below)}>
-                {summaryLabel(met, below)}
+                {lhMissionSummary(locale, met, below)}
               </InlineStatusAffordance>
             )}
             <Button
@@ -88,7 +89,7 @@ export default function ActiveMissionCard({ mission, expanded, onToggle, onViewM
                 onViewMission?.(mission.pageMissionId);
               }}
             >
-              View mission
+              {lhAM(locale, "viewMission")}
             </Button>
           </div>
         </div>
@@ -102,7 +103,7 @@ export default function ActiveMissionCard({ mission, expanded, onToggle, onViewM
           }}
         >
           <div style={amStyles.body}>
-            <FocusAreaTable focusAreas={mission.focusAreas} />
+            <FocusAreaTable focusAreas={mission.focusAreas} locale={locale} />
           </div>
         </div>
       </Card>
@@ -128,28 +129,21 @@ function summaryTone(met, below) {
   return "warning";
 }
 
-function summaryLabel(met, below) {
-  if (below === 0) return `All ${met} met`;
-  if (met === 0) return `All ${below} below`;
-  return `${met} met, ${below} below`;
-}
-
-// FA_COLS — four-column layout for the focus-area table. Proportions follow
-// the Quality adherence By Metric / By Skills table, with the Achieved
-// column widened so the progress bar dominates.
-// TODO: confirm column widths inside the Active Missions table read well at typical viewport widths
+// FA_COLS — four-column layout for the focus-area table. labelKey resolves
+// through the AM engine group; the Achieved column is widened so the bar
+// dominates.
 const FA_COLS = [
-  { key: "name", label: "Focus Area", width: "32%" },
-  { key: "target", label: "Target", width: "12%" },
-  { key: "achieved", label: "Achieved", width: "34%" },
-  { key: "status", label: "Status", width: "22%", align: "right" },
+  { key: "name", labelKey: "fa_name", width: "32%" },
+  { key: "target", labelKey: "fa_target", width: "12%" },
+  { key: "achieved", labelKey: "fa_achieved", width: "34%" },
+  { key: "status", labelKey: "fa_status", width: "22%", align: "end" },
 ];
 
 // FocusAreaTable — the mission's focus areas as a structured table that
 // reads like the Quality adherence By Metric / By Skills tables: a header
 // row, fixed column widths, divider lines, and per-row hover. Each mission
 // sub-card renders its own header row.
-function FocusAreaTable({ focusAreas }) {
+function FocusAreaTable({ focusAreas, locale = "en" }) {
   return (
     <div style={amStyles.faList}>
       <table style={amStyles.table}>
@@ -164,16 +158,16 @@ function FocusAreaTable({ focusAreas }) {
               <th
                 key={c.key}
                 scope="col"
-                style={{ ...amStyles.th, textAlign: c.align || "left" }}
+                style={{ ...amStyles.th, textAlign: c.align || "start" }}
               >
-                {c.label}
+                {lhAM(locale, c.labelKey)}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {focusAreas.map((fa, i) => (
-            <FocusAreaRow key={fa.id} fa={fa} isLast={i === focusAreas.length - 1} />
+            <FocusAreaRow key={fa.id} fa={fa} isLast={i === focusAreas.length - 1} locale={locale} />
           ))}
         </tbody>
       </table>
@@ -181,7 +175,7 @@ function FocusAreaTable({ focusAreas }) {
   );
 }
 
-function FocusAreaRow({ fa, isLast }) {
+function FocusAreaRow({ fa, isLast, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   const Icon = fa.isAiInsight ? Sparkles : BadgeCheck;
   return (
@@ -205,7 +199,7 @@ function FocusAreaRow({ fa, isLast }) {
       <td style={amStyles.cell}>
         <span style={amStyles.faName}>
           <Icon size={14} style={{ flexShrink: 0, color: "var(--color-icon-tertiary-fg)" }} />
-          <span style={amStyles.faNameText}>{fa.name}</span>
+          <span style={amStyles.faNameText} dir="auto">{lhSkill(locale, fa.name)}</span>
         </span>
       </td>
       <td style={amStyles.cell}>
@@ -219,7 +213,7 @@ function FocusAreaRow({ fa, isLast }) {
       </td>
       <td style={amStyles.cell}>
         <span style={amStyles.statusCell}>
-          <StatusPill status={fa.status} gapPct={fa.gapPct} actual={fa.actual} />
+          <StatusPill status={fa.status} gapPct={fa.gapPct} actual={fa.actual} locale={locale} />
         </span>
       </td>
     </tr>
@@ -259,9 +253,9 @@ export function ProgressBar({ value, targetPct }) {
 // area's status; the colour is routed through the shared threshold tone so
 // the pill always agrees with the Achieved progress bar.
 // TODO: confirm gap-percentage formula for status pills with Akash.
-export function StatusPill({ status, gapPct, actual }) {
+export function StatusPill({ status, gapPct, actual, locale = "en" }) {
   const tone = thresholdTone(actual);
-  const label = status === "met" ? "Met" : gapPct != null ? `Below ${gapPct}%` : "Below";
+  const label = status === "met" ? lhAM(locale, "met") : lhBelowGap(locale, gapPct);
   return (
     <span style={{ ...amStyles.pill, background: tone.bg, color: tone.fg }}>{label}</span>
   );
@@ -322,7 +316,7 @@ const amStyles = {
   },
   th: {
     padding: "14px 0",
-    textAlign: "left",
+    textAlign: "start",
     fontSize: 12,
     fontWeight: 700,
     color: "var(--text-primary)",
@@ -360,7 +354,7 @@ const amStyles = {
     alignItems: "center",
     gap: 10,
     width: "100%",
-    paddingRight: 16,
+    paddingInlineEnd: 16,
   },
   barTrack: {
     flex: 1,

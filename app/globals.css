@@ -346,3 +346,12 @@ body {
 .kanbanLane:hover .kanbanLaneScroll::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--color-text-tertiary) 30%, transparent);
 }
+
+/* RTL / Arabic — when the app flips to right-to-left, neutralise the
+   tracking that LTR labels carry inline. Arabic is a connected (cursive)
+   script, so positive letter-spacing breaks glyph joins; native RTL
+   guidance is to never letter-space Arabic. Scoped to the RTL document so
+   LTR rendering is untouched. (See Material Design bidirectionality.) */
+:root[dir="rtl"] * {
+  letter-spacing: normal !important;
+}

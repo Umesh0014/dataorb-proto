@@ -14,6 +14,7 @@ import {
 import Card from "./Card";
 import Button from "./Button";
 import { NBA_CARDS, NBA_MORE } from "./mocks/nextBestActions";
+import { lhP, lhNba, lhDurationMin } from "./learningHubLocale";
 
 // Lucide icon per NBA action type — a closed set defined in the mock data.
 const ACTION_ICON = {
@@ -39,7 +40,7 @@ const FADE_MS = 200;
 // score hero card: a small header + a horizontally-scrolling rail of
 // prioritized NBA cards plus a "View all" side sheet. `onAssign({ name,
 // duration })` opens the page-level Confirm assignment modal.
-export default function NextBestActions({ onAssign, hideHeader = false, sheetOpen, onSheetOpenChange }) {
+export default function NextBestActions({ onAssign, hideHeader = false, sheetOpen, onSheetOpenChange, locale = "en" }) {
   const [dismissed, setDismissed] = React.useState([]);
   const [fadingId, setFadingId] = React.useState(null);
   const viewAllRef = React.useRef(null);
@@ -60,7 +61,7 @@ export default function NextBestActions({ onAssign, hideHeader = false, sheetOpe
     <div>
       {!hideHeader && (
       <div style={nbaStyles.zoneHeader}>
-        <span style={nbaStyles.zoneLabel}>Next best actions</span>
+        <span style={nbaStyles.zoneLabel}>{lhP(locale, "nba")}</span>
         <span ref={viewAllRef} style={{ flexShrink: 0 }}>
           <Button
             variant="text"
@@ -68,14 +69,14 @@ export default function NextBestActions({ onAssign, hideHeader = false, sheetOpe
             trailingIcon={<ArrowRight size={16} />}
             onClick={() => onSheetOpenChange(true)}
           >
-            View all
+            {lhP(locale, "viewAll")}
           </Button>
         </span>
       </div>
       )}
 
       {visible.length === 0 ? (
-        <EmptyState />
+        <EmptyState locale={locale} />
       ) : (
         <div style={nbaStyles.rail} className="scrollbar-none">
           {visible.map((card) => (
@@ -85,6 +86,7 @@ export default function NextBestActions({ onAssign, hideHeader = false, sheetOpe
               fading={fadingId === card.id}
               onAssign={onAssign}
               onDismiss={() => dismissCard(card.id)}
+              locale={locale}
             />
           ))}
         </div>
@@ -94,6 +96,7 @@ export default function NextBestActions({ onAssign, hideHeader = false, sheetOpe
         <NbaSideSheet
           items={[...NBA_CARDS, ...NBA_MORE]}
           onAssign={onAssign}
+          locale={locale}
           onClose={() => {
             onSheetOpenChange(false);
             viewAllRef.current?.querySelector("button")?.focus();
@@ -109,33 +112,35 @@ export default function NextBestActions({ onAssign, hideHeader = false, sheetOpe
 // assigned (title + duration + projected outcome), and a bottom CTA row
 // (Assign button + kebab menu). The lavender block flexes so CTA rows
 // stay aligned across cards of differing content height.
-function NbaCard({ card, fading, onAssign, onDismiss }) {
+function NbaCard({ card, fading, onAssign, onDismiss, locale = "en" }) {
   const ActionIcon = ACTION_ICON[card.action.type] || Target;
+  const c = lhNba(locale, card.id);
+  const assetName = c?.asset ?? card.action.asset;
   return (
     <Card padX={20} padY={20} shadow style={{ ...nbaStyles.card, opacity: fading ? 0 : 1 }}>
       <div style={nbaStyles.topGroup}>
-        <div style={nbaStyles.cardTitle}>{card.title}</div>
-        <div style={nbaStyles.evidence}>{card.evidence}</div>
+        <div style={nbaStyles.cardTitle} dir="auto">{c?.title ?? card.title}</div>
+        <div style={nbaStyles.evidence} dir="auto">{c?.evidence ?? card.evidence}</div>
       </div>
 
       <div style={nbaStyles.drillBlock}>
         <div style={nbaStyles.drillRow}>
           <span style={nbaStyles.drillTitle}>
             <ActionIcon size={14} style={{ flexShrink: 0, color: "var(--text-secondary)" }} />
-            <span style={nbaStyles.assetName}>{card.action.asset}</span>
+            <span style={nbaStyles.assetName} dir="auto">{assetName}</span>
           </span>
-          <span style={nbaStyles.durationChip}>{card.action.duration}</span>
+          <span style={nbaStyles.durationChip}>{lhDurationMin(locale, card.action.duration)}</span>
         </div>
-        <span style={nbaStyles.drillDesc}>
+        <span style={nbaStyles.drillDesc} dir="auto">
           <TrendingUp size={12} style={{ flexShrink: 0, marginTop: 2, color: "var(--chart-blue)" }} />
-          {card.outcome}
+          {c?.outcome ?? card.outcome}
         </span>
       </div>
 
       <div style={nbaStyles.ctaRow}>
         <button
           type="button"
-          onClick={() => onAssign({ name: card.action.asset, duration: card.action.duration })}
+          onClick={() => onAssign({ name: assetName, duration: lhDurationMin(locale, card.action.duration) })}
           onMouseEnter={(e) => {
             e.currentTarget.style.filter = "brightness(0.95)";
           }}
@@ -144,9 +149,9 @@ function NbaCard({ card, fading, onAssign, onDismiss }) {
           }}
           style={nbaStyles.assignBtn}
         >
-          Assign
+          {lhP(locale, "assign")}
         </button>
-        <KebabMenu onDismiss={onDismiss} />
+        <KebabMenu onDismiss={onDismiss} locale={locale} />
       </div>
     </Card>
   );
@@ -154,7 +159,7 @@ function NbaCard({ card, fading, onAssign, onDismiss }) {
 
 // KebabMenu — "More actions" dropdown. View details is a stub; Snooze and
 // Dismiss both drop the card from the rail.
-function KebabMenu({ onDismiss }) {
+function KebabMenu({ onDismiss, locale = "en" }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
 
@@ -169,20 +174,20 @@ function KebabMenu({ onDismiss }) {
 
   const items = [
     {
-      label: "View details",
+      label: lhP(locale, "viewDetails"),
       onClick: () => {
         // TODO: open the full NBA detail view
       },
     },
-    { label: "Snooze 7 days", onClick: onDismiss },
-    { label: "Dismiss", onClick: onDismiss },
+    { label: lhP(locale, "snooze7"), onClick: onDismiss },
+    { label: lhP(locale, "dismiss"), onClick: onDismiss },
   ];
 
   return (
     <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
       <button
         type="button"
-        aria-label="More actions"
+        aria-label={lhP(locale, "moreActions")}
         onClick={() => setOpen((o) => !o)}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = "var(--grey-50)";
@@ -218,7 +223,7 @@ function KebabMenu({ onDismiss }) {
 
 // NbaSideSheet — right drawer listing every NBA, mirroring the
 // RecruitFiltersDrawer surface (fixed panel, --shadow-drawer, no backdrop).
-function NbaSideSheet({ items, onAssign, onClose }) {
+function NbaSideSheet({ items, onAssign, onClose, locale = "en" }) {
   React.useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -228,36 +233,38 @@ function NbaSideSheet({ items, onAssign, onClose }) {
   }, [onClose]);
 
   return (
-    <aside role="complementary" aria-label="All next best actions" style={nbaStyles.sheet}>
+    <aside role="complementary" aria-label={lhP(locale, "allNba")} style={nbaStyles.sheet}>
       <div style={nbaStyles.sheetHeader}>
-        <span style={nbaStyles.sheetTitle}>All next best actions</span>
-        <Button variant="icon" aria-label="Close" onClick={onClose}>
+        <span style={nbaStyles.sheetTitle}>{lhP(locale, "allNba")}</span>
+        <Button variant="icon" aria-label={lhP(locale, "close")} onClick={onClose}>
           <X size={18} />
         </Button>
       </div>
       <div style={nbaStyles.sheetBody}>
         {items.map((item) => (
-          <SideSheetRow key={item.id} item={item} onAssign={onAssign} />
+          <SideSheetRow key={item.id} item={item} onAssign={onAssign} locale={locale} />
         ))}
       </div>
     </aside>
   );
 }
 
-function SideSheetRow({ item, onAssign }) {
+function SideSheetRow({ item, onAssign, locale = "en" }) {
   const pr = PRIORITY[item.priority] || PRIORITY.recommended;
+  const c = lhNba(locale, item.id);
+  const assetName = c?.asset ?? item.action.asset;
   return (
     <div style={nbaStyles.sheetRow}>
       <div style={nbaStyles.sheetRowMain}>
-        <span style={{ ...nbaStyles.chip, background: pr.bg, color: pr.fg }}>{pr.label}</span>
-        <div style={nbaStyles.sheetRowTitle}>{item.title}</div>
-        <div style={nbaStyles.sheetRowEvidence}>{item.evidence}</div>
+        <span style={{ ...nbaStyles.chip, background: pr.bg, color: pr.fg }}>{lhP(locale, `pr_${item.priority}`)}</span>
+        <div style={nbaStyles.sheetRowTitle} dir="auto">{c?.title ?? item.title}</div>
+        <div style={nbaStyles.sheetRowEvidence} dir="auto">{c?.evidence ?? item.evidence}</div>
       </div>
       <Button
         variant="primary"
-        onClick={() => onAssign({ name: item.action.asset, duration: item.action.duration })}
+        onClick={() => onAssign({ name: assetName, duration: lhDurationMin(locale, item.action.duration) })}
       >
-        Assign
+        {lhP(locale, "assign")}
       </Button>
     </div>
   );
@@ -265,12 +272,12 @@ function SideSheetRow({ item, onAssign }) {
 
 // EmptyState — shown when no NBAs remain (e.g. all dismissed).
 // TODO: confirm congratulatory empty-state tone with product.
-function EmptyState() {
+function EmptyState({ locale = "en" }) {
   return (
     <div style={nbaStyles.empty}>
       <PartyPopper size={20} style={{ color: "var(--color-success)", flexShrink: 0 }} />
       <span style={nbaStyles.emptyText}>
-        No critical actions needed. Aaliyah is meeting all quality targets this week.
+        {lhP(locale, "emptyNba")}
       </span>
     </div>
   );
@@ -433,7 +440,7 @@ const nbaStyles = {
   menu: {
     position: "absolute",
     top: "calc(100% + 4px)",
-    right: 0,
+    insetInlineEnd: 0,
     minWidth: 160,
     background: "var(--surface-white)",
     border: "1px solid var(--color-border-tab)",
@@ -448,7 +455,7 @@ const nbaStyles = {
     padding: "8px 16px",
     border: "none",
     background: "transparent",
-    textAlign: "left",
+    textAlign: "start",
     fontFamily: "var(--font-sans)",
     fontSize: 13,
     color: "var(--color-text-medium)",
@@ -471,11 +478,11 @@ const nbaStyles = {
   sheet: {
     position: "fixed",
     top: 0,
-    right: 0,
+    insetInlineEnd: 0,
     bottom: 0,
     width: 400,
     background: "var(--surface-white)",
-    borderLeft: "1px solid var(--color-divider-card)",
+    borderInlineStart: "1px solid var(--color-divider-card)",
     boxShadow: "var(--shadow-drawer)",
     display: "flex",
     flexDirection: "column",

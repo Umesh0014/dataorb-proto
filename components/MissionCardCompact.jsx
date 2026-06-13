@@ -5,6 +5,7 @@ import { Clock, CheckCircle2 } from "lucide-react";
 import InlineStatusAffordance from "./InlineStatusAffordance";
 import SelectionAccentBar from "./SelectionAccentBar";
 import { formatDateRange } from "./formatDate";
+import { lhM, lhTerm, lhMissionContent, lhDaysLeft, lhStartsIn } from "./learningHubLocale";
 
 const TAG_MAX = 15;
 
@@ -65,9 +66,9 @@ export function runningStateBadge(m) {
 // props for <InlineStatusAffordance>. Shared with the Kanban side curtain.
 // There is no reusable "broken-pie clock" icon in the library, so the
 // ends-today case uses the standard Clock glyph in the danger tone.
-export function missionStatusAffordance(mission) {
+export function missionStatusAffordance(mission, locale = "en") {
   if (mission.state === "completed") {
-    return { tone: "success", icon: <CheckCircle2 size={12} />, label: "Closed" };
+    return { tone: "success", icon: <CheckCircle2 size={12} />, label: lhM(locale, "closed") };
   }
   const d = mission.daysLeft;
   if (d == null) return { tone: "tertiary", icon: <Clock size={12} />, label: "—" };
@@ -75,13 +76,13 @@ export function missionStatusAffordance(mission) {
     return {
       tone: "danger",
       icon: <Clock size={12} />,
-      label: d <= 0 ? "Ends Today" : `${d} days left`,
+      label: d <= 0 ? lhM(locale, "endsToday") : lhDaysLeft(locale, d),
     };
   }
   if (d <= 14) {
-    return { tone: "warning", icon: <Clock size={12} />, label: `${d} days left` };
+    return { tone: "warning", icon: <Clock size={12} />, label: lhDaysLeft(locale, d) };
   }
-  return { tone: "tertiary", icon: <Clock size={12} />, label: `${d} days left` };
+  return { tone: "tertiary", icon: <Clock size={12} />, label: lhDaysLeft(locale, d) };
 }
 
 // MissionCardCompact — kanban card. Full variant (running lanes) carries a
@@ -107,13 +108,14 @@ function daysUntilStart(mission) {
   return diff > 0 ? diff : null;
 }
 
-export default function MissionCardCompact({ mission, onClick, selected = false, hideAgentCount = false }) {
+export default function MissionCardCompact({ mission, onClick, selected = false, hideAgentCount = false, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   const completed = mission.state === "completed";
   const upcoming = mission.state === "upcoming";
   const pct = Math.max(0, Math.min(100, mission.progress ?? 0));
   const tone = progressTone(pct);
-  const status = missionStatusAffordance(mission);
+  const status = missionStatusAffordance(mission, locale);
+  const content = lhMissionContent(locale, mission.id);
   // Upcoming cards override the running-state affordance with a
   // forward-looking "Starts in N days" line. Reuses the same inline
   // status footer slot so no new component branch is needed.
@@ -135,9 +137,9 @@ export default function MissionCardCompact({ mission, onClick, selected = false,
     >
       {selected && <SelectionAccentBar />}
 
-      <span style={kcStyles.title}>{mission.name}</span>
-      <div style={mission.description ? kcStyles.desc : kcStyles.descEmpty}>
-        {mission.description || "--"}
+      <span style={kcStyles.title} dir="auto">{content?.name ?? mission.name}</span>
+      <div style={mission.description ? kcStyles.desc : kcStyles.descEmpty} dir="auto">
+        {content?.description ?? mission.description ?? "--"}
       </div>
 
       <div style={kcStyles.divider} aria-hidden="true" />
@@ -146,14 +148,14 @@ export default function MissionCardCompact({ mission, onClick, selected = false,
         {!hideAgentCount && (
           <>
             <span style={kcStyles.countBadge}>{mission.agentCount}</span>
-            <span style={kcStyles.chipLabel}>Agents</span>
+            <span style={kcStyles.chipLabel}>{lhM(locale, "agents")}</span>
           </>
         )}
         {tags.length > 0 && (
           <>
             {!hideAgentCount && <span style={kcStyles.dot} aria-hidden="true">·</span>}
-            <span style={kcStyles.tagChip} title={tags[0]}>
-              {truncate(tags[0], TAG_MAX)}
+            <span style={kcStyles.tagChip} title={lhTerm(locale, tags[0])}>
+              {truncate(lhTerm(locale, tags[0]), TAG_MAX)}
             </span>
           </>
         )}
@@ -175,12 +177,12 @@ export default function MissionCardCompact({ mission, onClick, selected = false,
 
       <div style={kcStyles.footer}>
         <span style={kcStyles.dateRange}>
-          {formatDateRange(mission.startDate, mission.endDate)}
+          {formatDateRange(mission.startDate, mission.endDate, locale)}
         </span>
         {upcoming
           ? (
             <span style={kcStyles.upcomingStatus}>
-              {startsIn != null ? `Starts in ${startsIn} days` : "Starts soon"}
+              {startsIn != null ? lhStartsIn(locale, startsIn) : lhM(locale, "startsSoon")}
             </span>
           ) : (
             <InlineStatusAffordance tone={status.tone} icon={status.icon}>
@@ -198,7 +200,7 @@ const kcStyles = {
     position: "relative",
     overflow: "hidden",
     appearance: "none",
-    textAlign: "left",
+    textAlign: "start",
     cursor: "pointer",
     width: "100%",
     flexShrink: 0,

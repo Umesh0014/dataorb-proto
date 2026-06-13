@@ -75,7 +75,9 @@ export default function PageLayout({
   return (
     <div
       style={{
-        marginLeft: "var(--sidenav-width)",
+        // Logical inline-start margin: clears the rail on the left in LTR
+        // and on the right in RTL, matching SideNav's flipped position.
+        marginInlineStart: "var(--sidenav-width)",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
@@ -237,7 +239,7 @@ function OverlayPanel({ children }) {
       style={{
         position: "fixed",
         top: 0,
-        right: 0,
+        insetInlineEnd: 0,
         bottom: 0,
         width: "var(--page-right-panel-width)",
         background: "var(--surface-white)",

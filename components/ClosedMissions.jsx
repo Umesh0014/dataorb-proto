@@ -4,21 +4,24 @@ import React from "react";
 import { ChevronsLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import Button from "./Button";
 import { formatDate } from "./formatDate";
+import {
+  lhAM, lhI, lhPageOf, lhSkill, lhClosedCount, lhCompletionStatus,
+} from "./learningHubLocale";
 
 const PAGE_SIZE = 8;
 
 const COLS = [
-  { key: "title", label: "Closed Missions", width: "36%" },
-  { key: "target", label: "Target", width: "16%" },
-  { key: "roleplays", label: "Roleplays", width: "14%" },
-  { key: "closingDate", label: "Closing Date", width: "18%" },
-  { key: "completionStatus", label: "Completion Status", width: "16%" },
+  { key: "title", labelKey: "col_closed", width: "36%" },
+  { key: "target", labelKey: "fa_target", width: "16%" },
+  { key: "roleplays", labelKey: "col_roleplays", width: "14%" },
+  { key: "closingDate", labelKey: "col_closingDate", width: "18%" },
+  { key: "completionStatus", labelKey: "col_completion", width: "16%" },
 ];
 
 // ClosedMissions — Closed Missions view of the Missions card: a three-tile
 // metric strip above a paginated table. Table + pagination mirror the
 // ContactDriverTable pattern.
-export default function ClosedMissions({ metrics, rows }) {
+export default function ClosedMissions({ metrics, rows, locale = "en" }) {
   const [page, setPage] = React.useState(1);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -29,13 +32,13 @@ export default function ClosedMissions({ metrics, rows }) {
   return (
     <div style={cmStyles.wrap}>
       <div style={cmStyles.metricStrip}>
-        <MetricTile label="Closed Missions" value={String(metrics.closedMissionsTotal)} />
+        <MetricTile label={lhAM(locale, "tile_closed")} value={String(metrics.closedMissionsTotal)} />
         <MetricTile
-          label="Total Roleplays"
+          label={lhAM(locale, "tile_totalRoleplays")}
           value={`${metrics.totalRoleplays.completed}/${metrics.totalRoleplays.total}`}
         />
         <MetricTile
-          label="Targets Achieved"
+          label={lhAM(locale, "tile_targetsAchieved")}
           value={`${metrics.targetsAchieved.met}/${metrics.targetsAchieved.total}`}
         />
       </div>
@@ -51,33 +54,33 @@ export default function ClosedMissions({ metrics, rows }) {
             <tr style={cmStyles.headRow}>
               {COLS.map((c) => (
                 <th key={c.key} scope="col" style={cmStyles.th}>
-                  {c.label}
+                  {lhAM(locale, c.labelKey)}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {pageRows.map((row, i) => (
-              <Row key={row.id} row={row} isLast={i === pageRows.length - 1} />
+              <Row key={row.id} row={row} isLast={i === pageRows.length - 1} locale={locale} />
             ))}
           </tbody>
         </table>
 
         <div style={cmStyles.footer}>
           <div style={cmStyles.total}>
-            {pageRows.length} of {rows.length} closed missions
+            {lhClosedCount(locale, pageRows.length, rows.length)}
           </div>
           <div style={cmStyles.ctrls}>
-            <PageBtn ariaLabel="First page" disabled={safePage <= 1} onClick={() => goToPage(1)}>
+            <PageBtn ariaLabel={lhI(locale, "firstPage")} disabled={safePage <= 1} onClick={() => goToPage(1)}>
               <ChevronsLeft size={16} />
             </PageBtn>
             <span style={cmStyles.pageLabel} aria-live="polite">
-              Page {safePage} of {totalPages}
+              {lhPageOf(locale, safePage, totalPages)}
             </span>
-            <PageBtn ariaLabel="Previous page" disabled={safePage <= 1} onClick={() => goToPage(safePage - 1)}>
+            <PageBtn ariaLabel={lhI(locale, "prevPage")} disabled={safePage <= 1} onClick={() => goToPage(safePage - 1)}>
               <ChevronLeft size={16} />
             </PageBtn>
-            <PageBtn ariaLabel="Next page" disabled={safePage >= totalPages} onClick={() => goToPage(safePage + 1)}>
+            <PageBtn ariaLabel={lhI(locale, "nextPage")} disabled={safePage >= totalPages} onClick={() => goToPage(safePage + 1)}>
               <ChevronRight size={16} />
             </PageBtn>
             {/* No last-page button — mirrors the AgentsPage pagination. */}
@@ -97,7 +100,7 @@ function MetricTile({ label, value }) {
   );
 }
 
-function Row({ row, isLast }) {
+function Row({ row, isLast, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   return (
     <tr
@@ -113,22 +116,19 @@ function Row({ row, isLast }) {
       }}
     >
       <Cell>
-        <span style={cmStyles.nameText}>{row.title}</span>
+        <span style={cmStyles.nameText} dir="auto">{lhSkill(locale, row.title)}</span>
       </Cell>
       <Cell>
-        <TargetPill status={row.target} />
+        <TargetPill status={row.target} locale={locale} />
       </Cell>
       <Cell>
         <span style={cmStyles.cellText}>{row.roleplays}</span>
       </Cell>
       <Cell>
-        <span style={cmStyles.cellText}>{formatDate(row.closingDate)}</span>
+        <span style={cmStyles.cellText}>{formatDate(row.closingDate, locale)}</span>
       </Cell>
       <Cell>
-        {/* TODO: confirm closing-state vocabulary — "Completion Status"
-            (Closed / Expired / Completed) used; an earlier mockup used
-            "Closing Type" (Archived / Deadline / Completion). */}
-        <span style={cmStyles.cellText}>{capitalize(row.completionStatus)}</span>
+        <span style={cmStyles.cellText}>{lhCompletionStatus(locale, row.completionStatus)}</span>
       </Cell>
     </tr>
   );
@@ -138,7 +138,7 @@ function Cell({ children }) {
   return <td style={cmStyles.cell}>{children}</td>;
 }
 
-function TargetPill({ status }) {
+function TargetPill({ status, locale = "en" }) {
   const met = status === "met";
   return (
     <span
@@ -148,7 +148,7 @@ function TargetPill({ status }) {
         color: met ? "var(--color-success)" : "var(--color-error)",
       }}
     >
-      {met ? "Met" : "Below"}
+      {met ? lhAM(locale, "met") : lhAM(locale, "below")}
     </span>
   );
 }
@@ -159,10 +159,6 @@ function PageBtn({ children, onClick, disabled, ariaLabel }) {
       {children}
     </Button>
   );
-}
-
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 const cmStyles = {
@@ -208,7 +204,7 @@ const cmStyles = {
   },
   th: {
     padding: "14px 0",
-    textAlign: "left",
+    textAlign: "start",
     fontSize: 12,
     fontWeight: 700,
     color: "var(--text-primary)",

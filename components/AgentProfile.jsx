@@ -11,6 +11,11 @@ import QualityAdherence from "./QualityAdherence";
 import AssignModal from "./AssignModal";
 import Toast from "./Toast";
 import { LEARNING_AGENTS } from "./mocks/learningAgents";
+import { lhA, lhAssignedTo } from "./learningHubLocale";
+
+// Demo assignee shown in the post-assignment toast (fixed sample, not the
+// row's agent — matches the prototype's seeded confirmation).
+const ASSIGNEE_NAME = "Aaliyah Tillman";
 
 // Auto-dismiss delay for the post-assignment toast.
 const TOAST_MS = 3200;
@@ -20,7 +25,7 @@ const TOAST_MS = 3200;
 // Next Best Actions rail followed by the four metric cards. The page owns the
 // Assign confirm modal + toast so the Tier 1 rail and the Tier 2 inline
 // prompts inside the sections can all trigger them.
-export default function AgentProfile({ agentId, onBack, onViewMission }) {
+export default function AgentProfile({ agentId, onBack, onViewMission, locale = "en" }) {
   // TODO: replace this mock lookup with a real agent data fetch.
   const agent = LEARNING_AGENTS.find((a) => a.id === agentId) || LEARNING_AGENTS[0];
   const [dateRange, setDateRange] = React.useState("last_7_days");
@@ -31,11 +36,11 @@ export default function AgentProfile({ agentId, onBack, onViewMission }) {
   React.useEffect(() => {
     if (typeof document === "undefined") return undefined;
     const previous = document.title;
-    document.title = `${agent.name} — Agent Profile`;
+    document.title = `${agent.name} — ${lhA(locale, "agentProfile")}`;
     return () => {
       document.title = previous;
     };
-  }, [agent]);
+  }, [agent, locale]);
 
   React.useEffect(() => {
     if (!toastShown) return undefined;
@@ -53,9 +58,9 @@ export default function AgentProfile({ agentId, onBack, onViewMission }) {
       <PageHeader
         agentHeader={{
           agentName: agent.name,
-          contextLabel: "Readiness Profile",
+          contextLabel: lhA(locale, "readinessProfile"),
           secondaryLink: {
-            label: "Production Profile",
+            label: lhA(locale, "productionProfile"),
             // TODO: real Production Profile route — no URL router in this app yet.
             href: "#",
             external: true,
@@ -75,6 +80,7 @@ export default function AgentProfile({ agentId, onBack, onViewMission }) {
           onAssign={setAssignAsset}
           dateRange={dateRange}
           milestone={scoreMilestone}
+          locale={locale}
         />
         <div style={profileStyles.railMount}>
           <div style={profileStyles.railSticky}>
@@ -82,7 +88,7 @@ export default function AgentProfile({ agentId, onBack, onViewMission }) {
           </div>
         </div>
       </div>
-      <Missions onViewMission={onViewMission} />
+      <Missions onViewMission={onViewMission} locale={locale} />
       <CoachingRecommendations onNbaAssign={setAssignAsset} />
       <RoleplayCoverage onNbaAssign={setAssignAsset} />
       <QualityAdherence onNbaAssign={setAssignAsset} />
@@ -95,7 +101,7 @@ export default function AgentProfile({ agentId, onBack, onViewMission }) {
       {toastShown && (
         <Toast
           tone="success"
-          message="Assigned to Aaliyah Tillman."
+          message={lhAssignedTo(locale, ASSIGNEE_NAME)}
           onDismiss={() => setToastShown(false)}
         />
       )}
@@ -123,8 +129,8 @@ const profileStyles = {
     position: "absolute",
     top: 0,
     bottom: 0,
-    left: "100%",
-    marginLeft: 12,
+    insetInlineStart: "100%",
+    marginInlineStart: 12,
     width: 48,
     zIndex: 30,
   },
