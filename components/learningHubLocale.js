@@ -858,7 +858,71 @@ const REPLAY = {
   rec_emptyReviewB:   { en: "Every suggested replay has been reviewed.", ar: "تمت مراجعة كل إعادة مُقترَحة." },
   rec_emptyPublishedH:{ en: "No published replays yet", ar: "لا توجد إعادات منشورة بعد" },
   rec_emptyPublishedB:{ en: "Approve a suggested replay to publish it here.", ar: "اعتمد إعادة مُقترَحة لنشرها هنا." },
+  // Player sub-page (en + ar)
+  pl_backToCollection: { en: "Back to collection", ar: "العودة إلى المجموعة" },
+  pl_chapters:     { en: "Chapters",     ar: "الفصول" },
+  pl_plan:         { en: "Plan",         ar: "الباقة" },
+  pl_arpu:         { en: "ARPU",         ar: "متوسط الإيراد" },
+  pl_sentiment:    { en: "Sentiment",    ar: "المشاعر" },
+  pl_coach:        { en: "Coach commentary", ar: "تعليق المدرّب" },
+  pl_customer:     { en: "Customer",     ar: "العميل" },
+  pl_agent:        { en: "Agent",        ar: "الوكيل" },
+  pl_previous:     { en: "Previous",     ar: "السابق" },
+  pl_next:         { en: "Next",         ar: "التالي" },
+  pl_play:         { en: "Play",         ar: "تشغيل" },
+  pl_pause:        { en: "Pause",        ar: "إيقاف مؤقت" },
+  pl_endOfReplay:  { en: "End of replay — you've reached the last coached moment.", ar: "نهاية الإعادة — لقد وصلت إلى آخر لحظة موجّهة." },
+  pl_noMoments:    { en: "This replay has no moments yet.", ar: "لا تحتوي هذه الإعادة على لحظات بعد." },
 };
+
+// Replay player — coached transcript moments in Arabic, keyed by moment id.
+const MOMENT_AR = {
+  m1: {
+    label: "الافتتاح والإقرار",
+    customerLine: "هذا ثاني شهر يُحتسب عليّ مبلغ زائد. بصراحة أنا على وشك التحوّل — منافسكم عرض عليّ نصف هذا السعر.",
+    agentLine: "أتفهّم ذلك، وأعتذر — مفاجأتان متتاليتان ليستا التجربة التي اشتركت من أجلها. دعني أفتح الفاتورة الآن وأراجعها معك.",
+    scenario: "يبدأ العميل بتهديد بالتحوّل وعرض منافس محدد.",
+    why: "تسمية الإحباط قبل التطرّق إلى الفاتورة تخفّض حدّة التوتر. لا يدافع الموظف عن الرسم بعد — الإقرار أولاً، ثم الحقائق.",
+  },
+  m2: {
+    label: "تشخيص الرسوم الزائدة",
+    customerLine: "إذن ما سبب الـ40 دولاراً أصلاً؟ لم يخبرني أحد عن أي تجاوز.",
+    agentLine: "إنها إضافة بيانات طُبّقت تلقائياً عند تجاوز الخط 50 جيجابايت. كان يجب تنبيهك إلى ذلك — ولم يحدث، وهذا خطؤنا. يمكنني عكس هذا الشهر وضبط تنبيه حتى لا يتكرر بصمت أبداً.",
+    scenario: "يطرح العميل سؤالاً مباشراً عن رسم غير مُفسَّر.",
+    why: "تحمّل المسؤولية عن خلل العملية («هذا خطؤنا») بدل شرح السياسة يحافظ على الثقة. واقتران العكس بحلٍّ استباقي (التنبيه) يجيب عن السؤال غير المعلَن: «هل سيستمر هذا؟».",
+  },
+  m3: {
+    label: "التعامل مع عرض المنافس",
+    customerLine: "حسناً، لكنهم ما زالوا أرخص. أعطني سبباً واحداً للبقاء.",
+    agentLine: "سؤال وجيه. في باقتهم ستفقد خصم تعدّد الخطوط وبيانات نقطة الاتصال التي استخدمت منها 14 جيجابايت الشهر الماضي — فالفارق الحقيقي نحو 9 دولارات، لا النصف. أفضّل أن أستعيد ثقتك على أن أخسرك بسبب خطأ في الفوترة.",
+    scenario: "يختزل العميل القرار في السعر.",
+    why: "إعادة صياغة «الأرخص» إلى الفارق الحقيقي المكافئ تستخدم بيانات استخدام العميل نفسه. إنها محددة وليست نصاً جاهزاً — ولهذا تنجح.",
+  },
+  m4: {
+    label: "تأمين الإنقاذ",
+    customerLine: "حسناً. إذا رتّبت التنبيه والرصيد، سأبقى في الوقت الحالي.",
+    agentLine: "تم — طُبّق الرصيد وستراه خلال 24 ساعة، وتنبيه الاستخدام مفعّل عند 45 جيجابايت. وسأضيف ملاحظة حتى إذا عاودت الاتصال يكون لدى من يردّ الصورة كاملة.",
+    scenario: "يوافق العميل بشروط.",
+    why: "إغلاق كل وعد قُطِع وترك ملاحظة تسليم يزيل السبب التالي للتسرّب. هذه هي اللحظة التي تحوّل الإنقاذ إلى علاقة محتفَظ بها.",
+  },
+};
+export function lhMoment(id, momentId) {
+  if (id === "ar") return MOMENT_AR[momentId] ?? null;
+  return null;
+}
+
+// Replay player — sample customer profile fields in Arabic (name kept).
+const CUSTOMER_AR = {
+  tenure: "عميلة منذ 4 سنوات",
+  plan: "Unlimited Plus · خطّان",
+  arpu: "94 دولاراً / شهر",
+  sentiment: "محبَطة ← هادئة",
+  context: "أسرة ذات إيراد مرتفع لديها عرض تحوّل من منافس. اتصلت بشأن تجاوز قدره 40 دولاراً لم تتوقعه؛ وهي ثاني مفاجأة فوترة خلال ثلاثة أشهر.",
+};
+export function lhCustomerField(id, key, fallback) {
+  if (id === "ar") return CUSTOMER_AR[key] ?? fallback;
+  return fallback;
+}
 
 export function lhR(id, key) {
   const row = REPLAY[key];
