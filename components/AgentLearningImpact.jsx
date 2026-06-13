@@ -3,7 +3,7 @@
 import React from "react";
 import Card from "./Card";
 import ExportButton from "./ExportButton";
-import AgentImpactChart from "./AgentImpactChart";
+import AgentImpactChart, { ActivityIcon } from "./AgentImpactChart";
 import { getAgentImpact } from "./mocks/agentLearningImpact";
 
 // AgentLearningImpact — "Learning Hub impact" section on the Agent detail page.
@@ -12,14 +12,8 @@ import { getAgentImpact } from "./mocks/agentLearningImpact";
 // point: you can see practice — drills, guides, replays, probes, missions —
 // translate into rising performance. Read-only (G4).
 
-// Marker legend — maps each pin code to the activity it stands for.
-const MARKER_LEGEND = [
-  { code: "R", label: "Replay" },
-  { code: "D", label: "Drill" },
-  { code: "G", label: "Guide" },
-  { code: "P", label: "Probe" },
-  { code: "M", label: "Mission" },
-];
+// Activity types shown as marker pins on the chart, listed in the legend.
+const ACTIVITY_TYPES = ["Replay", "Drill", "Guide", "Probe", "Mission"];
 
 export default function AgentLearningImpact({ agent }) {
   const data = React.useMemo(() => getAgentImpact(agent), [agent]);
@@ -30,22 +24,26 @@ export default function AgentLearningImpact({ agent }) {
         <div>
           <div style={aliStyles.title}>Learning Hub impact</div>
           <div style={aliStyles.subtitle}>
-            {data.firstName}&rsquo;s QA and CSAT scores since joining ({data.joinedLabel}),
-            with each Learning Hub activity marked — so you can see practice lift performance.
+            {data.firstName}&rsquo;s QA and CSAT scores since joining, with each Learning Hub
+            activity marked — so you can see practice lift performance.
           </div>
         </div>
         <ExportButton formats={["table-copy", "csv", "png"]} />
       </div>
 
-      <div style={aliStyles.legend}>
+      <div style={aliStyles.legendRow}>
         <LineKey color="var(--chart-green)" label="QA score" value={`${data.qaEnd}%`} />
         <LineKey color="var(--chart-blue)" label="CSAT" value={`${data.csatEnd}%`} />
-        <span style={aliStyles.legendDivider} aria-hidden="true" />
-        <span style={aliStyles.markerLead}>Activities</span>
-        {MARKER_LEGEND.map((m) => (
-          <span key={m.code} style={aliStyles.markerKey}>
-            <span style={aliStyles.markerPin} aria-hidden="true">{m.code}</span>
-            {m.label}
+      </div>
+
+      <div style={aliStyles.markerRow}>
+        <span style={aliStyles.markerLead}>Learning Hub activity</span>
+        {ACTIVITY_TYPES.map((kind) => (
+          <span key={kind} style={aliStyles.markerKey}>
+            <span style={aliStyles.markerPin} aria-hidden="true">
+              <ActivityIcon kind={kind} size={12} />
+            </span>
+            {kind}
           </span>
         ))}
       </div>
@@ -71,7 +69,7 @@ const aliStyles = {
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   title: {
     fontSize: 16,
@@ -87,16 +85,16 @@ const aliStyles = {
     lineHeight: 1.5,
     maxWidth: 600,
   },
-  legend: {
+  legendRow: {
     display: "flex",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: 14,
-    marginBottom: 8,
+    gap: 28,
+    marginBottom: 12,
   },
-  lineKey: { display: "inline-flex", alignItems: "center", gap: 6 },
+  lineKey: { display: "inline-flex", alignItems: "center", gap: 8 },
   lineSwatch: {
-    width: 14,
+    width: 16,
     height: 3,
     borderRadius: 2,
     flexShrink: 0,
@@ -113,36 +111,39 @@ const aliStyles = {
     fontWeight: 700,
     color: "var(--color-text-deep)",
   },
-  legendDivider: {
-    width: 1,
-    height: 16,
-    background: "var(--color-divider-card)",
+  markerRow: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 18,
+    paddingTop: 14,
+    marginBottom: 8,
+    borderTop: "1px solid var(--color-divider-card)",
   },
   markerLead: {
     fontFamily: '"Mulish", sans-serif',
     fontSize: 12,
-    fontWeight: 600,
+    fontWeight: 700,
     color: "var(--color-text-tertiary)",
+    letterSpacing: "0.02em",
   },
   markerKey: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 5,
+    gap: 7,
     fontFamily: '"Mulish", sans-serif',
     fontSize: 12,
     fontWeight: 600,
-    color: "var(--color-text-tertiary)",
+    color: "var(--color-text-medium)",
   },
   markerPin: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    display: "grid",
+    placeItems: "center",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     background: "var(--grey-800)",
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: 800,
+    flexShrink: 0,
   },
 };
+
