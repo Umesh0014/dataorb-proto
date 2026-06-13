@@ -2,7 +2,6 @@
 
 import React from "react";
 import {
-  ChevronRight,
   MoreHorizontal,
   Repeat,
   GraduationCap,
@@ -19,13 +18,14 @@ import {
 import Card from "./Card";
 import Button from "./Button";
 import InlineStatusAffordance from "./InlineStatusAffordance";
-import { SEVERITY_META, INTERVENTION_META, LOOP_META, toneInk } from "./mocks/commandCenter";
+import { SEVERITY_META, INTERVENTION_META, LOOP_META, toneInk, taskTitle } from "./mocks/commandCenter";
 
-// AttentionItemCard — one task in the Command Center Tasks grid: the agent who
-// needs help, the recommended action, and a 1-click launch. Kept deliberately
-// scannable (UI-9): colour is reserved for the severity band only (UI-6); the
-// signal trend, metadata, and editable note live in the sidecar drawer behind
-// "Details". Cards stretch to equal height with the Launch CTA pinned bottom.
+// AttentionItemCard — one task in the Command Center Tasks grid. Action-first:
+// the heading is what to do ("Assign guided drill to Willis Jast"), with a
+// one-line justification and the Launch CTA beside it. The severity band sits
+// just above the heading; a small avatar + name (a link to the agent's detail
+// page) sits below. Colour is reserved for the severity band (UI-6). Cards
+// stretch to equal height with the agent row pinned to the bottom.
 
 const INTERVENTION_ICON = {
   Repeat, GraduationCap, Target, Plus, MessageSquare, Search, Flag,
@@ -35,7 +35,6 @@ export default function AttentionItemCard({
   item,
   status = "open",
   onLaunch,
-  onOpenDetail,
   onOpenAgent,
   onSnooze,
   onDismiss,
@@ -49,73 +48,51 @@ export default function AttentionItemCard({
   return (
     <Card padX={20} padY={18} tone="outline" style={cardStyles.shell}>
       <div style={cardStyles.top}>
-        <span style={cardStyles.typeChip}>
-          <IntervIcon size={12} aria-hidden="true" style={{ flexShrink: 0 }} />
-          {interv.type}
-        </span>
         <InlineStatusAffordance tone={sev.tone} icon={<SeverityDot tone={sev.tone} />} style={{ color: toneInk(sev.tone) }}>
           {sev.label}
         </InlineStatusAffordance>
-      </div>
-
-      <div style={cardStyles.identityRow}>
-        <button
-          type="button"
-          className="cc-focusable"
-          onClick={() => onOpenAgent?.(item.agent.id)}
-          style={cardStyles.avatar}
-          aria-label={`Open ${item.agent.name}'s detail page`}
-        >
-          {item.agent.initials}
-        </button>
-        <div style={cardStyles.identity}>
-          <span style={cardStyles.name}>{item.agent.name}</span>
-          <span style={cardStyles.competency}>{item.competency}</span>
-        </div>
-        <Button
-          variant="text"
-          uppercase={false}
-          onClick={onOpenDetail}
-          trailingIcon={<ChevronRight size={15} aria-hidden="true" />}
-          aria-label={`View details for ${item.agent.name}`}
-          style={cardStyles.detailsBtn}
-        >
-          Details
-        </Button>
-      </div>
-
-      <p style={cardStyles.evidence}>{item.evidence}</p>
-
-      <div style={cardStyles.actionLine}>
-        <IntervIcon size={14} aria-hidden="true" style={{ flexShrink: 0, color: "var(--color-text-tertiary)" }} />
-        <span style={cardStyles.actionAsset}>{item.intervention.asset}</span>
-        <span style={cardStyles.duration}>{item.intervention.duration}</span>
-      </div>
-
-      <div style={cardStyles.footer}>
         {isOpen ? (
-          <>
-            <Button
-              variant="primary"
-              onClick={onLaunch}
-              leadingIcon={<IntervIcon size={15} aria-hidden="true" />}
-              style={cardStyles.launchBtn}
-            >
-              Launch
-            </Button>
-            <ItemKebab
-              onOpenAgent={() => onOpenAgent?.(item.agent.id)}
-              onSnooze={onSnooze}
-              onDismiss={onDismiss}
-              onMarkHandled={onMarkHandled}
-            />
-          </>
+          <ItemKebab
+            onOpenAgent={() => onOpenAgent?.(item.agent.id)}
+            onSnooze={onSnooze}
+            onDismiss={onDismiss}
+            onMarkHandled={onMarkHandled}
+          />
         ) : (
           <InlineStatusAffordance tone={LOOP_META[status].tone} icon={<SeverityDot tone={LOOP_META[status].tone} />} style={{ color: toneInk(LOOP_META[status].tone) }}>
             {LOOP_META[status].label}
           </InlineStatusAffordance>
         )}
       </div>
+
+      <div style={cardStyles.main}>
+        <div style={cardStyles.textCol}>
+          <h3 style={cardStyles.title}>{taskTitle(item)}</h3>
+          <p style={cardStyles.justification}>{item.evidence}</p>
+        </div>
+        {isOpen && (
+          <Button
+            variant="primary"
+            onClick={onLaunch}
+            leadingIcon={<IntervIcon size={15} aria-hidden="true" />}
+            style={cardStyles.launchBtn}
+          >
+            Launch
+          </Button>
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="cc-focusable"
+        onClick={() => onOpenAgent?.(item.agent.id)}
+        style={cardStyles.agentRow}
+        aria-label={`Open ${item.agent.name}'s detail page`}
+      >
+        <span style={cardStyles.avatar}>{item.agent.initials}</span>
+        <span style={cardStyles.agentName}>{item.agent.name}</span>
+        <span style={cardStyles.competency}>· {item.competency}</span>
+      </button>
     </Card>
   );
 }
@@ -162,8 +139,7 @@ function ItemKebab({ onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
     <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
       <Button
         variant="icon"
-        size="lg"
-        bordered
+        size="sm"
         aria-label="More actions"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -194,85 +170,75 @@ function ItemKebab({ onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
 }
 
 const cardStyles = {
-  shell: { display: "flex", flexDirection: "column", gap: 12, height: "100%" },
+  shell: { display: "flex", flexDirection: "column", gap: 10, height: "100%" },
   top: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  typeChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    padding: "3px 10px",
-    borderRadius: 999,
-    background: "var(--pill-bg)",
-    color: "var(--color-text-medium)",
+  main: { display: "flex", alignItems: "center", gap: 14 },
+  textCol: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 },
+  title: {
+    margin: 0,
     fontFamily: "var(--font-sans)",
-    fontSize: 11,
+    fontSize: 15,
     fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.3,
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+    overflow: "hidden",
   },
-  identityRow: { display: "flex", alignItems: "center", gap: 12 },
-  avatar: {
-    flexShrink: 0,
-    width: 36,
-    height: 36,
-    borderRadius: "50%",
-    border: "none",
-    background: "var(--grey-100)",
-    color: "var(--color-text-medium)",
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  identity: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 },
-  name: { fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.3 },
-  competency: { fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
-  detailsBtn: { height: "auto", padding: "2px 4px", color: "var(--color-button-primary-bg)", fontSize: 12, fontWeight: 700, flexShrink: 0 },
-  evidence: {
+  justification: {
     margin: 0,
     fontFamily: "var(--font-sans)",
     fontSize: 13,
     fontWeight: 400,
     color: "var(--text-secondary)",
-    lineHeight: 1.45,
-  },
-  actionLine: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    background: "var(--color-card-emoji-bg)",
-    borderRadius: 8,
-    padding: "8px 12px",
-  },
-  actionAsset: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: "var(--font-sans)",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
+    lineHeight: 1.4,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
-  duration: {
-    flexShrink: 0,
-    fontFamily: "var(--font-sans)",
-    fontSize: 11,
-    fontWeight: 600,
-    color: "var(--color-text-tertiary)",
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-divider-card)",
-    padding: "3px 8px",
-    borderRadius: 6,
+  launchBtn: { flexShrink: 0, height: 36, minWidth: 0, paddingInline: 18 },
+  agentRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    marginTop: "auto",
+    paddingTop: 4,
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    textAlign: "left",
   },
-  footer: { display: "flex", alignItems: "center", gap: 8, marginTop: "auto", paddingTop: 2 },
-  launchBtn: { flex: 1, height: 38, minWidth: 0 },
-  kebabBtn: { borderRadius: 999, background: "var(--surface-white)", color: "var(--color-text-tertiary)" },
+  avatar: {
+    flexShrink: 0,
+    width: 24,
+    height: 24,
+    borderRadius: "50%",
+    background: "var(--grey-100)",
+    color: "var(--color-text-medium)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 10,
+    fontWeight: 700,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  agentName: { fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)", flexShrink: 0 },
+  competency: {
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 400,
+    color: "var(--color-text-tertiary)",
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  kebabBtn: { borderRadius: 999, background: "transparent", color: "var(--color-text-tertiary)" },
   menu: {
     position: "absolute",
-    bottom: "calc(100% + 4px)",
+    top: "calc(100% + 4px)",
     right: 0,
     minWidth: 190,
     background: "var(--surface-white)",

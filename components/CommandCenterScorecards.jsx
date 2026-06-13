@@ -16,14 +16,13 @@ import { TEAM_ROSTER, ENGAGEMENT_META, rosterStatus, toneInk } from "./mocks/com
 export default function CommandCenterScorecards({
   items,
   onLaunch,
-  onOpenDetail,
   onOpenAgent,
   onSnooze,
   onDismiss,
   onMarkHandled,
 }) {
   const ordered = React.useMemo(() => orderRoster(TEAM_ROSTER), []);
-  const taskProps = { items, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
+  const taskProps = { items, onLaunch, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
 
   return (
     <div style={sStyles.page}>

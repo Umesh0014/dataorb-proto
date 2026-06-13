@@ -29,7 +29,7 @@
 // ordering is transparent and tunable — mirrors the audit-rubric
 // transparency principle the ticket calls for.
 export const RANK_WEIGHTS = {
-  severity: { high: 3, medium: 2, low: 1 },
+  severity: { critical: 4, high: 3, medium: 2, low: 1 },
   wSeverity: 10,
   wCentrality: 4,
   wReach: 3,
@@ -72,9 +72,10 @@ export function rankItems(items) {
 // Severity always pairs colour with a text label + icon downstream so
 // meaning is never carried by colour alone (WCAG-2).
 export const SEVERITY_META = {
-  high:   { label: "High",   tone: "danger",   order: 0 },
-  medium: { label: "Medium", tone: "warning",  order: 1 },
-  low:    { label: "Low",    tone: "info",      order: 2 },
+  critical: { label: "Critical", tone: "danger",   order: 0 },
+  high:     { label: "High",     tone: "warning",  order: 1 },
+  medium:   { label: "Medium",   tone: "info",     order: 2 },
+  low:      { label: "Low",      tone: "tertiary", order: 3 },
 };
 
 // Signal source → human label + lucide icon name (resolved in the card).
@@ -115,6 +116,22 @@ export function toneInk(tone) {
   }[tone] || "var(--color-text-medium)";
 }
 
+// taskTitle — the action-first heading for a task card: what to do, for whom.
+// Cohort items (reach > 1) read as a cohort rather than a person.
+export function taskTitle(item) {
+  const who = item.reach > 1 ? item.agent.name : item.agent.name;
+  switch (item.intervention.kind) {
+    case "drill": return `Assign guided drill to ${who}`;
+    case "replay": return `Assign replay review to ${who}`;
+    case "probe": return `Run a probe interview with ${who}`;
+    case "guide": return `Assign a guide to ${who}`;
+    case "mission": return `Create a mission for ${who}`;
+    case "add-to-mission": return `Add ${who} to a mission`;
+    case "one-on-one": return `Log a 1:1 with ${who}`;
+    default: return `Support ${who}`;
+  }
+}
+
 // Loop status → label + tone. open = no badge. Pairs colour with text.
 export const LOOP_META = {
   open:      { label: "Open",                  tone: "tertiary" },
@@ -135,7 +152,7 @@ export const ATTENTION_ITEMS = [
     signal: "performance",
     evidence: "CSAT fell 11pp to 54% over 3 weeks — bottom of the team on billing calls.",
     metric: { points: [72, 70, 66, 61, 54], unit: pct, current: 54, labels: ["5w", "4w", "3w", "2w", "now"] },
-    severity: "high",
+    severity: "critical",
     centrality: 3,
     reach: 1,
     recencyDays: 2,
@@ -152,7 +169,7 @@ export const ATTENTION_ITEMS = [
     signal: "qa",
     evidence: "QA scored 38% — 4 interactions breached the resolution-clarity threshold.",
     metric: { points: [55, 50, 46, 42, 38], unit: pct, current: 38, labels: ["5w", "4w", "3w", "2w", "now"] },
-    severity: "high",
+    severity: "critical",
     centrality: 2,
     reach: 1,
     recencyDays: 1,
@@ -197,13 +214,13 @@ export const ATTENTION_ITEMS = [
   },
   {
     id: "ai-cohort-empathy",
-    agent: { id: "cohort-empathy", name: "3 agents · Empathy", initials: "3" },
+    agent: { id: "cohort-empathy", name: "Empathy cohort", initials: "3" },
     competency: "Empathy & Acknowledgment",
     driver: null,
     signal: "coverage",
     evidence: "High-volume empathy moments, no practice coverage for Tod, Hiroshi & Noah.",
     metric: null,
-    severity: "medium",
+    severity: "high",
     centrality: 3,
     reach: 3,
     recencyDays: 4,

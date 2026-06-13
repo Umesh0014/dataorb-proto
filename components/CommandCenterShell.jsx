@@ -5,7 +5,6 @@ import DarkPillSwitcher from "./DarkPillSwitcher";
 import CommandCenterRoster from "./CommandCenterRoster";
 import CommandCenterScorecards from "./CommandCenterScorecards";
 import CommandCenterFocus from "./CommandCenterFocus";
-import AttentionItemDrawer from "./AttentionItemDrawer";
 import Modal from "./Modal";
 import Toast from "./Toast";
 import { ATTENTION_ITEMS, RESOLVED_ITEMS } from "./mocks/commandCenter";
@@ -16,9 +15,9 @@ import { ATTENTION_ITEMS, RESOLVED_ITEMS } from "./mocks/commandCenter";
 // the three dashboard layouts behind a floating 3-way DarkPillSwitcher
 // (Roster / Scorecards / Focus) and owns the shared, in-memory state so the
 // loop is consistent across variants: launch → Acted, snooze / dismiss / mark
-// handled drop the item, Undo restores it. The shared sidecar drawer, the
-// confirm/dismiss Modal, and the Toast live here once and are reused by every
-// variant. All state resets on reload — no persistence by design (G5).
+// handled drop the item, Undo restores it. The confirm/dismiss Modal and the
+// Toast live here once and are reused by every variant. All state resets on
+// reload — no persistence by design (G5).
 //
 // Placement note: this is mounted on a Learning Hub route for the preview.
 // Whether the production home is a dedicated rail item or a role-aware
@@ -32,7 +31,6 @@ export default function CommandCenterShell({ onOpenAgent }) {
   // statusById: id → "acted" | "snoozed" | "dismissed" | "handled".
   // Absent means the item is still Open.
   const [statusById, setStatusById] = React.useState({});
-  const [selectedId, setSelectedId] = React.useState(null);
   const [pending, setPending] = React.useState(null); // { type: "launch" | "dismiss", id }
   const [toast, setToast] = React.useState(null);
 
@@ -46,11 +44,6 @@ export default function CommandCenterShell({ onOpenAgent }) {
       })),
     [statusById],
   );
-
-  const selectedItem = selectedId
-    ? visibleItems.find((it) => it.id === selectedId) || null
-    : null;
-  const selectedStatus = selectedItem ? selectedItem.status : "open";
 
   const nameOf = (id) => ATTENTION_ITEMS.find((it) => it.id === id)?.agent.name || "this item";
 
@@ -83,12 +76,10 @@ export default function CommandCenterShell({ onOpenAgent }) {
 
   const onSnooze = (id) => {
     setStatus(id, "snoozed");
-    if (selectedId === id) setSelectedId(null);
     showToast(`Snoozed ${nameOf(id)} for 7 days`, id);
   };
   const onMarkHandled = (id) => {
     setStatus(id, "handled");
-    if (selectedId === id) setSelectedId(null);
     showToast(`Marked ${nameOf(id)} handled`, id);
   };
 
@@ -100,7 +91,6 @@ export default function CommandCenterShell({ onOpenAgent }) {
       showToast(`Intervention launched for ${nameOf(id)} — tracking the result`);
     } else {
       setStatus(id, "dismissed");
-      if (selectedId === id) setSelectedId(null);
       showToast(`Dismissed item for ${nameOf(id)}`, id);
     }
     setPending(null);
@@ -110,8 +100,7 @@ export default function CommandCenterShell({ onOpenAgent }) {
     items: visibleItems,
     resolved: RESOLVED_ITEMS,
     onLaunch,
-    onOpenDetail: setSelectedId,
-    onOpenAgent: (agentId) => { setSelectedId(null); onOpenAgent?.(agentId); },
+    onOpenAgent: (agentId) => onOpenAgent?.(agentId),
     onSnooze,
     onDismiss,
     onMarkHandled,
@@ -122,16 +111,6 @@ export default function CommandCenterShell({ onOpenAgent }) {
       {variant === "Roster" && <CommandCenterRoster {...variantProps} />}
       {variant === "Scorecards" && <CommandCenterScorecards {...variantProps} />}
       {variant === "Focus" && <CommandCenterFocus {...variantProps} />}
-
-      <AttentionItemDrawer
-        item={selectedItem}
-        status={selectedStatus}
-        onClose={() => setSelectedId(null)}
-        onLaunch={() => selectedItem && onLaunch(selectedItem.id)}
-        onOpenAgent={variantProps.onOpenAgent}
-        onSnooze={() => selectedItem && onSnooze(selectedItem.id)}
-        onDismiss={() => selectedItem && onDismiss(selectedItem.id)}
-      />
 
       <Modal
         open={Boolean(pending)}

@@ -15,7 +15,6 @@ import { SEVERITY_META, rankScore } from "./mocks/commandCenter";
 export default function CommandCenterTasks({
   items,
   onLaunch,
-  onOpenDetail,
   onOpenAgent,
   onSnooze,
   onDismiss,
@@ -39,7 +38,7 @@ export default function CommandCenterTasks({
     return () => document.removeEventListener("keydown", onKey);
   }, [curtainOpen]);
 
-  const cardHandlers = { onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
+  const cardHandlers = { onLaunch, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
 
   return (
     <section style={tStyles.section}>
@@ -92,13 +91,12 @@ export default function CommandCenterTasks({
   );
 }
 
-function TaskCard({ item, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
+function TaskCard({ item, onLaunch, onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
   return (
     <AttentionItemCard
       item={item}
       status={item.status}
       onLaunch={() => onLaunch(item.id)}
-      onOpenDetail={() => onOpenDetail(item.id)}
       onOpenAgent={onOpenAgent}
       onSnooze={() => onSnooze(item.id)}
       onDismiss={() => onDismiss(item.id)}

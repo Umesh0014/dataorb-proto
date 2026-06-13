@@ -13,7 +13,6 @@ import { TEAM_ROSTER, rosterStatus } from "./mocks/commandCenter";
 export default function CommandCenterRoster({
   items,
   onLaunch,
-  onOpenDetail,
   onOpenAgent,
   onSnooze,
   onDismiss,
@@ -24,7 +23,7 @@ export default function CommandCenterRoster({
   const [onlyAttention, setOnlyAttention] = React.useState(false);
   const visibleRoster = onlyAttention ? needsHelp : ordered;
 
-  const taskProps = { items, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
+  const taskProps = { items, onLaunch, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
 
   return (
     <div style={rStyles.page}>

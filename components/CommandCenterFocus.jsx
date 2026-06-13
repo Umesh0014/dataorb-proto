@@ -20,7 +20,6 @@ export default function CommandCenterFocus({
   items,
   resolved,
   onLaunch,
-  onOpenDetail,
   onOpenAgent,
   onSnooze,
   onDismiss,
@@ -32,7 +31,7 @@ export default function CommandCenterFocus({
   );
   const [hero, ...rest] = needsHelp;
   const improved = resolved.filter((r) => r.status === "improved");
-  const taskProps = { items, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
+  const taskProps = { items, onLaunch, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
 
   return (
     <div style={fStyles.column}>
