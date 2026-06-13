@@ -46,6 +46,7 @@ export default function AgentImpactChart({ data }) {
 
   const series = data.series;
   const N = series.length;
+  const { xMin, xMax } = data;
 
   const all = series.flatMap((p) => [p.qa, p.csat]);
   const yMin = clamp(Math.floor((Math.min(...all) - 6) / 20) * 20, 0, 80);
@@ -53,7 +54,7 @@ export default function AgentImpactChart({ data }) {
   const yTicks = [];
   for (let v = yMin; v <= yMax; v += 20) yTicks.push(v);
 
-  const xPix = (m) => ML + (m / 12) * (W - ML - MR);
+  const xPix = (m) => ML + ((m - xMin) / (xMax - xMin)) * (W - ML - MR);
   const yPix = (v) => MT + (1 - (v - yMin) / (yMax - yMin)) * (PLOT_BOTTOM - MT);
 
   const linePath = (key) =>

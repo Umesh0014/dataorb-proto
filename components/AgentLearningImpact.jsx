@@ -4,19 +4,22 @@ import React from "react";
 import Card from "./Card";
 import ExportButton from "./ExportButton";
 import AgentImpactChart, { ActivityIcon } from "./AgentImpactChart";
-import { getAgentImpact } from "./mocks/agentLearningImpact";
+import { getAgentImpact, windowImpact, RANGES } from "./mocks/agentLearningImpact";
 
 // AgentLearningImpact — "Learning Hub impact" section on the Agent detail page.
 // One chart, two trend lines (QA score + CSAT, both %), with every Learning Hub
 // activity the agent did marked along the time axis since they joined. The
 // point: you can see practice — drills, guides, replays, probes, missions —
-// translate into rising performance. Read-only (G4).
+// translate into rising performance. A timeline switcher (1M…All) scopes the
+// window. Read-only (G4).
 
 // Activity types shown as marker pins on the chart, listed in the legend.
 const ACTIVITY_TYPES = ["Replay", "Drill", "Guide", "Probe", "Mission"];
 
 export default function AgentLearningImpact({ agent }) {
-  const data = React.useMemo(() => getAgentImpact(agent), [agent]);
+  const [range, setRange] = React.useState("1Y");
+  const full = React.useMemo(() => getAgentImpact(agent), [agent]);
+  const view = React.useMemo(() => windowImpact(full, range), [full, range]);
 
   return (
     <Card padX={24} padY={24}>
@@ -24,16 +27,19 @@ export default function AgentLearningImpact({ agent }) {
         <div>
           <div style={aliStyles.title}>Learning Hub impact</div>
           <div style={aliStyles.subtitle}>
-            {data.firstName}&rsquo;s QA and CSAT scores since joining, with each Learning Hub
+            {full.firstName}&rsquo;s QA and CSAT scores since joining, with each Learning Hub
             activity marked — so you can see practice lift performance.
           </div>
         </div>
-        <ExportButton formats={["table-copy", "csv", "png"]} />
+        <div style={aliStyles.headerRight}>
+          <RangeSwitcher value={range} onChange={setRange} />
+          <ExportButton formats={["table-copy", "csv", "png"]} />
+        </div>
       </div>
 
       <div style={aliStyles.legendRow}>
-        <LineKey color="var(--chart-green)" label="QA score" value={`${data.qaEnd}%`} />
-        <LineKey color="var(--chart-blue)" label="CSAT" value={`${data.csatEnd}%`} />
+        <LineKey color="var(--chart-green)" label="QA score" value={`${full.qaEnd}%`} />
+        <LineKey color="var(--chart-blue)" label="CSAT" value={`${full.csatEnd}%`} />
       </div>
 
       <div style={aliStyles.markerRow}>
@@ -48,8 +54,38 @@ export default function AgentLearningImpact({ agent }) {
         ))}
       </div>
 
-      <AgentImpactChart data={data} />
+      <AgentImpactChart data={view} />
     </Card>
+  );
+}
+
+// RangeSwitcher — compact segmented timeline scope (1M / 3M / 6M / 1Y / All).
+// Raw <button>s: Button.jsx has no segmented variant and there is no shared
+// SegmentedControl primitive yet (see eslint config note). Promote when a 2nd
+// callsite needs it.
+function RangeSwitcher({ value, onChange }) {
+  return (
+    <div style={rsStyles.group} role="group" aria-label="Timeline range">
+      {RANGES.map((r) => {
+        const on = r.id === value;
+        return (
+          <button
+            key={r.id}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(r.id)}
+            style={{
+              ...rsStyles.seg,
+              background: on ? "var(--surface-white)" : "transparent",
+              color: on ? "var(--color-text-deep)" : "var(--color-text-tertiary)",
+              boxShadow: on ? "var(--shadow-1)" : "none",
+            }}
+          >
+            {r.id}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -57,11 +93,37 @@ function LineKey({ color, label, value }) {
   return (
     <span style={aliStyles.lineKey}>
       <span style={{ ...aliStyles.lineSwatch, background: color }} aria-hidden="true" />
-      <span style={aliStyles.lineLabel}>{label}</span>
-      <span style={aliStyles.lineValue}>{value}</span>
+      <span style={aliStyles.lineKeyText}>
+        <span style={aliStyles.lineLabel}>{label}</span>
+        <span style={aliStyles.lineValue}>{value}</span>
+      </span>
     </span>
   );
 }
+
+const rsStyles = {
+  group: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 2,
+    padding: 3,
+    borderRadius: 8,
+    background: "var(--pill-bg)",
+  },
+  seg: {
+    appearance: "none",
+    border: "none",
+    cursor: "pointer",
+    height: 28,
+    minWidth: 36,
+    paddingInline: 10,
+    borderRadius: 6,
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 12,
+    fontWeight: 700,
+    transition: "background 150ms ease, color 150ms ease",
+  },
+};
 
 const aliStyles = {
   header: {
@@ -70,6 +132,12 @@ const aliStyles = {
     justifyContent: "space-between",
     gap: 16,
     marginBottom: 20,
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
   },
   title: {
     fontSize: 16,
@@ -83,33 +151,36 @@ const aliStyles = {
     fontWeight: 400,
     color: "var(--text-secondary)",
     lineHeight: 1.5,
-    maxWidth: 600,
+    maxWidth: 560,
   },
   legendRow: {
     display: "flex",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: 28,
-    marginBottom: 12,
+    gap: 40,
+    marginBottom: 14,
   },
-  lineKey: { display: "inline-flex", alignItems: "center", gap: 8 },
+  lineKey: { display: "inline-flex", alignItems: "center", gap: 10 },
   lineSwatch: {
     width: 16,
-    height: 3,
+    height: 4,
     borderRadius: 2,
     flexShrink: 0,
   },
+  lineKeyText: { display: "flex", flexDirection: "column", gap: 1 },
   lineLabel: {
     fontFamily: '"Mulish", sans-serif',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 600,
-    color: "var(--color-text-medium)",
+    color: "var(--color-text-tertiary)",
   },
   lineValue: {
     fontFamily: '"Mulish", sans-serif',
-    fontSize: 13,
-    fontWeight: 700,
+    fontSize: 26,
+    fontWeight: 800,
     color: "var(--color-text-deep)",
+    lineHeight: 1.1,
+    letterSpacing: "-0.01em",
   },
   markerRow: {
     display: "flex",
@@ -117,7 +188,7 @@ const aliStyles = {
     flexWrap: "wrap",
     gap: 18,
     paddingTop: 14,
-    marginBottom: 8,
+    marginBottom: 10,
     borderTop: "1px solid var(--color-divider-card)",
   },
   markerLead: {
@@ -146,4 +217,3 @@ const aliStyles = {
     flexShrink: 0,
   },
 };
-

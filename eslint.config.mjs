@@ -108,6 +108,23 @@ export default [
       ],
     },
   },
+  // AgentLearningImpact — the timeline RangeSwitcher (1M…All) is a compact
+  // segmented control; Button.jsx has no segmented variant and there is no
+  // shared SegmentedControl primitive yet. Same posture as MilestoneSideRail.
+  // Kept as warn so the raw <button> stays visible in lint.
+  {
+    files: ["components/AgentLearningImpact.jsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or a shared SegmentedControl primitive) when this component is next touched.",
+        },
+      ],
+    },
+  },
   // MilestoneSideRail — a self-contained meta-tooling side rail + popover
   // (dark surface, monospace, yellow accent) beside the Performance score
   // card. Its controls (state-switcher buttons, info trigger, close,
