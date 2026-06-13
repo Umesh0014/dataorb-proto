@@ -62,6 +62,24 @@ export function lhText(id, key) {
   return row[id] ?? row.en;
 }
 
+// buildLocaleFilter — the Drill page's inline language pill, as a reusable
+// PageHeader `filters` entry so every Learning Hub tab offers the same
+// language selector. Spreads into a page's filters array; onSelect lifts
+// the new locale to the app root (global, like Drill).
+export function buildLocaleFilter(locale, onLocaleChange) {
+  const active = lhLocale(locale);
+  return {
+    id: "language",
+    label: lhText(locale, "language"),
+    value: active.native,
+    options: LH_LOCALES.map((l) => ({ label: `${l.native} · ${l.label}`, value: l.native })),
+    onSelect: (native) => {
+      const next = LH_LOCALES.find((l) => l.native === native);
+      if (next) onLocaleChange?.(next.id);
+    },
+  };
+}
+
 // Taxonomy / master data — DB-sourced role-play categories + difficulty
 // bands. Keyed on the English source value (also the semantic key used for
 // difficulty color in DrillCard) so the palette lookup stays stable while

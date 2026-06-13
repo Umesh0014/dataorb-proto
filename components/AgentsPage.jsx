@@ -9,7 +9,7 @@ import TrendArrow from "./TrendArrow";
 import { AgentsIcon } from "./SideNav/icons";
 import { LEARNING_AGENTS } from "./mocks/learningAgents";
 import { formatDate } from "./formatDate";
-import { lhA, lhI, lhPageOf, lhTotalAgents, lhMissionsSummary, lhDir } from "./learningHubLocale";
+import { lhA, lhI, lhPageOf, lhTotalAgents, lhMissionsSummary, lhDir, buildLocaleFilter } from "./learningHubLocale";
 
 const PAGE_SIZE = 9;
 
@@ -40,7 +40,7 @@ const TREND_VARIANTS = {
 // AgentsPage — Learning Hub › Agents sub-page. Resolved by app/page.jsx
 // (LEARNING_PAGES) and rendered inside <PageLayout>. Self-contained: holds
 // its own mock data, search, and pagination state — mirrors InteractionsPage.
-export default function AgentsPage({ onOpenAgent, locale = "en" }) {
+export default function AgentsPage({ onOpenAgent, locale = "en", onLocaleChange }) {
   const isRtl = lhDir(locale) === "rtl";
   const [searchBy, setSearchBy] = React.useState("id");
   const [query, setQuery] = React.useState("");
@@ -85,7 +85,7 @@ export default function AgentsPage({ onOpenAgent, locale = "en" }) {
           // TODO: connect the Learning Hub sub-page list to this dropdown.
           onClick: () => {},
         }}
-        filters={[searchByFilter]}
+        filters={[searchByFilter, buildLocaleFilter(locale, onLocaleChange)]}
         search={{
           value: query,
           onChange: (v) => {

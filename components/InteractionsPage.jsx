@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
+import LanguageSelect from "./LanguageSelect";
 import { formatDateTime } from "./formatDate";
 import { lhI, lhText, lhTotalInteractions, lhPageOf, lhDir } from "./learningHubLocale";
 
@@ -193,7 +194,7 @@ function onApplyFilters(_draft) {
   // stub only; confirm the query/handler contract with Akash.
 }
 
-export default function InteractionsPage({ locale = "en" }) {
+export default function InteractionsPage({ locale = "en", onLocaleChange }) {
   const isRtl = lhDir(locale) === "rtl";
   const [page, setPage] = React.useState(1);
   const totalPages = Math.ceil(TOTAL / PAGE_SIZE);
@@ -244,6 +245,7 @@ export default function InteractionsPage({ locale = "en" }) {
         attr={attr}
         onAttrChange={setAttr}
         locale={locale}
+        onLocaleChange={onLocaleChange}
       />
       <Card padX={0} padY={0}>
         {isSearchEmpty ? (
@@ -280,7 +282,7 @@ export default function InteractionsPage({ locale = "en" }) {
 
 function InteractionsHeader({
   filtersOpen, onToggleFilters, filterBtnRef,
-  query, onQueryChange, onClearSearch, attr, onAttrChange, locale,
+  query, onQueryChange, onClearSearch, attr, onAttrChange, locale, onLocaleChange,
 }) {
   const [open, setOpen] = React.useState(false);
   const ddRef = React.useRef(null);
@@ -312,6 +314,8 @@ function InteractionsHeader({
         <span className="font-sans text-[16px] leading-[28px] font-normal text-text-medium">
           {lhI(locale, "title")}
         </span>
+        <div style={{ flex: 1 }} />
+        <LanguageSelect locale={locale} onLocaleChange={onLocaleChange} />
       </div>
 
       {/* Search row */}
