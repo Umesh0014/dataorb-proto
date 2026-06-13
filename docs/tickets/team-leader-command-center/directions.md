@@ -63,6 +63,29 @@ next" and leans on an open scope question; #7 risks flattening hierarchy; #9 los
 ranked scan order; #10 inverts the brief's priority. A/B/C cover the operational,
 pipeline, and editorial strengths with the most distinct IAs.
 
+## Final scores (design-evaluator, 2 refine passes)
+
+Pass 1 found a single shared gate failure (G8 — the warning/info severity-label
+text failed 4.5:1 on white); fixed at the atom level via `toneInk()` (label text
+uses the accessible `*-text` token; the bright tone stays only on the paired dot).
+Pass 2 confirmed all three clear 13/13 gates; the top variant's weighted gain was
+< 5 points, so the loop converged.
+
+| Variant | Direction | Gates | Weighted | GTH | Verdict |
+|---------|-----------|:-----:|:--------:|:---:|---------|
+| **A — Queue** | Ranked triage worklist + sidecar | 13/13 | **92%** | +2 | Handoff-ready |
+| **C — Focus** | Monday-morning editorial digest | 13/13 | **90%** | +3 | Handoff-ready |
+| **B — Board** | Loop pipeline kanban | 13/13 | **87%** | +2 | Handoff-ready |
+
+Remaining (non-gate) partials carried for a later pass, not blockers:
+- **WCAG-6** — the kebab icon button (36px) / text buttons (32px) sit just under the
+  44px effective hit target.
+- **UI-5** — items render from a flat mock; no per-container schema/version field, so
+  the "v1 brief renders in v1 UI" guarantee isn't structurally expressed (fine for a
+  prototype, but scored a 1).
+- **WCAG-9 (Board only)** — the resolved-lane outcome cards show the delta inline but
+  don't open the sidecar, so that metric has no tabular alternative.
+
 ## Carried as flagged (not built in v1)
 
 - **Loading / connection-error states.** The empty/all-clear (zero) state is built and
