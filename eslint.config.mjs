@@ -108,6 +108,29 @@ export default [
       ],
     },
   },
+  // Learning Impact variants — expandable impact rows (Scoreboard table,
+  // Ledger timeline) and the segmented unit-picker pills (Report). <Button>
+  // has no variant for a full-width composite row or a toggle pill, and the
+  // codebase has no shared RowButton / PillGroup primitive yet. Same posture
+  // as Missions / AdherenceScopeTable. Kept as warn so the raw <button>
+  // stays visible in lint until those primitives land.
+  {
+    files: [
+      "components/LearningImpactScoreboard.jsx",
+      "components/LearningImpactReport.jsx",
+      "components/LearningImpactLedger.jsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or a shared RowButton / PillGroup primitive) when this component is next touched.",
+        },
+      ],
+    },
+  },
   // MilestoneSideRail — a self-contained meta-tooling side rail + popover
   // (dark surface, monospace, yellow accent) beside the Performance score
   // card. Its controls (state-switcher buttons, info trigger, close,
