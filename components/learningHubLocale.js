@@ -618,6 +618,11 @@ const INTERACTIONS = {
   opt_last_12_months:{ en: "Last 12 months", es: "Últimos 12 meses",   de: "Letzte 12 Monate", fr: "12 derniers mois",  ar: "آخر 12 شهراً" },
   opt_yes:           { en: "Yes",            es: "Sí",                 de: "Ja",               fr: "Oui",               ar: "نعم" },
   opt_no:            { en: "No",             es: "No",                 de: "Nein",             fr: "Non",               ar: "لا" },
+
+  // Compact duration units (e.g. "1m 51s")
+  unit_h: { en: "h", es: "h", de: "h", fr: "h", ar: "س" },
+  unit_m: { en: "m", es: "m", de: "m", fr: "m", ar: "د" },
+  unit_s: { en: "s", es: "s", de: "s", fr: "s", ar: "ث" },
 };
 
 export function lhI(id, key) {

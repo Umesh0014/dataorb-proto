@@ -484,7 +484,7 @@ function Row({ row, isLast, locale }) {
       </Cell>
       <Cell>
         <span style={{ fontSize: 13, color: "var(--do-ink)", fontWeight: 500 }}>
-          {formatDateTime(row.date)}
+          {formatDateTime(row.date, locale)}
         </span>
       </Cell>
       <Cell>
@@ -492,7 +492,7 @@ function Row({ row, isLast, locale }) {
       </Cell>
       <Cell>
         <span style={{ fontSize: 13, color: "var(--do-ink)", fontWeight: 500 }}>
-          {formatDuration(row.duration)}
+          {formatDuration(row.duration, locale)}
         </span>
       </Cell>
       <Cell>
@@ -1499,9 +1499,12 @@ function ChatBubbleIcon({ size = 16 }) {
   );
 }
 
-function formatDuration({ h = 0, m = 0, s = 0 }) {
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0 && s === 0) return `${m}m 0s`;
-  return `${m}m ${s}s`;
+function formatDuration({ h = 0, m = 0, s = 0 }, locale = "en") {
+  const uh = lhI(locale, "unit_h");
+  const um = lhI(locale, "unit_m");
+  const us = lhI(locale, "unit_s");
+  if (h > 0) return `${h}${uh} ${m}${um}`;
+  if (m > 0 && s === 0) return `${m}${um} 0${us}`;
+  return `${m}${um} ${s}${us}`;
 }
 

@@ -17,34 +17,61 @@ const MONTHS_SHORT = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+// Localized short month names + meridiem markers. en is the default; other
+// locales are provided so date strings convert with the GUI language
+// (ticket: multilingual + RTL/Arabic). Day/year numerals stay Western to
+// match the rest of the app under Arabic.
+const MONTHS_BY_LOCALE = {
+  en: MONTHS_SHORT,
+  es: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+  de: ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"],
+  fr: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+  ar: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
+};
+
+const MERIDIEM = {
+  en: { am: "AM", pm: "PM" },
+  es: { am: "a. m.", pm: "p. m." },
+  de: { am: "AM", pm: "PM" },
+  fr: { am: "AM", pm: "PM" },
+  ar: { am: "ص", pm: "م" },
+};
+
+function months(locale) {
+  return MONTHS_BY_LOCALE[locale] || MONTHS_SHORT;
+}
+
 const EM_DASH = "—"; // —  (null / invalid fallback)
 const EN_DASH = "–"; // –  (range separator)
 
 /**
  * Format a single date.
  * @param {string|Date|number} input ISO string, Date, or epoch ms.
+ * @param {string} [locale="en"] GUI locale for month names.
  * @returns {string} e.g. "Mar 23, 2026" or "—" if invalid.
  */
-export function formatDate(input) {
+export function formatDate(input, locale = "en") {
   const d = toUtcDate(input);
   if (!d) return EM_DASH;
-  return `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+  return `${months(locale)[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 /**
  * Format a date range.
  * @param {string|Date|number} start
  * @param {string|Date|number} end
+ * @param {string} [locale="en"]
  * @returns {string} e.g. "Mar 23 – Apr 1, 2026" or "Dec 28, 2025 – Jan 4, 2026".
  */
-export function formatDateRange(start, end) {
+export function formatDateRange(start, end, locale = "en") {
   const s = toUtcDate(start);
   const e = toUtcDate(end);
   if (!s || !e) return EM_DASH;
+  const M = months(locale);
   const sYear = s.getUTCFullYear();
   const eYear = e.getUTCFullYear();
-  const sStr = `${MONTHS_SHORT[s.getUTCMonth()]} ${s.getUTCDate()}`;
-  const eStr = `${MONTHS_SHORT[e.getUTCMonth()]} ${e.getUTCDate()}, ${eYear}`;
+  const sStr = `${M[s.getUTCMonth()]} ${s.getUTCDate()}`;
+  const eStr = `${M[e.getUTCMonth()]} ${e.getUTCDate()}, ${eYear}`;
   if (sYear === eYear) {
     return `${sStr} ${EN_DASH} ${eStr}`;
   }
@@ -54,15 +81,17 @@ export function formatDateRange(start, end) {
 /**
  * Format a datetime — canonical date, then 12-hour time.
  * @param {string|Date|number} input
+ * @param {string} [locale="en"]
  * @returns {string} e.g. "Mar 23, 2026, 3:45 PM" or "—" if invalid.
  */
-export function formatDateTime(input) {
+export function formatDateTime(input, locale = "en") {
   const d = toUtcDate(input);
   if (!d) return EM_DASH;
-  const date = formatDate(d);
+  const date = formatDate(d, locale);
   let h = d.getUTCHours();
   const min = String(d.getUTCMinutes()).padStart(2, "0");
-  const ampm = h >= 12 ? "PM" : "AM";
+  const mer = MERIDIEM[locale] || MERIDIEM.en;
+  const ampm = h >= 12 ? mer.pm : mer.am;
   h = h % 12 || 12;
   return `${date}, ${h}:${min} ${ampm}`;
 }
