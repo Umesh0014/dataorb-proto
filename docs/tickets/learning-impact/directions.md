@@ -1,5 +1,18 @@
 # Learning Impact — design directions audit
 
+> **Post-review pivot (Jun 13).** After the 3 variants were reviewed, the placement
+> question was resolved: Learning Impact is **agent-centric** and lives on the **Agent
+> detail page**, reached via the **Agents tab** (Learning Hub › Agents → click an agent).
+> The standalone `/learning/impact` rollup and its A/B/C variants were **removed**; the
+> shared atoms (`LearningImpactParts`, the `metric()`/method/confidence/sample-honesty
+> primitives) were kept and now power a per-agent **Learning impact** section
+> (`AgentLearningImpact.jsx`) that shows the agent's overall performance movement plus the
+> Learning Hub help they received (drill / guide / replay / probe / mission) and its
+> attributed effect. The exploration below is retained as the design record that led here.
+
+---
+
+
 Ticket: **📈 Learning Impact — how Learning Hub improved agent performance**
 (Notion `37e7c826-4656-81d6-8f9b-d8f073291636`, P1, Stage = Inprogress).
 Surface: a **proof-of-impact** view that quantifies and attributes Learning Hub's

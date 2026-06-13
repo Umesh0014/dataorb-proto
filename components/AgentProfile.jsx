@@ -3,6 +3,7 @@
 import React from "react";
 import PageHeader from "./PageHeader";
 import PerformanceScore from "./PerformanceScore";
+import AgentLearningImpact from "./AgentLearningImpact";
 import MilestoneSideRail from "./MilestoneSideRail";
 import CoachingRecommendations from "./CoachingRecommendations";
 import Missions from "./Missions";
@@ -82,6 +83,7 @@ export default function AgentProfile({ agentId, onBack, onViewMission }) {
           </div>
         </div>
       </div>
+      <AgentLearningImpact agent={agent} />
       <Missions onViewMission={onViewMission} />
       <CoachingRecommendations onNbaAssign={setAssignAsset} />
       <RoleplayCoverage onNbaAssign={setAssignAsset} />

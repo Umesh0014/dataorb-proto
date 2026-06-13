@@ -29,7 +29,6 @@ import CreditsUsageShell from "../../components/CreditsUsageShell";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import ReplayPage from "../../components/ReplayPage";
-import LearningImpactPage from "../../components/LearningImpactPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
@@ -90,10 +89,6 @@ const LEARNING_PAGES = {
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
-  // Reachable at /learning/impact for the preview. Module placement
-  // (Insights / Learning Hub / cross-module) is an open product decision
-  // flagged to Akash — no permanent rail slot claimed here.
-  "impact":       { Component: LearningImpactPage, pageName: "Learning Impact" },
 };
 
 const MIRA_PAGES = {
