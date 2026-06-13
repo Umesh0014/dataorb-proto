@@ -807,6 +807,8 @@ export default function Page() {
           pageName={pageName}
           filtersOpen={filtersOpen}
           onToggleFilters={() => setFiltersOpen((o) => !o)}
+          locale={locale}
+          onLocaleChange={setLocale}
         />
       </PageLayout>
     );
