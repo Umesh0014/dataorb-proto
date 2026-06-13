@@ -13,6 +13,9 @@ import { formatDate } from "./formatDate";
 import {
   OUTCOME_TINTS, OUTCOME_LABELS, tabCounts, actionBoxItems,
 } from "./mocks/replays";
+import {
+  lhR, lhText, lhReplayToReview, lhReplayEmptyLane, lhCreatedBy, buildLocaleFilter,
+} from "./learningHubLocale";
 
 // ReplayLanding — Replay collections list. Cards follow the skills-card
 // pattern; the avatar colour + icon are tied to the collection's business
@@ -33,15 +36,15 @@ const OUTCOME_ICONS = {
   onboarding: Rocket,
 };
 
-export default function ReplayLanding({ collections, onOpenCollection, onCreate }) {
+export default function ReplayLanding({ collections, onOpenCollection, onCreate, locale = "en", onLocaleChange }) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [search, setSearch] = React.useState("");
 
   const counts = tabCounts(collections);
   const TABS = [
-    { id: "active", label: "Active", count: counts.active },
-    { id: "draft", label: "Draft", count: counts.draft },
-    { id: "archived", label: "Archived", count: counts.archived },
+    { id: "active", label: lhR(locale, "tab_active"), count: counts.active },
+    { id: "draft", label: lhR(locale, "tab_draft"), count: counts.draft },
+    { id: "archived", label: lhR(locale, "tab_archived"), count: counts.archived },
   ];
 
   const inTab = collections.filter((c) => c.state === activeTab);
@@ -60,25 +63,26 @@ export default function ReplayLanding({ collections, onOpenCollection, onCreate 
       <PageHeader
         identifier={{
           icon: <ReplayGlyph />,
-          label: "Replay",
+          label: lhR(locale, "title"),
           iconBg: "var(--color-icon-tertiary-bg)",
           iconColor: "var(--color-icon-tertiary-fg)",
         }}
-        primaryAction={{ label: "Collection", icon: <Plus size={16} />, onClick: onCreate }}
-        search={{ value: search, onChange: setSearch, placeholder: "Search collections" }}
-        toolbar={[{ id: "filters", icon: <SlidersHorizontal size={18} />, label: "Filters", onClick: () => {} }]}
+        primaryAction={{ label: lhR(locale, "collection"), icon: <Plus size={16} />, onClick: onCreate }}
+        search={{ value: search, onChange: setSearch, placeholder: lhR(locale, "searchColls") }}
+        filters={[buildLocaleFilter(locale, onLocaleChange)]}
+        toolbar={[{ id: "filters", icon: <SlidersHorizontal size={18} />, label: lhText(locale, "filters"), onClick: () => {} }]}
       />
 
-      {showActionBox && <ActionBox toReview={action.toReview} drafts={action.drafts} />}
+      {showActionBox && <ActionBox toReview={action.toReview} drafts={action.drafts} locale={locale} />}
 
       <TabsRow tabs={TABS} activeTab={activeTab} onTabClick={setActiveTab} />
 
       {filtered.length === 0 ? (
-        <EmptyState query={search} tab={TABS.find((t) => t.id === activeTab)?.label} />
+        <EmptyState query={search} tab={lhR(locale, `tab_${activeTab}`)} locale={locale} />
       ) : (
         <div style={s.grid}>
           {filtered.map((c) => (
-            <CollectionCard key={c.id} collection={c} onClick={() => onOpenCollection(c.id)} />
+            <CollectionCard key={c.id} collection={c} onClick={() => onOpenCollection(c.id)} locale={locale} />
           ))}
         </div>
       )}
@@ -96,21 +100,21 @@ function ReplayGlyph() {
 
 // ---- Action box (review sidecar, rendered inline) ----------------------
 
-function ActionBox({ toReview, drafts }) {
+function ActionBox({ toReview, drafts, locale = "en" }) {
   return (
     <Card padX={20} padY={16} style={s.actionBox}>
       <span style={s.actionIcon} aria-hidden="true">
         <Inbox size={18} color="var(--color-icon-tertiary-fg)" />
       </span>
       <div style={s.actionText}>
-        <span style={s.actionTitle}>Action box</span>
+        <span style={s.actionTitle}>{lhR(locale, "actionBox")}</span>
         <span style={s.actionBody}>
           {toReview > 0 && (
-            <><strong style={s.actionStrong}>{toReview} replays</strong> ready to review</>
+            <><strong style={s.actionStrong}>{toReview} {lhR(locale, "word_replays")}</strong> {lhR(locale, "readyToReview")}</>
           )}
           {toReview > 0 && drafts > 0 && <span style={s.actionDot} aria-hidden="true">·</span>}
           {drafts > 0 && (
-            <><strong style={s.actionStrong}>{drafts} draft {drafts === 1 ? "collection" : "collections"}</strong> pending publish</>
+            <><strong style={s.actionStrong}>{drafts} {lhR(locale, drafts === 1 ? "word_draftColl" : "word_draftColls")}</strong> {lhR(locale, "pendingPublish")}</>
           )}
         </span>
       </div>
@@ -120,7 +124,7 @@ function ActionBox({ toReview, drafts }) {
 
 // ---- Collection card ---------------------------------------------------
 
-function CollectionCard({ collection, onClick }) {
+function CollectionCard({ collection, onClick, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   const tint = OUTCOME_TINTS[collection.outcome] || OUTCOME_TINTS.retention;
   const Icon = OUTCOME_ICONS[collection.outcome] || ShieldCheck;
@@ -139,7 +143,7 @@ function CollectionCard({ collection, onClick }) {
         <span style={{ ...s.avatar, background: tint.bg, color: tint.fg }} aria-hidden="true">
           <Icon size={20} />
         </span>
-        <MaintainedTag isAi={isAi} />
+        <MaintainedTag isAi={isAi} locale={locale} />
         <ChevronRight size={20} color="var(--color-text-tertiary)" style={{ opacity: hover ? 1 : 0, transition: "opacity 120ms ease" }} aria-hidden="true" />
       </div>
 
@@ -152,14 +156,14 @@ function CollectionCard({ collection, onClick }) {
       <div style={s.cardFooter}>
         <div style={s.metaLeft}>
           <span style={s.metaCount}>{collection.replayCount}</span>
-          <span style={s.metaLabel}>replays</span>
+          <span style={s.metaLabel}>{lhR(locale, "word_replays")}</span>
           <span style={s.metaDot} aria-hidden="true">·</span>
-          <span style={s.metaDate}>{formatDate(collection.lastUpdated)}</span>
+          <span style={s.metaDate}>{formatDate(collection.lastUpdated, locale)}</span>
         </div>
         {collection.reviewCount > 0 ? (
-          <span style={s.reviewPill}>{collection.reviewCount} to review</span>
+          <span style={s.reviewPill}>{lhReplayToReview(locale, collection.reviewCount)}</span>
         ) : (
-          <span style={{ ...s.monogram, background: collection.createdBy.bg, color: collection.createdBy.fg }} title={`Created by ${collection.createdBy.name}`} aria-hidden="true">
+          <span style={{ ...s.monogram, background: collection.createdBy.bg, color: collection.createdBy.fg }} title={lhCreatedBy(locale, collection.createdBy.name)} aria-hidden="true">
             {collection.createdBy.initial}
           </span>
         )}
@@ -168,24 +172,24 @@ function CollectionCard({ collection, onClick }) {
   );
 }
 
-function MaintainedTag({ isAi }) {
+function MaintainedTag({ isAi, locale = "en" }) {
   return (
-    <span style={{ ...s.maintainTag, marginLeft: "auto" }}>
+    <span style={{ ...s.maintainTag, marginInlineStart: "auto" }}>
       {isAi
         ? <Sparkles size={12} color="var(--color-icon-tertiary-fg)" />
         : <User size={12} color="var(--color-text-tertiary)" />}
       <span style={{ ...s.maintainLabel, color: isAi ? "var(--color-icon-tertiary-fg)" : "var(--color-text-tertiary)" }}>
-        {isAi ? "AI-maintained" : "Self-maintained"}
+        {isAi ? lhR(locale, "aiMaintained") : lhR(locale, "selfMaintained")}
       </span>
     </span>
   );
 }
 
-function EmptyState({ query, tab }) {
-  const heading = query ? "No collections match your search" : `No ${tab?.toLowerCase()} collections`;
+function EmptyState({ query, tab, locale = "en" }) {
+  const heading = query ? lhR(locale, "emptyNoMatch") : lhReplayEmptyLane(locale, tab);
   const body = query
-    ? "Try a different keyword or clear the search."
-    : "Collections you create appear here once the AI starts sampling calls.";
+    ? lhR(locale, "emptyNoMatchBody")
+    : lhR(locale, "emptyLaneBody");
   return (
     <Card padX={32} padY={32} style={s.empty}>
       <span style={s.emptyIcon} aria-hidden="true">
@@ -216,7 +220,7 @@ const s = {
   // Card
   card: {
     position: "relative", display: "flex", flexDirection: "column", gap: 14,
-    width: "100%", minHeight: 220, padding: 24, textAlign: "left",
+    width: "100%", minHeight: 220, padding: 24, textAlign: "start",
     background: "var(--surface-white)", border: "none", borderRadius: 12,
     cursor: "pointer", fontFamily: "var(--font-sans)", boxSizing: "border-box",
     transition: "transform 120ms ease, box-shadow 120ms ease",

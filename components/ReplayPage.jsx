@@ -24,7 +24,7 @@ import { REPLAY_COLLECTIONS, EMPTY_REPLAY_DRAFT, OUTCOME_LABELS } from "./mocks/
 
 const NEW_COLLECTION_ID = "col-draft-new";
 
-export default function ReplayPage({ pageName }) {
+export default function ReplayPage({ pageName, locale = "en", onLocaleChange }) {
   const [collections, setCollections] = React.useState(REPLAY_COLLECTIONS);
   const [screen, setScreen] = React.useState("landing");
   const [collectionId, setCollectionId] = React.useState(null);
@@ -144,6 +144,8 @@ export default function ReplayPage({ pageName }) {
       collections={collections}
       onOpenCollection={openCollection}
       onCreate={openCreate}
+      locale={locale}
+      onLocaleChange={onLocaleChange}
     />
   );
 }

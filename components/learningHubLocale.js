@@ -803,6 +803,61 @@ export function lhGuideEmptyLane(id, laneLabel) {
   return T[id] ?? T.en;
 }
 
+// Replay tab — collections landing chrome (header, action box, tabs, card
+// footer, empty states). Collection names/descriptions/outcome labels are
+// mock content (queued). Title matches the side-nav label.
+const REPLAY = {
+  title:           { en: "Replay",       es: "Repetición",     de: "Wiederholung",   fr: "Relecture",      ar: "إعادة التشغيل" },
+  collection:      { en: "Collection",   es: "Colección",      de: "Sammlung",       fr: "Collection",     ar: "مجموعة" },
+  searchColls:     { en: "Search collections", es: "Buscar colecciones", de: "Sammlungen suchen", fr: "Rechercher des collections", ar: "البحث في المجموعات" },
+  tab_active:      { en: "Active",       es: "Activas",        de: "Aktiv",          fr: "Actives",        ar: "نشطة" },
+  tab_draft:       { en: "Draft",        es: "Borrador",       de: "Entwurf",        fr: "Brouillon",      ar: "مسودة" },
+  tab_archived:    { en: "Archived",     es: "Archivadas",     de: "Archiviert",     fr: "Archivées",      ar: "مؤرشفة" },
+  actionBox:       { en: "Action box",   es: "Bandeja de acciones", de: "Aktions-Box", fr: "Boîte d’actions", ar: "صندوق الإجراءات" },
+  readyToReview:   { en: "ready to review", es: "listas para revisar", de: "bereit zur Prüfung", fr: "prêtes à examiner", ar: "جاهزة للمراجعة" },
+  pendingPublish:  { en: "pending publish", es: "pendientes de publicar", de: "ausstehende Veröffentlichung", fr: "en attente de publication", ar: "بانتظار النشر" },
+  word_replays:    { en: "replays",      es: "repeticiones",   de: "Wiederholungen", fr: "relectures",     ar: "إعادات" },
+  word_draftColl:  { en: "draft collection", es: "colección en borrador", de: "Entwurfssammlung", fr: "collection brouillon", ar: "مجموعة مسودة" },
+  word_draftColls: { en: "draft collections", es: "colecciones en borrador", de: "Entwurfssammlungen", fr: "collections brouillon", ar: "مجموعات مسودة" },
+  toReview:        { en: "to review",    es: "por revisar",    de: "zu prüfen",      fr: "à examiner",     ar: "للمراجعة" },
+  aiMaintained:    { en: "AI-maintained", es: "Mantenida por IA", de: "KI-gepflegt", fr: "Gérée par l’IA", ar: "مُدارة بالذكاء الاصطناعي" },
+  selfMaintained:  { en: "Self-maintained", es: "Autogestionada", de: "Selbst gepflegt", fr: "Autogérée",   ar: "مُدارة ذاتياً" },
+  emptyNoMatch:    { en: "No collections match your search", es: "Ninguna colección coincide con tu búsqueda", de: "Keine Sammlungen entsprechen deiner Suche", fr: "Aucune collection ne correspond à votre recherche", ar: "لا توجد مجموعات تطابق بحثك" },
+  emptyNoMatchBody:{ en: "Try a different keyword or clear the search.", es: "Prueba otra palabra clave o borra la búsqueda.", de: "Versuche ein anderes Stichwort oder lösche die Suche.", fr: "Essayez un autre mot-clé ou effacez la recherche.", ar: "جرّب كلمة مفتاحية أخرى أو امسح البحث." },
+  emptyLaneBody:   { en: "Collections you create appear here once the AI starts sampling calls.", es: "Las colecciones que crees aparecerán aquí cuando la IA empiece a muestrear llamadas.", de: "Von dir erstellte Sammlungen erscheinen hier, sobald die KI Anrufe auswertet.", fr: "Les collections que vous créez apparaissent ici dès que l’IA échantillonne des appels.", ar: "تظهر المجموعات التي تنشئها هنا بمجرد أن يبدأ الذكاء الاصطناعي بأخذ عينات من المكالمات." },
+};
+
+export function lhR(id, key) {
+  const row = REPLAY[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// "{n} to review" pill + "No {tab} collections" + "Created by {name}".
+export function lhReplayToReview(id, n) {
+  const T = {
+    en: `${n} to review`, es: `${n} por revisar`, de: `${n} zu prüfen`, fr: `${n} à examiner`, ar: `${n} للمراجعة`,
+  };
+  return T[id] ?? T.en;
+}
+export function lhReplayEmptyLane(id, laneLabel) {
+  const T = {
+    en: `No ${laneLabel} collections`,
+    es: `No hay colecciones ${laneLabel}`,
+    de: `Keine ${laneLabel}-Sammlungen`,
+    fr: `Aucune collection ${laneLabel}`,
+    ar: `لا توجد مجموعات ${laneLabel}`,
+  };
+  return T[id] ?? T.en;
+}
+export function lhCreatedBy(id, name) {
+  const T = {
+    en: `Created by ${name}`, es: `Creada por ${name}`, de: `Erstellt von ${name}`,
+    fr: `Créée par ${name}`,  ar: `أنشأها ${name}`,
+  };
+  return T[id] ?? T.en;
+}
+
 // Guide empty-state body when a search returns nothing.
 export function lhGuideEmptySearchBody(id, laneLabel) {
   const T = {
