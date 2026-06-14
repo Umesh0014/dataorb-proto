@@ -118,6 +118,7 @@ export default [
     files: [
       "components/AttentionItemCard.jsx",
       "components/AgentScoreRow.jsx",
+      "components/AgentRosterTable.jsx",
       "components/CommandCenterRoster.jsx",
       "components/CommandCenterScorecards.jsx",
       "components/CommandCenterFocus.jsx",

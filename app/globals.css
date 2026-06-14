@@ -332,6 +332,12 @@ body {
   box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
 }
 
+/* Command Center agent table — row highlight on hover / keyboard focus. */
+.cc-agent-row:hover,
+.cc-agent-row:focus-within {
+  background: var(--table-row-hover);
+}
+
 /* Missions kanban lanes — scrollbar hidden at rest, fades in on lane hover
    (and shown by the OS while actively scrolling). Inline styles can't reach
    the ::-webkit-scrollbar pseudo-elements, so it lives here. */
