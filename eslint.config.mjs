@@ -150,6 +150,23 @@ export default [
       ],
     },
   },
+  // Learning Hub impact chart — the segmented timeline switcher and the
+  // focusable chart pins/scrub layer are raw <button>s; Button.jsx has no
+  // segmented or chart-pin variant and there is no shared SegmentedControl
+  // primitive yet. Promote when a 2nd callsite needs it.
+  {
+    files: ["components/AgentLearningImpact.jsx", "components/AgentImpactChart.jsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or a shared SegmentedControl) when this component is next touched.",
+        },
+      ],
+    },
+  },
   // MilestoneSideRail — a self-contained meta-tooling side rail + popover
   // (dark surface, monospace, yellow accent) beside the Performance score
   // card. Its controls (state-switcher buttons, info trigger, close,

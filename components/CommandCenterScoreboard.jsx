@@ -6,8 +6,10 @@ import PageHeader from "./PageHeader";
 import CircularProgress from "./CircularProgress";
 import MetricSparkline from "./MetricSparkline";
 import ScoreTrend from "./ScoreTrend";
+import AgentLearningImpact from "./AgentLearningImpact";
 import { CommandCenterIcon } from "./SideNav/icons";
 import { TEAM_SCORE, TEAM_KPIS, TEAM_CONTEXT } from "./mocks/commandCenter";
+import { getTeamImpact } from "./mocks/agentLearningImpact";
 
 // CommandCenterScoreboard — the dashboard's top band: the shared PageHeader
 // (so the Dashboard's chrome matches every other module page), then a "team
@@ -33,6 +35,7 @@ export default function CommandCenterScoreboard({ subtitle }) {
   const band = bandFor(composite.value);
   const engagement = TEAM_KPIS.find((k) => k.id === "engagement");
   const attention = TEAM_KPIS.find((k) => k.id === "attention");
+  const teamImpact = React.useMemo(() => getTeamImpact(), []);
 
   return (
     <div style={sbStyles.wrap}>
@@ -70,9 +73,8 @@ export default function CommandCenterScoreboard({ subtitle }) {
               <div style={sbStyles.compositeRight}>
                 <DeltaChip text={composite.delta} dir={composite.dir} />
                 <span style={sbStyles.spark} role="img" aria-label={`Composite trend, now ${composite.value}, target ${composite.target}`}>
-                  <MetricSparkline points={composite.trend} target={composite.target} color="var(--chart-green)" formatValue={(v) => `${Math.round(v)}`} />
+                  <MetricSparkline points={composite.trend} color="var(--chart-green)" formatValue={(v) => `${Math.round(v)}`} />
                 </span>
-                <span style={sbStyles.targetCap}><span aria-hidden="true" style={sbStyles.dash} /> target {composite.target}</span>
               </div>
             </div>
           </div>
@@ -100,6 +102,12 @@ export default function CommandCenterScoreboard({ subtitle }) {
           </div>
         </div>
       </Card>
+
+      <AgentLearningImpact
+        fullImpact={teamImpact}
+        title="Team learning impact"
+        subtitle="Your team's QA and CSAT over time, with every Learning Hub intervention marked — so you can see practice lift performance."
+      />
     </div>
   );
 }
@@ -142,8 +150,6 @@ const sbStyles = {
   ringOutOf: { fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)" },
   compositeRight: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1 },
   spark: { display: "block", width: "100%", maxWidth: 160 },
-  targetCap: { display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 600, color: "var(--color-text-tertiary)" },
-  dash: { width: 12, height: 0, borderTop: "1px dashed var(--color-text-tertiary)", display: "inline-block" },
   csatTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   statValue: { fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1 },
   statSub: { fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 400, color: "var(--text-secondary)" },

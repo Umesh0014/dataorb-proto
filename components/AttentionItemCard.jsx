@@ -51,36 +51,15 @@ export default function AttentionItemCard({
         <InlineStatusAffordance tone={sev.tone} icon={<SeverityDot tone={sev.tone} />} style={{ color: toneInk(sev.tone) }}>
           {sev.label}
         </InlineStatusAffordance>
-        {isOpen ? (
-          <ItemKebab
-            onOpenAgent={() => onOpenAgent?.(item.agent.id)}
-            onSnooze={onSnooze}
-            onDismiss={onDismiss}
-            onMarkHandled={onMarkHandled}
-          />
-        ) : (
+        {!isOpen && (
           <InlineStatusAffordance tone={LOOP_META[status].tone} icon={<SeverityDot tone={LOOP_META[status].tone} />} style={{ color: toneInk(LOOP_META[status].tone) }}>
             {LOOP_META[status].label}
           </InlineStatusAffordance>
         )}
       </div>
 
-      <div style={cardStyles.main}>
-        <div style={cardStyles.textCol}>
-          <h3 style={cardStyles.title}>{taskTitle(item)}</h3>
-          <p style={cardStyles.justification}>{item.evidence}</p>
-        </div>
-        {isOpen && (
-          <Button
-            variant="primary"
-            onClick={onLaunch}
-            leadingIcon={<IntervIcon size={15} aria-hidden="true" />}
-            style={cardStyles.launchBtn}
-          >
-            Launch
-          </Button>
-        )}
-      </div>
+      <h3 style={cardStyles.title}>{taskTitle(item)}</h3>
+      <p style={cardStyles.justification}>{item.evidence}</p>
 
       <button
         type="button"
@@ -93,6 +72,25 @@ export default function AttentionItemCard({
         <span style={cardStyles.agentName}>{item.agent.name}</span>
         <span style={cardStyles.competency}>· {item.competency}</span>
       </button>
+
+      {isOpen && (
+        <div style={cardStyles.footer}>
+          <Button
+            variant="primary"
+            onClick={onLaunch}
+            leadingIcon={<IntervIcon size={15} aria-hidden="true" />}
+            style={cardStyles.launchBtn}
+          >
+            Launch
+          </Button>
+          <ItemKebab
+            onOpenAgent={() => onOpenAgent?.(item.agent.id)}
+            onSnooze={onSnooze}
+            onDismiss={onDismiss}
+            onMarkHandled={onMarkHandled}
+          />
+        </div>
+      )}
     </Card>
   );
 }
@@ -172,8 +170,6 @@ function ItemKebab({ onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
 const cardStyles = {
   shell: { display: "flex", flexDirection: "column", gap: 10, height: "100%" },
   top: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  main: { display: "flex", alignItems: "center", gap: 14 },
-  textCol: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 },
   title: {
     margin: 0,
     fontFamily: "var(--font-sans)",
@@ -181,10 +177,6 @@ const cardStyles = {
     fontWeight: 700,
     color: "var(--color-text-deep)",
     lineHeight: 1.3,
-    display: "-webkit-box",
-    WebkitBoxOrient: "vertical",
-    WebkitLineClamp: 2,
-    overflow: "hidden",
   },
   justification: {
     margin: 0,
@@ -192,12 +184,14 @@ const cardStyles = {
     fontSize: 13,
     fontWeight: 400,
     color: "var(--text-secondary)",
-    lineHeight: 1.4,
+    lineHeight: 1.45,
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
     overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
   },
-  launchBtn: { flexShrink: 0, height: 36, minWidth: 0, paddingInline: 18 },
+  footer: { display: "flex", alignItems: "center", gap: 8, paddingTop: 2 },
+  launchBtn: { flex: 1, height: 38, minWidth: 0 },
   agentRow: {
     display: "flex",
     alignItems: "center",
