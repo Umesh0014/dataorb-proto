@@ -160,11 +160,13 @@ export default function SideNav({
         style={{
           position: "fixed",
           top: 0,
-          left: 0,
+          // Logical inline-start so the rail docks left in LTR and flips
+          // to the right edge under RTL (Arabic) with no other change.
+          insetInlineStart: 0,
           width: isExpanded ? T.rail.expandedWidth : T.rail.width,
           height: "100vh",
           background: T.rail.bg,
-          borderRight: `1px solid ${T.rail.border}`,
+          borderInlineEnd: `1px solid ${T.rail.border}`,
           display: "flex",
           flexDirection: "column",
           alignItems: isExpanded ? "stretch" : "center",
@@ -371,7 +373,7 @@ function BrandSlot({ src, alt, isExpanded }) {
       {isExpanded && (
         <span
           style={{
-            marginLeft: T.brand.wordmark.marginLeft,
+            marginInlineStart: T.brand.wordmark.marginLeft,
             fontFamily: T.font.sans,
             fontSize: T.brand.wordmark.fontSize,
             fontWeight: T.brand.wordmark.fontWeight,
@@ -403,7 +405,8 @@ function ToggleButton({ isExpanded, onClick }) {
       style={{
         position: "absolute",
         top: T.toggle.anchorTop,
-        right: T.toggle.anchorRight,
+        // Straddles the rail's inline-end border (right in LTR, left in RTL).
+        insetInlineEnd: T.toggle.anchorRight,
         zIndex: 2,
       }}
     >
@@ -540,13 +543,11 @@ function RailItem({
         : T.state.bgDefault;
 
   // Indented child rows align horizontally with the parent label
-  // (8 base padding + 40 icon + 12 gap = 60px from the rail's left
-  // inner edge). Icon slot is suppressed on these rows.
-  const padding = isExpanded
-    ? indented
-      ? "0 8px 0 60px"
-      : "0 8px"
-    : 0;
+  // (8 base padding + 40 icon + 12 gap = 60px from the rail's inner
+  // inline-start edge). Logical so the indent flips under RTL. Icon slot
+  // is suppressed on these rows.
+  const padInlineStart = isExpanded ? (indented ? 60 : 8) : 0;
+  const padInlineEnd = isExpanded ? 8 : 0;
 
   return (
     <Tooltip label={item.label} disabled={isExpanded}>
@@ -568,7 +569,9 @@ function RailItem({
           display: "flex",
           alignItems: "center",
           justifyContent: isExpanded ? "flex-start" : "center",
-          padding,
+          paddingBlock: 0,
+          paddingInlineStart: padInlineStart,
+          paddingInlineEnd: padInlineEnd,
           gap: isExpanded && !indented ? T.expandedLabel.marginLeft : 0,
           transition: T.iconButton.transition,
           position: "relative",
@@ -631,12 +634,12 @@ function NavBadge({ label, variant = "light", isExpanded }) {
     textTransform: "uppercase",
   };
   if (isExpanded) {
-    return <span style={{ ...sharedStyle, marginLeft: "auto" }}>{label}</span>;
+    return <span style={{ ...sharedStyle, marginInlineStart: "auto" }}>{label}</span>;
   }
   return (
     <span
       aria-hidden="true"
-      style={{ ...sharedStyle, position: "absolute", top: 2, right: 2 }}
+      style={{ ...sharedStyle, position: "absolute", top: 2, insetInlineEnd: 2 }}
     >
       {label}
     </span>
@@ -650,7 +653,7 @@ function NotificationDot() {
       style={{
         position: "absolute",
         top: 8,
-        right: 8,
+        insetInlineEnd: 8,
         width: 7,
         height: 7,
         borderRadius: 4,
@@ -667,7 +670,7 @@ function InlineDot() {
     <span
       aria-hidden="true"
       style={{
-        marginLeft: "auto",
+        marginInlineStart: "auto",
         width: 7,
         height: 7,
         borderRadius: 4,
@@ -830,7 +833,9 @@ function Tooltip({ label, children, disabled = false }) {
           role="tooltip"
           style={{
             position: "absolute",
-            left: `calc(100% + ${T.tooltip.offset}px)`,
+            // Inline-start places the tooltip on the content side of the
+            // rail in both directions (right of rail in LTR, left in RTL).
+            insetInlineStart: `calc(100% + ${T.tooltip.offset}px)`,
             top: "50%",
             transform: "translateY(-50%)",
             background: T.tooltip.bg,

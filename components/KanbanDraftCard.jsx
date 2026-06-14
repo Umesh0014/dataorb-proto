@@ -6,6 +6,7 @@ import InlineStatusAffordance from "./InlineStatusAffordance";
 import SelectionAccentBar from "./SelectionAccentBar";
 import { formatDateRange } from "./formatDate";
 import { DRAFT_SETUP_STEPS } from "./mocks/missionsSeedData";
+import { lhM, lhTerm, lhMissionContent } from "./learningHubLocale";
 
 const TAG_MAX = 15;
 
@@ -33,7 +34,7 @@ export function resolveDraftState(mission) {
 // chips / setup-progress bar / footer); the only differences are the
 // progress-bar tone (warning vs success) and the footer status pill
 // (Draft vs Ready to publish).
-export default function KanbanDraftCard({ mission, onClick, selected = false }) {
+export default function KanbanDraftCard({ mission, onClick, selected = false, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   const { state, completed } = resolveDraftState(mission);
 
@@ -55,25 +56,26 @@ export default function KanbanDraftCard({ mission, onClick, selected = false }) 
       {selected && <SelectionAccentBar />}
 
       {empty ? (
-        <EmptyContent />
+        <EmptyContent locale={locale} />
       ) : (
-        <FullContent mission={mission} complete={complete} completed={completed} />
+        <FullContent mission={mission} complete={complete} completed={completed} locale={locale} />
       )}
     </button>
   );
 }
 
-function EmptyContent() {
+function EmptyContent({ locale = "en" }) {
   return (
     <>
       <FilePlus size={16} color="var(--color-text-tertiary)" />
-      <div style={dcStyles.untitled}>Untitled draft</div>
-      <div style={dcStyles.continueCta}>Continue setup →</div>
+      <div style={dcStyles.untitled}>{lhM(locale, "untitledDraft")}</div>
+      <div style={dcStyles.continueCta}>{lhM(locale, "continueSetup")} →</div>
     </>
   );
 }
 
-function FullContent({ mission, complete, completed }) {
+function FullContent({ mission, complete, completed, locale = "en" }) {
+  const content = lhMissionContent(locale, mission.id);
   const hasDesc = Boolean(mission.description);
   const hasAgents = mission.agentCount != null && mission.agentCount > 0;
   const tags = Array.isArray(mission.tags) ? mission.tags : [];
@@ -84,9 +86,9 @@ function FullContent({ mission, complete, completed }) {
 
   return (
     <>
-      <div style={dcStyles.title}>{mission.name || "—"}</div>
-      <div style={hasDesc ? dcStyles.desc : dcStyles.descEmpty}>
-        {hasDesc ? mission.description : "--"}
+      <div style={dcStyles.title} dir="auto">{content?.name ?? mission.name ?? "—"}</div>
+      <div style={hasDesc ? dcStyles.desc : dcStyles.descEmpty} dir="auto">
+        {hasDesc ? (content?.description ?? mission.description) : "--"}
       </div>
 
       <div style={dcStyles.divider} aria-hidden="true" />
@@ -95,18 +97,18 @@ function FullContent({ mission, complete, completed }) {
         {hasAgents ? (
           <>
             <span style={dcStyles.countBadge}>{mission.agentCount}</span>
-            <span style={dcStyles.chipLabel}>Agents</span>
+            <span style={dcStyles.chipLabel}>{lhM(locale, "agents")}</span>
           </>
         ) : (
           <>
             <span style={dcStyles.placeholderBadge}>--</span>
-            <span style={dcStyles.chipLabel}>Agents</span>
+            <span style={dcStyles.chipLabel}>{lhM(locale, "agents")}</span>
           </>
         )}
         <span style={dcStyles.dot} aria-hidden="true">·</span>
         {firstTag ? (
           <>
-            <span style={dcStyles.tagChip} title={tags[0]}>{firstTag}</span>
+            <span style={dcStyles.tagChip} title={lhTerm(locale, tags[0])}>{truncate(lhTerm(locale, tags[0]), TAG_MAX)}</span>
             {tags.length > 1 && (
               <span style={dcStyles.overflowChip} title={tags.slice(1).join("\n")}>
                 +{tags.length - 1}
@@ -129,15 +131,15 @@ function FullContent({ mission, complete, completed }) {
 
       <div style={dcStyles.footer}>
         <span style={hasDates ? dcStyles.dateRange : dcStyles.placeholderText}>
-          {hasDates ? formatDateRange(mission.startDate, mission.endDate) : "--"}
+          {hasDates ? formatDateRange(mission.startDate, mission.endDate, locale) : "--"}
         </span>
         {complete ? (
           <InlineStatusAffordance tone="success" icon={<CheckCircle2 size={12} />}>
-            Ready to publish
+            {lhM(locale, "readyToPublish")}
           </InlineStatusAffordance>
         ) : (
           <InlineStatusAffordance tone="warning" icon={<FileClock size={12} />}>
-            Draft
+            {lhM(locale, "lane_draft")}
           </InlineStatusAffordance>
         )}
       </div>
@@ -150,7 +152,7 @@ const dcStyles = {
     position: "relative",
     overflow: "hidden",
     appearance: "none",
-    textAlign: "left",
+    textAlign: "start",
     cursor: "pointer",
     width: "100%",
     flexShrink: 0,

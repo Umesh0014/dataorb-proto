@@ -125,6 +125,48 @@ export default [
       ],
     },
   },
+  // Command Center triage surfaces. <Button> has no variant for an avatar
+  // chip, a segmented group-by control, a full-width clickable summary row,
+  // or a kebab menu item — and the codebase has no shared Avatar / PillGroup
+  // / Dropdown primitive yet. The Launch CTA, Details link, and kebab trigger
+  // already use <Button>; the remaining raw <button>s are promotion
+  // candidates once a 3rd callsite appears. Kept as warn until those land.
+  {
+    files: [
+      "components/AttentionItemCard.jsx",
+      "components/AgentScoreRow.jsx",
+      "components/CommandCenterRoster.jsx",
+      "components/CommandCenterScorecards.jsx",
+      "components/CommandCenterFocus.jsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or shared Avatar / PillGroup / Dropdown) when this component is next touched.",
+        },
+      ],
+    },
+  },
+  // Toast — shared bottom-left notification atom. Its inline action button
+  // (white-on-tone "Undo") and close ✕ predate the rule and don't map to a
+  // Button variant (Button carries product chrome, not on-colour toast
+  // styling). Kept as warn until a toast-action primitive is factored out.
+  {
+    files: ["components/Toast.jsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Toast action/close controls — raw <button> kept until a toast-action primitive lands.",
+        },
+      ],
+    },
+  },
   // MilestoneSideRail — a self-contained meta-tooling side rail + popover
   // (dark surface, monospace, yellow accent) beside the Performance score
   // card. Its controls (state-switcher buttons, info trigger, close,

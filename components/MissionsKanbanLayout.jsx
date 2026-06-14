@@ -14,6 +14,7 @@ import Modal from "./Modal";
 import Toast from "./Toast";
 import Button from "./Button";
 import { isTeamViewer } from "./lib/currentUser";
+import { lhM, lhMore, lhDeleteDraftBody, lhDir, lhMissionContent, buildLocaleFilter } from "./learningHubLocale";
 
 // MissionsKanbanLayout — Option 3. Urgency-first swimlanes (Active / At
 // Risk / Ending Soon / Completed) derived directly from state + daysLeft,
@@ -22,11 +23,12 @@ import { isTeamViewer } from "./lib/currentUser";
 // leaving the board (the board reflows to make room — no navigation, no
 // scrim).
 
+// Lane labels localize via lhM(`lane_${id}`); only the id is intrinsic.
 const LANES = [
-  { id: "draft", label: "Draft" },
-  { id: "active", label: "Active" },
-  { id: "at_risk", label: "At Risk" },
-  { id: "completed", label: "Completed" },
+  { id: "draft" },
+  { id: "active" },
+  { id: "at_risk" },
+  { id: "completed" },
 ];
 
 // Agent persona lane order — Draft dropped (agents don't see in-flight
@@ -35,10 +37,10 @@ const LANES = [
 // is reused by Team Leader's M1 variant (Part F §F4) — Upcoming as own
 // column, Draft silently hidden.
 const AGENT_LANES = [
-  { id: "upcoming",  label: "Upcoming" },
-  { id: "active",    label: "Active" },
-  { id: "at_risk",   label: "At Risk" },
-  { id: "completed", label: "Completed" },
+  { id: "upcoming" },
+  { id: "active" },
+  { id: "at_risk" },
+  { id: "completed" },
 ];
 
 // laneOf — mutually exclusive, evaluated top to bottom. Derived from state
@@ -67,9 +69,12 @@ export default function MissionsKanbanLayout({
   onCreateMission,
   persona = "Team Leader",
   variant = "M2",
+  locale = "en",
+  onLocaleChange,
 }) {
   const [query, setQuery] = React.useState("");
   const isAgent = persona === "Agent";
+  const isRtl = lhDir(locale) === "rtl";
   // M1 variant (Team Leader only, Part F §F4) reuses the Agent lane
   // shape — Upcoming as its own column, Draft hidden. The variant prop
   // is only meaningful for Team Leader; Agent ignores it.
@@ -186,24 +191,28 @@ export default function MissionsKanbanLayout({
           <PageHeader
             identifier={{
               icon: <MissionsIcon size={18} color="#245BFF" />,
-              label: "Missions",
+              label: lhM(locale, "title"),
               withDropdown: true,
               onClick: () => {},
             }}
             // Agent persona drops authoring chrome (Part E §E3): no
             // "+ Mission" CTA, no Team / Created Date filters (agent
             // only sees their own missions, so cohort filters don't
-            // apply). Search stays.
+            // apply). Search stays. Language selector is offered in every
+            // persona/variant (mirrors the Drill page).
             primaryAction={isAgent ? undefined : {
-              label: "Mission",
+              label: lhM(locale, "mission"),
               icon: <Plus size={16} />,
               onClick: onCreateMission,
             }}
-            search={{ value: query, onChange: setQuery, placeholder: "Search missions" }}
-            filters={isAgent ? [] : [
-              { id: "team", label: "Team", value: "All", onClick: () => {} },
-              { id: "created", label: "Created Date", value: "Last 7 days", onClick: () => {} },
-            ]}
+            search={{ value: query, onChange: setQuery, placeholder: lhM(locale, "searchMissions") }}
+            filters={isAgent
+              ? [buildLocaleFilter(locale, onLocaleChange)]
+              : [
+                  { id: "team", label: lhM(locale, "team"), value: lhM(locale, "all"), onClick: () => {} },
+                  { id: "created", label: lhM(locale, "createdDate"), value: lhM(locale, "last7"), onClick: () => {} },
+                  buildLocaleFilter(locale, onLocaleChange),
+                ]}
           />
 
           <div style={layoutStyles.board}>
@@ -216,6 +225,7 @@ export default function MissionsKanbanLayout({
                 openId={openId}
                 onOpenMission={setOpenId}
                 hideAgentCount={isAgent}
+                locale={locale}
               />
             ))}
           </div>
@@ -225,7 +235,8 @@ export default function MissionsKanbanLayout({
       <aside
         style={{
           ...layoutStyles.curtain,
-          transform: openId ? "translateX(0)" : "translateX(100%)",
+          // Curtain docks on the inline-end edge; closed offset mirrors under RTL.
+          transform: openId ? "translateX(0)" : `translateX(${isRtl ? "-100%" : "100%"})`,
           transition: `transform 200ms ${openId ? "ease-out" : "ease-in"}`,
           boxShadow: openId ? "-4px 0 16px rgba(0, 0, 0, 0.06)" : "none",
         }}
@@ -237,6 +248,7 @@ export default function MissionsKanbanLayout({
               mission={displayMission}
               onClose={() => setOpenId(null)}
               onDeleteDraft={() => setDeleteTarget(displayMission)}
+              locale={locale}
             />
             <div style={layoutStyles.curtainBody}>
               {displayMission.state === "draft" ? (
@@ -252,13 +264,13 @@ export default function MissionsKanbanLayout({
       <Modal
         open={!!deleteTarget}
         onDismiss={() => setDeleteTarget(null)}
-        title="Delete this draft?"
+        title={lhM(locale, "deleteDraftTitle")}
         body={
           deleteTarget
-            ? `"${deleteTarget.name || "Untitled draft"}" will be removed from your drafts. You can undo this for 5 seconds.`
+            ? lhDeleteDraftBody(locale, deleteTarget.name || lhM(locale, "untitledDraft"))
             : null
         }
-        confirmLabel="Delete"
+        confirmLabel={lhM(locale, "delete")}
         confirmTone="danger"
         onConfirm={handleConfirmDelete}
       />
@@ -266,8 +278,8 @@ export default function MissionsKanbanLayout({
       {toast && (
         <Toast
           tone="info"
-          message="Draft deleted"
-          action={{ label: "Undo", onClick: handleUndo }}
+          message={lhM(locale, "draftDeleted")}
+          action={{ label: lhM(locale, "undo"), onClick: handleUndo }}
           onDismiss={handleToastDismiss}
         />
       )}
@@ -286,7 +298,7 @@ export default function MissionsKanbanLayout({
 // header pill always reflects items.length (the real total); cards
 // beyond the cap surface via an inline "+ N more" link that expands
 // the rest in place (no modal / route nav — spec §D5 #5 default).
-function UpcomingSubSection({ items, maxCardsInUpcoming = 1, openId, onOpenMission }) {
+function UpcomingSubSection({ items, maxCardsInUpcoming = 1, openId, onOpenMission, locale = "en" }) {
   const [showAll, setShowAll] = React.useState(false);
   const visible = showAll ? items : items.slice(0, maxCardsInUpcoming);
   const overflow = items.length - visible.length;
@@ -294,7 +306,7 @@ function UpcomingSubSection({ items, maxCardsInUpcoming = 1, openId, onOpenMissi
     <div style={layoutStyles.upcomingWrap}>
       <div style={layoutStyles.upcomingDivider}>
         <div style={layoutStyles.upcomingDividerLeft}>
-          <span style={layoutStyles.upcomingTitle}>Upcoming</span>
+          <span style={layoutStyles.upcomingTitle}>{lhM(locale, "upcoming")}</span>
           <span style={layoutStyles.countPill}>{items.length}</span>
         </div>
       </div>
@@ -304,18 +316,19 @@ function UpcomingSubSection({ items, maxCardsInUpcoming = 1, openId, onOpenMissi
           mission={m}
           selected={openId === m.id}
           onClick={() => onOpenMission(m.id)}
+          locale={locale}
         />
       ))}
       {overflow > 0 && (
         <button type="button" onClick={() => setShowAll(true)} style={layoutStyles.showAllBtn}>
-          + {overflow} more
+          {lhMore(locale, overflow)}
         </button>
       )}
     </div>
   );
 }
 
-function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount = false }) {
+function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount = false, locale = "en" }) {
   const isDraft = lane.id === "draft";
   // Upcoming sub-section (active lane, team viewer only, k > 0). Hide
   // the divider entirely when empty per spec §B7 #6. Cap collapsed at
@@ -324,11 +337,11 @@ function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount 
     <section style={layoutStyles.lane} className="kanbanLane">
       <div style={layoutStyles.laneHeader}>
         <div style={layoutStyles.laneHeaderLeft}>
-          <span style={layoutStyles.laneTitle}>{lane.label}</span>
+          <span style={layoutStyles.laneTitle}>{lhM(locale, `lane_${lane.id}`)}</span>
           <span style={layoutStyles.countPill}>{missions.length}</span>
         </div>
         {/* No sort in Draft (no % target met) or Completed (uniformly 100%). */}
-        {lane.id !== "completed" && lane.id !== "draft" && <SortControl />}
+        {lane.id !== "completed" && lane.id !== "draft" && <SortControl locale={locale} />}
       </div>
       <div style={layoutStyles.laneScroll} className="kanbanLaneScroll">
         {missions.map((m) =>
@@ -338,6 +351,7 @@ function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount 
               mission={m}
               selected={openId === m.id}
               onClick={() => onOpenMission(m.id)}
+              locale={locale}
             />
           ) : (
             <MissionCardCompact
@@ -346,12 +360,13 @@ function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount 
               selected={openId === m.id}
               onClick={() => onOpenMission(m.id)}
               hideAgentCount={hideAgentCount}
+              locale={locale}
             />
           ),
         )}
 
         {upcoming && upcoming.length > 0 && (
-          <UpcomingSubSection items={upcoming} openId={openId} onOpenMission={onOpenMission} />
+          <UpcomingSubSection items={upcoming} openId={openId} onOpenMission={onOpenMission} locale={locale} />
         )}
       </div>
     </section>
@@ -361,15 +376,15 @@ function Lane({ lane, missions, upcoming, openId, onOpenMission, hideAgentCount 
 // SortControl — V1 ships a single sort key (% target met, ascending). The
 // control still renders as a dropdown so additional keys can land in V1.1
 // without restructuring the lane header.
-function SortControl() {
+function SortControl({ locale = "en" }) {
   const [open, setOpen] = React.useState(false);
   return (
     <div style={sortStyles.wrap}>
       <Button
         variant="icon"
         size="sm"
-        aria-label="Sort: % target met (ascending)"
-        title="Sort: % target met (ascending)"
+        aria-label={lhM(locale, "sortAria")}
+        title={lhM(locale, "sortAria")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -388,7 +403,7 @@ function SortControl() {
               style={sortStyles.item}
               onClick={() => setOpen(false)}
             >
-              % target met
+              {lhM(locale, "sortTargetMet")}
             </button>
           </div>
         </>
@@ -397,7 +412,7 @@ function SortControl() {
   );
 }
 
-function CurtainHeader({ mission, onClose, onDeleteDraft }) {
+function CurtainHeader({ mission, onClose, onDeleteDraft, locale = "en" }) {
   const isDraft = mission.state === "draft";
   const completed = mission.state === "completed";
 
@@ -410,27 +425,28 @@ function CurtainHeader({ mission, onClose, onDeleteDraft }) {
 
   if (isDraft) {
     const { state: draftState } = resolveDraftState(mission);
-    title = mission.name && mission.name.trim() ? mission.name : "Untitled draft";
+    const draftName = lhMissionContent(locale, mission.id)?.name ?? mission.name;
+    title = draftName && draftName.trim() ? draftName : lhM(locale, "untitledDraft");
     status =
       draftState === "complete"
-        ? { tone: "success", icon: <CheckCircle2 size={14} />, label: "Ready to publish" }
-        : { tone: "warning", icon: <FileClock size={14} />, label: "Draft" };
+        ? { tone: "success", icon: <CheckCircle2 size={14} />, label: lhM(locale, "readyToPublish") }
+        : { tone: "warning", icon: <FileClock size={14} />, label: lhM(locale, "lane_draft") };
     items = [
-      { label: "Delete draft", onClick: () => onDeleteDraft?.() },
+      { label: lhM(locale, "deleteDraft"), onClick: () => onDeleteDraft?.() },
     ];
   } else {
-    title = mission.name;
-    status = missionStatusAffordance(mission);
+    title = lhMissionContent(locale, mission.id)?.name ?? mission.name;
+    status = missionStatusAffordance(mission, locale);
     items = completed
       ? [
-          { label: "Duplicate mission", onClick: () => console.log("duplicate mission") },
-          { label: "Delete mission", onClick: () => console.log("delete mission") },
+          { label: lhM(locale, "duplicateMission"), onClick: () => console.log("duplicate mission") },
+          { label: lhM(locale, "deleteMission"), onClick: () => console.log("delete mission") },
         ]
       : [
-          { label: "Edit mission", onClick: () => console.log("edit mission") },
-          { label: "Duplicate mission", onClick: () => console.log("duplicate mission") },
-          { label: "Close mission", onClick: () => console.log("close mission") },
-          { label: "Delete mission", onClick: () => console.log("delete mission") },
+          { label: lhM(locale, "editMission"), onClick: () => console.log("edit mission") },
+          { label: lhM(locale, "duplicateMission"), onClick: () => console.log("duplicate mission") },
+          { label: lhM(locale, "closeMission"), onClick: () => console.log("close mission") },
+          { label: lhM(locale, "deleteMission"), onClick: () => console.log("delete mission") },
         ];
   }
 
@@ -442,20 +458,24 @@ function CurtainHeader({ mission, onClose, onDeleteDraft }) {
           <InlineStatusAffordance tone={status.tone} icon={status.icon} size="md">
             {status.label}
           </InlineStatusAffordance>
-          <KebabMenu ariaLabel="Mission actions" items={items} />
-          <Button variant="icon" size="sm" aria-label="Close" onClick={onClose}>
+          <KebabMenu ariaLabel={lhM(locale, "missionActions")} items={items} />
+          <Button variant="icon" size="sm" aria-label={lhM(locale, "close")} onClick={onClose}>
             <X size={18} />
           </Button>
         </div>
       </div>
-      {mission.description && <p style={curtainHeaderStyles.desc}>{mission.description}</p>}
+      {mission.description && (
+        <p style={curtainHeaderStyles.desc} dir="auto">
+          {lhMissionContent(locale, mission.id)?.description ?? mission.description}
+        </p>
+      )}
     </div>
   );
 }
 
 const layoutStyles = {
   shell: {
-    marginLeft: "var(--sidenav-width)",
+    marginInlineStart: "var(--sidenav-width)",
     minHeight: "100vh",
     height: "100vh",
     background: "var(--surface-canvas)",
@@ -544,18 +564,18 @@ const layoutStyles = {
     display: "flex",
     flexDirection: "column",
     gap: 12,
-    paddingRight: 4,
+    paddingInlineEnd: 4,
   },
   curtain: {
     position: "fixed",
     top: 0,
-    right: 0,
+    insetInlineEnd: 0,
     width: "40vw",
     height: "100vh",
     zIndex: 40,
     boxSizing: "border-box",
     background: "#FFFFFF",
-    borderLeft: "1px solid var(--color-divider-card)",
+    borderInlineStart: "1px solid var(--color-divider-card)",
     display: "flex",
     flexDirection: "column",
     minHeight: 0,
@@ -618,7 +638,7 @@ const sortStyles = {
   menu: {
     position: "absolute",
     top: "calc(100% + 4px)",
-    right: 0,
+    insetInlineEnd: 0,
     minWidth: 160,
     background: "#FFFFFF",
     border: "1px solid var(--color-divider-card)",
@@ -633,7 +653,7 @@ const sortStyles = {
     appearance: "none",
     border: "none",
     background: "var(--pill-bg)",
-    textAlign: "left",
+    textAlign: "start",
     padding: "8px 16px",
     fontFamily: "var(--font-sans)",
     fontSize: 13,
