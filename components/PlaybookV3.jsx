@@ -160,7 +160,7 @@ function ContributorCard({ agent, onDrill }) {
   const sentTone = SENTIMENT_TONE[agent.dominantSentiment] || SENTIMENT_TONE.neutral;
   const [hover, setHover] = React.useState(false);
   return (
-    <article style={styles.contribCard}>
+    <Card tone="outline" padX={16} padY={16} style={styles.contribCard}>
       <div style={styles.contribHead}>
         <span style={styles.contribAvatar} aria-hidden="true">{agent.initial}</span>
         <div style={styles.contribMeta}>
@@ -210,7 +210,7 @@ function ContributorCard({ agent, onDrill }) {
         View {agent.interactions} interactions
         <ChevronRight size={14} color="var(--color-text-medium)" />
       </button>
-    </article>
+    </Card>
   );
 }
 
@@ -348,13 +348,10 @@ const styles = {
     color: "var(--color-text-tertiary)",
   },
 
-  // Contributor card
+  // Contributor card — composes <Card tone="outline"> for the surface;
+  // this style adds only the internal vertical rhythm.
   contribCard: {
     display: "flex", flexDirection: "column", gap: 12,
-    padding: 16,
-    border: "1px solid var(--color-border-card-soft)",
-    borderRadius: 8,
-    background: "#FFFFFF",
   },
   contribHead: {
     display: "flex", alignItems: "center", gap: 12,
