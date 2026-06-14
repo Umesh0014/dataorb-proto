@@ -117,11 +117,12 @@ export function getAgentImpact(agent) {
 // and CSAT over ~24 months, with every Learning Hub intervention the team ran
 // marked along the axis. Lets a team lead see practice translate into lift
 // across the whole team. Same record shape as getAgentImpact.
-export function getTeamImpact({ qaEnd = 81, csatEnd = 71, tenure = 24 } = {}) {
+export function getTeamImpact({ qaEnd = 81, csatEnd = 71, compositeEnd = 62, tenure = 24 } = {}) {
   const nowTime = new Date("2026-06-14").getTime();
   const joinTime = nowTime - tenure * MONTH_MS;
   const qaStart = clamp(qaEnd - 16, 30, qaEnd - 4);
   const csatStart = clamp(csatEnd - 13, 40, csatEnd - 3);
+  const compositeStart = clamp(compositeEnd - 18, 20, compositeEnd - 4);
 
   const K = Math.round(tenure * 5) + 1;
   const series = [];
@@ -132,6 +133,7 @@ export function getTeamImpact({ qaEnd = 81, csatEnd = 71, tenure = 24 } = {}) {
       x: t * tenure,
       qa: valAt(t, qaStart, qaEnd, 2.2, 2),
       csat: valAt(t, csatStart, csatEnd, 1.9, 5),
+      composite: valAt(t, compositeStart, compositeEnd, 1.8, 7),
       date: fullLabel(date),
     });
   }
@@ -141,7 +143,7 @@ export function getTeamImpact({ qaEnd = 81, csatEnd = 71, tenure = 24 } = {}) {
     return { kind: a.kind, x: a.at, date: fullLabel(date), title: a.title };
   });
 
-  return { firstName: "Your team", qaEnd, csatEnd, series, activities, tenure };
+  return { firstName: "Your team", qaEnd, csatEnd, compositeEnd, series, activities, tenure };
 }
 
 // windowImpact — slice the trailing range for the timeline switcher.
@@ -156,6 +158,7 @@ export function windowImpact(data, rangeId) {
     firstName: data.firstName,
     qaEnd: data.qaEnd,
     csatEnd: data.csatEnd,
+    compositeEnd: data.compositeEnd,
     series,
     activities,
     xMin,

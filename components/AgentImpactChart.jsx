@@ -23,6 +23,7 @@ const PIN_CY = PLOT_BOTTOM - 13;
 
 const QA_COLOR = "var(--chart-green)";
 const CSAT_COLOR = "var(--chart-blue)";
+const COMPOSITE_COLOR = "var(--chart-lavender)";
 
 const KIND_ICONS = { Replay: ReplayIcon, Guide: GuideIcon, Drill: DrillIcon, Mission: MissionsIcon };
 
@@ -48,7 +49,8 @@ export default function AgentImpactChart({ data, onScrub }) {
   const N = series.length;
   const { xMin, xMax } = data;
 
-  const all = series.flatMap((p) => [p.qa, p.csat]);
+  const hasComposite = N > 0 && series[0].composite != null;
+  const all = series.flatMap((p) => (hasComposite ? [p.qa, p.csat, p.composite] : [p.qa, p.csat]));
   const yMin = clamp(Math.floor((Math.min(...all) - 6) / 20) * 20, 0, 80);
   const yMax = 100;
   const yTicks = [];
@@ -108,6 +110,9 @@ export default function AgentImpactChart({ data, onScrub }) {
         ))}
 
         <path d={qaArea} fill="url(#qaArea)" />
+        {hasComposite && (
+          <path d={linePath("composite")} fill="none" stroke={COMPOSITE_COLOR} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        )}
         <path d={linePath("csat")} fill="none" stroke={CSAT_COLOR} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
         <path d={linePath("qa")} fill="none" stroke={QA_COLOR} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
 
@@ -123,6 +128,9 @@ export default function AgentImpactChart({ data, onScrub }) {
             >
               {hp.date.toUpperCase()}
             </text>
+            {hasComposite && (
+              <circle cx={xPix(hp.x)} cy={yPix(hp.composite)} r={4} fill={COMPOSITE_COLOR} stroke="#FFFFFF" strokeWidth={1.5} />
+            )}
             <circle cx={xPix(hp.x)} cy={yPix(hp.csat)} r={4} fill={CSAT_COLOR} stroke="#FFFFFF" strokeWidth={1.5} />
             <circle cx={xPix(hp.x)} cy={yPix(hp.qa)} r={4} fill={QA_COLOR} stroke="#FFFFFF" strokeWidth={1.5} />
           </g>

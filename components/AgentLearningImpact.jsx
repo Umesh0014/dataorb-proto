@@ -29,6 +29,10 @@ export default function AgentLearningImpact({ agent, fullImpact, title = "Learni
   };
   const qaValue = scrub ? `${Math.round(scrub.qa)}%` : `${full.qaEnd}%`;
   const csatValue = scrub ? `${Math.round(scrub.csat)}%` : `${full.csatEnd}%`;
+  const hasComposite = full.compositeEnd != null;
+  const compositeValue = scrub && scrub.composite != null
+    ? `${Math.round(scrub.composite)}`
+    : `${full.compositeEnd}`;
 
   return (
     <Card padX={24} padY={24}>
@@ -53,6 +57,7 @@ export default function AgentLearningImpact({ agent, fullImpact, title = "Learni
       <div style={aliStyles.legendRow}>
         <LineKey color="var(--chart-green)" label="QA score" value={qaValue} />
         <LineKey color="var(--chart-blue)" label="CSAT" value={csatValue} />
+        {hasComposite && <LineKey color="var(--chart-lavender)" label="Composite" value={compositeValue} />}
       </div>
 
       <AgentImpactChart data={view} onScrub={setScrub} />
