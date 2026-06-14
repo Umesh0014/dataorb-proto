@@ -93,13 +93,77 @@ export const TASK_PLAYBOOK = {
 
   sources: [
     { id: "src-1", topic: "Opening Greetings",     channel: "voice",    date: "Dec 4, 2019 1:42 pm", agent: "WW", sentiment: "positive", adherence: 68 },
-    { id: "src-2", topic: "Resolution Quality",    channel: "chat",     date: "Dec 4, 2019 1:42 pm", agent: "WW", sentiment: "negative", adherence: 72 },
-    { id: "src-3", topic: "Communication",         channel: "voice",    date: "Dec 4, 2019 1:42 pm", agent: "WW", sentiment: "positive", adherence: 78 },
-    { id: "src-4", topic: "Proactive Follow-Up",   channel: "email",    date: "Dec 4, 2019 1:42 pm", agent: "WW", sentiment: "mixed",    adherence: 58 },
-    { id: "src-5", topic: "Tone",                  channel: "whatsapp", date: "Dec 4, 2019 1:42 pm", agent: "WW", sentiment: "neutral",  adherence: 90 },
+    { id: "src-2", topic: "Resolution Quality",    channel: "chat",     date: "Dec 4, 2019 1:42 pm", agent: "JM", sentiment: "negative", adherence: 72 },
+    { id: "src-3", topic: "Communication",         channel: "voice",    date: "Dec 4, 2019 1:42 pm", agent: "AR", sentiment: "positive", adherence: 78 },
+    { id: "src-4", topic: "Proactive Follow-Up",   channel: "email",    date: "Dec 4, 2019 1:42 pm", agent: "SP", sentiment: "mixed",    adherence: 58 },
+    { id: "src-5", topic: "Tone",                  channel: "whatsapp", date: "Dec 4, 2019 1:42 pm", agent: "DK", sentiment: "neutral",  adherence: 90 },
   ],
   totalSources: 150,
   pagesTotal: 22,
+
+  // contributors — the agents whose interactions built this playbook. Distilled
+  // from the 150 source interactions; ordered by contribution count. Each card
+  // carries the agent's dominant pattern + a sample quote (what they typically
+  // said at the step they exemplify). Drives the source-evidence grid in V1/V3
+  // and the pinned-source-strip avatar cluster in V2.
+  contributors: [
+    {
+      id: "WW",
+      initial: "WW",
+      name: "Whitney Wong",
+      interactions: 47,
+      adherenceLow: 64,
+      adherenceHigh: 92,
+      dominantSentiment: "positive",
+      pattern: "Strongest at step 1 — listening without defending.",
+      quote: "I hear you, and I can understand why that's frustrating — especially when you were expecting a specific amount.",
+    },
+    {
+      id: "JM",
+      initial: "JM",
+      name: "Jamal Morris",
+      interactions: 34,
+      adherenceLow: 58,
+      adherenceHigh: 88,
+      dominantSentiment: "negative",
+      pattern: "Re-frames objections as requests for clarity — step 5.",
+      quote: "That's a fair concern. Let me walk you through exactly what changes after the promo and what stays the same.",
+    },
+    {
+      id: "AR",
+      initial: "AR",
+      name: "Ana Rivera",
+      interactions: 31,
+      adherenceLow: 70,
+      adherenceHigh: 94,
+      dominantSentiment: "positive",
+      pattern: "Quotes the total post-tax number, every time — step 4.",
+      quote: "Your total each month, with taxes and the equipment fee, will be $86.29. Same number you'll see on the bill.",
+    },
+    {
+      id: "SP",
+      initial: "SP",
+      name: "Sam Patel",
+      interactions: 24,
+      adherenceLow: 52,
+      adherenceHigh: 80,
+      dominantSentiment: "mixed",
+      pattern: "Sets the end-date expectation upfront — step 6.",
+      quote: "This rate is locked in through March 2027. Around February I'll reach out — no surprises.",
+    },
+    {
+      id: "DK",
+      initial: "DK",
+      name: "Diane Kim",
+      interactions: 14,
+      adherenceLow: 76,
+      adherenceHigh: 96,
+      dominantSentiment: "neutral",
+      pattern: "Right-sizes — moves customers to a smaller plan without hesitation.",
+      quote: "Looking at what you actually use, the smaller plan saves you about $18 a month. Want me to switch you over?",
+    },
+  ],
+  sourceWindow: "Q1 2026",
 };
 
 // Sentiment → chip palette. Matches existing app tone tokens — Positive
