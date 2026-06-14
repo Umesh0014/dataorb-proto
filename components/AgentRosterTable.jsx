@@ -15,8 +15,9 @@ import { ENGAGEMENT_META, toneInk } from "./mocks/commandCenter";
 
 const COLUMNS = [
   { key: "name", label: "Agent" },
-  { key: "csat", label: "CSAT" },
   { key: "composite", label: "Composite" },
+  { key: "qa", label: "QA score" },
+  { key: "csat", label: "CSAT" },
 ];
 
 function sortAgents(agents, { key, dir }) {
@@ -86,10 +87,13 @@ export default function AgentRosterTable({ agents, onOpenAgent }) {
                   </button>
                 </td>
                 <td style={tStyles.tdScore}>
-                  <ScoreTrend value={`${agent.csat}%`} unit="%" points={agent.csatTrend} target={agent.csatTarget} width={80} />
+                  <ScoreTrend value={`${agent.composite}`} points={agent.compositeTrend} target={agent.target} width={80} />
                 </td>
                 <td style={tStyles.tdScore}>
-                  <ScoreTrend value={`${agent.composite}`} points={agent.compositeTrend} target={agent.target} width={80} />
+                  <ScoreTrend value={`${agent.qa}%`} unit="%" points={agent.qaTrend} target={agent.qaTarget} width={80} />
+                </td>
+                <td style={tStyles.tdScore}>
+                  <ScoreTrend value={`${agent.csat}%`} unit="%" points={agent.csatTrend} target={agent.csatTarget} width={80} />
                 </td>
                 <td style={tStyles.tdChev}>
                   <ChevronRight size={18} aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />

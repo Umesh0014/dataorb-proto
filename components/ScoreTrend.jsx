@@ -38,6 +38,7 @@ export default function ScoreTrend({ label, value, unit = "", points, target, wi
         >
           <MetricSparkline
             points={points}
+            target={target}
             color={TREND_COLOR[dir]}
             formatValue={(v) => `${Math.round(v)}${unit}`}
           />

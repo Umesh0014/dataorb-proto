@@ -134,7 +134,7 @@ function resolveAppSwitcherLabel(pathname) {
 const DEFAULT_NAV = {
   currentPage: "insights",
   insightsNav: "contact-center",
-  learningNav: "drill",
+  learningNav: "dashboard",
   miraNav: "chat",
   missionDetailId: null,
   settingsSubpage: null,
@@ -185,7 +185,7 @@ function deriveNav(pathname) {
 // Path builders — used wherever the app used to call setCurrentPage /
 // setXxxNav. The strings match the `route` fields in the per-module configs.
 function pathForCurrentPage(currentPage) {
-  if (currentPage === "learning") return "/learning/drill";
+  if (currentPage === "learning") return "/learning/dashboard";
   if (currentPage === "mira") return "/mira/chat";
   return "/insights/contact-center";
 }
@@ -233,7 +233,7 @@ export default function Page() {
   // module's default sub-section so the address bar always shows a
   // canonical leaf path. router.replace keeps the redirect out of history.
   React.useEffect(() => {
-    if (pathname === "/learning") router.replace(pathForLearning("drill"));
+    if (pathname === "/learning") router.replace(pathForLearning("dashboard"));
     else if (pathname === "/insights") router.replace(pathForInsights("contact-center"));
     else if (pathname === "/mira") router.replace(pathForMira("chat"));
   }, [pathname, router]);

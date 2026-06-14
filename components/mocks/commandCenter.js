@@ -393,25 +393,27 @@ export const TEAM_SCORE = {
 // composite/csat are read-only scores; the goal framing is "improve the
 // score", never an employment judgement (gate G4).
 const ROSTER_BASE = [
-  { id: "215566", name: "Ravi Patel",       initials: "RP", csat: 61, composite: 38, target: 70, engagement: "none" },
-  { id: "203891", name: "Mukesh Patil",     initials: "MP", csat: 66, composite: 34, target: 65, engagement: "none" },
-  { id: "217430", name: "Priya Nair",       initials: "PN", csat: 67, composite: 40, target: 70, engagement: "active" },
-  { id: "184775", name: "Hiroshi Tanaka",   initials: "HT", csat: 70, composite: 45, target: 70, engagement: "active" },
-  { id: "198320", name: "Willis Jast",      initials: "WJ", csat: 54, composite: 61, target: 75, engagement: "stalled" },
-  { id: "201357", name: "Liam Donovan",     initials: "LD", csat: 56, composite: 52, target: 70, engagement: "stalled" },
-  { id: "213846", name: "Sofia Russo",      initials: "SR", csat: 62, composite: 62, target: 70, engagement: "none" },
-  { id: "188214", name: "Devon Hartmann",   initials: "DH", csat: 84, composite: 81, target: 75, engagement: "active" },
-  { id: "209188", name: "Elena Vasquez",    initials: "EV", csat: 89, composite: 88, target: 80, engagement: "active" },
-  { id: "222019", name: "Grace Okafor",     initials: "GO", csat: 88, composite: 91, target: 80, engagement: "active" },
-  { id: "193845", name: "Aaliyah Tillman",  initials: "AT", csat: 90, composite: 92, target: 85, engagement: "active" },
+  { id: "215566", name: "Ravi Patel",       initials: "RP", qa: 48, csat: 61, composite: 38, target: 70, engagement: "none" },
+  { id: "203891", name: "Mukesh Patil",     initials: "MP", qa: 46, csat: 66, composite: 34, target: 65, engagement: "none" },
+  { id: "217430", name: "Priya Nair",       initials: "PN", qa: 58, csat: 67, composite: 40, target: 70, engagement: "active" },
+  { id: "184775", name: "Hiroshi Tanaka",   initials: "HT", qa: 60, csat: 70, composite: 45, target: 70, engagement: "active" },
+  { id: "198320", name: "Willis Jast",      initials: "WJ", qa: 66, csat: 54, composite: 61, target: 75, engagement: "stalled" },
+  { id: "201357", name: "Liam Donovan",     initials: "LD", qa: 64, csat: 56, composite: 52, target: 70, engagement: "stalled" },
+  { id: "213846", name: "Sofia Russo",      initials: "SR", qa: 70, csat: 62, composite: 62, target: 70, engagement: "none" },
+  { id: "188214", name: "Devon Hartmann",   initials: "DH", qa: 88, csat: 84, composite: 81, target: 75, engagement: "active" },
+  { id: "209188", name: "Elena Vasquez",    initials: "EV", qa: 92, csat: 89, composite: 88, target: 80, engagement: "active" },
+  { id: "222019", name: "Grace Okafor",     initials: "GO", qa: 94, csat: 88, composite: 91, target: 80, engagement: "active" },
+  { id: "193845", name: "Aaliyah Tillman",  initials: "AT", qa: 95, csat: 90, composite: 92, target: 85, engagement: "active" },
 ];
 
-// Each agent carries a CSAT target (team standard 80) plus a trend series for
-// CSAT and composite, so every score renders as number + trendline + dotted
-// target line.
+// Each agent carries QA / CSAT targets (team standards) plus a trend series for
+// QA, CSAT, and composite, so every score renders as number + trendline +
+// dotted target line.
 export const TEAM_ROSTER = ROSTER_BASE.map((a, i) => ({
   ...a,
+  qaTarget: 85,
   csatTarget: 80,
+  qaTrend: scoreTrend(a.qa, i + 5),
   csatTrend: scoreTrend(a.csat, i + 1),
   compositeTrend: scoreTrend(a.composite, i + 9),
 }));

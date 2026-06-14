@@ -55,9 +55,9 @@ export default function AgentLearningImpact({ agent, fullImpact, title = "Learni
       </div>
 
       <div style={aliStyles.legendRow}>
+        {hasComposite && <LineKey color="var(--chart-lavender)" label="Composite" value={compositeValue} />}
         <LineKey color="var(--chart-green)" label="QA score" value={qaValue} />
         <LineKey color="var(--chart-blue)" label="CSAT" value={csatValue} />
-        {hasComposite && <LineKey color="var(--chart-lavender)" label="Composite" value={compositeValue} />}
       </div>
 
       <AgentImpactChart data={view} onScrub={setScrub} />

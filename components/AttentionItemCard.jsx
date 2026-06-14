@@ -76,9 +76,10 @@ export default function AttentionItemCard({
       {isOpen && (
         <div style={cardStyles.footer}>
           <Button
-            variant="primary"
+            variant="text"
+            uppercase={false}
             onClick={onLaunch}
-            leadingIcon={<IntervIcon size={15} aria-hidden="true" />}
+            leadingIcon={<IntervIcon size={14} aria-hidden="true" />}
             style={cardStyles.launchBtn}
           >
             Launch
@@ -190,8 +191,8 @@ const cardStyles = {
     WebkitLineClamp: 2,
     overflow: "hidden",
   },
-  footer: { display: "flex", alignItems: "center", gap: 8, paddingTop: 2 },
-  launchBtn: { flex: 1, height: 38, minWidth: 0 },
+  footer: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 2 },
+  launchBtn: { height: 32, color: "var(--color-button-primary-bg)", fontWeight: 700 },
   agentRow: {
     display: "flex",
     alignItems: "center",
