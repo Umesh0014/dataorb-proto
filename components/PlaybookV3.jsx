@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, ChevronRight, Users } from "lucide-react";
 import Card from "./Card";
 import { TASK_PLAYBOOK, SENTIMENT_TONE } from "./mocks/taskPlaybook";
 import {
@@ -29,6 +29,18 @@ import {
 export default function PlaybookV3({ taskId, onBack }) {
   const playbook = TASK_PLAYBOOK;
 
+  const handleDrillToAgent = (agent) => {
+    // Routes "view N interactions" → the source-evidence table anchor.
+    // The agent filter wiring is product/scope (not yet specced); the
+    // anchor is a clear, discoverable drill-down today and the filter
+    // hook lands on the same DOM target when it ships.
+    if (typeof window === "undefined") return;
+    const el = document.getElementById("section-sources");
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    try { history.replaceState(null, "", `#sources-${agent.id}`); } catch { /* read-only */ }
+  };
+
   return (
     <div style={styles.column}>
       <Hero playbook={playbook} onBack={onBack} taskId={taskId} />
@@ -37,6 +49,7 @@ export default function PlaybookV3({ taskId, onBack }) {
         contributors={playbook.contributors}
         total={playbook.totalSources}
         window={playbook.sourceWindow}
+        onDrillToAgent={handleDrillToAgent}
       />
 
       <main style={styles.content}>
@@ -86,13 +99,21 @@ function Hero({ playbook, onBack, taskId }) {
           <span style={styles.timestamp}>{playbook.timestamp}</span>
         </div>
       </div>
+      {/* Metadata snapshot — UI-7. The hero block holds identity; the
+          *parameters* (topics this playbook applies to) live below the
+          divider as a discrete band. */}
+      <div style={styles.heroSnapshot} aria-label="Topics">
+        {playbook.overview.chips.map((c) => (
+          <span key={c} style={styles.chip}>{c}</span>
+        ))}
+      </div>
     </Card>
   );
 }
 
 // ---- Contributors Mosaic (the variant's defining block) -------------------
 
-function ContributorsMosaic({ contributors, total, window: windowLabel }) {
+function ContributorsMosaic({ contributors, total, window: windowLabel, onDrillToAgent }) {
   return (
     <Card padX={0} padY={0} style={styles.mosaicCard}>
       <header style={styles.mosaicHead}>
@@ -112,18 +133,32 @@ function ContributorsMosaic({ contributors, total, window: windowLabel }) {
           every step in the approach.
         </p>
 
-        <div style={styles.mosaicGrid}>
-          {contributors.map((c) => (
-            <ContributorCard key={c.id} agent={c} />
-          ))}
-        </div>
+        {contributors.length === 0 ? (
+          <Card tone="muted" padX={16} padY={16} style={styles.mosaicEmpty}>
+            <p style={styles.mosaicEmptyText}>
+              No contributing agents yet — the mosaic will populate once the first
+              batch of high-adherence interactions has been ingested for this driver.
+            </p>
+          </Card>
+        ) : (
+          <div style={styles.mosaicGrid}>
+            {contributors.map((c) => (
+              <ContributorCard
+                key={c.id}
+                agent={c}
+                onDrill={() => onDrillToAgent?.(c)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </Card>
   );
 }
 
-function ContributorCard({ agent }) {
+function ContributorCard({ agent, onDrill }) {
   const sentTone = SENTIMENT_TONE[agent.dominantSentiment] || SENTIMENT_TONE.neutral;
+  const [hover, setHover] = React.useState(false);
   return (
     <article style={styles.contribCard}>
       <div style={styles.contribHead}>
@@ -153,9 +188,28 @@ function ContributorCard({ agent }) {
 
       <p style={styles.contribPattern}>{agent.pattern}</p>
 
-      <blockquote style={styles.contribQuote}>
+      <div style={styles.contribQuote}>
+        <span style={styles.contribQuoteLabel}>SAMPLE</span>
         <span style={styles.contribQuoteText}>{agent.quote}</span>
-      </blockquote>
+      </div>
+
+      {/* INT-2 drill-down — the contributor card is the entry point into
+          the subset of interactions this agent contributed. Visible button,
+          not hover-only, so it reads as actionable on first encounter. */}
+      <button
+        type="button"
+        onClick={onDrill}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          ...styles.contribDrill,
+          background: hover ? "var(--color-card-emoji-bg)" : "transparent",
+        }}
+        aria-label={`View ${agent.interactions} interactions from ${agent.name}`}
+      >
+        View {agent.interactions} interactions
+        <ChevronRight size={14} color="var(--color-text-medium)" />
+      </button>
     </article>
   );
 }
@@ -175,11 +229,6 @@ function OverviewBlock({ data }) {
             <strong style={styles.overviewStrong}>Emotional context. </strong>
             {data.emotionalContext}
           </p>
-          <div style={styles.chipRow}>
-            {data.chips.map((c) => (
-              <span key={c} style={styles.chip}>{c}</span>
-            ))}
-          </div>
         </div>
       </Card>
     </div>
@@ -208,10 +257,11 @@ const styles = {
     gap: 12,
   },
   backBtn: {
-    width: 32, height: 32, borderRadius: 6,
+    width: 40, height: 40, borderRadius: 8,
     border: "none", background: "transparent", cursor: "pointer",
     display: "inline-grid", placeItems: "center",
     padding: 0,
+    transition: "background 150ms ease",
   },
   statusTag: {
     display: "inline-flex", alignItems: "center",
@@ -245,6 +295,13 @@ const styles = {
   },
   authorName: { fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
   timestamp: { fontSize: 13, fontWeight: 400, color: "var(--color-text-tertiary)" },
+  heroSnapshot: {
+    display: "flex", flexWrap: "wrap", gap: 8,
+    padding: "16px 32px",
+    borderTop: "1px solid var(--color-border-card-soft)",
+    background: "#FCFBFF",
+    borderBottomLeftRadius: 12, borderBottomRightRadius: 12,
+  },
 
   // Mosaic
   mosaicCard: { boxShadow: "var(--shadow-card)" },
@@ -279,6 +336,16 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
     gap: 16,
+  },
+  mosaicEmpty: {
+    border: "1px dashed var(--color-border-card-soft)",
+    background: "transparent",
+  },
+  mosaicEmptyText: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 13, fontWeight: 400, lineHeight: "20px",
+    color: "var(--color-text-tertiary)",
   },
 
   // Contributor card
@@ -349,14 +416,35 @@ const styles = {
     color: "var(--color-text-medium)",
   },
   contribQuote: {
-    margin: 0,
+    display: "flex", flexDirection: "column", gap: 4,
     paddingLeft: 12,
     borderLeft: "2px solid var(--color-icon-tertiary-fg)",
   },
+  contribQuoteLabel: {
+    fontFamily: "var(--font-mono)",
+    fontSize: 10, fontWeight: 600, letterSpacing: "0.1px",
+    color: "var(--color-icon-tertiary-fg)",
+    textTransform: "uppercase",
+  },
   contribQuoteText: {
     fontFamily: "var(--font-sans)",
-    fontSize: 13, fontStyle: "italic", fontWeight: 400, letterSpacing: "0.1px", lineHeight: "20px",
+    fontSize: 13, fontWeight: 400, letterSpacing: "0.1px", lineHeight: "20px",
     color: "var(--color-text-tertiary)",
+  },
+  contribDrill: {
+    display: "inline-flex", alignItems: "center", justifyContent: "space-between",
+    gap: 6,
+    padding: "10px 12px",
+    minHeight: 40,
+    width: "100%",
+    border: "1px solid var(--color-divider-card)",
+    borderRadius: 8,
+    background: "transparent",
+    cursor: "pointer",
+    fontFamily: "var(--font-sans)",
+    fontSize: 13, fontWeight: 500, letterSpacing: "0.1px",
+    color: "var(--color-text-medium)",
+    transition: "background 150ms ease",
   },
 
   // Body
@@ -386,7 +474,6 @@ const styles = {
     fontWeight: 600,
     color: "var(--color-text-deep)",
   },
-  chipRow: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
   chip: {
     display: "inline-flex", alignItems: "center",
     padding: "4px 12px",

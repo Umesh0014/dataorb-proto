@@ -96,6 +96,13 @@ function Hero({ playbook, onBack, taskId }) {
           </div>
         </div>
       </div>
+      {/* Metadata snapshot — UI-7. Identity sits above; the playbook's
+          *parameters* (topics it covers) sit in this band below the divider. */}
+      <div style={styles.heroSnapshot} aria-label="Topics">
+        {playbook.overview.chips.map((c) => (
+          <span key={c} style={styles.chip}>{c}</span>
+        ))}
+      </div>
     </Card>
   );
 }
@@ -103,6 +110,33 @@ function Hero({ playbook, onBack, taskId }) {
 // ---- Source Strip (the variant's defining element) ------------------------
 
 function SourceStrip({ contributors, total, window: windowLabel, onJump }) {
+  if (contributors.length === 0) {
+    // INT-5: deliberate zero-state. A playbook without ingested source
+    // interactions still surfaces the absence rather than a blank strip.
+    return (
+      <Card padX={0} padY={0} style={styles.stripCard}>
+        <div style={styles.stripInner}>
+          <div style={styles.stripText}>
+            <span style={styles.stripLabel}>BUILT FROM</span>
+            <p style={styles.stripSummaryEmpty}>
+              No source interactions ingested yet — the contributing agents and
+              citation count will appear here once the first batch is processed.
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // WCAG-7: visually the cluster is decorative initials, but the
+  // contributors are load-bearing content; provide the full agent + count
+  // list as the cluster's accessible name so an SR user gets the same info.
+  const clusterLabel =
+    "Contributing agents — " +
+    contributors
+      .map((c) => `${c.name}, ${c.interactions} interactions`)
+      .join("; ");
+
   return (
     <Card padX={0} padY={0} style={styles.stripCard}>
       <div style={styles.stripInner}>
@@ -115,7 +149,7 @@ function SourceStrip({ contributors, total, window: windowLabel, onJump }) {
         </div>
 
         <div style={styles.stripCluster}>
-          <AgentAvatarCluster contributors={contributors} />
+          <AgentAvatarCluster contributors={contributors} ariaLabel={clusterLabel} />
           <button
             type="button"
             onClick={onJump}
@@ -131,9 +165,13 @@ function SourceStrip({ contributors, total, window: windowLabel, onJump }) {
   );
 }
 
-function AgentAvatarCluster({ contributors }) {
+function AgentAvatarCluster({ contributors, ariaLabel }) {
   return (
-    <div style={styles.cluster} aria-label="Contributing agents">
+    <div
+      style={styles.cluster}
+      role="img"
+      aria-label={ariaLabel}
+    >
       {contributors.map((c, idx) => (
         <span
           key={c.id}
@@ -142,7 +180,6 @@ function AgentAvatarCluster({ contributors }) {
             marginLeft: idx === 0 ? 0 : -8,
             zIndex: contributors.length - idx,
           }}
-          title={`${c.name} — ${c.interactions} interactions`}
           aria-hidden="true"
         >
           {c.initial}
@@ -167,11 +204,6 @@ function OverviewBlock({ data }) {
             <strong style={styles.overviewStrong}>Emotional context. </strong>
             {data.emotionalContext}
           </p>
-          <div style={styles.chipRow}>
-            {data.chips.map((c) => (
-              <span key={c} style={styles.chip}>{c}</span>
-            ))}
-          </div>
         </div>
       </Card>
     </div>
@@ -196,12 +228,13 @@ const styles = {
     padding: "20px 32px 24px",
   },
   backBtn: {
-    width: 32, height: 32, borderRadius: 6,
+    width: 40, height: 40, borderRadius: 8,
     border: "none", background: "transparent", cursor: "pointer",
     display: "inline-grid", placeItems: "center",
     padding: 0,
     flexShrink: 0,
-    marginTop: 4,
+    marginTop: 2,
+    transition: "background 150ms ease",
   },
   heroTextStack: {
     flex: 1, minWidth: 0,
@@ -242,16 +275,22 @@ const styles = {
   },
   authorName: { fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
   timestamp: { fontSize: 13, fontWeight: 400, color: "var(--color-text-tertiary)" },
+  heroSnapshot: {
+    display: "flex", flexWrap: "wrap", gap: 8,
+    padding: "16px 32px",
+    borderTop: "1px solid var(--color-border-card-soft)",
+    background: "#FCFBFF",
+    borderBottomLeftRadius: 12, borderBottomRightRadius: 12,
+  },
 
-  // Source strip — visually anchored under the hero, sticky to the
-  // scrollable column top so "5 agents · 150 interactions" stays in view
-  // while the user scrolls the narrative. (sticky compatible with the page
-  // scroll; falls back to a regular block on browsers without sticky.)
+  // Source strip — visually anchored under the hero as the page's first
+  // content block. Earlier iterations used position:sticky here, but that
+  // created a z-index/layout-shift risk (MOT-9) against PageLayout
+  // primitives without a clear scroll-container contract. A prominent
+  // non-sticky strip carries the same "5 agents · 150 interactions"
+  // surfacing without that fragility.
   stripCard: {
     boxShadow: "var(--shadow-card)",
-    position: "sticky",
-    top: 8,
-    zIndex: 2,
   },
   stripInner: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -274,6 +313,12 @@ const styles = {
     fontSize: 14, fontWeight: 400, lineHeight: "22px",
     color: "var(--color-text-medium)",
   },
+  stripSummaryEmpty: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 13, fontWeight: 400, lineHeight: "20px",
+    color: "var(--color-text-tertiary)",
+  },
   stripCluster: {
     display: "inline-flex", alignItems: "center", gap: 16,
   },
@@ -292,9 +337,9 @@ const styles = {
   },
   jumpBtn: {
     display: "inline-flex", alignItems: "center", gap: 6,
-    padding: "6px 12px",
-    height: 32,
-    border: "1px solid var(--color-border-card-soft)",
+    padding: "8px 16px",
+    height: 40,
+    border: "1px solid var(--color-divider-card)",
     borderRadius: 999,
     background: "#FFFFFF",
     cursor: "pointer",
@@ -331,7 +376,6 @@ const styles = {
     fontWeight: 600,
     color: "var(--color-text-deep)",
   },
-  chipRow: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
   chip: {
     display: "inline-flex", alignItems: "center",
     padding: "4px 12px",

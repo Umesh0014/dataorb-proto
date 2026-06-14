@@ -3,6 +3,7 @@
 import React from "react";
 import {
   ArrowLeft,
+  ChevronRight,
   Crosshair,
   UserSearch,
   Flame,
@@ -111,6 +112,15 @@ function Hero({ playbook, onBack, taskId }) {
           <span style={styles.timestamp}>{playbook.timestamp}</span>
         </div>
       </div>
+      {/* Metadata snapshot — UI-7. Identity sits in the hero block above
+          (title/tag/author/timestamp); the *parameters* of the playbook —
+          which topics/triggers it covers — live in this strip below the
+          divider as a discrete band. */}
+      <div style={styles.heroSnapshot} aria-label="Topics">
+        {playbook.overview.chips.map((c) => (
+          <span key={c} style={styles.chip}>{c}</span>
+        ))}
+      </div>
     </Card>
   );
 }
@@ -144,6 +154,13 @@ function TocItem({ item, onClick }) {
     >
       <item.Icon size={16} color="var(--color-text-tertiary)" />
       <span style={styles.tocLabel}>{item.label}</span>
+      {/* Persistent chevron — INT-1/INT-2 affordance. Items read as
+          jump-into-section navigation on first encounter, not on hover. */}
+      <ChevronRight
+        size={14}
+        color="var(--color-text-placeholder)"
+        style={styles.tocChevron}
+      />
     </button>
   );
 }
@@ -163,11 +180,6 @@ function OverviewBlock({ data }) {
             <strong style={styles.overviewStrong}>Emotional context. </strong>
             {data.emotionalContext}
           </p>
-          <div style={styles.chipRow}>
-            {data.chips.map((c) => (
-              <span key={c} style={styles.chip}>{c}</span>
-            ))}
-          </div>
         </div>
       </Card>
     </div>
@@ -186,11 +198,20 @@ function AgentGrid({ contributors, window: windowLabel, total }) {
           <strong>{contributors.length} agents</strong> · {windowLabel}
         </p>
       </div>
-      <div style={styles.agentGrid}>
-        {contributors.map((c) => (
-          <AgentCard key={c.id} agent={c} />
-        ))}
-      </div>
+      {contributors.length === 0 ? (
+        <Card tone="muted" padX={16} padY={16} style={styles.agentEmpty}>
+          <p style={styles.agentEmptyText}>
+            No contributing agents yet — this playbook will list source agents once
+            the first batch of interactions has been ingested.
+          </p>
+        </Card>
+      ) : (
+        <div style={styles.agentGrid}>
+          {contributors.map((c) => (
+            <AgentCard key={c.id} agent={c} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -198,7 +219,7 @@ function AgentGrid({ contributors, window: windowLabel, total }) {
 function AgentCard({ agent }) {
   const sentTone = SENTIMENT_TONE[agent.dominantSentiment] || SENTIMENT_TONE.neutral;
   return (
-    <div style={styles.agentCard}>
+    <Card tone="outline" padX={16} padY={16} style={styles.agentCard}>
       <div style={styles.agentCardHead}>
         <span style={styles.agentCardAvatar} aria-hidden="true">{agent.initial}</span>
         <div style={styles.agentCardMeta}>
@@ -221,7 +242,7 @@ function AgentCard({ agent }) {
         </span>
       </div>
       <p style={styles.agentCardPattern}>{agent.pattern}</p>
-    </div>
+    </Card>
   );
 }
 
@@ -247,10 +268,11 @@ const styles = {
     gap: 12,
   },
   backBtn: {
-    width: 32, height: 32, borderRadius: 6,
+    width: 40, height: 40, borderRadius: 8,
     border: "none", background: "transparent", cursor: "pointer",
     display: "inline-grid", placeItems: "center",
     padding: 0,
+    transition: "background 150ms ease",
   },
   statusTag: {
     display: "inline-flex", alignItems: "center",
@@ -271,6 +293,13 @@ const styles = {
   heroMeta: {
     display: "inline-flex", alignItems: "center", gap: 12, flexWrap: "wrap",
     minHeight: 24,
+  },
+  heroSnapshot: {
+    display: "flex", flexWrap: "wrap", gap: 8,
+    padding: "16px 32px",
+    borderTop: "1px solid var(--color-border-card-soft)",
+    background: "#FCFBFF",
+    borderBottomLeftRadius: 12, borderBottomRightRadius: 12,
   },
   taskId: {
     fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)",
@@ -314,6 +343,7 @@ const styles = {
     display: "flex", alignItems: "center", gap: 12,
     padding: "12px 12px",
     width: "100%",
+    minHeight: 40,
     border: "none",
     borderRadius: 8,
     cursor: "pointer",
@@ -322,9 +352,14 @@ const styles = {
     transition: "background 150ms ease",
   },
   tocLabel: {
+    flex: 1,
     fontFamily: "var(--font-sans)",
     fontSize: 13, fontWeight: 500, letterSpacing: "0.1px",
     color: "var(--color-text-medium)",
+  },
+  tocChevron: {
+    flexShrink: 0,
+    opacity: 0.7,
   },
 
   // Overview
@@ -348,7 +383,6 @@ const styles = {
     fontWeight: 600,
     color: "var(--color-text-deep)",
   },
-  chipRow: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
   chip: {
     display: "inline-flex", alignItems: "center",
     padding: "4px 12px",
@@ -385,10 +419,16 @@ const styles = {
   },
   agentCard: {
     display: "flex", flexDirection: "column", gap: 8,
-    padding: 16,
-    border: "1px solid var(--color-border-card-soft)",
-    borderRadius: 8,
-    background: "#FFFFFF",
+  },
+  agentEmpty: {
+    border: "1px dashed var(--color-border-card-soft)",
+    background: "transparent",
+  },
+  agentEmptyText: {
+    margin: 0,
+    fontFamily: "var(--font-sans)",
+    fontSize: 13, fontWeight: 400, lineHeight: "20px",
+    color: "var(--color-text-tertiary)",
   },
   agentCardHead: {
     display: "flex", alignItems: "center", gap: 12,
