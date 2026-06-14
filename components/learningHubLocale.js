@@ -147,6 +147,7 @@ const NAV = {
   missions:     { en: "Missions",      es: "Misiones",      de: "Missionen",     fr: "Missions",     ar: "المهام" },
   guide:        { en: "Guide",         es: "Guía",          de: "Leitfaden",     fr: "Guide",        ar: "الدليل" },
   replay:       { en: "Replay",        es: "Repetición",    de: "Wiederholung",  fr: "Relecture",    ar: "إعادة التشغيل" },
+  mobile:       { en: "Mobile",        es: "Móvil",         de: "Mobil",         fr: "Mobile",       ar: "الجوال" },
 };
 
 export function lhNavLabel(id, key, fallback) {
