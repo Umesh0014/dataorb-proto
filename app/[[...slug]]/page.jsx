@@ -30,6 +30,7 @@ import CreditsUsageShell from "../../components/CreditsUsageShell";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import ReplayPage from "../../components/ReplayPage";
+import MobileLearningHubShell from "../../components/MobileLearningHubShell";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
@@ -96,6 +97,7 @@ const LEARNING_PAGES = {
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
+  "mobile":       { Component: MobileLearningHubShell, pageName: "Mobile" },
 };
 
 const MIRA_PAGES = {
