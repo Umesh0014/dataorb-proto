@@ -9,7 +9,6 @@ import {
   Section,
   MetricTile,
   CapacityBar,
-  AdditionalUsageChoice,
   AgentBannerPreview,
   RingInput,
   Field,
@@ -25,13 +24,15 @@ import {
 // CreditsUsageAgentCaps — Variant D of the Credits & Usage surface.
 //
 // The Jun 15 V1 scope: team-level distribution is deferred, so this is an
-// org-level, per-agent design. Tenant credit-utilization up top (pool given
-// / consumed / remaining over the period), then the V1 control — a per-agent
-// WEEKLY session cap with an optional per-day cap, an estimated-impact banner
-// on the cap, and a single overage rule (hard stop / allow-after-request /
-// manual). The agent table shows weekly session usage, status (green→red at
-// ≥90%), last active, and a per-agent override. Tenure tags are surfaced now;
-// filtering by tag is a later version. All sample data is mock.
+// org-level, per-agent design. Tenant credit-utilisation up top (pool given
+// / consumed / remaining over the period), then a single per-agent control:
+// a WEEKLY session cap (+ optional per-day cap) and ONE decision for what
+// happens when an agent reaches their limit — hard stop / manual override /
+// allow additional (which reveals an additional-cap input). An estimated-
+// impact facepile shows who's already over the cap. The agent table shows
+// weekly session usage, status (green→red at ≥90%), last active, and a
+// per-agent override (active under the manual rule). Tenure tags are
+// surfaced now; filtering by tag is a later version. All sample data is mock.
 
 const AVATAR_COLORS = [
   "var(--chart-blue)",
@@ -54,21 +55,29 @@ const OVERRIDE_OPTIONS = [
   { id: "manual", label: "Hold at cap" },
 ];
 
+function initials(name) {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
+
 export default function CreditsUsageAgentCaps({ onBack }) {
-  const [usageMode, setUsageMode] = React.useState("additional");
   const [additionalCap, setAdditionalCap] = React.useState(4000);
   const [weeklyCap, setWeeklyCap] = React.useState(AGENT_CAP_DEFAULTS.weeklySessionCap);
   const [perDayEnabled, setPerDayEnabled] = React.useState(AGENT_CAP_DEFAULTS.perDayEnabled);
   const [perDayCap, setPerDayCap] = React.useState(AGENT_CAP_DEFAULTS.perDayCap);
-  const [overageRule, setOverageRule] = React.useState(AGENT_CAP_DEFAULTS.overageRule);
+  const [limitRule, setLimitRule] = React.useState(AGENT_CAP_DEFAULTS.limitRule);
   const [agents, setAgents] = React.useState(AGENT_SESSION_SAMPLE);
 
   const setOverride = (id, override) =>
     setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, override } : a)));
 
-  // Estimated impact: how many agents are already over the weekly cap, so
-  // the admin sees the consequence of the number before saving.
-  const overCapCount = agents.filter((a) => a.sessionsUsed > weeklyCap).length;
+  // Estimated impact: who is already over the weekly cap, so the admin sees
+  // the consequence of the number before saving.
+  const overCapAgents = agents.filter((a) => a.sessionsUsed > weeklyCap);
 
   const consumedPct = Math.round((POOL_SAMPLE.consumedMinutes / POOL_SAMPLE.totalMinutes) * 100);
 
@@ -115,35 +124,14 @@ export default function CreditsUsageAgentCaps({ onBack }) {
         </div>
       </Section>
 
-      {/* Billing + session limits side by side to use the horizontal space */}
-      <div style={styles.pairRow}>
-      <Section
-        title="When the pool runs out"
-        description="Cap spend, or allow capped additional usage."
-        style={styles.pairCard}
-      >
-        <AdditionalUsageChoice
-          mode={usageMode}
-          onMode={setUsageMode}
-          additionalCap={additionalCap}
-          onAdditionalCap={setAdditionalCap}
-        />
-      </Section>
-
-      {/* V1 control — per-agent weekly session limits */}
+      {/* Per-agent weekly session limits + the single exhaustion rule */}
       <Section
         title="Practice session limits"
         description="A weekly session cap applies to every agent over a Mon–Sun window."
-        style={styles.pairCard}
       >
         <div style={styles.limitsRow}>
           <Field label="Weekly session cap">
-            <RingInput
-              value={weeklyCap}
-              onChange={setWeeklyCap}
-              suffix="sessions/wk"
-              ariaLabel="Weekly session cap"
-            />
+            <RingInput value={weeklyCap} onChange={setWeeklyCap} suffix="sessions/wk" ariaLabel="Weekly session cap" />
           </Field>
           <Field label="Daily limit">
             <div style={styles.dayLimit}>
@@ -169,49 +157,42 @@ export default function CreditsUsageAgentCaps({ onBack }) {
               </button>
               <span style={styles.dayLimitLabel}>Also cap sessions per day</span>
               {perDayEnabled && (
-                <RingInput
-                  value={perDayCap}
-                  onChange={setPerDayCap}
-                  suffix="sessions/day"
-                  ariaLabel="Sessions per day cap"
-                  width={56}
-                />
+                <RingInput value={perDayCap} onChange={setPerDayCap} suffix="sessions/day" ariaLabel="Sessions per day cap" width={56} />
               )}
             </div>
           </Field>
         </div>
 
-        {/* Estimated-impact banner */}
-        {overCapCount > 0 && (
+        {/* Estimated-impact — facepile + copy */}
+        {overCapAgents.length > 0 && (
           <div style={styles.impact} role="status">
-            <AlertTriangle size={15} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+            <Facepile agents={overCapAgents} />
             <span style={styles.impactText}>
-              <strong>{overCapCount} agents</strong> are over {weeklyCap} sessions this week — they&apos;ll be
+              <strong>{overCapAgents.length} agents</strong> are over {weeklyCap} sessions this week — they&apos;ll be
               limited at the next weekly reset (in {POOL_SAMPLE.daysToReset} days).
             </span>
           </div>
         )}
 
-        <Field label="When an agent reaches the cap">
-          <div style={styles.ruleGroup} role="radiogroup" aria-label="Overage rule">
+        {/* One decision: what happens when an agent reaches their limit */}
+        <Field label="When an agent reaches their limit">
+          <div style={styles.ruleGroup} role="radiogroup" aria-label="When an agent reaches their limit">
             {OVERAGE_RULES.map((rule) => {
-              const selected = overageRule === rule.id;
+              const selected = limitRule === rule.id;
               return (
                 <button
                   key={rule.id}
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  onClick={() => setOverageRule(rule.id)}
+                  onClick={() => setLimitRule(rule.id)}
                   style={{
                     ...styles.ruleOption,
                     borderColor: selected ? "var(--color-icon-tertiary-fg)" : "var(--color-border-card-soft)",
                     background: selected ? "var(--color-icon-tertiary-bg)" : "#FFFFFF",
                   }}
                 >
-                  <span style={styles.ruleDot}>
-                    {selected && <span style={styles.ruleDotInner} />}
-                  </span>
+                  <span style={styles.ruleDot}>{selected && <span style={styles.ruleDotInner} />}</span>
                   <span style={styles.ruleText}>
                     <span style={styles.ruleLabel}>{rule.label}</span>
                     <span style={styles.ruleDesc}>{rule.description}</span>
@@ -219,12 +200,21 @@ export default function CreditsUsageAgentCaps({ onBack }) {
                 </button>
               );
             })}
+            {limitRule === "additional" && (
+              <div style={styles.additionalCapRow}>
+                <Field label="Additional cap">
+                  <RingInput value={additionalCap} onChange={setAdditionalCap} suffix="min on top" ariaLabel="Additional usage cap minutes" width={80} />
+                </Field>
+                <FieldNote>
+                  Past the weekly cap, practice continues and the extra minutes are billed up to this additional cap.
+                </FieldNote>
+              </div>
+            )}
           </div>
         </Field>
 
         <AgentBannerPreview />
       </Section>
-      </div>
 
       {/* Per-agent usage */}
       <Section
@@ -239,7 +229,7 @@ export default function CreditsUsageAgentCaps({ onBack }) {
               agent={agent}
               index={i}
               cap={weeklyCap}
-              overageRule={overageRule}
+              limitRule={limitRule}
               onOverride={setOverride}
             />
           ))}
@@ -249,13 +239,37 @@ export default function CreditsUsageAgentCaps({ onBack }) {
   );
 }
 
+// ---- Facepile --------------------------------------------------------------
+
+function Facepile({ agents }) {
+  const shown = agents.slice(0, 5);
+  return (
+    <span style={styles.facepile} aria-hidden="true">
+      {shown.map((a, i) => (
+        <span
+          key={a.id}
+          style={{
+            ...styles.faceAvatar,
+            background: AVATAR_COLORS[a.id % AVATAR_COLORS.length],
+            marginLeft: i === 0 ? 0 : -8,
+            zIndex: shown.length - i,
+          }}
+        >
+          {initials(a.name)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 // ---- Agent row -------------------------------------------------------------
 
-function AgentRow({ agent, index, cap, overageRule, onOverride }) {
+function AgentRow({ agent, index, cap, limitRule, onOverride }) {
   const pct = cap > 0 ? Math.round((agent.sessionsUsed / cap) * 100) : 0;
   const status = pct >= 100 ? "atCap" : pct >= 90 ? "near" : "ok";
   const meta = STATUS_META[status];
   const StatusIcon = meta.Icon;
+  const manual = limitRule === "manual";
 
   return (
     <div style={styles.agentRow}>
@@ -280,16 +294,16 @@ function AgentRow({ agent, index, cap, overageRule, onOverride }) {
       </span>
 
       <label style={styles.overrideWrap}>
-        <span style={styles.srOnly}>Overage for {agent.name}</span>
+        <span style={styles.srOnly}>Override for {agent.name}</span>
         <select
           value={agent.override}
           onChange={(e) => onOverride(agent.id, e.target.value)}
-          aria-label={`Overage rule for ${agent.name}`}
-          disabled={overageRule !== "manual"}
+          aria-label={`Override for ${agent.name}`}
+          disabled={!manual}
           style={{
             ...styles.overrideSelect,
-            opacity: overageRule === "manual" ? 1 : 0.5,
-            cursor: overageRule === "manual" ? "pointer" : "not-allowed",
+            opacity: manual ? 1 : 0.5,
+            cursor: manual ? "pointer" : "not-allowed",
           }}
         >
           {OVERRIDE_OPTIONS.map((o) => (
@@ -315,15 +329,9 @@ function TagBadge({ tag }) {
 }
 
 function Avatar({ name, index }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
   return (
     <span style={{ ...styles.avatar, background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}>
-      {initials}
+      {initials(name)}
     </span>
   );
 }
@@ -336,9 +344,6 @@ const styles = {
   barPct: { fontSize: 22, fontWeight: 600, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums" },
   barNote: { fontSize: 12, color: "var(--color-text-tertiary)" },
   kpiRow: { display: "flex", gap: 12 },
-
-  pairRow: { display: "flex", gap: 16, alignItems: "flex-start" },
-  pairCard: { flex: 1, minWidth: 0 },
 
   limitsRow: { display: "flex", gap: 28, flexWrap: "wrap" },
   dayLimit: { display: "flex", alignItems: "center", gap: 10 },
@@ -364,14 +369,29 @@ const styles = {
 
   impact: {
     display: "flex",
-    alignItems: "flex-start",
-    gap: 10,
+    alignItems: "center",
+    gap: 12,
     padding: "12px 16px",
     borderRadius: 10,
     background: "var(--color-warning-bg)",
     border: "1px solid rgba(239, 108, 0, 0.18)",
   },
   impactText: { fontSize: 12, fontWeight: 500, lineHeight: "18px", color: "var(--color-warning-text)" },
+
+  facepile: { display: "inline-flex", alignItems: "center", flexShrink: 0 },
+  faceAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: "50%",
+    border: "2px solid var(--color-warning-bg)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: 600,
+    letterSpacing: "0.2px",
+  },
 
   ruleGroup: { display: "flex", flexDirection: "column", gap: 8, width: "100%" },
   ruleOption: {
@@ -402,6 +422,15 @@ const styles = {
   ruleText: { display: "flex", flexDirection: "column", gap: 2 },
   ruleLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
   ruleDesc: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: "18px" },
+
+  additionalCapRow: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    padding: "14px 16px",
+    borderRadius: 10,
+    background: "var(--color-card-emoji-bg)",
+  },
 
   count: {
     padding: "3px 10px",

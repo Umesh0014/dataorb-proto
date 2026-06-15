@@ -91,7 +91,7 @@ export const AGENT_CAP_DEFAULTS = {
   weeklySessionCap: 15,
   perDayEnabled: true,
   perDayCap: 10,
-  overageRule: "request", // "block" | "request" | "manual"
+  limitRule: "block", // "block" | "manual" | "additional"
 };
 
 export const AGENT_TAGS = ["Tenured", "New", "Onboarding"];
@@ -115,8 +115,10 @@ export const AGENT_SESSION_SAMPLE = [
   { id: 21, name: "Ritu Malhotra", tag: "New", sessionsUsed: 14, lastActive: "6h ago", override: "default" },
 ];
 
+// Single "what happens when an agent reaches their limit" control.
+// "additional" is last and reveals the additional-cap config when chosen.
 export const OVERAGE_RULES = [
-  { id: "block", label: "Hard stop for everyone", description: "No one practices past their weekly cap until it resets." },
-  { id: "request", label: "Allow additional after a request", description: "At the cap, agents can request more; practice continues once approved." },
-  { id: "manual", label: "Manual override per agent", description: "You decide per agent who can go past the cap." },
+  { id: "block", label: "Hard stop", description: "No more practice until the weekly cap resets." },
+  { id: "manual", label: "Manual override per agent", description: "You decide, per agent, who can practise past the cap." },
+  { id: "additional", label: "Allow additional — capped", description: "Practice continues past the cap, up to an additional cap you set." },
 ];
