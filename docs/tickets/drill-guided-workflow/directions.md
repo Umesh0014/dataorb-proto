@@ -85,6 +85,11 @@ fourth; D4 and D10 are rejected on gate risk and are not worth building.
 
 ---
 
+> **Final cut (per Umesh's review):** the shipped switcher carries only
+> **Inline** and **Assisted**. Sidecar, Coach and Spine were explored and
+> reviewed (history below + in the branch's git log) but removed from the
+> runtime switcher before the merge to keep the two directions Umesh chose.
+
 ## Switcher legend (for the Notion post)
 
 | Chip | Direction | One-liner |
