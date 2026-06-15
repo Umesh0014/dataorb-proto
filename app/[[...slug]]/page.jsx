@@ -12,6 +12,7 @@ import InteractionsPage from "../../components/InteractionsPage";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
+import CommandCenterShell from "../../components/CommandCenterShell";
 import MissionDetailPage from "../../components/MissionDetailPage";
 import MissionWizardPage, {
   EMPTY_MISSION_DRAFT,
@@ -25,7 +26,7 @@ import SkillRecordPage from "../../components/SkillRecordPage";
 import TasksPage from "../../components/TasksPage";
 import TaskRecordPage from "../../components/TaskRecordPage";
 import SettingsPage from "../../components/SettingsPage";
-import CreditsUsagePage from "../../components/CreditsUsagePage";
+import CreditsUsageShell from "../../components/CreditsUsageShell";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
@@ -49,6 +50,11 @@ import FilterPanel from "../../components/FilterPanel";
 import { insightsHubConfig } from "../../components/SideNav/configs/insightsHubConfig";
 import { learningHubConfig } from "../../components/SideNav/configs/learningHubConfig";
 import { askMiraConfig } from "../../components/SideNav/configs/askMiraConfig";
+import { lhDir, lhWizard, localizeLearningConfig, LH_LOCALES } from "../../components/learningHubLocale";
+
+// Persisted across reloads + shared by every tab — selecting a language
+// once anywhere applies app-wide and survives a refresh.
+const LOCALE_STORAGE_KEY = "dataorb-locale";
 
 const MIRA_RESPONSE_DELAY_MS = 800;
 
@@ -85,6 +91,7 @@ const INSIGHTS_PAGES = {
 };
 
 const LEARNING_PAGES = {
+  "command-center": { Component: CommandCenterShell, pageName: "Command Center" },
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
@@ -289,6 +296,39 @@ export default function Page() {
   const [appMenuOpen, setAppMenuOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
+  // Global GUI locale. Chosen on the Learning Hub Drill page but held at
+  // the app root so the whole shell flips together: Arabic sets the
+  // document `dir="rtl"` (rail moves to the right, layout mirrors via
+  // logical CSS properties) and `lang`. The choice is global (one state at
+  // the app root, threaded to every tab as a controlled prop) AND persisted
+  // to localStorage, so selecting a language once in any tab applies
+  // everywhere and survives a reload — no need to re-select per tab.
+  const [locale, setLocaleState] = React.useState("en");
+  // Hydrate the saved choice once on mount (kept out of the initializer to
+  // avoid an SSR/client markup mismatch; persistence happens on change).
+  React.useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+      if (saved && LH_LOCALES.some((l) => l.id === saved)) setLocaleState(saved);
+    } catch { /* storage unavailable — fall back to default */ }
+  }, []);
+  // Single setter shared by every tab's selector: updates state + persists.
+  const setLocale = React.useCallback((next) => {
+    setLocaleState(next);
+    try { window.localStorage.setItem(LOCALE_STORAGE_KEY, next); } catch { /* ignore */ }
+  }, []);
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("dir", lhDir(locale));
+    root.setAttribute("lang", locale);
+  }, [locale]);
+  // Rail config with its module + item labels translated for the active
+  // locale, so the navigation itself reads in the selected language.
+  const learningNavConfig = React.useMemo(
+    () => localizeLearningConfig(learningHubConfig, locale),
+    [locale],
+  );
+
   const submitMiraQuestion = React.useCallback((value) => {
     const now = Date.now();
     const turnId = `turn-${now}`;
@@ -490,7 +530,7 @@ export default function Page() {
       sidenavConfig = askMiraConfig;
       handleSidenavSelect = (id) => router.push(pathForMira(id));
     } else if (railModule === "learning") {
-      sidenavConfig = learningHubConfig;
+      sidenavConfig = learningNavConfig;
       handleSidenavSelect = (id) => router.push(pathForLearning(id));
     } else {
       sidenavConfig = insightsHubConfig;
@@ -502,7 +542,7 @@ export default function Page() {
       router.push(pathForCurrentPage(page));
     };
     const settingsContent = settingsSubpage === "credits-usage"
-      ? <CreditsUsagePage onBack={() => router.push("/settings")} />
+      ? <CreditsUsageShell onBack={() => router.push("/settings")} />
       : <SettingsPage onSelectCard={(cardId) => {
           if (cardId === "credits-usage") router.push("/settings/credits-usage");
         }} />;
@@ -642,10 +682,11 @@ export default function Page() {
           onCancel={closeMissionWizard}
           onSave={saveMissionDraft}
           onPublish={publishMission}
+          locale={locale}
         />
       );
     } else if (onDrill && roleplayStep === "generated") {
-      drillContent = <ComingSoon pageName="Roleplay Generation" />;
+      drillContent = <ComingSoon pageName={lhWizard(locale, "genTitle")} />;
     } else if (onDrill && roleplayStep === "context") {
       drillContent = (
         <NewRoleplayContextPage
@@ -656,6 +697,7 @@ export default function Page() {
           onGenerate={() => setRoleplayStep("generated")}
           onSkipAndGenerate={() => setRoleplayStep("generated")}
           onViewSample={() => console.log("View sample — out of scope")}
+          locale={locale}
         />
       );
     } else if (onDrill && roleplayStep === "persona") {
@@ -666,6 +708,7 @@ export default function Page() {
           onCancel={cancelRoleplay}
           onNext={() => setRoleplayStep("context")}
           onViewSample={() => console.log("View sample — out of scope")}
+          locale={locale}
         />
       );
     } else if (onDrill && drillDetailId) {
@@ -675,6 +718,7 @@ export default function Page() {
           onBack={() => setDrillDetailId(null)}
           isAgent={isAgentDrill}
           onStartGuided={isAgentDrill ? () => router.push("/learning/guided-drill") : undefined}
+          locale={locale}
         />
       );
     } else if (onAgents && agentProfileId) {
@@ -683,6 +727,7 @@ export default function Page() {
           agentId={agentProfileId}
           onBack={() => setAgentProfileId(null)}
           onViewMission={openMission}
+          locale={locale}
         />
       );
     } else if (!missionsPopulated) {
@@ -698,12 +743,19 @@ export default function Page() {
           onCreateMission={openMissionWizard}
           onCreateGuide={openGuideWizard}
           onOpenGuide={openGuideSession}
-          onOpenAgent={(id) => setAgentProfileId(id)}
+          onOpenAgent={(id) => {
+            setAgentProfileId(id);
+            // From the Command Center the agent profile lives on the Agents
+            // route — navigate there; on Agents we're already home.
+            if (learningNav !== "agents") router.push(pathForLearning("agents"));
+          }}
+          locale={locale}
+          onLocaleChange={setLocale}
         />
       );
     }
 
-    sidenavConfig = learningHubConfig;
+    sidenavConfig = learningNavConfig;
     // Guided-drill runtime has no rail item of its own (it's reached via
     // the Agent drill flow) — keep "Drill" lit while on it.
     sidenavActiveId = onGuidedDrill ? "drill" : learningNav;
@@ -741,6 +793,7 @@ export default function Page() {
         <GuideSessionPage
           guide={{ id: guideSessionId }}
           onEnd={closeGuideSession}
+          locale={locale}
         />
       );
     } else if (onMissions && missionDetailId && !missionWizardStep) {
@@ -755,6 +808,8 @@ export default function Page() {
         <MissionsLandingShell
           onCreateMission={openMissionWizard}
           onOpenMission={(id) => router.push(`/learning/missions/${id}`)}
+          locale={locale}
+          onLocaleChange={setLocale}
         />
       );
     } else {
@@ -806,6 +861,8 @@ export default function Page() {
           pageName={pageName}
           filtersOpen={filtersOpen}
           onToggleFilters={() => setFiltersOpen((o) => !o)}
+          locale={locale}
+          onLocaleChange={setLocale}
         />
       </PageLayout>
     );

@@ -7,6 +7,7 @@ import Button from "./Button";
 import Toggle from "./Toggle";
 import MultiLineInput from "./MultiLineInput";
 import RoleplayBreadcrumb from "./RoleplayBreadcrumb";
+import { lhWizard, lhCapError } from "./learningHubLocale";
 
 const FIELD_MAX = 500;
 
@@ -32,9 +33,11 @@ export default function NewRoleplayContextPage({
   onGenerate,
   onSkipAndGenerate,
   onViewSample,
+  locale = "en",
 }) {
   const setField = (key) => (next) => onChange({ ...value, [key]: next });
   const { objections, products, context } = value;
+  const t = (key) => lhWizard(locale, key);
 
   // Per-roleplay minute cap (spec §5). Optional, off by default. Lives
   // here as local wizard state — added to the draft on Generate so it
@@ -45,7 +48,7 @@ export default function NewRoleplayContextPage({
   );
 
   const capError = capEnabled && capMinutes < ROLEPLAY_MTD_CONSUMED_MINUTES
-    ? `Cap (${capMinutes} min) is below already-consumed (${ROLEPLAY_MTD_CONSUMED_MINUTES} min) for this month. Choose ≥${ROLEPLAY_MTD_CONSUMED_MINUTES} or wait until the next cycle.`
+    ? lhCapError(locale, capMinutes, ROLEPLAY_MTD_CONSUMED_MINUTES)
     : null;
 
   const hasAny =
@@ -66,45 +69,43 @@ export default function NewRoleplayContextPage({
   return (
     <div style={ctxStyles.page}>
       <Card padX={32} padY={32} style={ctxStyles.formCard}>
-        <RoleplayBreadcrumb active="context" onViewSample={onViewSample} />
+        <RoleplayBreadcrumb active="context" onViewSample={onViewSample} locale={locale} />
 
         <div style={ctxStyles.titleRow}>
           <div style={ctxStyles.titleBlock}>
-            <div style={ctxStyles.title}>Add Supporting Information</div>
-            <div style={ctxStyles.subtitle}>
-              Build intelligent customer personas to train and coach the agents
-            </div>
+            <div style={ctxStyles.title}>{t("step2Title")}</div>
+            <div style={ctxStyles.subtitle}>{t("step1Subtitle")}</div>
           </div>
           <Button variant="ai" onClick={onSkipAndGenerate}>
-            Skip and Generate with AI
+            {t("skipGenerate")}
           </Button>
         </div>
 
         <div style={ctxStyles.fieldGrid}>
-          <Field label="What are the key objections?">
+          <Field label={t("fldObjections")}>
             <MultiLineInput
               value={objections}
               onChange={setField("objections")}
               max={FIELD_MAX}
-              placeholder="E.g. The customer is not interested in the product/service"
+              placeholder={t("phObjections")}
             />
           </Field>
 
-          <Field label="What products or services will be discussed?">
+          <Field label={t("fldProducts")}>
             <MultiLineInput
               value={products}
               onChange={setField("products")}
               max={FIELD_MAX}
-              placeholder="E.g. international roaming plan"
+              placeholder={t("phProducts")}
             />
           </Field>
 
-          <Field label="Any additional context?">
+          <Field label={t("fldContext")}>
             <MultiLineInput
               value={context}
               onChange={setField("context")}
               max={FIELD_MAX}
-              placeholder="E.g. The customer is a long term user and has been loyal to the company since 2 years."
+              placeholder={t("phContext")}
             />
           </Field>
 
@@ -114,15 +115,16 @@ export default function NewRoleplayContextPage({
             minutes={capMinutes}
             onMinutesChange={setCapMinutes}
             error={capError}
+            t={t}
           />
         </div>
 
         <div style={ctxStyles.footer}>
-          <Button variant="text" onClick={onCancel}>Cancel</Button>
+          <Button variant="text" onClick={onCancel}>{t("cancel")}</Button>
           <div style={ctxStyles.footerRight}>
-            <Button variant="text" onClick={onPrevious}>Previous</Button>
+            <Button variant="text" onClick={onPrevious}>{t("previous")}</Button>
             <Button variant="primary" disabled={generateDisabled} onClick={handleGenerate}>
-              Generate
+              {t("generate")}
             </Button>
           </div>
         </div>
@@ -134,18 +136,15 @@ export default function NewRoleplayContextPage({
 // CapField — optional per-roleplay monthly minute cap (spec §5). Off by
 // default; reveals a minute stepper when on. Below-MTD value shows the
 // verbatim inline error and blocks Generate.
-function CapField({ enabled, onToggle, minutes, onMinutesChange, error }) {
+function CapField({ enabled, onToggle, minutes, onMinutesChange, error, t }) {
   return (
     <div style={ctxStyles.field}>
       <div style={ctxStyles.capHead}>
         <div style={ctxStyles.capHeadText}>
-          <span style={ctxStyles.label}>Per-roleplay monthly minute cap</span>
-          <span style={ctxStyles.capHelper}>
-            Optional. Caps the minutes this roleplay can consume each month.
-            Off by default; existing sessions are never interrupted.
-          </span>
+          <span style={ctxStyles.label}>{t("capLabel")}</span>
+          <span style={ctxStyles.capHelper}>{t("capHelper")}</span>
         </div>
-        <Toggle enabled={enabled} onChange={onToggle} ariaLabel="Per-roleplay cap on" />
+        <Toggle enabled={enabled} onChange={onToggle} ariaLabel={t("capLabel")} />
       </div>
       {enabled && (
         <label style={{ ...ctxStyles.capInputWrap, borderColor: error ? "var(--color-error)" : "var(--color-divider-card)" }}>
@@ -154,11 +153,11 @@ function CapField({ enabled, onToggle, minutes, onMinutesChange, error }) {
             min={1}
             value={minutes}
             onChange={(e) => onMinutesChange(Number(e.target.value) || 0)}
-            aria-label="Per-roleplay cap minutes"
+            aria-label={t("capLabel")}
             aria-invalid={Boolean(error)}
             style={ctxStyles.capInput}
           />
-          <span style={ctxStyles.capSuffix}>min / month</span>
+          <span style={ctxStyles.capSuffix}>{t("capSuffix")}</span>
         </label>
       )}
       {error && (

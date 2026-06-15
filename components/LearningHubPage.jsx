@@ -9,6 +9,15 @@ import ComingSoon from "./ComingSoon";
 import Banner from "./Banner";
 import { DRILL_CARDS } from "./mocks/drillCards";
 import { evaluateRoleplayGate, gateCopy } from "./SettingsPage";
+import {
+  LH_LOCALES,
+  lhLocale,
+  lhDir,
+  lhText,
+  lhCategory,
+  lhDifficulty,
+  lhDrillContent,
+} from "./learningHubLocale";
 
 const DrillAvatarIcon = () => (
   <span
@@ -23,42 +32,47 @@ const DrillAvatarIcon = () => (
   </span>
 );
 
-const DRILL_TABS = [
-  { id: "active",  label: "Active" },
-  { id: "library", label: "Library" },
-];
-
-// LearningHubPage — Drill page. Default route when entering Learning Hub.
-// Header uses the shared PageHeader (same shape MissionsPage adopts) so
-// the Drill chrome stops being a one-off: identifier on the left, the
-// primary Roleplay CTA on the right of row 1, and a search input plus
-// filter toolbar in row 2. The TabsRow below renders Active/Library
-// without its trailing-action slot — the CTA now lives in the header.
+// LearningHubPage — Drill page + the localization layer. The page title,
+// primary CTA, search, Filters, tabs, and the taxonomy chips (category +
+// difficulty) all localize to the selected language; Arabic flips the
+// whole app to RTL via the document-level `dir` (set by the router from
+// this same locale). The raw scenario body inside each DrillCard stays in
+// its source language (handled in DrillCard with dir="auto") —
+// eval/transcript content is never translated, per brief.
 //
-// Credits & Usage enforcement (spec §4) gates the Roleplay CTA:
-//   - A1 allowed  → button enabled, existing handler runs unchanged
-//   - A2 agentCap → button disabled, danger Banner above tabs
-//   - A3 poolMode B → button disabled, danger Banner above tabs
-//   - A4 overage → button enabled (informational), warning Banner above tabs
-// The gate is a *pre-start* check (spec §2): when allowed, `onCreateRoleplay`
-// fires unmodified; when blocked, the click is short-circuited before the
-// existing handler runs. Active sessions are never touched.
+// `locale` is owned by the app root (so the choice is global — the rail,
+// every page, and reading direction flip together) and threaded in as a
+// controlled prop; `onLocaleChange` lifts a new selection back up.
 //
-// Search + filter controls are surfaced per the Figma spec but the
-// filtering logic itself is not wired here; the inputs are presentational
-// stubs until product fills them in.
-export default function LearningHubPage({ onOpenDrill, onCreateRoleplay, isAgent = false }) {
+// Credits & Usage enforcement (spec §4) still gates the Roleplay CTA, and
+// the existing handlers (onCreateRoleplay / onOpenDrill) are untouched —
+// only presentation is localized.
+//
+// Persona: the Agent view (isAgent) is use-only — no Roleplay create CTA,
+// the tab row is dropped, and only active drills are surfaced.
+export default function LearningHubPage({
+  onOpenDrill,
+  onCreateRoleplay,
+  locale = "en",
+  onLocaleChange,
+  isAgent = false,
+}) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [searchValue, setSearchValue] = React.useState("");
+
+  const setLocale = (next) => onLocaleChange?.(next);
+  const dir = lhDir(locale);
+  const t = (key) => lhText(locale, key);
+  const activeLocale = lhLocale(locale);
 
   const gate = evaluateRoleplayGate();
   const isBlocked = gate.kind === "agentCap" || gate.kind === "poolBlocked";
   const copy = gateCopy(gate);
 
-  // Agent experience (use, don't edit): no Roleplay create CTA, and only
-  // the active drills are surfaced — the tab row is dropped entirely (no
-  // Library, and an "Active"-only row is redundant). Everything else
-  // mirrors the Team Leader landing.
+  // Agent experience (use, don't edit): no Roleplay create CTA, only the
+  // active drills are surfaced — the tab row is dropped entirely (Library
+  // hidden, an "Active"-only row is redundant). Everything else mirrors the
+  // Team Leader landing.
   const showLibrary = !isAgent && activeTab === "library";
 
   // Guard the existing handler. On the allowed path (and on the A4
@@ -70,59 +84,87 @@ export default function LearningHubPage({ onOpenDrill, onCreateRoleplay, isAgent
     onCreateRoleplay?.();
   };
 
+  const drillTabs = [
+    { id: "active", label: t("tabActive") },
+    { id: "library", label: t("tabLibrary") },
+  ];
+
+  // Language as an inline header dropdown pill — native name + locale list,
+  // lifting the new selection to the app root.
+  const localeFilter = {
+    id: "language",
+    label: t("language"),
+    value: activeLocale.native,
+    options: LH_LOCALES.map((l) => ({ label: `${l.native} · ${l.label}`, value: l.native })),
+    onSelect: (native) => {
+      const next = LH_LOCALES.find((l) => l.native === native);
+      if (next) setLocale(next.id);
+    },
+  };
+
+  const filtersTool = {
+    id: "filters",
+    icon: <SlidersHorizontal size={18} />,
+    label: t("filters"),
+    onClick: () => {},
+  };
+
   return (
-    <div style={lhStyles.column}>
-      <PageHeader
-        identifier={{
-          icon: <DrillAvatarIcon />,
-          label: "Drill",
-          withDropdown: true,
-          // TODO: identifier dropdown menu — decorative for now.
-          onClick: () => {},
-        }}
-        // Agent view is use-only: no Roleplay create/edit CTA.
-        primaryAction={isAgent ? undefined : {
-          label: "Roleplay",
-          icon: <Plus size={16} />,
-          onClick: handleRoleplayClick,
-          disabled: isBlocked,
-        }}
-        search={{
-          value: searchValue,
-          onChange: setSearchValue,
-          placeholder: "Search",
-        }}
-        toolbar={[
-          {
-            id: "filters",
-            icon: <SlidersHorizontal size={18} />,
-            label: "Filters",
-            // TODO: wire filters drawer when Drill filter set is defined.
+    <div style={lhStyles.column} dir={dir} lang={locale}>
+        <PageHeader
+          identifier={{
+            icon: <DrillAvatarIcon />,
+            label: t("pageTitle"),
+            withDropdown: true,
             onClick: () => {},
-          },
-        ]}
-      />
-      {!isAgent && copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
-      {!isAgent && (
-        <TabsRow
-          tabs={DRILL_TABS}
-          activeTab={activeTab}
-          onTabClick={setActiveTab}
+          }}
+          // Agent view is use-only: no Roleplay create/edit CTA.
+          primaryAction={isAgent ? undefined : {
+            label: t("roleplay"),
+            icon: <Plus size={16} />,
+            onClick: handleRoleplayClick,
+            disabled: isBlocked,
+          }}
+          search={{
+            value: searchValue,
+            onChange: setSearchValue,
+            placeholder: t("search"),
+          }}
+          filters={[localeFilter]}
+          toolbar={[filtersTool]}
         />
-      )}
-      {showLibrary ? (
-        <ComingSoon pageName="Library" />
-      ) : (
-        <div style={lhStyles.grid}>
-          {DRILL_CARDS.map((card) => (
-            <DrillCard
-              key={card.id}
-              {...card}
-              onViewDetails={() => onOpenDrill?.(card.id)}
-            />
-          ))}
-        </div>
-      )}
+
+        {!isAgent && copy && <Banner tone={copy.tone} heading={copy.heading} body={copy.body} />}
+
+        {/* Agent sees only active drills — drop the tab row entirely. */}
+        {!isAgent && (
+          <TabsRow tabs={drillTabs} activeTab={activeTab} onTabClick={setActiveTab} />
+        )}
+
+        {showLibrary ? (
+          <ComingSoon pageName={t("tabLibrary")} />
+        ) : (
+          <div style={lhStyles.grid}>
+            {DRILL_CARDS.map((card) => {
+              // Gate 2: when Arabic is active the scenario copy is shown in
+              // Arabic too (not just the chrome). Falls back to the source
+              // string for locales without an override.
+              const content = lhDrillContent(locale, card.id);
+              return (
+                <DrillCard
+                  key={card.id}
+                  {...card}
+                  title={content?.title ?? card.title}
+                  description={content?.description ?? card.description}
+                  categoryLabel={lhCategory(locale, card.category)}
+                  difficultyLabel={lhDifficulty(locale, card.difficulty)}
+                  ctaLabel={t("viewDetails")}
+                  onViewDetails={() => onOpenDrill?.(card.id)}
+                />
+              );
+            })}
+          </div>
+        )}
     </div>
   );
 }

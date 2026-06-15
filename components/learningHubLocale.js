@@ -1,0 +1,1539 @@
+// learningHubLocale — GUI localization model for the Learning Hub Drill
+// page (ticket: GUI multilingual + RTL/Arabic). Carries the Insights
+// approach: UI strings, taxonomy/master-data (role-play categories +
+// difficulty), filters/search and tab labels localize into the selected
+// language; Arabic additionally flips the surface to right-to-left.
+//
+// Scope is deliberate per the brief:
+//   - Localized:  interface text, placeholders, taxonomy, filters/search.
+//   - NOT localized: the eval language, the raw transcript, and
+//     user-defined content (scorecards) — ground truth stays in its
+//     source language. The Drill card body is rendered dir="auto" so each
+//     scenario keeps its own direction regardless of the GUI language.
+//
+// English, Español, Deutsch, Français are the proven LTR path; Deutsch is
+// kept as the worst-case expansion length. العربية is the RTL case driving
+// the PMI UAE + Kuwait readiness work.
+
+export const LH_LOCALES = [
+  { id: "en", label: "English",  native: "English",  dir: "ltr", region: "Global" },
+  { id: "es", label: "Spanish",  native: "Español",  dir: "ltr", region: "Global" },
+  { id: "de", label: "German",   native: "Deutsch",  dir: "ltr", region: "Global" },
+  { id: "fr", label: "French",   native: "Français", dir: "ltr", region: "Global" },
+  { id: "ar", label: "Arabic",   native: "العربية",  dir: "rtl", region: "UAE · Kuwait" },
+];
+
+export function lhLocale(id) {
+  return LH_LOCALES.find((l) => l.id === id) || LH_LOCALES[0];
+}
+
+export function lhDir(id) {
+  return lhLocale(id).dir;
+}
+
+// Region / direction display values for the Ribbon (B) + Modal (C).
+export function lhRegion(id) {
+  return lhLocale(id).region;
+}
+export function lhDirectionLabel(id) {
+  return lhDir(id) === "rtl" ? "RTL — right to left" : "LTR — left to right";
+}
+
+const STRINGS = {
+  pageTitle:    { en: "Drill",        es: "Práctica",     de: "Übung",            fr: "Exercice",         ar: "تدريب" },
+  roleplay:     { en: "Roleplay",     es: "Juego de rol", de: "Rollenspiel",      fr: "Jeu de rôle",      ar: "تمثيل الأدوار" },
+  search:       { en: "Search",       es: "Buscar",       de: "Suchen",           fr: "Rechercher",       ar: "بحث" },
+  filters:      { en: "Filters",      es: "Filtros",      de: "Filter",           fr: "Filtres",          ar: "عوامل التصفية" },
+  tabActive:    { en: "Active",       es: "Activo",       de: "Aktiv",            fr: "Actif",            ar: "نشط" },
+  tabLibrary:   { en: "Library",      es: "Biblioteca",   de: "Bibliothek",       fr: "Bibliothèque",     ar: "المكتبة" },
+  viewDetails:  { en: "View Details", es: "Ver detalles", de: "Details anzeigen", fr: "Voir les détails", ar: "عرض التفاصيل" },
+  language:     { en: "Language",     es: "Idioma",       de: "Sprache",          fr: "Langue",           ar: "اللغة" },
+  region:       { en: "Region",       es: "Región",       de: "Region",           fr: "Région",           ar: "المنطقة" },
+  direction:    { en: "Direction",    es: "Dirección",    de: "Richtung",         fr: "Direction",        ar: "الاتجاه" },
+  langRegion:   { en: "Language & region", es: "Idioma y región", de: "Sprache & Region", fr: "Langue et région", ar: "اللغة والمنطقة" },
+  coverageTitle:{ en: "What gets translated", es: "Qué se traduce", de: "Was übersetzt wird", fr: "Ce qui est traduit", ar: "ما تتم ترجمته" },
+  apply:        { en: "Apply",        es: "Aplicar",      de: "Übernehmen",       fr: "Appliquer",        ar: "تطبيق" },
+  cancel:       { en: "Cancel",       es: "Cancelar",     de: "Abbrechen",        fr: "Annuler",          ar: "إلغاء" },
+};
+
+export function lhText(id, key) {
+  const row = STRINGS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// buildLocaleFilter — the Drill page's inline language pill, as a reusable
+// PageHeader `filters` entry so every Learning Hub tab offers the same
+// language selector. Spreads into a page's filters array; onSelect lifts
+// the new locale to the app root (global, like Drill).
+export function buildLocaleFilter(locale, onLocaleChange) {
+  const active = lhLocale(locale);
+  return {
+    id: "language",
+    label: lhText(locale, "language"),
+    value: active.native,
+    options: LH_LOCALES.map((l) => ({ label: `${l.native} · ${l.label}`, value: l.native })),
+    onSelect: (native) => {
+      const next = LH_LOCALES.find((l) => l.native === native);
+      if (next) onLocaleChange?.(next.id);
+    },
+  };
+}
+
+// Taxonomy / master data — DB-sourced role-play categories + difficulty
+// bands. Keyed on the English source value (also the semantic key used for
+// difficulty color in DrillCard) so the palette lookup stays stable while
+// the display label localizes.
+const CATEGORY = {
+  "Sales":             { en: "Sales",             es: "Ventas",          de: "Vertrieb",            fr: "Ventes",            ar: "المبيعات" },
+  "Retention":         { en: "Retention",         es: "Retención",       de: "Kundenbindung",       fr: "Rétention",         ar: "الاحتفاظ بالعملاء" },
+  "Service":           { en: "Service",           es: "Servicio",        de: "Service",             fr: "Service",           ar: "الخدمة" },
+  "Technical Support": { en: "Technical Support", es: "Soporte técnico", de: "Technischer Support", fr: "Support technique", ar: "الدعم الفني" },
+};
+
+const DIFFICULTY = {
+  "Simple":   { en: "Simple",   es: "Simple",   de: "Einfach", fr: "Simple",   ar: "بسيط" },
+  "Moderate": { en: "Moderate", es: "Moderado", de: "Mittel",  fr: "Modéré",   ar: "متوسط" },
+  "Complex":  { en: "Complex",  es: "Complejo", de: "Komplex", fr: "Complexe", ar: "معقّد" },
+};
+
+export function lhCategory(id, value) {
+  return CATEGORY[value]?.[id] ?? value;
+}
+export function lhDifficulty(id, value) {
+  return DIFFICULTY[value]?.[id] ?? value;
+}
+
+// Coverage map for the Language & region modal (variant C). Mirrors the
+// brief's five buckets, honestly flagging the two that stay in source
+// language by design.
+export const LH_COVERAGE = [
+  { key: "ui",       translated: true },
+  { key: "taxonomy", translated: true },
+  { key: "filters",  translated: true },
+  { key: "eval",     translated: false },
+  { key: "userdata", translated: false },
+];
+
+const COVERAGE_LABEL = {
+  ui:       { en: "Interface text & placeholders",      es: "Texto de interfaz y marcadores",  de: "Oberflächentext & Platzhalter",    fr: "Texte d’interface et libellés",    ar: "نصوص الواجهة والعناصر النائبة" },
+  taxonomy: { en: "Role-play categories (taxonomy)",    es: "Categorías de roles (taxonomía)", de: "Rollenspiel-Kategorien (Taxonomie)", fr: "Catégories de jeux de rôle",      ar: "فئات تمثيل الأدوار (التصنيف)" },
+  filters:  { en: "Filters & search",                   es: "Filtros y búsqueda",              de: "Filter & Suche",                   fr: "Filtres et recherche",             ar: "عوامل التصفية والبحث" },
+  eval:     { en: "Eval language & transcripts",        es: "Idioma de evaluación y transcripciones", de: "Bewertungssprache & Transkripte", fr: "Langue d’évaluation et transcriptions", ar: "لغة التقييم والنصوص" },
+  userdata: { en: "User-defined content (scorecards)",  es: "Contenido del usuario (scorecards)", de: "Benutzerinhalte (Scorecards)",  fr: "Contenu utilisateur (scorecards)", ar: "محتوى المستخدم (بطاقات الأداء)" },
+};
+
+const COVERAGE_STATE = {
+  yes: { en: "Localized",       es: "Traducido",       de: "Übersetzt",       fr: "Traduit",        ar: "مُترجَم" },
+  no:  { en: "Source language", es: "Idioma original", de: "Originalsprache", fr: "Langue source",  ar: "اللغة الأصلية" },
+};
+
+export function lhCoverageLabel(id, key) {
+  return COVERAGE_LABEL[key]?.[id] ?? COVERAGE_LABEL[key]?.en ?? key;
+}
+export function lhCoverageState(id, translated) {
+  const row = translated ? COVERAGE_STATE.yes : COVERAGE_STATE.no;
+  return row[id] ?? row.en;
+}
+
+// Navigation chrome — module label + SideNav item labels. Used so the
+// rail itself renders in the selected language when the whole app flips
+// (e.g. Arabic). Keyed by the learningHubConfig item ids.
+const NAV = {
+  module:       { en: "Learning Hub",  es: "Centro de aprendizaje", de: "Lernzentrum",  fr: "Centre d’apprentissage", ar: "مركز التعلّم" },
+  drill:        { en: "Drill",         es: "Práctica",      de: "Übung",         fr: "Exercice",     ar: "تدريب" },
+  interactions: { en: "Interactions",  es: "Interacciones", de: "Interaktionen", fr: "Interactions", ar: "التفاعلات" },
+  agents:       { en: "Agents",        es: "Agentes",       de: "Agenten",       fr: "Agents",       ar: "الوكلاء" },
+  missions:     { en: "Missions",      es: "Misiones",      de: "Missionen",     fr: "Missions",     ar: "المهام" },
+  guide:        { en: "Guide",         es: "Guía",          de: "Leitfaden",     fr: "Guide",        ar: "الدليل" },
+  replay:       { en: "Replay",        es: "Repetición",    de: "Wiederholung",  fr: "Relecture",    ar: "إعادة التشغيل" },
+};
+
+export function lhNavLabel(id, key, fallback) {
+  return NAV[key]?.[id] ?? fallback ?? NAV[key]?.en ?? fallback;
+}
+
+// localizeLearningConfig — return a copy of the Learning Hub SideNav config
+// with module + item labels translated into `id`. Identity-returns the
+// original for English so the common path allocates nothing.
+export function localizeLearningConfig(config, id) {
+  if (id === "en") return config;
+  return {
+    ...config,
+    moduleLabel: lhNavLabel(id, "module", config.moduleLabel),
+    displayName: lhNavLabel(id, "module", config.displayName),
+    items: config.items.map((item) => ({
+      ...item,
+      label: lhNavLabel(id, item.id, item.label),
+    })),
+  };
+}
+
+// Drill scenario content in Arabic, keyed by card id — title + description
+// for the landing card, plus the full detail-page content (agent brief,
+// persona, situation, goals, resolution). Gate 2 requires the Drill tab
+// AND its detail view to read fully in Arabic, incl. transcript/eval-style
+// copy (Umesh, Jun 13 — overrides the earlier "never translate" rule).
+// Customer names stay Latin (proper nouns, dir="auto"); brand strings
+// (iPhone 15, Zalando Plus, Samsung A52S) keep their own direction.
+const DRILL_CONTENT_AR = {
+  "david-evans": {
+    title: "استفسار حول ترقية جهاز محمول",
+    description:
+      "أنت تتحدث مع ديفيد إيفانز، وهو عميل حالي. يتصل للاستفسار عن ترقية جهازه المحمول. يذكر أنه مع المشغّل منذ ست سنوات ويريد معرفة عروض الاستبدال التي يكون مؤهلاً لها.",
+    agentBrief:
+      "أنت تتحدث مع ديفيد إيفانز، وهو عميل حالي. يتصل للاستفسار عن ترقية جهازه المحمول. يذكر أنه شاهد بعض العروض ويريد معرفة ما إذا كانت لا تزال متاحة. تُظهر سجلاته أنه يمتلك حالياً جهاز Samsung A52S.",
+    contactReason: "استفسار عن عرض ترقية جهاز محمول شاهده عبر الإنترنت",
+    maxAllowedDuration: "5 دقائق",
+    language: "الإنجليزية (المملكة المتحدة)",
+    characterOverview:
+      "عميل مطّلع وحريص على السعر، وقد بحث جيداً عن عرض محدد. يبدأ بأدب لكنه يصبح محبَطاً ورافضاً عندما لا تلتزم الشركة بإعلان خارجي. لا يتردد في الاستشهاد بعروض المنافسين وسيهدد سريعاً بالمغادرة إذا شعر بأنه يُتجاهَل.",
+    currentSituation: [
+      "يتصل العميل للاستفسار عن عرض لجهاز «Galaxy Stellar X Pro» شاهده على فيسبوك بسعر 4.90 جنيه إسترليني شهرياً.",
+      "يمتلك حالياً جهاز Samsung A52S وهو عميل حالي لدى Acme.",
+      "ذكر الإعلان الذي شاهده أن السعر ساري المفعول مع باقته الحالية البالغة 15 جيجابايت.",
+      "إنه على دراية بعروض المنافسين، وذكر تحديداً عرض Movistar لجهاز Galaxy S25 بسعر 535 جنيهاً إسترلينياً.",
+    ],
+    goals: [
+      "الحصول على جهاز Galaxy Stellar X Pro بسعر 4.90 جنيه إسترليني شهرياً كما رأى في الإعلان.",
+      "الحصول على توضيح رسمي وواضح إذا تعذّر تنفيذ العرض.",
+      "الحصول على عرض مضاد مماثل أو أفضل يمنعه من التحول إلى Movistar.",
+      "إنهاء المكالمة وهو يشعر بأن الشركة تصرفت بحسن نية.",
+    ],
+    resolution: {
+      ideal:
+        "يجد الموظف طريقة لتنفيذ سعر 4.90 جنيه إسترليني شهرياً لجهاز Galaxy Stellar X Pro، ربما بتطبيق رصيد ولاء متكرر يخفّض تكلفة التمويل القياسية إلى ذلك المعدل الشهري الفعلي.",
+      minimum:
+        "يشرح الموظف سبب عدم صلاحية عرض فيسبوك (مثل: للعملاء الجدد فقط، أو خطأ تسويقي)، ويسجّل شكوى رسمية بشأن الإعلان المضلِّل، ويقدّم بادرة حسن نية ملموسة (مثل رصيد 50 جنيهاً إسترلينياً على الحساب) للاحتفاظ بالعميل.",
+      compromised:
+        "لا يستطيع الموظف مطابقة سعر 4.90 جنيه إسترليني لكنه يقدّم خصم ولاء كبيراً على التمويل القياسي البالغ 28.50 جنيهاً شهرياً لجهاز Stellar X Pro (مثل خصم 50%) أو يعرض جهازاً آخر راقياً بسعر مدعوم بشكل كبير.",
+    },
+  },
+  "javier-sanz": {
+    title: "نزاع على الفاتورة بسبب سعر غير صحيح بعد العرض الترويجي",
+    description:
+      "أنت تتحدث مع خافيير سانز، عميل يتصل بسبب اختلاف في فاتورته. يؤكد أنه جدّد عرضه قبل شهرين وأن السعر المحصَّل لا يطابق ما تم الاتفاق عليه. يريد توضيحاً واضحاً وتعديلاً بأثر رجعي.",
+    agentBrief:
+      "ستتحدث مع خافيير سانز، عميل منذ أربع سنوات. يتصل بشأن فاتورة مبلغها أعلى من اتفاق التجديد الموقّع قبل شهرين. يؤكد أنه تلقّى تأكيداً عبر البريد الإلكتروني ويطالب بتعديل بأثر رجعي مع توضيح واضح للخطأ.",
+    contactReason: "تباين بين الفاتورة المستلمة واتفاق التجديد",
+    maxAllowedDuration: "6 دقائق",
+    language: "الإسبانية (إسبانيا)",
+    characterOverview:
+      "عميل دقيق يحتفظ برسائل البريد والإيصالات. يبدأ المكالمة بنبرة حازمة لكنها مهذبة. إذا شعر بالمماطلة، ينتقل سريعاً إلى نبرة باردة ويذكر إمكانية تغيير المشغّل وتقديم شكوى رسمية.",
+    currentSituation: [
+      "جدّد عرضه قبل شهرين برسم شهري متفق عليه قدره 29.90 يورو.",
+      "تُظهر فاتورته الأخيرة 38.50 يورو دون تفصيل واضح للبند الإضافي.",
+      "لديه بريد تأكيد التجديد يتضمّن السعر المتفق عليه.",
+      "سبق أن تواصل مرتين دون الحصول على توضيح متماسك.",
+    ],
+    goals: [
+      "الحصول على تعديل بأثر رجعي عن الفرق المحصَّل في آخر فاتورتين.",
+      "تلقّي توضيح واضح وخطّي للخطأ.",
+      "تأكيد السعر الشهري الصحيح خطّياً ابتداءً من الفاتورة التالية.",
+      "تجنّب الاضطرار إلى الاتصال مجدداً للسبب نفسه.",
+    ],
+    resolution: {
+      ideal:
+        "يحدد الموظف خطأ الفوترة، ويطبّق التعديل الكامل بأثر رجعي، ويؤكد السعر المتفق عليه عبر البريد، ويقدّم تعويضاً إضافياً عن الإزعاج.",
+      minimum:
+        "يقرّ الموظف بالمشكلة، ويسجّل شكوى رسمية، ويطبّق التعديل بأثر رجعي، ويلتزم بمكالمة متابعة خلال 48 ساعة.",
+      compromised:
+        "لا يستطيع الموظف تطبيق التعديل خلال المكالمة لكنه يفتح شكوى رسمية برقم مرجعي والتزام بالرد خلال خمسة أيام، ما يمنع العميل من تنفيذ نقل الرقم فوراً.",
+    },
+  },
+  "klaus-schmidt": {
+    title: "تغيير مالك خط الهاتف المحمول",
+    description:
+      "أنت تتحدث مع كلاوس شميت، وهو عميل تواصل بعد تلقّيه مكالمة مشبوهة. إنه متحفّظ ويريد التحقق من طلب تغيير مالك خط هاتفه المحمول، ويتوقع شرح جميع خطوات الأمان بعناية.",
+    agentBrief:
+      "أنت تتحدث مع كلاوس شميت، عميل خاص منذ زمن طويل. يتواصل لأنه تلقّى مكالمة مشبوهة أُعلن فيها عن تغيير مالك خط هاتفه المحمول دون أن يطلب ذلك. إنه قلق ويتوقع فحصاً أمنياً دقيقاً.",
+    contactReason: "تغيير مالك مشتبه بأنه غير مصرّح به",
+    maxAllowedDuration: "8 دقائق",
+    language: "الألمانية (ألمانيا)",
+    characterOverview:
+      "عميل واعٍ أمنياً وميّال إلى الرسمية. يستمع بدقة ويطلب شروحاً واضحة خطوة بخطوة. لا يقبل العبارات النمطية ويتوقع تبرير كل خطوة من خطوات التحقق من الهوية قبل أن يفصح عن بياناته.",
+    currentSituation: [
+      "مكالمة مشبوهة من شخص يدّعي أنه موظف يعلن عن تغيير المالك.",
+      "لم يطلب كلاوس تغيير المالك ولم يتلقَّ أي تأكيد خطّي.",
+      "تنتهي مدة عقده بعد أحد عشر شهراً فقط.",
+      "إنه المالك الوحيد للخط وجهة الاتصال الوحيدة على الحساب.",
+    ],
+    goals: [
+      "الحصول على تأكيد بعدم وجود طلب تغيير مالك قيد التنفيذ.",
+      "وضع حظر أمني على الحساب إلى أن يتضح كل شيء.",
+      "معرفة مسار تصعيد واضح في حال الاشتباه بالاحتيال.",
+      "تأكيد خطّي بالخطوات التي تم اتخاذها.",
+    ],
+    resolution: {
+      ideal:
+        "يتحقّق الموظف من الهوية بدقة، ويفحص النظام بحثاً عن طلبات مفتوحة، ويضع حظراً أمنياً، ويفتح حالة احتيال برقم مرجعي، ويرسل التأكيد خطّياً.",
+      minimum:
+        "يؤكد الموظف بعد التحقق من الهوية عدم وجود طلب تغيير مالك مفتوح، ويدوّن الواقعة، ويشرح مسارات التصعيد في حال تكرار المحاولات.",
+      compromised:
+        "لا يستطيع الموظف وضع الحظر الأمني مباشرة لكنه يحيل الحالة إلى قسم الأمن ويضمن معاودة الاتصال خلال 24 ساعة برقم مرجعي.",
+    },
+  },
+  "amelie-dubois": {
+    title: "زيادة غير متوقعة في الفاتورة بعد انتهاء العرض",
+    description:
+      "أنت تتحدث مع أميلي دوبوا، عميلة تتصل بشأن فاتورتها الأخيرة. لاحظت زيادة في السعر لا تفهمها وتريد معرفة ما إذا كان عرض ترويجي قد انتهى للتو. تبقى مهذّبة ومنفتحة على التوضيح.",
+    agentBrief:
+      "ستتحدث مع أميلي دوبوا، عميلة وفية منذ أكثر من ثلاث سنوات. تتصل بشأن زيادة مفاجئة في فاتورتها الأخيرة لا تجد لها تفسيراً. تبقى مهذبة وتبحث قبل كل شيء عن توضيح واضح قبل أي إجراء آخر.",
+    contactReason: "زيادة غير متوقعة في الفاتورة الأخيرة",
+    maxAllowedDuration: "4 دقائق",
+    language: "الفرنسية (فرنسا)",
+    characterOverview:
+      "عميلة هادئة وصبورة نسبياً، تفضّل توضيحاً واقعياً على بادرة تجارية فورية. إذا كان الرد متماسكاً، تقبل الوضع عادة. لكنها تكره أن تُحوَّل من قسم إلى آخر.",
+    currentSituation: [
+      "فاتورة الشهر الحالي أعلى بنحو 8 يورو مقارنة بالشهر السابق.",
+      "لا تتذكّر أنها فعّلت أي خدمة إضافية.",
+      "انتهى عرضها الترويجي المرتبط بالتزام 12 شهراً في الشهر الماضي.",
+      "تبقى منفتحة على خيارات مختلفة ما دام يُشرح لها الوضع بوضوح.",
+    ],
+    goals: [
+      "فهم سبب تغيّر المبلغ بدقة.",
+      "تقييم ما إذا كان هناك عرض جديد يناسب استخدامها.",
+      "تجنّب الانتقال إلى مشغّل آخر إذا قُدِّم لها حل معقول.",
+      "الحصول على ملخص واضح للوضع التعريفي الجديد.",
+    ],
+    resolution: {
+      ideal:
+        "يشرح الموظف بوضوح انتهاء العرض الترويجي، ويقترح خصم ولاء جديداً يعيد الفاتورة إلى مستوى قريب من السابق، ويرسل ملخصاً خطّياً.",
+      minimum:
+        "يشرح الموظف انتهاء العرض، ويقترح على الأقل تعديلاً مؤقتاً أو خياراً تعريفياً جديداً، ويؤكد الوضع خطّياً.",
+      compromised:
+        "لا يستطيع الموظف تطبيق خصم فوراً لكنه يفتح طلب بادرة تجارية مع التزام بالرد خلال 48 ساعة، وهو ما يكفي لطمأنتها كي تبقى عميلة.",
+    },
+  },
+  "oliver-sterling": {
+    title: "تثبيت طابعة محطة العمل",
+    description:
+      "أنت تتحدث مع أوليفر ستيرلينغ، موظف منذ زمن طويل يواجه صعوبة في إعداد طابعة جديدة على محطة عمله. إنه صبور لكنه غير معتاد على تثبيت برامج التشغيل ويرغب في إرشادات خطوة بخطوة.",
+    agentBrief:
+      "أنت تتحدث مع أوليفر ستيرلينغ، موظف داخلي منذ زمن طويل. تلقّى للتو طابعة مكتبية جديدة لمحطة عمله لكنه لا يستطيع إكمال تثبيت برنامج التشغيل بمفرده. إنه صبور ومستعد لاتباع التعليمات ويفضّل إرشاداً موجّهاً خطوة بخطوة.",
+    contactReason: "المساعدة في تثبيت برنامج تشغيل طابعة محطة العمل",
+    maxAllowedDuration: "5 دقائق",
+    language: "الإنجليزية (الولايات المتحدة)",
+    characterOverview:
+      "صبور وودود، ومرتاح للإفصاح عندما لا يفهم. يفضّل التعليمات خطوة بخطوة على المصطلحات التقنية. يتّبع الإرشادات بعناية لكنه يتوقع من الموظف التحقق من كل خطوة قبل الانتقال إلى التالية.",
+    currentSituation: [
+      "تلقّى طابعة HP LaserJet جديدة لمكتبه هذا الصباح.",
+      "وصّل كابل USB لكن محطة العمل لا تكتشف الجهاز.",
+      "لا يستطيع تثبيت برامج التشغيل من موقع الشركة المصنّعة بسبب قيود المسؤول.",
+      "لديه اجتماع خلال 30 دقيقة ويرغب في طباعة جدول الأعمال قبله.",
+    ],
+    goals: [
+      "تثبيت الطابعة وطباعة صفحة اختبار قبل اجتماعه.",
+      "فهم الخطوات التي يمكنه القيام بها بنفسه في المرة القادمة دون الاتصال.",
+      "تجنّب الحاجة إلى تصعيد المشكلة إلى قسم تقنية المعلومات في الموقع.",
+      "الحصول على ملخص خطّي موجز لما تم تغييره على جهازه.",
+    ],
+    resolution: {
+      ideal:
+        "يدفع الموظف برنامج تشغيل الطابعة عن بُعد، ويتحقق من التثبيت بصفحة اختبار، ويرسل إلى أوليفر ملخصاً من صفحة واحدة بالتغيير لسجلاته.",
+      minimum:
+        "يرشد الموظف أوليفر إلى طلب صلاحيات تثبيت مرتفعة، ويحدد مكالمة متابعة خلال ساعة، ويؤكد وجود تذكرة الطلب في قائمة الانتظار.",
+      compromised:
+        "لا يستطيع الموظف التثبيت عن بُعد أو منح الصلاحيات لكنه ينشئ تذكرة عالية الأولوية لتقنية المعلومات في الموقع ويحدد توقعات صحيحة لوقت الاستجابة، مع وضع علامة عاجلة على الطابعة.",
+    },
+  },
+  "lucia-martin-garcia": {
+    title: "زيادة السعر بعد انتهاء العرض الترويجي",
+    description:
+      "ستتعامل مع لوسيا مارتن غارسيا، عميلة انتهى خصمها الترويجي لمدة عام، ما أدى إلى ارتفاع رسومها الشهرية. إنها منزعجة وتفكّر في تغيير المشغّل إن لم يُقدَّم لها بديل معقول.",
+    agentBrief:
+      "ستتعامل مع لوسيا مارتن غارسيا، عميلة منذ زمن طويل. انتهى للتو خصمها الترويجي لمدة اثني عشر شهراً، ما يعني زيادة كبيرة في رسمها الشهري. تتصل وهي منزعجة بوضوح وتفكّر في تغيير المشغّل إن لم يُقدَّم لها بديل.",
+    contactReason: "انتهاء الخصم الترويجي وزيادة الرسم الشهري",
+    maxAllowedDuration: "7 دقائق",
+    language: "الإسبانية (إسبانيا)",
+    characterOverview:
+      "عميلة صارمة تعرف عروض السوق جيداً وتقارن بينها. تبدأ المكالمة بنبرة حادة. لا تتحمّل الإجابات المراوغة وتقدّر بشكل خاص أن يعترف الموظف بأقدميتها قبل اقتراح أي حل.",
+    currentSituation: [
+      "انتهى للتو خصمها الترويجي البالغ 50% بعد اثني عشر شهراً.",
+      "ارتفع الرسم الشهري الجديد من 19.90 يورو إلى 39.80 يورو.",
+      "لديها عرض محدد من منافس بسعر 27 يورو شهرياً بشروط مماثلة.",
+      "إنها عميلة منذ أكثر من ست سنوات ولم يتخلّف عليها أي سداد.",
+    ],
+    goals: [
+      "الحصول على تعرفة جديدة قريبة من أو مساوية لسعر العرض الترويجي السابق.",
+      "الشعور بأن أقدميتها مُقدَّرة ومثمَّنة.",
+      "تجنّب عناء نقل الرقم إلى مشغّل آخر.",
+      "الحصول على تأكيد خطّي بالتعرفة الجديدة ومدة الميزة.",
+    ],
+    resolution: {
+      ideal:
+        "يطبّق الموظف خصم ولاء لمدة اثني عشر شهراً يساوي أو يحسّن عرض المنافس، ويؤكد التغيير خطّياً، ويشكرها صراحةً على أقدميتها كعميلة.",
+      minimum:
+        "يطبّق الموظف خصماً جزئياً كبيراً لمدة ستة أشهر، ويلتزم بمراجعة في منتصف المدة، ويترك العرض خطّياً.",
+      compromised:
+        "لا يستطيع الموظف مطابقة المنافس لكنه يقدّم خصماً مؤقتاً لثلاثة أشهر ويفتح طلب مراجعة مخصّصاً لمنع تنفيذ نقل الرقم في الأسبوع نفسه.",
+    },
+  },
+  "andres-navarro": {
+    title: "عميل بدأ نقل رقمه إلى مشغّل آخر",
+    description:
+      "أنت تتحدث مع أندريس نافارو، عميل منذ زمن طويل يعاود الاتصال بعد ملاحظته عدة مكالمات فائتة من الشركة. لقد بدأ بالفعل عملية نقل رقمه إلى مشغّل آخر ويريد فهم خياراته قبل أن يصبح التغيير سارياً.",
+    agentBrief:
+      "ستتعامل مع أندريس نافارو، عميل منذ سبع سنوات. بدأ نقل رقمه إلى مشغّل آخر ويعاود الاتصال بعد عدة مكالمات فائتة من الشركة. يريد فهم خياراته قبل أن يصبح التغيير سارياً خلال 48 ساعة.",
+    contactReason: "نقل رقم بدأ بالفعل نحو مشغّل آخر",
+    maxAllowedDuration: "7 دقائق",
+    language: "الإسبانية (إسبانيا)",
+    characterOverview:
+      "عميل حاسم اتخذ قراره بعقلانية. مستعد للاستماع لكنه لا يريد إضاعة الوقت. يقدّر الاحترام والصراحة؛ وأي محاولة احتفاظ يراها تلاعباً ينهيها سريعاً.",
+    currentSituation: [
+      "وقّع على نقل الرقم قبل ثلاثة أيام، وتاريخ السريان خلال 48 ساعة.",
+      "يستند قراره إلى عرض من منافس بسعر أقل وتغطية أفضل في منطقته.",
+      "يهتم بالإبقاء على رقمه فقط إذا قدّمت الشركة عرضاً أفضل بوضوح.",
+      "يؤكد عدم وجود مشكلات لديه في جودة الخدمة الحالية، بل في السعر فقط.",
+    ],
+    goals: [
+      "مقارنة عرض الشركة بعرض المنافس بوضوح.",
+      "اتخاذ قرار مستنير قبل أن يصبح نقل الرقم سارياً.",
+      "تجنّب الضغط أو التلاعب العاطفي.",
+      "الحصول على أي عرض جديد خطّياً خلال أقل من 24 ساعة.",
+    ],
+    resolution: {
+      ideal:
+        "يلغي الموظف نقل الرقم بموافقة صريحة من العميل بعد تقديم عرض مخصّص يتفوّق على سعر المنافس ويعترف بأقدميته.",
+      minimum:
+        "يقدّم الموظف أفضل عرض احتفاظ متاح خطّياً، ويترك العميل يقرّر دون ضغط، ويؤكد بوضوح المهل اللازمة لعكس نقل الرقم إذا قرّر البقاء.",
+      compromised:
+        "لا ينجح الموظف في الاحتفاظ بالعميل لكنه ينهي المحادثة بوداع لائق، ويسجّل سبب المغادرة للمراجعة الداخلية، ويترك الباب مفتوحاً لعودة مستقبلية بقسيمة ترحيب.",
+    },
+  },
+  "gregory-vance": {
+    title: "عدم تسليم طلب iPhone 15",
+    description:
+      "أنت تتحدث مع غريغوري فانس، عميل منذ زمن طويل يتصل بخصوص طلب أجهزة عالي القيمة (iPhone 15) كان من المفترض تسليمه قبل أربعة أيام. لا تزال صفحة التتبّع تعرض «قيد النقل»، وهو يريد إما بديلاً فورياً أو استرداداً كاملاً.",
+    agentBrief:
+      "أنت تتحدث مع غريغوري فانس، عميل منذ زمن طويل قدّم طلب أجهزة عالي القيمة (iPhone 15) قبل ثمانية أيام. وُعد بالتسليم قبل أربعة أيام، ولا يزال التتبّع يعرض «قيد النقل»، وقد اتصل عدة مرات دون حل. إنه غاضب ويطالب إما ببديل فوري أو استرداد كامل.",
+    contactReason: "طلب أجهزة عالي القيمة لم يُسلَّم بعد ثمانية أيام من الشراء",
+    maxAllowedDuration: "8 دقائق",
+    language: "الإنجليزية (الولايات المتحدة)",
+    characterOverview:
+      "محبَط، بليغ التعبير، ونفد صبره بعد مكالمات متعددة دون حل. يستمع لكنه يتوقع التزامات حازمة لا اعتذارات. أي مماطلة أو لغة نمطية إضافية ستدفعه إلى التصعيد عبر وسائل التواصل أو ردّ المبلغ.",
+    currentSituation: [
+      "تم تقديم الطلب قبل ثمانية أيام لجهاز iPhone 15 مع شحن خلال يومين.",
+      "كان تاريخ التسليم الموعود قبل أربعة أيام؛ ولا يزال التتبّع يعرض «قيد النقل».",
+      "اتصل بالشركة أربع مرات؛ ووُعد في كل مرة بمعاودة اتصال لم تحدث.",
+      "هاتفه الحالي معطّل، وقد بقي بلا جهاز عامل طوال الأسبوع.",
+    ],
+    goals: [
+      "الحصول إما على جهاز بديل مؤكَّد بتاريخ تسليم مضمون، أو استرداد كامل يُنفَّذ اليوم.",
+      "الحصول على جهة اتصال واحدة محدّدة بالاسم مسؤولة عن الحل.",
+      "تجنّب الاضطرار إلى تكرار القصة كاملة في أي مكالمة مستقبلية.",
+      "الحصول على اعتراف ملموس بالاضطراب (جهاز إعارة، رصيد، أو كليهما).",
+    ],
+    resolution: {
+      ideal:
+        "يصرّح الموظف فوراً ببديل iPhone 15 يُرسَل في اليوم نفسه بشحن بين عشية وضحاها، ويطبّق رصيد خدمة مجزياً، ويعيّن مسؤولاً بالاسم مع تفاصيل اتصال مباشرة.",
+      minimum:
+        "يعالج الموظف استرداداً كاملاً خلال المكالمة، ويؤكد جدول الاسترداد خطّياً، ويقدّم خصماً على شراء أجهزة مستقبلي للاحتفاظ بالعميل.",
+      compromised:
+        "لا يستطيع الموظف إرسال بديل في اليوم نفسه لكنه ينشئ تذكرة تصعيد ذات أولوية باتفاق مستوى خدمة 24 ساعة، ويفتح تحقيقاً رسمياً مع الناقل، ويقدّم رصيد خدمة مؤقتاً اعترافاً بالاضطراب.",
+    },
+  },
+  "diana-sterling": {
+    title: "تجاوز الذكاء الاصطناعي لتوثيق الضرر",
+    description:
+      "أنت تتعامل مع عضوة في Zalando Plus تلقّت قميصاً حريرياً عالي القيمة متضرراً. حاولت بالفعل استخدام مسار الإبلاغ الرقمي عن الضرر ورُفض طلبها عبر الفحص الآلي. تريد تصعيد الأمر إلى مراجِع بشري.",
+    agentBrief:
+      "أنت تتعامل مع ديانا ستيرلينغ، عضوة في Zalando Plus تلقّت قميصاً حريرياً عالي القيمة متضرراً. حاولت بالفعل مسار الإبلاغ الرقمي عن الضرر مرتين ورُفض في كلتيهما. إنها محبَطة وتريد التصعيد إلى مراجِع بشري للحصول على استرداد كامل.",
+    contactReason: "رُفضت مطالبة الضرر الآلية على منتج عالي القيمة",
+    maxAllowedDuration: "5 دقائق",
+    language: "الإنجليزية (المملكة المتحدة)",
+    characterOverview:
+      "عضوة Plus بليغة، مرتاحة مع الأدوات الرقمية، ومحبَطة تحديداً من إعادتها إلى الحلقة الآلية نفسها. تكون متعاونة عند معاملتها كعميلة من فئة عالية لكنها تتفاعل بحدّة عندما يُطلب منها تكرار المسار الرقمي نفسه.",
+    currentSituation: [
+      "تلقّت قميصاً حريرياً بقيمة 180 جنيهاً إسترلينياً مع تمزّق واضح في الحياكة ظاهر في الصور المرسلة.",
+      "استخدمت مسار الإبلاغ عن الضرر في التطبيق مرتين؛ ورُفضت كلتا المحاولتين عبر الفحص الآلي.",
+      "كان المنتج هدية ومناسبة المُستلِم خلال ثلاثة أيام.",
+      "اشتراك Plus قابل للتجديد الشهر المقبل وهي تشكّك علناً في قيمته.",
+    ],
+    goals: [
+      "مراجعة مطالبة الضرر من قِبل مراجِع بشري خلال المكالمة.",
+      "الحصول على قرار استرداد أو استبدال في اليوم نفسه.",
+      "تجنّب الطلب منها تكرار المسار الرقمي مرة ثالثة.",
+      "الحصول على اعتراف صريح بحالة عضويتها في Plus.",
+    ],
+    resolution: {
+      ideal:
+        "يتجاوز الموظف الرفض الآلي في الحال، ويعالج استرداداً كاملاً مع رصيد بادرة حسن نية من فئة Plus، ويؤكد الخطوات التالية عبر البريد الإلكتروني.",
+      minimum:
+        "يصعّد الموظف الحالة إلى مراجِع بشري باتفاق مستوى خدمة 24 ساعة، ويصدر استرداداً مؤقتاً كبادرة حسن نية، ويؤكد رقم الحالة عبر البريد الإلكتروني.",
+      compromised:
+        "لا يستطيع الموظف تجاوز القرار الآلي لكنه يوجّه الحالة إلى مراجِع كبير بأولوية ويقدّم قسيمة حسن نية من فئة Plus لتلطيف التجربة أثناء معالجة الحالة.",
+    },
+  },
+};
+
+// lhDrillContent — localized scenario content for a Drill card, or null
+// when the locale has no override (caller keeps the source strings).
+export function lhDrillContent(id, cardId) {
+  if (id === "ar") return DRILL_CONTENT_AR[cardId] ?? null;
+  return null;
+}
+
+// Drill-detail chrome — static labels on the detail view. en + ar; other
+// locales fall back to en (detail content currently localizes for Arabic).
+const DETAIL = {
+  detailTitle:    { en: "Drill Details",        ar: "تفاصيل التدريب" },
+  back:           { en: "Back to Drill",        ar: "العودة إلى التدريب" },
+  active:         { en: "Active",               ar: "نشط" },
+  runDrill:       { en: "Run drill",            ar: "تشغيل التدريب" },
+  totalInteractions: { en: "Total Interactions", ar: "إجمالي التفاعلات" },
+  averageDuration:{ en: "Average Duration",     ar: "متوسط المدة" },
+  roleplayCategory:{ en: "Roleplay Category",   ar: "فئة تمثيل الأدوار" },
+  source:         { en: "Source",               ar: "المصدر" },
+  agentBrief:     { en: "Agent Brief",          ar: "موجز الوكيل" },
+  contactReason:  { en: "Contact Reason",       ar: "سبب التواصل" },
+  maxDuration:    { en: "Max Allowed Duration", ar: "الحد الأقصى للمدة المسموح بها" },
+  languageField:  { en: "Language",             ar: "اللغة" },
+  personaDetails: { en: "Persona Details",      ar: "تفاصيل الشخصية" },
+  forManagers:    { en: "(For Managers Only)",  ar: "(للمديرين فقط)" },
+  characterOverview: { en: "Character Overview", ar: "نظرة عامة على الشخصية" },
+  tabCurrent:     { en: "Current situation",    ar: "الوضع الحالي" },
+  tabGoals:       { en: "Goals",                ar: "الأهداف" },
+  resolution:     { en: "Resolution",           ar: "الحل" },
+  resIdeal:       { en: "Ideal",                ar: "مثالي" },
+  resMinimum:     { en: "Minimum",              ar: "الحد الأدنى" },
+  resCompromised: { en: "Compromised",          ar: "حل وسط" },
+};
+
+export function lhDetail(id, key) {
+  const row = DETAIL[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// New Roleplay wizard (Step 1 persona + Step 2 context + breadcrumb).
+// Full five-locale set, matching the rest of the engine: the wizard is GUI
+// chrome (labels, placeholders, helper text), so it localizes everywhere,
+// not just Arabic. Field VALUES (category, complexity, language) reuse the
+// taxonomy maps / LANGUAGE_NAME below so the stored canonical key is stable
+// while only the display label localizes.
+const WIZARD = {
+  bcPersona:    { en: "Enter Persona Details",        es: "Introducir detalles del perfil", de: "Persona-Details eingeben",      fr: "Saisir les détails du profil",    ar: "إدخال تفاصيل الشخصية" },
+  bcContext:    { en: "Add Conversation Context",     es: "Añadir contexto de conversación", de: "Gesprächskontext hinzufügen",  fr: "Ajouter le contexte de conversation", ar: "إضافة سياق المحادثة" },
+  viewSample:   { en: "View Sample",                  es: "Ver ejemplo",                de: "Beispiel ansehen",             fr: "Voir un exemple",                 ar: "عرض نموذج" },
+  step1Subtitle:{ en: "Build intelligent customer personas to train and coach the agents", es: "Crea perfiles de cliente inteligentes para formar y orientar a los agentes", de: "Erstellen Sie intelligente Kundenpersonas, um Agenten zu schulen und zu coachen", fr: "Créez des profils clients intelligents pour former et coacher les agents", ar: "أنشئ شخصيات عملاء ذكية لتدريب الوكلاء وتوجيههم" },
+  step2Title:   { en: "Add Supporting Information",    es: "Añadir información de apoyo", de: "Unterstützende Informationen hinzufügen", fr: "Ajouter des informations complémentaires", ar: "إضافة معلومات داعمة" },
+  next:         { en: "Next",                          es: "Siguiente",                  de: "Weiter",                       fr: "Suivant",                         ar: "التالي" },
+  previous:     { en: "Previous",                      es: "Anterior",                   de: "Zurück",                       fr: "Précédent",                       ar: "السابق" },
+  cancel:       { en: "Cancel",                        es: "Cancelar",                   de: "Abbrechen",                    fr: "Annuler",                         ar: "إلغاء" },
+  generate:     { en: "Generate",                      es: "Generar",                    de: "Generieren",                   fr: "Générer",                         ar: "إنشاء" },
+  skipGenerate: { en: "Skip and Generate with AI",     es: "Omitir y generar con IA",    de: "Überspringen und mit KI generieren", fr: "Ignorer et générer avec l’IA", ar: "تخطٍّ والإنشاء بالذكاء الاصطناعي" },
+
+  fldCategory:  { en: "Roleplay category",             es: "Categoría de juego de rol",  de: "Rollenspiel-Kategorie",        fr: "Catégorie de jeu de rôle",        ar: "فئة تمثيل الأدوار" },
+  fldLanguage:  { en: "Persona language",              es: "Idioma del perfil",          de: "Persona-Sprache",              fr: "Langue du profil",                ar: "لغة الشخصية" },
+  fldReason:    { en: "Why is the customer reaching out?", es: "¿Por qué contacta el cliente?", de: "Warum meldet sich der Kunde?", fr: "Pourquoi le client vous contacte-t-il ?", ar: "لماذا يتواصل العميل؟" },
+  fldObjective: { en: "What is the customer’s overall objective from the contact?", es: "¿Cuál es el objetivo general del cliente con el contacto?", de: "Was ist das übergeordnete Ziel des Kunden beim Kontakt?", fr: "Quel est l’objectif global du client lors du contact ?", ar: "ما هو هدف العميل العام من التواصل؟" },
+  fldComplexity:{ en: "Persona Complexity",            es: "Complejidad del perfil",     de: "Persona-Komplexität",          fr: "Complexité du profil",            ar: "تعقيد الشخصية" },
+  fldDuration:  { en: "Max allowed duration",          es: "Duración máxima permitida",  de: "Maximal zulässige Dauer",      fr: "Durée maximale autorisée",        ar: "الحد الأقصى للمدة المسموح بها" },
+  minutes:      { en: "Minutes",                       es: "Minutos",                    de: "Minuten",                      fr: "Minutes",                         ar: "دقيقة" },
+  minShort:     { en: "min",                           es: "min",                        de: "Min.",                         fr: "min",                             ar: "دقيقة" },
+
+  phCategory:   { en: "E.g. Sales",                    es: "P. ej. Ventas",              de: "Z. B. Vertrieb",               fr: "P. ex. Ventes",                   ar: "مثال: المبيعات" },
+  phLanguage:   { en: "E.g. English (UK)",             es: "P. ej. Inglés (Reino Unido)", de: "Z. B. Englisch (UK)",         fr: "P. ex. Anglais (R.-U.)",          ar: "مثال: الإنجليزية (المملكة المتحدة)" },
+  phReason:     { en: "E.g. Billing and payment issues", es: "P. ej. Problemas de facturación y pago", de: "Z. B. Probleme mit Abrechnung und Zahlung", fr: "P. ex. Problèmes de facturation et de paiement", ar: "مثال: مشكلات الفوترة والدفع" },
+  phObjective:  { en: "E.g. Billing and payment issues", es: "P. ej. Problemas de facturación y pago", de: "Z. B. Probleme mit Abrechnung und Zahlung", fr: "P. ex. Problèmes de facturation et de paiement", ar: "مثال: مشكلات الفوترة والدفع" },
+
+  fldObjections:{ en: "What are the key objections?",  es: "¿Cuáles son las objeciones clave?", de: "Was sind die wichtigsten Einwände?", fr: "Quelles sont les principales objections ?", ar: "ما هي الاعتراضات الرئيسية؟" },
+  fldProducts:  { en: "What products or services will be discussed?", es: "¿Qué productos o servicios se tratarán?", de: "Welche Produkte oder Dienstleistungen werden besprochen?", fr: "Quels produits ou services seront abordés ?", ar: "ما المنتجات أو الخدمات التي ستتم مناقشتها؟" },
+  fldContext:   { en: "Any additional context?",       es: "¿Algún contexto adicional?", de: "Zusätzlicher Kontext?",        fr: "Un contexte supplémentaire ?",    ar: "أي سياق إضافي؟" },
+  phObjections: { en: "E.g. The customer is not interested in the product/service", es: "P. ej. El cliente no está interesado en el producto/servicio", de: "Z. B. Der Kunde ist nicht am Produkt/Service interessiert", fr: "P. ex. Le client n’est pas intéressé par le produit/service", ar: "مثال: العميل غير مهتم بالمنتج/الخدمة" },
+  phProducts:   { en: "E.g. international roaming plan", es: "P. ej. plan de itinerancia internacional", de: "Z. B. internationaler Roaming-Tarif", fr: "P. ex. forfait d’itinérance internationale", ar: "مثال: باقة التجوال الدولي" },
+  phContext:    { en: "E.g. The customer is a long term user and has been loyal to the company since 2 years.", es: "P. ej. El cliente es usuario desde hace tiempo y ha sido fiel a la empresa durante 2 años.", de: "Z. B. Der Kunde ist langjähriger Nutzer und seit 2 Jahren treu.", fr: "P. ex. Le client est un utilisateur de longue date, fidèle à l’entreprise depuis 2 ans.", ar: "مثال: العميل مستخدم منذ مدة طويلة وظل وفياً للشركة منذ عامين." },
+
+  capLabel:     { en: "Per-roleplay monthly minute cap", es: "Límite mensual de minutos por juego de rol", de: "Monatliches Minutenlimit pro Rollenspiel", fr: "Plafond mensuel de minutes par jeu de rôle", ar: "حد الدقائق الشهري لكل تمثيل أدوار" },
+  capHelper:    { en: "Optional. Caps the minutes this roleplay can consume each month. Off by default; existing sessions are never interrupted.", es: "Opcional. Limita los minutos que este juego de rol puede consumir cada mes. Desactivado por defecto; las sesiones existentes nunca se interrumpen.", de: "Optional. Begrenzt die Minuten, die dieses Rollenspiel pro Monat verbrauchen kann. Standardmäßig aus; laufende Sitzungen werden nie unterbrochen.", fr: "Facultatif. Limite les minutes que ce jeu de rôle peut consommer chaque mois. Désactivé par défaut ; les sessions en cours ne sont jamais interrompues.", ar: "اختياري. يحدّ من الدقائق التي يمكن أن يستهلكها تمثيل الأدوار هذا كل شهر. مُعطَّل افتراضياً؛ ولا تُقطَع الجلسات الجارية أبداً." },
+  capSuffix:    { en: "min / month",                   es: "min / mes",                  de: "Min. / Monat",                 fr: "min / mois",                      ar: "دقيقة / شهر" },
+  genTitle:     { en: "Roleplay Generation",           es: "Generación de juego de rol", de: "Rollenspiel-Generierung",      fr: "Génération de jeu de rôle",       ar: "إنشاء تمثيل الأدوار" },
+};
+
+export function lhWizard(id, key) {
+  const row = WIZARD[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// Interactions tab — table chrome, sentiment, skills popover, filters
+// drawer, pagination, empty state. Full five-locale set (GUI chrome).
+// Customer IDs, agent names and timestamps are data/proper nouns and stay
+// in source. Composite keys (sent_*, ch_*, col_*, attr_*, fs_*, opt_*,
+// skill_*) localize the data-driven cells while their stored id stays stable.
+const INTERACTIONS = {
+  title:        { en: "Interactions",   es: "Interacciones",  de: "Interaktionen",   fr: "Interactions",   ar: "التفاعلات" },
+  searchBy:     { en: "Search by",      es: "Buscar por",     de: "Suchen nach",     fr: "Rechercher par", ar: "البحث حسب" },
+  clearSearch:  { en: "Clear search",   es: "Borrar búsqueda", de: "Suche löschen",  fr: "Effacer la recherche", ar: "مسح البحث" },
+  filterName:   { en: "Search by filter name", es: "Buscar por nombre de filtro", de: "Nach Filternamen suchen", fr: "Rechercher par nom de filtre", ar: "البحث باسم عامل التصفية" },
+  deselectAll:  { en: "Deselect all",   es: "Deseleccionar todo", de: "Alle abwählen", fr: "Tout désélectionner", ar: "إلغاء تحديد الكل" },
+  optionsPending:{ en: "Options pending", es: "Opciones pendientes", de: "Optionen ausstehend", fr: "Options en attente", ar: "الخيارات قيد الإعداد" },
+  emptyMessage: { en: "No Interactions matched your search criteria.", es: "Ninguna interacción coincidió con tu búsqueda.", de: "Keine Interaktionen entsprachen deinen Suchkriterien.", fr: "Aucune interaction ne correspond à vos critères de recherche.", ar: "لا توجد تفاعلات تطابق معايير بحثك." },
+  firstPage:    { en: "First page",     es: "Primera página", de: "Erste Seite",     fr: "Première page",  ar: "الصفحة الأولى" },
+  prevPage:     { en: "Previous page",  es: "Página anterior", de: "Vorherige Seite", fr: "Page précédente", ar: "الصفحة السابقة" },
+  nextPage:     { en: "Next page",      es: "Página siguiente", de: "Nächste Seite",  fr: "Page suivante",  ar: "الصفحة التالية" },
+  skillsDetail: { en: "Skills detail",  es: "Detalle de habilidades", de: "Skill-Details", fr: "Détail des compétences", ar: "تفاصيل المهارات" },
+  closeFilters: { en: "Close filters",  es: "Cerrar filtros", de: "Filter schließen", fr: "Fermer les filtres", ar: "إغلاق عوامل التصفية" },
+
+  // Columns
+  col_customerId: { en: "Customer ID", es: "ID de cliente", de: "Kunden-ID",   fr: "ID client",     ar: "معرّف العميل" },
+  col_channel:    { en: "Channel",     es: "Canal",         de: "Kanal",        fr: "Canal",         ar: "القناة" },
+  col_date:       { en: "Date",        es: "Fecha",         de: "Datum",        fr: "Date",          ar: "التاريخ" },
+  col_agent:      { en: "Agent",       es: "Agente",        de: "Agent",        fr: "Agent",         ar: "الوكيل" },
+  col_duration:   { en: "Duration",    es: "Duración",      de: "Dauer",        fr: "Durée",         ar: "المدة" },
+  col_sentiment:  { en: "Sentiment",   es: "Sentimiento",   de: "Stimmung",     fr: "Sentiment",     ar: "المشاعر" },
+  col_quality:    { en: "Quality",     es: "Calidad",       de: "Qualität",     fr: "Qualité",       ar: "الجودة" },
+  col_skills:     { en: "Skills",      es: "Habilidades",   de: "Skills",       fr: "Compétences",   ar: "المهارات" },
+
+  // Search attributes
+  attr_customer: { en: "Customer ID",    es: "ID de cliente",   de: "Kunden-ID",      fr: "ID client",         ar: "معرّف العميل" },
+  attr_agent:    { en: "Agent Name",     es: "Nombre del agente", de: "Agentenname",  fr: "Nom de l’agent",    ar: "اسم الوكيل" },
+  attr_reason:   { en: "Contact Reason", es: "Motivo de contacto", de: "Kontaktgrund", fr: "Motif du contact", ar: "سبب التواصل" },
+
+  // Sentiment
+  sent_positive: { en: "Positive", es: "Positivo", de: "Positiv", fr: "Positif", ar: "إيجابي" },
+  sent_neutral:  { en: "Neutral",  es: "Neutral",  de: "Neutral", fr: "Neutre",  ar: "محايد" },
+  sent_negative: { en: "Negative", es: "Negativo", de: "Negativ", fr: "Négatif", ar: "سلبي" },
+  sent_mixed:    { en: "Mixed",    es: "Mixto",    de: "Gemischt", fr: "Mitigé",  ar: "مختلط" },
+
+  // Channels (a11y titles)
+  ch_voice:    { en: "Voice call", es: "Llamada de voz", de: "Sprachanruf", fr: "Appel vocal", ar: "مكالمة صوتية" },
+  ch_whatsapp: { en: "WhatsApp",   es: "WhatsApp",       de: "WhatsApp",    fr: "WhatsApp",    ar: "واتساب" },
+  ch_sms:      { en: "SMS",        es: "SMS",            de: "SMS",         fr: "SMS",         ar: "رسالة نصية" },
+  ch_email:    { en: "Email",      es: "Correo",         de: "E-Mail",      fr: "E-mail",      ar: "بريد إلكتروني" },
+
+  // Skills popover
+  sk_strengths: { en: "Strengths",        es: "Fortalezas",       de: "Stärken",            fr: "Points forts",      ar: "نقاط القوة" },
+  sk_needs:     { en: "Needs Improvement", es: "Áreas de mejora", de: "Verbesserungsbedarf", fr: "À améliorer",       ar: "بحاجة إلى تحسين" },
+  sk_coaching:  { en: "Coaching recommendation", es: "Recomendación de coaching", de: "Coaching-Empfehlung", fr: "Recommandation de coaching", ar: "توصية التدريب" },
+  sk_top:       { en: "Top skill",        es: "Habilidad destacada", de: "Top-Skill",       fr: "Compétence clé",    ar: "أبرز مهارة" },
+  sk_tracked:   { en: "Skills tracked",   es: "Habilidades seguidas", de: "Erfasste Skills", fr: "Compétences suivies", ar: "المهارات المتتبَّعة" },
+
+  // Skill names (SKILL_REGISTRY)
+  skill_building_rapport:        { en: "Building rapport",        es: "Generar confianza",        de: "Beziehung aufbauen",       fr: "Établir le lien",           ar: "بناء الألفة" },
+  skill_uncovering_needs:        { en: "Uncovering needs",        es: "Descubrir necesidades",    de: "Bedürfnisse erkennen",     fr: "Cerner les besoins",        ar: "اكتشاف الاحتياجات" },
+  skill_demonstrating_ownership: { en: "Demonstrating ownership", es: "Demostrar responsabilidad", de: "Verantwortung zeigen",     fr: "Faire preuve d’initiative", ar: "إظهار المسؤولية" },
+  skill_expressing_empathy:      { en: "Expressing empathy",      es: "Expresar empatía",         de: "Empathie zeigen",          fr: "Exprimer de l’empathie",    ar: "التعبير عن التعاطف" },
+  skill_communicating_clearly:   { en: "Communicating clearly",   es: "Comunicar con claridad",   de: "Klar kommunizieren",       fr: "Communiquer clairement",    ar: "التواصل بوضوح" },
+  skill_problem_solving:         { en: "Problem solving",         es: "Resolución de problemas",  de: "Problemlösung",            fr: "Résolution de problèmes",   ar: "حل المشكلات" },
+
+  // Filter sections
+  fs_date:                 { en: "Date",                   es: "Fecha",                de: "Datum",                fr: "Date",                  ar: "التاريخ" },
+  fs_coaching_recommendation: { en: "Coaching recommendation", es: "Recomendación de coaching", de: "Coaching-Empfehlung", fr: "Recommandation de coaching", ar: "توصية التدريب" },
+  fs_business_category:    { en: "Business category",      es: "Categoría de negocio", de: "Geschäftskategorie",   fr: "Catégorie d’activité",  ar: "فئة العمل" },
+  fs_strengths:            { en: "Strengths",              es: "Fortalezas",           de: "Stärken",              fr: "Points forts",          ar: "نقاط القوة" },
+  fs_filter_name:          { en: "Filter name",            es: "Nombre de filtro",     de: "Filtername",           fr: "Nom de filtre",         ar: "اسم عامل التصفية" },
+  fs_channel:              { en: "Channel",                es: "Canal",                de: "Kanal",                fr: "Canal",                 ar: "القناة" },
+  fs_direction:            { en: "Direction",              es: "Dirección",            de: "Richtung",             fr: "Direction",             ar: "الاتجاه" },
+  fs_workspaces:           { en: "Workspaces",             es: "Espacios de trabajo",  de: "Arbeitsbereiche",      fr: "Espaces de travail",    ar: "مساحات العمل" },
+  fs_human_eval:           { en: "Human Eval",             es: "Evaluación humana",    de: "Manuelle Bewertung",   fr: "Évaluation humaine",    ar: "تقييم بشري" },
+
+  // Filter options
+  opt_today:         { en: "Today",          es: "Hoy",                de: "Heute",            fr: "Aujourd’hui",       ar: "اليوم" },
+  opt_last_7_days:   { en: "Last 7 days",    es: "Últimos 7 días",     de: "Letzte 7 Tage",    fr: "7 derniers jours",  ar: "آخر 7 أيام" },
+  opt_last_30_days:  { en: "Last 30 days",   es: "Últimos 30 días",    de: "Letzte 30 Tage",   fr: "30 derniers jours", ar: "آخر 30 يوماً" },
+  opt_last_90_days:  { en: "Last 90 days",   es: "Últimos 90 días",    de: "Letzte 90 Tage",   fr: "90 derniers jours", ar: "آخر 90 يوماً" },
+  opt_last_12_months:{ en: "Last 12 months", es: "Últimos 12 meses",   de: "Letzte 12 Monate", fr: "12 derniers mois",  ar: "آخر 12 شهراً" },
+  opt_yes:           { en: "Yes",            es: "Sí",                 de: "Ja",               fr: "Oui",               ar: "نعم" },
+  opt_no:            { en: "No",             es: "No",                 de: "Nein",             fr: "Non",               ar: "لا" },
+
+  // Compact duration units (e.g. "1m 51s")
+  unit_h: { en: "h", es: "h", de: "h", fr: "h", ar: "س" },
+  unit_m: { en: "m", es: "m", de: "m", fr: "m", ar: "د" },
+  unit_s: { en: "s", es: "s", de: "s", fr: "s", ar: "ث" },
+};
+
+export function lhI(id, key) {
+  const row = INTERACTIONS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// "Total {n} Interactions" — word order differs by locale, so build per id.
+export function lhTotalInteractions(id, n) {
+  // Western digits kept under Arabic to match the rest of the app's numerals.
+  const num = n.toLocaleString(id === "ar" ? "en-US" : id);
+  const T = {
+    en: `Total ${num} Interactions`,
+    es: `Total ${num} interacciones`,
+    de: `Insgesamt ${num} Interaktionen`,
+    fr: `Total ${num} interactions`,
+    ar: `إجمالي ${num} تفاعل`,
+  };
+  return T[id] ?? T.en;
+}
+
+// "Page {p} of {total}".
+export function lhPageOf(id, p, total) {
+  const T = {
+    en: `Page ${p} of ${total}`,
+    es: `Página ${p} de ${total}`,
+    de: `Seite ${p} von ${total}`,
+    fr: `Page ${p} sur ${total}`,
+    ar: `صفحة ${p} من ${total}`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Agents tab — list table chrome + agent profile. Agent names, ids, emails
+// and dates are data/proper nouns and stay in source.
+const AGENTS = {
+  title:            { en: "Agents",          es: "Agentes",            de: "Agenten",            fr: "Agents",             ar: "الوكلاء" },
+  searchById:       { en: "Agent ID",        es: "ID de agente",       de: "Agenten-ID",         fr: "ID d’agent",         ar: "معرّف الوكيل" },
+  searchByName:     { en: "Agent name",      es: "Nombre del agente",  de: "Agentenname",        fr: "Nom de l’agent",     ar: "اسم الوكيل" },
+  searchPlaceholder:{ en: "Search by ID and name", es: "Buscar por ID y nombre", de: "Nach ID und Name suchen", fr: "Rechercher par ID et nom", ar: "البحث بالمعرّف والاسم" },
+  sort:             { en: "Sort",            es: "Ordenar",            de: "Sortieren",          fr: "Trier",              ar: "ترتيب" },
+  filter:           { en: "Filter",          es: "Filtrar",            de: "Filtern",            fr: "Filtrer",            ar: "تصفية" },
+  col_agent:        { en: "Agents",          es: "Agentes",            de: "Agenten",            fr: "Agents",             ar: "الوكلاء" },
+  col_lastRoleplay: { en: "Last Roleplay",   es: "Último juego de rol", de: "Letztes Rollenspiel", fr: "Dernier jeu de rôle", ar: "آخر تمثيل أدوار" },
+  col_roleplays:    { en: "Roleplays",       es: "Juegos de rol",      de: "Rollenspiele",       fr: "Jeux de rôle",       ar: "تمثيلات الأدوار" },
+  col_qaScore:      { en: "QA Score",        es: "Puntuación QA",      de: "QA-Score",           fr: "Score QA",           ar: "درجة الجودة" },
+  col_missions:     { en: "Missions",        es: "Misiones",           de: "Missionen",          fr: "Missions",           ar: "المهام" },
+  noAgents:         { en: "No agents found", es: "No se encontraron agentes", de: "Keine Agenten gefunden", fr: "Aucun agent trouvé", ar: "لم يُعثر على وكلاء" },
+  na:               { en: "N/A",             es: "N/D",                de: "k. A.",              fr: "N/D",                ar: "غير متاح" },
+  belowTarget:      { en: "Below target",    es: "Por debajo del objetivo", de: "Unter Ziel",    fr: "Sous l’objectif",    ar: "دون الهدف" },
+  onTarget:         { en: "On target",       es: "En objetivo",        de: "Im Ziel",            fr: "Dans l’objectif",    ar: "ضمن الهدف" },
+  readinessProfile: { en: "Readiness Profile", es: "Perfil de preparación", de: "Bereitschaftsprofil", fr: "Profil de préparation", ar: "ملف الجاهزية" },
+  productionProfile:{ en: "Production Profile", es: "Perfil de producción", de: "Produktionsprofil", fr: "Profil de production", ar: "ملف الإنتاج" },
+  agentProfile:     { en: "Agent Profile",   es: "Perfil del agente",  de: "Agentenprofil",      fr: "Profil de l’agent",  ar: "ملف الوكيل" },
+};
+
+export function lhA(id, key) {
+  const row = AGENTS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+export function lhTotalAgents(id, n) {
+  const num = n.toLocaleString(id === "ar" ? "en-US" : id);
+  const T = {
+    en: `Total ${num} Agents`, es: `Total ${num} agentes`, de: `Insgesamt ${num} Agenten`,
+    fr: `Total ${num} agents`, ar: `إجمالي ${num} وكيل`,
+  };
+  return T[id] ?? T.en;
+}
+
+export function lhAssignedTo(id, name) {
+  const T = {
+    en: `Assigned to ${name}.`, es: `Asignado a ${name}.`, de: `Zugewiesen an ${name}.`,
+    fr: `Attribué à ${name}.`,  ar: `تم التعيين إلى ${name}.`,
+  };
+  return T[id] ?? T.en;
+}
+
+export function lhMissionsSummary(id, below, total) {
+  const T = {
+    en: `Missions: ${below} of ${total} below target`,
+    es: `Misiones: ${below} de ${total} por debajo del objetivo`,
+    de: `Missionen: ${below} von ${total} unter Ziel`,
+    fr: `Missions : ${below} sur ${total} sous l’objectif`,
+    ar: `المهام: ${below} من ${total} دون الهدف`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Missions tab — kanban landing chrome (lanes, header, curtain actions,
+// delete flow, toast). Mission names/descriptions/tags are mock content
+// (queued for a content pass); this covers the static board chrome.
+const MISSIONS = {
+  title:           { en: "Missions",       es: "Misiones",          de: "Missionen",          fr: "Missions",            ar: "المهام" },
+  mission:         { en: "Mission",        es: "Misión",            de: "Mission",            fr: "Mission",             ar: "مهمة" },
+  searchMissions:  { en: "Search missions", es: "Buscar misiones",  de: "Missionen suchen",   fr: "Rechercher des missions", ar: "البحث في المهام" },
+  team:            { en: "Team",           es: "Equipo",            de: "Team",               fr: "Équipe",              ar: "الفريق" },
+  createdDate:     { en: "Created Date",   es: "Fecha de creación", de: "Erstelldatum",       fr: "Date de création",    ar: "تاريخ الإنشاء" },
+  all:             { en: "All",            es: "Todos",             de: "Alle",               fr: "Tous",                ar: "الكل" },
+  last7:           { en: "Last 7 days",    es: "Últimos 7 días",    de: "Letzte 7 Tage",      fr: "7 derniers jours",    ar: "آخر 7 أيام" },
+  lane_draft:      { en: "Draft",          es: "Borrador",          de: "Entwurf",            fr: "Brouillon",           ar: "مسودة" },
+  lane_active:     { en: "Active",         es: "Activas",           de: "Aktiv",              fr: "Actives",             ar: "نشطة" },
+  lane_at_risk:    { en: "At Risk",        es: "En riesgo",         de: "Gefährdet",          fr: "À risque",            ar: "معرّضة للخطر" },
+  lane_completed:  { en: "Completed",      es: "Completadas",       de: "Abgeschlossen",      fr: "Terminées",           ar: "مكتملة" },
+  lane_upcoming:   { en: "Upcoming",       es: "Próximas",          de: "Bevorstehend",       fr: "À venir",             ar: "قادمة" },
+  upcoming:        { en: "Upcoming",       es: "Próximas",          de: "Bevorstehend",       fr: "À venir",             ar: "قادمة" },
+  sortTargetMet:   { en: "% target met",   es: "% de objetivo alcanzado", de: "% Ziel erreicht", fr: "% d’objectif atteint", ar: "٪ تحقيق الهدف" },
+  sortAria:        { en: "Sort: % target met (ascending)", es: "Ordenar: % de objetivo (ascendente)", de: "Sortieren: % Ziel erreicht (aufsteigend)", fr: "Trier : % d’objectif (croissant)", ar: "ترتيب: ٪ تحقيق الهدف (تصاعدي)" },
+  readyToPublish:  { en: "Ready to publish", es: "Lista para publicar", de: "Bereit zur Veröffentlichung", fr: "Prête à publier", ar: "جاهزة للنشر" },
+  editMission:     { en: "Edit mission",      es: "Editar misión",      de: "Mission bearbeiten",  fr: "Modifier la mission",  ar: "تعديل المهمة" },
+  duplicateMission:{ en: "Duplicate mission", es: "Duplicar misión",    de: "Mission duplizieren", fr: "Dupliquer la mission", ar: "تكرار المهمة" },
+  closeMission:    { en: "Close mission",     es: "Cerrar misión",      de: "Mission schließen",   fr: "Clôturer la mission",  ar: "إغلاق المهمة" },
+  deleteMission:   { en: "Delete mission",    es: "Eliminar misión",    de: "Mission löschen",     fr: "Supprimer la mission", ar: "حذف المهمة" },
+  deleteDraft:     { en: "Delete draft",      es: "Eliminar borrador",  de: "Entwurf löschen",     fr: "Supprimer le brouillon", ar: "حذف المسودة" },
+  untitledDraft:   { en: "Untitled draft",    es: "Borrador sin título", de: "Unbenannter Entwurf", fr: "Brouillon sans titre", ar: "مسودة بلا عنوان" },
+  deleteDraftTitle:{ en: "Delete this draft?", es: "¿Eliminar este borrador?", de: "Diesen Entwurf löschen?", fr: "Supprimer ce brouillon ?", ar: "حذف هذه المسودة؟" },
+  delete:          { en: "Delete",         es: "Eliminar",          de: "Löschen",            fr: "Supprimer",           ar: "حذف" },
+  draftDeleted:    { en: "Draft deleted",  es: "Borrador eliminado", de: "Entwurf gelöscht",  fr: "Brouillon supprimé",  ar: "تم حذف المسودة" },
+  undo:            { en: "Undo",           es: "Deshacer",          de: "Rückgängig",         fr: "Annuler",             ar: "تراجع" },
+  missionActions:  { en: "Mission actions", es: "Acciones de misión", de: "Missionsaktionen",  fr: "Actions de mission",  ar: "إجراءات المهمة" },
+  close:           { en: "Close",          es: "Cerrar",            de: "Schließen",          fr: "Fermer",              ar: "إغلاق" },
+  agents:          { en: "Agents",         es: "Agentes",           de: "Agenten",            fr: "Agents",              ar: "الوكلاء" },
+  closed:          { en: "Closed",         es: "Cerrada",           de: "Geschlossen",        fr: "Clôturée",            ar: "مغلقة" },
+  endsToday:       { en: "Ends Today",     es: "Termina hoy",       de: "Endet heute",        fr: "Se termine aujourd’hui", ar: "تنتهي اليوم" },
+  startsSoon:      { en: "Starts soon",    es: "Comienza pronto",   de: "Beginnt bald",       fr: "Bientôt",             ar: "تبدأ قريباً" },
+  continueSetup:   { en: "Continue setup", es: "Continuar configuración", de: "Einrichtung fortsetzen", fr: "Continuer la configuration", ar: "متابعة الإعداد" },
+};
+
+export function lhM(id, key) {
+  const row = MISSIONS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// Guide tab — landing chrome (tabs, card meta, empty states). Guide
+// titles/descriptions and author monograms are mock content (queued).
+const GUIDE = {
+  title:          { en: "Guide",          es: "Guía",             de: "Leitfaden",        fr: "Guide",            ar: "الدليل" },
+  tab_active:     { en: "Active",         es: "Activas",          de: "Aktiv",            fr: "Actifs",           ar: "نشطة" },
+  tab_calibration:{ en: "In Calibration", es: "En calibración",   de: "In Kalibrierung",  fr: "En calibrage",     ar: "قيد المعايرة" },
+  tab_draft:      { en: "Draft",          es: "Borrador",         de: "Entwurf",          fr: "Brouillon",        ar: "مسودة" },
+  tab_archived:   { en: "Archived",       es: "Archivadas",       de: "Archiviert",       fr: "Archivés",         ar: "مؤرشفة" },
+  artefacts:      { en: "Artefacts",      es: "Artefactos",       de: "Artefakte",        fr: "Artéfacts",        ar: "العناصر" },
+  emptyNoMatch:   { en: "No guides match your search", es: "Ninguna guía coincide con tu búsqueda", de: "Keine Leitfäden entsprechen deiner Suche", fr: "Aucun guide ne correspond à votre recherche", ar: "لا توجد أدلة تطابق بحثك" },
+  emptyBodyLane:  { en: "Once guides land in this lane, they appear here.", es: "Cuando haya guías en esta columna, aparecerán aquí.", de: "Sobald Leitfäden in dieser Spalte sind, erscheinen sie hier.", fr: "Dès que des guides arrivent dans cette colonne, ils apparaissent ici.", ar: "بمجرد ظهور أدلة في هذا العمود، ستظهر هنا." },
+};
+
+export function lhG(id, key) {
+  const row = GUIDE[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// Guide empty-state heading (no guides in a given lane).
+export function lhGuideEmptyLane(id, laneLabel) {
+  const T = {
+    en: `No guides in ${laneLabel}`,
+    es: `No hay guías en ${laneLabel}`,
+    de: `Keine Leitfäden in ${laneLabel}`,
+    fr: `Aucun guide dans ${laneLabel}`,
+    ar: `لا توجد أدلة في ${laneLabel}`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Replay tab — collections landing chrome (header, action box, tabs, card
+// footer, empty states). Collection names/descriptions/outcome labels are
+// mock content (queued). Title matches the side-nav label.
+const REPLAY = {
+  title:           { en: "Replay",       es: "Repetición",     de: "Wiederholung",   fr: "Relecture",      ar: "إعادة التشغيل" },
+  collection:      { en: "Collection",   es: "Colección",      de: "Sammlung",       fr: "Collection",     ar: "مجموعة" },
+  searchColls:     { en: "Search collections", es: "Buscar colecciones", de: "Sammlungen suchen", fr: "Rechercher des collections", ar: "البحث في المجموعات" },
+  tab_active:      { en: "Active",       es: "Activas",        de: "Aktiv",          fr: "Actives",        ar: "نشطة" },
+  tab_draft:       { en: "Draft",        es: "Borrador",       de: "Entwurf",        fr: "Brouillon",      ar: "مسودة" },
+  tab_archived:    { en: "Archived",     es: "Archivadas",     de: "Archiviert",     fr: "Archivées",      ar: "مؤرشفة" },
+  actionBox:       { en: "Action box",   es: "Bandeja de acciones", de: "Aktions-Box", fr: "Boîte d’actions", ar: "صندوق الإجراءات" },
+  readyToReview:   { en: "ready to review", es: "listas para revisar", de: "bereit zur Prüfung", fr: "prêtes à examiner", ar: "جاهزة للمراجعة" },
+  pendingPublish:  { en: "pending publish", es: "pendientes de publicar", de: "ausstehende Veröffentlichung", fr: "en attente de publication", ar: "بانتظار النشر" },
+  word_replays:    { en: "replays",      es: "repeticiones",   de: "Wiederholungen", fr: "relectures",     ar: "إعادات" },
+  word_draftColl:  { en: "draft collection", es: "colección en borrador", de: "Entwurfssammlung", fr: "collection brouillon", ar: "مجموعة مسودة" },
+  word_draftColls: { en: "draft collections", es: "colecciones en borrador", de: "Entwurfssammlungen", fr: "collections brouillon", ar: "مجموعات مسودة" },
+  toReview:        { en: "to review",    es: "por revisar",    de: "zu prüfen",      fr: "à examiner",     ar: "للمراجعة" },
+  aiMaintained:    { en: "AI-maintained", es: "Mantenida por IA", de: "KI-gepflegt", fr: "Gérée par l’IA", ar: "مُدارة بالذكاء الاصطناعي" },
+  selfMaintained:  { en: "Self-maintained", es: "Autogestionada", de: "Selbst gepflegt", fr: "Autogérée",   ar: "مُدارة ذاتياً" },
+  emptyNoMatch:    { en: "No collections match your search", es: "Ninguna colección coincide con tu búsqueda", de: "Keine Sammlungen entsprechen deiner Suche", fr: "Aucune collection ne correspond à votre recherche", ar: "لا توجد مجموعات تطابق بحثك" },
+  emptyNoMatchBody:{ en: "Try a different keyword or clear the search.", es: "Prueba otra palabra clave o borra la búsqueda.", de: "Versuche ein anderes Stichwort oder lösche die Suche.", fr: "Essayez un autre mot-clé ou effacez la recherche.", ar: "جرّب كلمة مفتاحية أخرى أو امسح البحث." },
+  emptyLaneBody:   { en: "Collections you create appear here once the AI starts sampling calls.", es: "Las colecciones que crees aparecerán aquí cuando la IA empiece a muestrear llamadas.", de: "Von dir erstellte Sammlungen erscheinen hier, sobald die KI Anrufe auswertet.", fr: "Les collections que vous créez apparaissent ici dès que l’IA échantillonne des appels.", ar: "تظهر المجموعات التي تنشئها هنا بمجرد أن يبدأ الذكاء الاصطناعي بأخذ عينات من المكالمات." },
+  // Record sub-page (en + ar; other locales fall back to en)
+  rec_published:   { en: "Published",   ar: "منشورة" },
+  rec_suggested:   { en: "Suggested",   ar: "مُقترَحة" },
+  rec_generating:  { en: "Generating",  ar: "قيد الإنشاء" },
+  rec_archived:    { en: "Archived",    ar: "مؤرشفة" },
+  rec_toReview:    { en: "To review",   ar: "للمراجعة" },
+  rec_objective:   { en: "Objective",   ar: "الهدف" },
+  rec_aiPublishes: { en: "AI publishes", ar: "ينشر الذكاء الاصطناعي" },
+  rec_manualReview:{ en: "Manual review", ar: "مراجعة يدوية" },
+  rec_max:         { en: "Max",         ar: "حد أقصى" },
+  rec_auto:        { en: "auto",        ar: "تلقائي" },
+  rec_edit:        { en: "Edit",        ar: "تعديل" },
+  rec_approve:     { en: "Approve",     ar: "اعتماد" },
+  rec_play:        { en: "Play",        ar: "تشغيل" },
+  rec_editReplay:  { en: "Edit replay", ar: "تعديل الإعادة" },
+  rec_moveColl:    { en: "Move to another collection", ar: "نقل إلى مجموعة أخرى" },
+  rec_archiveAction:{ en: "Archive",    ar: "أرشفة" },
+  rec_genAudio:    { en: "Generating audio…", ar: "جارٍ إنشاء الصوت…" },
+  rec_aiGenerated: { en: "AI-generated · unedited", ar: "مُنشأ بالذكاء الاصطناعي · غير مُحرَّر" },
+  rec_audioReady:  { en: "Audio ready", ar: "الصوت جاهز" },
+  rec_audioGen:    { en: "Audio generating…", ar: "جارٍ إنشاء الصوت…" },
+  rec_audioOnApproval: { en: "Audio generates on approval", ar: "يُنشأ الصوت عند الاعتماد" },
+  rec_emptySamplingH: { en: "The AI is still building replays", ar: "لا يزال الذكاء الاصطناعي يبني الإعادات" },
+  rec_emptySamplingB: { en: "Replays appear here as the AI samples eligible calls. Check back shortly.", ar: "تظهر الإعادات هنا بينما يأخذ الذكاء الاصطناعي عينات من المكالمات المؤهلة. عاوِد التحقق قريباً." },
+  rec_emptyReviewH:   { en: "Nothing waiting on you", ar: "لا شيء بانتظارك" },
+  rec_emptyReviewB:   { en: "Every suggested replay has been reviewed.", ar: "تمت مراجعة كل إعادة مُقترَحة." },
+  rec_emptyPublishedH:{ en: "No published replays yet", ar: "لا توجد إعادات منشورة بعد" },
+  rec_emptyPublishedB:{ en: "Approve a suggested replay to publish it here.", ar: "اعتمد إعادة مُقترَحة لنشرها هنا." },
+  // Player sub-page (en + ar)
+  pl_backToCollection: { en: "Back to collection", ar: "العودة إلى المجموعة" },
+  pl_chapters:     { en: "Chapters",     ar: "الفصول" },
+  pl_plan:         { en: "Plan",         ar: "الباقة" },
+  pl_arpu:         { en: "ARPU",         ar: "متوسط الإيراد" },
+  pl_sentiment:    { en: "Sentiment",    ar: "المشاعر" },
+  pl_coach:        { en: "Coach commentary", ar: "تعليق المدرّب" },
+  pl_customer:     { en: "Customer",     ar: "العميل" },
+  pl_agent:        { en: "Agent",        ar: "الوكيل" },
+  pl_previous:     { en: "Previous",     ar: "السابق" },
+  pl_next:         { en: "Next",         ar: "التالي" },
+  pl_play:         { en: "Play",         ar: "تشغيل" },
+  pl_pause:        { en: "Pause",        ar: "إيقاف مؤقت" },
+  pl_endOfReplay:  { en: "End of replay — you've reached the last coached moment.", ar: "نهاية الإعادة — لقد وصلت إلى آخر لحظة موجّهة." },
+  pl_noMoments:    { en: "This replay has no moments yet.", ar: "لا تحتوي هذه الإعادة على لحظات بعد." },
+  // Create wizard (en + ar)
+  cw_step_setup:     { en: "Setup",               ar: "الإعداد" },
+  cw_step_configure: { en: "Configuration",       ar: "التهيئة" },
+  cw_step_preview:   { en: "Preview & Publish",   ar: "المعاينة والنشر" },
+  cw_setupTitle:     { en: "Set up the collection", ar: "إعداد المجموعة" },
+  cw_setupSubtitle:  { en: "What this collection teaches and which calls it draws from", ar: "ما تعلّمه هذه المجموعة والمكالمات التي تستند إليها" },
+  cw_configTitle:    { en: "Configure sampling & publishing", ar: "تهيئة أخذ العينات والنشر" },
+  cw_configSubtitle: { en: "How far back the AI looks, how many replays it builds, and who publishes them", ar: "إلى أي مدى يعود الذكاء الاصطناعي، وعدد الإعادات التي يبنيها، ومن ينشرها" },
+  cw_f_name:         { en: "Collection name",     ar: "اسم المجموعة" },
+  cw_ph_name:        { en: "E.g. Save the Switch", ar: "مثال: أنقذ التحوّل" },
+  cw_f_driver:       { en: "Driver",              ar: "المحرّك" },
+  cw_help_driver:    { en: "The behaviour the collection sits under. Outcome is the lane within it.", ar: "السلوك الذي تندرج تحته المجموعة. والنتيجة هي المسار ضمنه." },
+  cw_ph_driver:      { en: "E.g. Churn risk",     ar: "مثال: خطر التسرّب" },
+  cw_f_description:  { en: "Description",         ar: "الوصف" },
+  cw_ph_description: { en: "E.g. How top retention agents turn a switch threat into a save.", ar: "مثال: كيف يحوّل أفضل وكلاء الاحتفاظ تهديد التحوّل إلى عملية إنقاذ." },
+  cw_f_objective:    { en: "Learning objective",  ar: "الهدف التعليمي" },
+  cw_help_objective: { en: "What an agent should take away from this collection.", ar: "ما الذي يجب أن يخرج به الوكيل من هذه المجموعة." },
+  cw_ph_objective:   { en: "E.g. New hires hear a real save before their first retention shift.", ar: "مثال: يسمع الموظفون الجدد عملية إنقاذ حقيقية قبل أول نوبة احتفاظ لهم." },
+  cw_f_replayLang:   { en: "Replay language",     ar: "لغة الإعادة" },
+  cw_help_replayLang:{ en: "The language replays play back in — not a filter on the source calls.", ar: "اللغة التي تُشغَّل بها الإعادات — وليست عامل تصفية على المكالمات المصدر." },
+  cw_ph_chooseLang:  { en: "Choose output language", ar: "اختر لغة الإخراج" },
+  cw_f_businessOutcome:{ en: "Business outcome",  ar: "نتيجة العمل" },
+  cw_help_businessOutcome:{ en: "The lane within the driver — what a good call achieves.", ar: "المسار ضمن المحرّك — ما تحقّقه المكالمة الجيدة." },
+  cw_ph_businessOutcome:{ en: "E.g. Retention",   ar: "مثال: الاحتفاظ" },
+  cw_f_callOutcome:  { en: "Call outcome",        ar: "نتيجة المكالمة" },
+  cw_ph_callOutcome: { en: "E.g. Saved",          ar: "مثال: تم الإنقاذ" },
+  cw_f_domain:       { en: "Domain / line of business", ar: "المجال / خط العمل" },
+  cw_ph_domain:      { en: "E.g. Consumer",       ar: "مثال: الأفراد" },
+  cw_f_audience:     { en: "Target audience",     ar: "الجمهور المستهدف" },
+  cw_ph_audience:    { en: "E.g. New hires",      ar: "مثال: الموظفون الجدد" },
+  cw_f_window:       { en: "Call eligibility window", ar: "نافذة أهلية المكالمات" },
+  cw_help_window:    { en: "How far back the AI samples calls from.", ar: "إلى أي مدى يأخذ الذكاء الاصطناعي عينات المكالمات." },
+  cw_f_maxReplays:   { en: "Max replays in collection", ar: "الحد الأقصى للإعادات في المجموعة" },
+  cw_f_refresh:      { en: "Refresh frequency",   ar: "تكرار التحديث" },
+  cw_help_refresh:   { en: "Refresh runs automatically — there's no manual refresh.", ar: "يجري التحديث تلقائياً — لا يوجد تحديث يدوي." },
+  cw_f_publishing:   { en: "Publishing workflow", ar: "سير عمل النشر" },
+  cw_select:         { en: "Select",              ar: "اختر" },
+  cw_oneLanguage:    { en: "One language",        ar: "لغة واحدة" },
+  cw_next:           { en: "Next",                ar: "التالي" },
+  cw_publish:        { en: "Publish",             ar: "نشر" },
+  cw_back:           { en: "Back",                ar: "رجوع" },
+  cw_discard:        { en: "Discard changes? Your draft collection will be lost.", ar: "تجاهل التغييرات؟ ستُفقد مسودة مجموعتك." },
+  cw_activation:     { en: "On activation the AI starts sampling calls immediately. The first replays appear in the collection record view as they're built.", ar: "عند التفعيل يبدأ الذكاء الاصطناعي بأخذ عينات المكالمات فوراً. وتظهر أولى الإعادات في عرض سجل المجموعة فور بنائها." },
+  cw_panel_collection:{ en: "Collection",         ar: "المجموعة" },
+  cw_panel_config:   { en: "Configuration",       ar: "التهيئة" },
+  cw_rl_name:        { en: "NAME",                ar: "الاسم" },
+  cw_rl_driverOutcome:{ en: "DRIVER · OUTCOME",   ar: "المحرّك · النتيجة" },
+  cw_rl_description: { en: "DESCRIPTION",          ar: "الوصف" },
+  cw_rl_objective:   { en: "LEARNING OBJECTIVE",  ar: "الهدف التعليمي" },
+  cw_rl_replayLang:  { en: "REPLAY LANGUAGE",     ar: "لغة الإعادة" },
+  cw_rl_audience:    { en: "TARGET AUDIENCE",     ar: "الجمهور المستهدف" },
+  cw_rl_window:      { en: "ELIGIBILITY WINDOW",  ar: "نافذة الأهلية" },
+  cw_rl_maxReplays:  { en: "MAX REPLAYS",         ar: "الحد الأقصى للإعادات" },
+  cw_rl_refresh:     { en: "REFRESH",             ar: "التحديث" },
+  cw_rl_publishing:  { en: "PUBLISHING",          ar: "النشر" },
+  cw_editPanel:      { en: "Edit",                ar: "تعديل" },
+};
+
+// Replay create-wizard option terms (call outcomes, domains, audiences) +
+// the two radio-card mode sets (output language / publish), Arabic-only.
+const REPLAY_OPT_AR = {
+  // Call outcomes
+  "Saved": "تم الإنقاذ",
+  "Resolved": "تم الحل",
+  "Escalated": "تم التصعيد",
+  "Upsold": "تم البيع الإضافي",
+  "Unresolved": "لم يُحل",
+  "Callback booked": "تم حجز معاودة اتصال",
+  // Domains
+  "Consumer": "الأفراد",
+  "Business": "الأعمال",
+  "Enterprise": "المؤسسات",
+  "Public sector": "القطاع العام",
+  // Target audiences
+  "New hires (0–30 days)": "الموظفون الجدد (0–30 يوماً)",
+  "Tenured agents": "الوكلاء ذوو الخبرة",
+  "Retention specialists": "أخصائيو الاحتفاظ",
+  "Tier-2 technical": "الدعم التقني — المستوى الثاني",
+  "All agents": "جميع الوكلاء",
+};
+export function lhReplayOpt(id, value) {
+  if (id === "ar") return REPLAY_OPT_AR[value] ?? value;
+  return value;
+}
+
+// Replay output-language + publish modes (label + help), keyed by mode id.
+const REPLAY_MODE_AR = {
+  original:  { label: "إبقاء لغة المحادثة الأصلية", help: "تُشغَّل كل إعادة باللغة التي جرت بها المكالمة." },
+  unified:   { label: "عرض كل الإعادات بلغة واحدة", help: "تُوحَّد المكالمات الإسبانية/الفرنسية/المختلطة في لغة واحدة مختارة." },
+  auto:      { label: "ينشر الذكاء الاصطناعي مباشرة", help: "تُنشَر الإعادات الجديدة فور بنائها. المجموعة مُدارة بالذكاء الاصطناعي." },
+  manual:    { label: "أراجع قبل النشر", help: "تصل الإعادات الجديدة كاقتراحات. ولا يُنشأ الصوت إلا بعد اعتمادك أو تعديلك." },
+};
+export function lhReplayMode(id, modeId, field, fallback) {
+  if (id === "ar") return REPLAY_MODE_AR[modeId]?.[field] ?? fallback;
+  return fallback;
+}
+
+// Replay player — coached transcript moments in Arabic, keyed by moment id.
+const MOMENT_AR = {
+  m1: {
+    label: "الافتتاح والإقرار",
+    customerLine: "هذا ثاني شهر يُحتسب عليّ مبلغ زائد. بصراحة أنا على وشك التحوّل — منافسكم عرض عليّ نصف هذا السعر.",
+    agentLine: "أتفهّم ذلك، وأعتذر — مفاجأتان متتاليتان ليستا التجربة التي اشتركت من أجلها. دعني أفتح الفاتورة الآن وأراجعها معك.",
+    scenario: "يبدأ العميل بتهديد بالتحوّل وعرض منافس محدد.",
+    why: "تسمية الإحباط قبل التطرّق إلى الفاتورة تخفّض حدّة التوتر. لا يدافع الموظف عن الرسم بعد — الإقرار أولاً، ثم الحقائق.",
+  },
+  m2: {
+    label: "تشخيص الرسوم الزائدة",
+    customerLine: "إذن ما سبب الـ40 دولاراً أصلاً؟ لم يخبرني أحد عن أي تجاوز.",
+    agentLine: "إنها إضافة بيانات طُبّقت تلقائياً عند تجاوز الخط 50 جيجابايت. كان يجب تنبيهك إلى ذلك — ولم يحدث، وهذا خطؤنا. يمكنني عكس هذا الشهر وضبط تنبيه حتى لا يتكرر بصمت أبداً.",
+    scenario: "يطرح العميل سؤالاً مباشراً عن رسم غير مُفسَّر.",
+    why: "تحمّل المسؤولية عن خلل العملية («هذا خطؤنا») بدل شرح السياسة يحافظ على الثقة. واقتران العكس بحلٍّ استباقي (التنبيه) يجيب عن السؤال غير المعلَن: «هل سيستمر هذا؟».",
+  },
+  m3: {
+    label: "التعامل مع عرض المنافس",
+    customerLine: "حسناً، لكنهم ما زالوا أرخص. أعطني سبباً واحداً للبقاء.",
+    agentLine: "سؤال وجيه. في باقتهم ستفقد خصم تعدّد الخطوط وبيانات نقطة الاتصال التي استخدمت منها 14 جيجابايت الشهر الماضي — فالفارق الحقيقي نحو 9 دولارات، لا النصف. أفضّل أن أستعيد ثقتك على أن أخسرك بسبب خطأ في الفوترة.",
+    scenario: "يختزل العميل القرار في السعر.",
+    why: "إعادة صياغة «الأرخص» إلى الفارق الحقيقي المكافئ تستخدم بيانات استخدام العميل نفسه. إنها محددة وليست نصاً جاهزاً — ولهذا تنجح.",
+  },
+  m4: {
+    label: "تأمين الإنقاذ",
+    customerLine: "حسناً. إذا رتّبت التنبيه والرصيد، سأبقى في الوقت الحالي.",
+    agentLine: "تم — طُبّق الرصيد وستراه خلال 24 ساعة، وتنبيه الاستخدام مفعّل عند 45 جيجابايت. وسأضيف ملاحظة حتى إذا عاودت الاتصال يكون لدى من يردّ الصورة كاملة.",
+    scenario: "يوافق العميل بشروط.",
+    why: "إغلاق كل وعد قُطِع وترك ملاحظة تسليم يزيل السبب التالي للتسرّب. هذه هي اللحظة التي تحوّل الإنقاذ إلى علاقة محتفَظ بها.",
+  },
+};
+export function lhMoment(id, momentId) {
+  if (id === "ar") return MOMENT_AR[momentId] ?? null;
+  return null;
+}
+
+// Replay player — sample customer profile fields in Arabic (name kept).
+const CUSTOMER_AR = {
+  tenure: "عميلة منذ 4 سنوات",
+  plan: "Unlimited Plus · خطّان",
+  arpu: "94 دولاراً / شهر",
+  sentiment: "محبَطة ← هادئة",
+  context: "أسرة ذات إيراد مرتفع لديها عرض تحوّل من منافس. اتصلت بشأن تجاوز قدره 40 دولاراً لم تتوقعه؛ وهي ثاني مفاجأة فوترة خلال ثلاثة أشهر.",
+};
+export function lhCustomerField(id, key, fallback) {
+  if (id === "ar") return CUSTOMER_AR[key] ?? fallback;
+  return fallback;
+}
+
+export function lhR(id, key) {
+  const row = REPLAY[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+
+// "{n} to review" pill + "No {tab} collections" + "Created by {name}".
+export function lhReplayToReview(id, n) {
+  const T = {
+    en: `${n} to review`, es: `${n} por revisar`, de: `${n} zu prüfen`, fr: `${n} à examiner`, ar: `${n} للمراجعة`,
+  };
+  return T[id] ?? T.en;
+}
+export function lhReplayEmptyLane(id, laneLabel) {
+  const T = {
+    en: `No ${laneLabel} collections`,
+    es: `No hay colecciones ${laneLabel}`,
+    de: `Keine ${laneLabel}-Sammlungen`,
+    fr: `Aucune collection ${laneLabel}`,
+    ar: `لا توجد مجموعات ${laneLabel}`,
+  };
+  return T[id] ?? T.en;
+}
+export function lhCreatedBy(id, name) {
+  const T = {
+    en: `Created by ${name}`, es: `Creada por ${name}`, de: `Erstellt von ${name}`,
+    fr: `Créée par ${name}`,  ar: `أنشأها ${name}`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Guide empty-state body when a search returns nothing.
+export function lhGuideEmptySearchBody(id, laneLabel) {
+  const T = {
+    en: `Try a different keyword or clear the search to see all ${laneLabel} guides.`,
+    es: `Prueba otra palabra clave o borra la búsqueda para ver todas las guías ${laneLabel}.`,
+    de: `Versuche ein anderes Stichwort oder lösche die Suche, um alle ${laneLabel}-Leitfäden zu sehen.`,
+    fr: `Essayez un autre mot-clé ou effacez la recherche pour voir tous les guides ${laneLabel}.`,
+    ar: `جرّب كلمة مفتاحية أخرى أو امسح البحث لعرض جميع أدلة ${laneLabel}.`,
+  };
+  return T[id] ?? T.en;
+}
+
+// "+ N more" (kanban upcoming overflow).
+export function lhMore(id, n) {
+  const T = {
+    en: `+ ${n} more`, es: `+ ${n} más`, de: `+ ${n} weitere`, fr: `+ ${n} de plus`, ar: `+ ${n} المزيد`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Delete-draft confirmation body, with the draft name interpolated.
+export function lhDeleteDraftBody(id, name) {
+  const T = {
+    en: `"${name}" will be removed from your drafts. You can undo this for 5 seconds.`,
+    es: `"${name}" se eliminará de tus borradores. Puedes deshacerlo durante 5 segundos.`,
+    de: `„${name}“ wird aus deinen Entwürfen entfernt. Du kannst dies 5 Sekunden lang rückgängig machen.`,
+    fr: `« ${name} » sera retiré de vos brouillons. Vous pouvez annuler pendant 5 secondes.`,
+    ar: `ستتم إزالة «${name}» من مسوداتك. يمكنك التراجع خلال 5 ثوانٍ.`,
+  };
+  return T[id] ?? T.en;
+}
+
+// "{n} days left" / "Starts in {n} days" — mission card status lines.
+export function lhDaysLeft(id, n) {
+  const T = {
+    en: `${n} days left`, es: `Quedan ${n} días`, de: `Noch ${n} Tage`,
+    fr: `${n} jours restants`, ar: `${n} يوماً متبقياً`,
+  };
+  return T[id] ?? T.en;
+}
+export function lhStartsIn(id, n) {
+  const T = {
+    en: `Starts in ${n} days`, es: `Comienza en ${n} días`, de: `Beginnt in ${n} Tagen`,
+    fr: `Commence dans ${n} jours`, ar: `تبدأ خلال ${n} يوماً`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Shared short-term glossary — mission tags, replay drivers/outcome labels,
+// and content language names. Keyed on the English source value; Arabic-only
+// (other locales fall back to source). One map so a tag and the matching
+// driver/outcome read identically wherever they appear.
+const TERMS_AR = {
+  // Mission tags
+  "Onboarding": "الإعداد",
+  "Initial Coaching": "تدريب أولي",
+  "First-Call Resolution": "الحل من أول مكالمة",
+  "Empathy": "التعاطف",
+  "Implement Feedback": "تطبيق الملاحظات",
+  "Refresher": "تنشيطي",
+  "Chat": "الدردشة",
+  "Compliance": "الامتثال",
+  "Disclosure": "الإفصاح",
+  "Payments": "المدفوعات",
+  "Collections": "التحصيل",
+  "Retention": "الاحتفاظ",
+  "Loyalty": "الولاء",
+  "Coaching": "التدريب",
+  "Soft Skills": "المهارات الناعمة",
+  "Discovery": "الاستكشاف",
+  "Objection Handling": "معالجة الاعتراضات",
+  "Active Listening": "الإنصات الفعّال",
+  "Policy Accuracy": "دقة السياسات",
+  // Replay drivers
+  "Churn risk": "خطر التسرّب",
+  "Billing dispute": "نزاع الفوترة",
+  "Plan change": "تغيير الباقة",
+  "New activation": "تفعيل جديد",
+  "Technical fault": "عطل تقني",
+  "Complaint": "شكوى",
+  // Replay business-outcome labels
+  "Acquisition": "الاكتساب",
+  "First-call Resolution": "الحل من أول مكالمة",
+  "Upsell": "البيع الإضافي",
+  "CSAT": "رضا العملاء",
+  // Content language names (guide/replay chips)
+  "English": "الإنجليزية",
+  "Spanish": "الإسبانية",
+  "French": "الفرنسية",
+  "German": "الألمانية",
+  "Italian": "الإيطالية",
+  "Portuguese": "البرتغالية",
+  // Replay collection config values (eligibility window + refresh cadence)
+  "Last 7 days": "آخر 7 أيام",
+  "Last 30 days": "آخر 30 يوماً",
+  "Last 90 days": "آخر 90 يوماً",
+  "Last 6 months": "آخر 6 أشهر",
+  "Daily": "يومياً",
+  "Weekly": "أسبوعياً",
+  "Fortnightly": "كل أسبوعين",
+  "Monthly": "شهرياً",
+};
+
+// Replay (recording) titles in Arabic, keyed by replay id.
+const REPLAY_TITLE_AR = {
+  "rp-save-1": "عكس رسوم زائدة صامتة عند تهديد بالتحوّل",
+  "rp-save-2": "استعادة أسرة متعددة الخطوط بحجّة السعر",
+  "rp-save-3": "تهدئة مفاجأة فوترة ثالثة",
+  "rp-save-4": "محاولة إنقاذ خسرت حجّة نقطة الاتصال",
+  "rp-save-5": "التعافي بعد وعد لم يُنفَّذ في مكالمة سابقة",
+};
+export function lhReplayTitle(id, replayId, fallback) {
+  if (id === "ar") return REPLAY_TITLE_AR[replayId] ?? fallback;
+  return fallback;
+}
+export function lhEditedBy(id, name) {
+  const T = {
+    en: `Edited by ${name}`, es: `Editado por ${name}`, de: `Bearbeitet von ${name}`,
+    fr: `Modifié par ${name}`, ar: `حرّره ${name}`,
+  };
+  return T[id] ?? T.en;
+}
+
+// Agent profile — performance hero card + Next Best Actions. en + ar.
+const PERF = {
+  score:        { en: "Performance score", ar: "درجة الأداء" },
+  nba:          { en: "Next best actions", ar: "أفضل الإجراءات التالية" },
+  subtitle:     { en: "Weighted composite of quality, mastery, engagement, and responsiveness.", ar: "مركّب مرجّح من الجودة والإتقان والتفاعل والاستجابة." },
+  viewAll:      { en: "View all",        ar: "عرض الكل" },
+  allNba:       { en: "All next best actions", ar: "جميع أفضل الإجراءات التالية" },
+  assign:       { en: "Assign",          ar: "تعيين" },
+  close:        { en: "Close",           ar: "إغلاق" },
+  moreActions:  { en: "More actions",    ar: "إجراءات إضافية" },
+  viewDetails:  { en: "View details",    ar: "عرض التفاصيل" },
+  snooze7:      { en: "Snooze 7 days",   ar: "تأجيل 7 أيام" },
+  dismiss:      { en: "Dismiss",         ar: "تجاهل" },
+  emptyNba:     { en: "No critical actions needed. Aaliyah is meeting all quality targets this week.", ar: "لا حاجة لإجراءات حرجة. تحقّق أاليّا جميع أهداف الجودة هذا الأسبوع." },
+  m_quality:    { en: "Quality adherence", ar: "الالتزام بالجودة" },
+  m_mastery:    { en: "Mission mastery", ar: "إتقان المهام" },
+  m_engagement: { en: "Roleplay engagement", ar: "التفاعل مع تمثيل الأدوار" },
+  m_responsiveness: { en: "Coaching responsiveness", ar: "الاستجابة للتدريب" },
+  band_excellent:{ en: "Excellent",      ar: "ممتاز" },
+  band_strong:  { en: "Strong",          ar: "قوي" },
+  band_watch:   { en: "Watch",           ar: "يحتاج متابعة" },
+  band_attention:{ en: "Needs attention", ar: "يحتاج اهتماماً" },
+  stable:       { en: "Stable",          ar: "مستقر" },
+  pr_critical:  { en: "Critical",        ar: "حرج" },
+  pr_recommended:{ en: "Recommended",    ar: "موصى به" },
+  pr_opportunity:{ en: "Opportunity",    ar: "فرصة" },
+};
+export function lhP(id, key) {
+  const row = PERF[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+export function lhPts(id, n) {
+  const T = { en: `${n} pts`, ar: `${n} نقطة` };
+  return T[id] ?? T.en;
+}
+export function lhPtsThisWeek(id, n) {
+  const T = { en: `${n} pts this week`, ar: `${n} نقطة هذا الأسبوع` };
+  return T[id] ?? T.en;
+}
+export function lhOfGoal(id, ratio) {
+  const T = { en: `${ratio}% of goal`, ar: `${ratio}% من الهدف` };
+  return T[id] ?? T.en;
+}
+export function lhTargetPct(id, n) {
+  const T = { en: `target ${n}%`, ar: `الهدف ${n}%` };
+  return T[id] ?? T.en;
+}
+export function lhEvalChip(id, a, b) {
+  const T = { en: `${a}/${b} interactions evaluated`, ar: `تم تقييم ${a}/${b} تفاعل` };
+  return T[id] ?? T.en;
+}
+// "15 min" → localized minutes unit (Arabic: "15 دقيقة").
+export function lhDurationMin(id, str) {
+  if (id !== "ar" || typeof str !== "string") return str;
+  return str.replace(/(\d+)\s*min\b/g, "$1 دقيقة");
+}
+
+// Next Best Action content (title, evidence, asset, outcome) in Arabic,
+// keyed by NBA id. Covers the rail (1–4) + side-sheet extras (5–8).
+const NBA_CONTENT_AR = {
+  "nba-1": { title: "تعزيز حلول المكالمات", evidence: "لدى «الحل والتوقعات» 10 توصيات مفتوحة، بارتفاع 4% هذا الأسبوع.", asset: "وضع حلول واضحة", outcome: "+18% في الالتزام بالحل خلال أسبوعين (بناءً على مجموعة من 142 وكيلاً)" },
+  "nba-2": { title: "تحسين عبارات الإقرار", evidence: "8 لحظات إقرار فائتة في آخر 7 أيام، ضمن الربع الأدنى في قائمة الانتظار.", asset: "تمرين التعاطف والإقرار", outcome: "+15% في معدل الإقرار خلال 4 أيام" },
+  "nba-3": { title: "تعزيز بروتوكول افتتاح المكالمة", evidence: "تراجع «افتتاح التفاعل» بمقدار 6. وكان آخر تمثيل أدوار على هذه المهارة قبل 9 أيام.", asset: "بروتوكول الترحيب الصحيح", outcome: "العودة إلى المستوى الأساسي خلال 5 أيام" },
+  "nba-4": { title: "البناء على زخم التعامل مع الصمت", evidence: "تحسّن «التعامل الصحيح مع الصمت» بمقدار 7. وأاليّا جاهزة للوحدة المتقدمة.", asset: "إيقاع المحادثة المتقدم", outcome: "الوصول إلى الربع الأعلى خلال 3 أسابيع" },
+  "nba-5": { title: "صقل عرض الخيارات والمزايا", evidence: "ظهر «الخيارات والمزايا» في 4 جلسات هذا الأسبوع، باتجاه صاعد.", asset: "الخيارات والمزايا" },
+  "nba-6": { title: "إضافة عبارات الطمأنة", evidence: "ظهرت «عبارات الطمأنة» في جلستين، بانخفاض 4% — أرضية ثابتة للبناء عليها.", asset: "عبارات الطمأنة" },
+  "nba-7": { title: "تعزيز لغة النظرة الإيجابية", evidence: "تم رصد «النظرة الإيجابية» في جلستين، بانخفاض 2% هذا الأسبوع.", asset: "النظرة الإيجابية" },
+  "nba-8": { title: "تعميق اكتشاف الاحتياجات", evidence: "ظهر «استكشاف الاحتياجات» في جلستين، بارتفاع 5% — يستحق دفعة مبكرة.", asset: "استكشاف الاحتياجات" },
+};
+export function lhNba(id, nbaId) {
+  if (id === "ar") return NBA_CONTENT_AR[nbaId] ?? null;
+  return null;
+}
+
+// Agent profile — Missions card (active + closed). en + ar chrome.
+const AM = {
+  subtitle:      { en: "Evaluate performance across quality metrics.", ar: "قيّم الأداء عبر مقاييس الجودة." },
+  viewMission:   { en: "View mission",   ar: "عرض المهمة" },
+  fa_name:       { en: "Focus Area",     ar: "مجال التركيز" },
+  fa_target:     { en: "Target",         ar: "الهدف" },
+  fa_achieved:   { en: "Achieved",       ar: "المُحقَّق" },
+  fa_status:     { en: "Status",         ar: "الحالة" },
+  met:           { en: "Met",            ar: "تحقّق" },
+  below:         { en: "Below",          ar: "دون الهدف" },
+  col_closed:    { en: "Closed Missions", ar: "المهام المغلقة" },
+  col_roleplays: { en: "Roleplays",      ar: "تمثيلات الأدوار" },
+  col_closingDate:{ en: "Closing Date",  ar: "تاريخ الإغلاق" },
+  col_completion:{ en: "Completion Status", ar: "حالة الإكمال" },
+  tile_closed:   { en: "Closed Missions", ar: "المهام المغلقة" },
+  tile_totalRoleplays: { en: "Total Roleplays", ar: "إجمالي تمثيلات الأدوار" },
+  tile_targetsAchieved:{ en: "Targets Achieved", ar: "الأهداف المُحقَّقة" },
+  st_closed:     { en: "Closed",         ar: "مغلقة" },
+  st_expired:    { en: "Expired",        ar: "منتهية" },
+  st_completed:  { en: "Completed",      ar: "مكتملة" },
+  active:        { en: "Active",         ar: "نشطة" },
+  closed:        { en: "Closed",         ar: "مغلقة" },
+};
+export function lhAM(id, key) {
+  const row = AM[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+export function lhRoleplaysOf(id, a, b) {
+  const T = { en: `${a}/${b} Roleplays`, ar: `${a}/${b} تمثيل أدوار` };
+  return T[id] ?? T.en;
+}
+export function lhMissionSummary(id, met, below) {
+  if (below === 0) return id === "ar" ? `تحقّقت كلها (${met})` : `All ${met} met`;
+  if (met === 0) return id === "ar" ? `كلها دون الهدف (${below})` : `All ${below} below`;
+  return id === "ar" ? `${met} محقّق، ${below} دون الهدف` : `${met} met, ${below} below`;
+}
+export function lhBelowGap(id, gap) {
+  if (gap == null) return lhAM(id, "below");
+  const T = { en: `Below ${gap}%`, ar: `دون الهدف ${gap}%` };
+  return T[id] ?? T.en;
+}
+export function lhClosedCount(id, a, b) {
+  const T = { en: `${a} of ${b} closed missions`, ar: `${a} من ${b} مهمة مغلقة` };
+  return T[id] ?? T.en;
+}
+export function lhCompletionStatus(id, status) {
+  return lhAM(id, `st_${status}`);
+}
+
+// Skill / focus-area / closed-mission names in Arabic, keyed by English.
+const SKILL_AR = {
+  "Active listening": "الإنصات الفعّال",
+  "Solution clarity": "وضوح الحل",
+  "Follow-up quality": "جودة المتابعة",
+  "Feedback loops": "حلقات الملاحظات",
+  "Refund / extension policy": "سياسة الاسترداد / التمديد",
+  "Save / retention offer usage": "استخدام عروض الإنقاذ / الاحتفاظ",
+  "Step-by-step guidance": "إرشاد خطوة بخطوة",
+  "Service area awareness": "الوعي بمنطقة الخدمة",
+  "Empathy & tone": "التعاطف والنبرة",
+  "Customer support enhancement": "تحسين دعم العملاء",
+  "Retention save readiness — Q2": "جاهزية إنقاذ الاحتفاظ — الربع الثاني",
+  "Empathy in communication": "التعاطف في التواصل",
+  "Conflict resolution": "حل النزاعات",
+  "Persuasive communication": "التواصل الإقناعي",
+  "Clarity of speech": "وضوح الكلام",
+  "Non-verbal cues": "الإشارات غير اللفظية",
+  "Tone modulation": "تعديل النبرة",
+  "Closing the sale": "إغلاق البيع",
+  "Handling escalations": "التعامل مع التصعيدات",
+  "Product knowledge depth": "عمق معرفة المنتج",
+  "Discovery questioning": "أسئلة الاستكشاف",
+  "Objection reframing": "إعادة صياغة الاعتراضات",
+  "Call control": "التحكم في المكالمة",
+  "Summarizing accurately": "التلخيص الدقيق",
+  "Setting expectations": "ضبط التوقعات",
+  "Cross-sell timing": "توقيت البيع المتقاطع",
+  "Compliance adherence": "الالتزام بالامتثال",
+  "Rapport building": "بناء الألفة",
+  "Note-taking discipline": "انضباط تدوين الملاحظات",
+  "Warm transfers": "التحويلات السلسة",
+  "Hold etiquette": "آداب الانتظار",
+  "Upsell positioning": "طرح البيع الإضافي",
+  "Sentiment recovery": "استعادة المشاعر الإيجابية",
+  "First-contact resolution": "الحل من أول تواصل",
+  "Knowledge base usage": "استخدام قاعدة المعرفة",
+  "Brand voice consistency": "اتساق صوت العلامة",
+  "Callback commitment": "الالتزام بمعاودة الاتصال",
+  "Survey invitation": "دعوة الاستبيان",
+};
+export function lhSkill(id, name) {
+  if (id === "ar") return SKILL_AR[name] ?? name;
+  return name;
+}
+
+// Mission create wizard. en + ar.
+const MW = {
+  step_define:   { en: "Define Mission",  ar: "تحديد المهمة" },
+  step_coverage: { en: "Coverage",        ar: "التغطية" },
+  step_focus:    { en: "Focus Area",      ar: "مجال التركيز" },
+  step_recruit:  { en: "Recruit",         ar: "الترشيح" },
+  step_preview:  { en: "Preview & Publish", ar: "المعاينة والنشر" },
+  subtitle:      { en: "Set the scope and timeline for this mission.", ar: "حدّد نطاق هذه المهمة وجدولها الزمني." },
+  name:          { en: "Name",            ar: "الاسم" },
+  description:   { en: "Description",     ar: "الوصف" },
+  startDate:     { en: "Start date",      ar: "تاريخ البدء" },
+  duration:      { en: "Duration",        ar: "المدة" },
+  sessionsField: { en: "Minimum practice sessions per driver", ar: "الحد الأدنى لجلسات التدريب لكل محرّك" },
+  sessionsInfo:  { en: "The minimum number of practice sessions each agent must complete during this mission.", ar: "أدنى عدد من جلسات التدريب التي يجب أن يكملها كل وكيل خلال هذه المهمة." },
+  ph_name:       { en: "E.g. Billing Objection Readiness — Q2", ar: "مثال: جاهزية اعتراضات الفوترة — الربع الثاني" },
+  ph_description:{ en: "E.g. Prepare agents to handle billing disputes with confident de-escalation and accurate resolution.", ar: "مثال: تأهيل الوكلاء للتعامل مع نزاعات الفوترة بتهدئة واثقة وحل دقيق." },
+  selectDate:    { en: "Select a date",   ar: "اختر تاريخاً" },
+  sessions:      { en: "sessions",        ar: "جلسات" },
+  select:        { en: "Select",          ar: "اختر" },
+  save:          { en: "Save",            ar: "حفظ" },
+  next:          { en: "Next",            ar: "التالي" },
+  publish:       { en: "Publish",         ar: "نشر" },
+  back:          { en: "Back",            ar: "رجوع" },
+  discard:       { en: "Discard changes? Your draft mission will be lost.", ar: "تجاهل التغييرات؟ ستُفقد مسودة مهمتك." },
+};
+export function lhMW(id, key) {
+  const row = MW[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+// Guide AI Tutor session. en + ar chrome + content maps.
+const GS = {
+  interactionId: { en: "Interaction ID –", ar: "معرّف التفاعل –" },
+  sources:       { en: "Sources",         ar: "المصادر" },
+  micMuted:      { en: "Mic Muted",       ar: "الميكروفون مكتوم" },
+  listening:     { en: "Listening To You", ar: "أستمع إليك" },
+  tapResume:     { en: "Tap mic to resume", ar: "اضغط الميكروفون للاستئناف" },
+  pauseDone:     { en: "Pause whenever you're done", ar: "توقّف متى انتهيت" },
+  minLeft:       { en: "min left",        ar: "دقيقة متبقية" },
+  unmute:        { en: "Unmute mic",      ar: "إلغاء كتم الميكروفون" },
+  mute:          { en: "Mute mic",        ar: "كتم الميكروفون" },
+  endSession:    { en: "End session",     ar: "إنهاء الجلسة" },
+  disclaimer:    { en: "AI tutor — can make mistakes. Confirm anything customer-facing with your Team Lead.", ar: "مدرّب بالذكاء الاصطناعي — قد يُخطئ. تأكّد من أي محتوى موجَّه للعميل مع قائد فريقك." },
+  guide:         { en: "GUIDE",           ar: "المرشد" },
+  advisor:       { en: "ADVISOR",         ar: "المستشار" },
+  thinking:      { en: "Thinking…",       ar: "يفكّر…" },
+  closeSources:  { en: "Close sources",   ar: "إغلاق المصادر" },
+  searchSources: { en: "Search sources",  ar: "البحث في المصادر" },
+  noSources:     { en: "No sources match your search.", ar: "لا توجد مصادر تطابق بحثك." },
+  open:          { en: "Open",            ar: "فتح" },
+  title:         { en: "Vodafone Retention", ar: "الاحتفاظ — فودافون" },
+};
+export function lhGS(id, key) {
+  const row = GS[key];
+  if (!row) return key;
+  return row[id] ?? row.en;
+}
+export function lhRetrieved(id, n) {
+  const T = { en: `Retrieved from ${n} artifacts`, ar: `مُستخرَج من ${n} عناصر` };
+  return T[id] ?? T.en;
+}
+const SOURCE_TYPE_AR = { Playbook: "دليل عمل", SOP: "إجراء تشغيل قياسي", FAQ: "أسئلة شائعة" };
+export function lhSourceType(id, type) {
+  if (id === "ar") return SOURCE_TYPE_AR[type] ?? type;
+  return type;
+}
+
+// Guide session transcript turns (Arabic), keyed by turn id.
+const GUIDE_TURN_AR = {
+  "t-1": "مرحباً آنيا — أنا جاهز متى شئت. اسألني أي شيء عن التعامل مع تهديدات التحوّل إلى فودافون من العملاء ذوي الإيراد المرتفع، وسأستند إلى إطار الاحتفاظ الخاص بماريا إضافةً إلى أحدث الأدلة.",
+  "t-2": "ما أنظف طريقة للبدء عندما يستهل العميل الحديث بالعرض المنافس؟",
+  "t-3": "ابدأ بالإقرار قبل الرد. يدعو الإطار إلى لحظة تعاطف من جملة واحدة — «شكراً لإخباري مسبقاً» — ثم سؤال توضيحي واحد لتثبيت التكلفة مقابل التغطية. أجِّل مطابقة السعر حتى تسمع ما الذي ينقص فعلاً.\n\nإذا ذكر العميل مشغّلاً وتعرفة محددين، فأعِد صياغة العرض بكلماتك. يمنحك ذلك 4–6 ثوانٍ لمسح الحساب بحثاً عن الرد المناسب دون صمت.",
+  "t-4": "وإذا استمر في الضغط على السعر؟",
+  "t-5": "انتقل من السعر إلى القيمة الإجمالية في خطوة واحدة. ابدأ بالحزمة التي لا يشملها المنافس — عادةً بدل تجوال أو خصم باقة عائلية أو نافذة ترقية جهاز. اعرض الفارق كتوفير شهري على مدى 12 شهراً، لا كتعرفة معلنة.\n\nإذا ظل العميل متمسكاً بسعر المنافس بعد ردّين، فصعّد إلى مسار رصيد حسن النية — تتيح لك المصفوفة منح ما يصل إلى شهرين خدمة مجانية دون موافقة المشرف. استخدم ذلك كإغلاق، لا كافتتاح.",
+};
+export function lhGuideTurn(id, turnId, fallback) {
+  if (id === "ar") return GUIDE_TURN_AR[turnId] ?? fallback;
+  return fallback;
+}
+
+// Guide session source artifacts (Arabic): title + pre-formatted date,
+// keyed by source id. Type localizes via lhSourceType.
+const GUIDE_SOURCE_AR = {
+  "s-1":  { title: "من صدمة الفاتورة إلى باقة أفضل — تحويل شكوى الفوترة إلى تحسين للباقة", date: "20 أبريل 2026" },
+  "s-2":  { title: "عملية الاحتفاظ بالعملاء بفعالية.", date: "16 أبريل 2026" },
+  "s-3":  { title: "ما بعض استراتيجيات الاحتفاظ بالعملاء الفعّالة؟", date: "12 أبريل 2026" },
+  "s-4":  { title: "حلقات ملاحظات العملاء — استخدام المُدخلات لتحسين الخدمات", date: "22 أغسطس 2025" },
+  "s-5":  { title: "استراتيجيات البيع المتقاطع — تعظيم الإيراد عبر العروض المرتبطة", date: "15 يوليو 2025" },
+  "s-6":  { title: "تدخّل التسرّب القائم على التعاطف — إطار الإنقاذ", date: "9 أبريل 2026" },
+  "s-7":  { title: "مصفوفة تصعيد سياسة الاسترداد — مالكو المستوى 1/2/3", date: "2 مايو 2026" },
+  "s-8":  { title: "كيفية طرح التعرفة الجديدة على العملاء ذوي الإيراد المرتفع", date: "22 أبريل 2026" },
+  "s-9":  { title: "صوت العلامة — النبرة المكتوبة والعبارات المرفوضة", date: "8 مارس 2026" },
+  "s-10": { title: "تحسين برنامج الولاء — إبقاء الاحتفاظ فوق 92%", date: "18 أبريل 2026" },
+  "s-11": { title: "متى نصعّد إلى الهندسة مقابل العمليات؟", date: "7 أبريل 2026" },
+  "s-12": { title: "نص الامتثال — قائمة تحقق نزاع الفوترة", date: "2 أبريل 2026" },
+};
+export function lhGuideSource(id, sourceId) {
+  if (id === "ar") return GUIDE_SOURCE_AR[sourceId] ?? null;
+  return null;
+}
+
+// Duration options "N Weeks" / "1 Week" → localized (Arabic plural rules).
+export function lhDurationWeeks(id, str) {
+  if (id !== "ar" || typeof str !== "string") return str;
+  const n = parseInt(str, 10);
+  if (!Number.isFinite(n)) return str;
+  if (n === 1) return "أسبوع واحد";
+  if (n === 2) return "أسبوعان";
+  if (n <= 10) return `${n} أسابيع`;
+  return `${n} أسبوعاً`;
+}
+export function lhTerm(id, value) {
+  if (id === "ar") return TERMS_AR[value] ?? value;
+  return value;
+}
+
+// Mission card content (name + description) in Arabic, keyed by mission id.
+// Covers the kanban landing set (running/completed/upcoming + drafts).
+const MISSION_CONTENT_AR = {
+  "kanban-just-started": { name: "نبض الاستعادة — دفعة يونيو", description: "جولة تدريب أولية لأخصائيي الاستعادة المُلتحقين حديثاً." },
+  "kanban-on-track": { name: "تحسين دعم العملاء", description: "تحسين رضا العملاء من خلال الحل أثناء المكالمة والتعاطف المتسق تحت الضغط." },
+  "kanban-ending-soon": { name: "تنشيط نبض التعاطف", description: "تنشيط أساسيات التعاطف لدى الوكلاء المخضرمين قبل المراجعة الفصلية." },
+  "kanban-ends-today-behind": { name: "إعداد قناة الدردشة", description: "إعداد أخصائيي الدردشة الجدد." },
+  "kanban-ready-to-close": { name: "جاهزية الامتثال — الربع الأول", description: "نصوص الإفصاح، وتفويض الدفع، وتوقيت تسليم السياسات." },
+  "kanban-completed": { name: "تدريب خطط السداد", description: "تدريب على عرض خطط السداد عبر فرق التحصيل." },
+  "kanban-upcoming-1": { name: "تمرين إنقاذ الولاء المميّز", description: "تدرّب على إطار الإنقاذ لمواجهة تهديدات تسرّب العملاء ذوي الإيراد المرتفع قبل ذروة أغسطس." },
+  "kanban-upcoming-2": { name: "تنشيط الامتثال — الربع الثالث", description: "جولة امتثال فصلية تغطي الإفصاح عن التعرفة وتصعيد سقف التنازلات." },
+  "kanban-upcoming-3": { name: "تعزيز التعاطف — المستوى الثاني", description: "تدريب جولة ثانية للوكلاء الذين سجّلوا دون حد التعاطف في مايو." },
+  "mission-g-draft": { name: "معايرة المبيعات الصادرة", description: "صقل نصوص حديث الوكلاء لمكالمات الاستكشاف الصادرة." },
+  "mission-i-draft-complete": { name: "جاهزية الاستعادة — الربع الثالث", description: "تأهيل الوكلاء للتعامل مع طلبات الإلغاء بمعالجة واثقة للاعتراضات، وشرح دقيق لشروط الالتزام، وطرح استباقي للعروض." },
+};
+export function lhMissionContent(id, missionId) {
+  if (id === "ar") return MISSION_CONTENT_AR[missionId] ?? null;
+  return null;
+}
+
+// Guide card content (title + description) in Arabic, keyed by guide id.
+const GUIDE_CONTENT_AR = {
+  "guide-tariff-change-1": { title: "إدارة محادثة تغيير التعرفة", description: "استخدمه عند التعامل مع تهديدات التحوّل إلى فودافون من العملاء ذوي الإيراد المرتفع الذين لديهم عرض منافس بالفعل. مبني على إطار الاحتفاظ الخاص بماريا — الذي حقّق 34 عملية إنقاذ الربع الماضي." },
+  "guide-upselling-opportunities": { title: "فرص البيع الإضافي", description: "تفاعل مع العملاء الذين يبدون اهتماماً بالباقات الأعلى. أبرِز المزايا والميزات الحصرية التي تتوافق مع أنماط استخدامهم." },
+  "guide-customer-loyalty": { title: "تعزيز ولاء العملاء", description: "طبّق هذه الاستراتيجية لتعزيز الاحتفاظ بالعملاء المعرّضين لخطر التسرّب. ركّز على أساليب تواصل مخصّصة تبرز القيمة ومكافآت الولاء." },
+  "guide-feedback-loop": { title: "تطبيق حلقة الملاحظات", description: "أدمج ملاحظات العملاء في تحسينات الخدمة. استخدم بيانات الاستبيانات لتوجيه تطوير المنتج وتحسين خدمة العملاء." },
+  "guide-retention-improvement": { title: "استراتيجية تحسين الاحتفاظ", description: "استخدم هذا النهج مع العملاء الذين عبّروا عن عدم رضاهم. عالج مخاوفهم استباقياً وقدّم حلولاً مخصّصة لتحسين الرضا العام." },
+  "guide-tariff-change-2": { title: "إدارة محادثة تغيير التعرفة", description: "استخدمه عند التعامل مع تهديدات التحوّل إلى فودافون من العملاء ذوي الإيراد المرتفع الذين لديهم عرض منافس بالفعل. مبني على إطار الاحتفاظ الخاص بماريا — الذي حقّق 34 عملية إنقاذ الربع الماضي." },
+  "guide-onboarding-pulse": { title: "نبض الترحيب بالإعداد", description: "حدّد نبرة التعامل مع العملاء الجدد في أول 14 يوماً. ركّز على معالم التفعيل وتوقعات المكالمة الأولى." },
+  "guide-billing-recovery": { title: "دليل استرداد الفواتير", description: "استرجع الفواتير المتعثّرة عبر إقرار متعاطف يليه مسار دفع واضح. توقّف قبل التنازل الثاني." },
+  "guide-network-incident-q4": { title: "حادثة الشبكة — الربع الرابع (متقاعدة)", description: "مؤرشف. للرجوع المرجعي فقط؛ استُبدل بدليل اتصالات الحوادث الموحّد في مارس 2026." },
+};
+export function lhGuideContent(id, guideId) {
+  if (id === "ar") return GUIDE_CONTENT_AR[guideId] ?? null;
+  return null;
+}
+
+// Replay collection content (name + description) in Arabic, keyed by id.
+const REPLAY_CONTENT_AR = {
+  "col-save-the-switch": { name: "أنقذ التحوّل", description: "كيف يحوّل أفضل وكلاء الاحتفاظ تهديد التحوّل إلى عملية إنقاذ — مبني من أعلى عمليات الإنقاذ قيمةً الربع الماضي." },
+  "col-first-call-fix": { name: "الحل من أول مكالمة", description: "إغلاق الأعطال التقنية في مكالمة واحدة دون تصعيد — الأنماط التي يطلب المستوى الثاني توثيقها باستمرار." },
+  "col-billing-empathy": { name: "تعاطف الفوترة", description: "محادثات فوترة تبدأ بالإقرار وتُبقي رضا العملاء مرتفعاً حتى عندما يكون الجواب لا." },
+  "col-upsell-without-pushing": { name: "بيع إضافي دون إلحاح", description: "قراءة النية الحقيقية وعرض الباقة الأعلى فقط عندما تناسب استخدام العميل فعلاً." },
+  "col-activation-day-one": { name: "اليوم الأول للتفعيل", description: "مكالمات التفعيل في أول 14 يوماً — ضبط التوقعات حتى لا تحدث المكالمة الثانية أبداً." },
+  "col-incident-comms-q4": { name: "اتصالات الحوادث — الربع الرابع (متقاعدة)", description: "مؤرشف. استُبدل بمجموعة اتصالات الحوادث الموحّدة في مارس 2026." },
+};
+export function lhReplayContent(id, collectionId) {
+  if (id === "ar") return REPLAY_CONTENT_AR[collectionId] ?? null;
+  return null;
+}
+
+// Persona-language option labels (Step 1 dropdown). Keyed on the canonical
+// English value that stays in the wizard's stored state.
+const LANGUAGE_NAME = {
+  "English (UK)": { en: "English (UK)", es: "Inglés (Reino Unido)", de: "Englisch (UK)",  fr: "Anglais (R.-U.)",  ar: "الإنجليزية (المملكة المتحدة)" },
+  "English (US)": { en: "English (US)", es: "Inglés (EE. UU.)",     de: "Englisch (USA)", fr: "Anglais (É.-U.)",  ar: "الإنجليزية (الولايات المتحدة)" },
+  "Spanish":      { en: "Spanish",      es: "Español",              de: "Spanisch",       fr: "Espagnol",         ar: "الإسبانية" },
+  "German":       { en: "German",       es: "Alemán",               de: "Deutsch",        fr: "Allemand",         ar: "الألمانية" },
+  "French":       { en: "French",       es: "Francés",              de: "Französisch",    fr: "Français",         ar: "الفرنسية" },
+};
+export function lhLanguageName(id, value) {
+  return LANGUAGE_NAME[value]?.[id] ?? value;
+}
+
+// Per-roleplay cap inline error (Step 2 §5). Localized template with the
+// consumed/cap minutes interpolated; Western digits kept across locales.
+export function lhCapError(id, cap, consumed) {
+  const T = {
+    en: `Cap (${cap} min) is below already-consumed (${consumed} min) for this month. Choose ≥${consumed} or wait until the next cycle.`,
+    es: `El límite (${cap} min) es inferior a lo ya consumido (${consumed} min) este mes. Elija ≥${consumed} o espere al próximo ciclo.`,
+    de: `Das Limit (${cap} Min.) liegt unter dem bereits verbrauchten Wert (${consumed} Min.) für diesen Monat. Wählen Sie ≥${consumed} oder warten Sie auf den nächsten Zyklus.`,
+    fr: `Le plafond (${cap} min) est inférieur à ce qui est déjà consommé (${consumed} min) ce mois-ci. Choisissez ≥${consumed} ou attendez le prochain cycle.`,
+    ar: `الحد (${cap} دقيقة) أقل من المستهلَك بالفعل (${consumed} دقيقة) لهذا الشهر. اختر ≥${consumed} أو انتظر حتى الدورة التالية.`,
+  };
+  return T[id] ?? T.en;
+}

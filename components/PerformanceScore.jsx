@@ -9,6 +9,7 @@ import TrendArrow from "./TrendArrow";
 import NextBestActions from "./NextBestActions";
 import MetricSparkline from "./MetricSparkline";
 import ExportButton from "./ExportButton";
+import { lhP, lhPts, lhPtsThisWeek, lhOfGoal, lhTargetPct, lhEvalChip } from "./learningHubLocale";
 
 // PerformanceScore — Agent Detail Page hero card. Merges the composite
 // performance score (radial ring + 2x2 supporting metrics) and the Next
@@ -22,12 +23,13 @@ import ExportButton from "./ExportButton";
 
 const RING_SIZE = 150;
 
-// Mock — composite score zone.
+// Mock — composite score zone. `trendPts` + `evalA/evalB` localize at render.
 const SCORE = {
   composite: 78,
   outOf: 100,
-  trend: { dir: "up", text: "4 pts this week" },
-  evalChip: "38/47 interactions evaluated",
+  trend: { dir: "up", pts: 4 },
+  evalA: 38,
+  evalB: 47,
 };
 
 // Date-range value (from the page header dropdown) → day count.
@@ -74,10 +76,10 @@ function aggregate(series, rangeDays, type) {
 // BANDS — composite-score banding: ring stroke + badge colours by score.
 // TODO: confirm the 85 / 75 / 60 thresholds with Akash.
 const BANDS = [
-  { min: 85, label: "Excellent", ring: "var(--chart-green)", badgeBg: "var(--color-success-bg)", badgeText: "var(--color-success-text)" },
-  { min: 75, label: "Strong", ring: "var(--chart-blue)", badgeBg: "var(--color-info-bg)", badgeText: "var(--color-info-text)" },
-  { min: 60, label: "Watch", ring: "var(--chart-amber)", badgeBg: "var(--color-warning-bg)", badgeText: "var(--color-warning-dark)" },
-  { min: 0, label: "Needs attention", ring: "var(--chart-coral)", badgeBg: "var(--color-error-bg)", badgeText: "var(--color-error)" },
+  { min: 85, labelKey: "band_excellent", ring: "var(--chart-green)", badgeBg: "var(--color-success-bg)", badgeText: "var(--color-success-text)" },
+  { min: 75, labelKey: "band_strong", ring: "var(--chart-blue)", badgeBg: "var(--color-info-bg)", badgeText: "var(--color-info-text)" },
+  { min: 60, labelKey: "band_watch", ring: "var(--chart-amber)", badgeBg: "var(--color-warning-bg)", badgeText: "var(--color-warning-dark)" },
+  { min: 0, labelKey: "band_attention", ring: "var(--chart-coral)", badgeBg: "var(--color-error-bg)", badgeText: "var(--color-error)" },
 ];
 function bandFor(score) {
   return BANDS.find((b) => score >= b.min) || BANDS[BANDS.length - 1];
@@ -106,13 +108,13 @@ const TREND = {
 // metric goal (null for the count metric — the /20 is its goal).
 // TODO: confirm real per-metric targets with the data team.
 const METRICS = [
-  { label: "Quality adherence", value: "81%", deltaText: "2 pts", type: "percent", base: 81, target: 85 },
-  { label: "Mission mastery", value: "74%", deltaText: "6 pts", type: "percent", base: 74, target: 85 },
-  { label: "Roleplay engagement", value: "16/20", deltaText: "Stable", type: "count", base: 16, target: null },
-  { label: "Coaching responsiveness", value: "68%", deltaText: "8 pts", type: "percent", base: 68, target: 75 },
+  { labelKey: "m_quality", value: "81%", deltaPts: 2, type: "percent", base: 81, target: 85 },
+  { labelKey: "m_mastery", value: "74%", deltaPts: 6, type: "percent", base: 74, target: 85 },
+  { labelKey: "m_engagement", value: "16/20", deltaPts: null, type: "count", base: 16, target: null },
+  { labelKey: "m_responsiveness", value: "68%", deltaPts: 8, type: "percent", base: 68, target: 75 },
 ].map((m, i) => ({ ...m, series: makeSeries(m.base, i + 1) }));
 
-export default function PerformanceScore({ onAssign, dateRange, milestone }) {
+export default function PerformanceScore({ onAssign, dateRange, milestone, locale = "en" }) {
   const rangeDays = RANGE_DAYS[dateRange] || 7;
   // Milestone state switcher (side rail). M0 strips the card to the NBA
   // strip only; M1 (and the disabled M2) render the full card.
@@ -128,16 +130,16 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
       <div style={psStyles.header}>
         <div>
           <div style={psStyles.title}>
-            {showFull ? "Performance score" : "Next best actions"}
+            {showFull ? lhP(locale, "score") : lhP(locale, "nba")}
           </div>
           {showFull && (
             <div style={psStyles.subtitle}>
-              Weighted composite of quality, mastery, engagement, and responsiveness.
+              {lhP(locale, "subtitle")}
             </div>
           )}
         </div>
         <div style={{ ...psStyles.headerActions, gap: showFull ? 4 : 12 }}>
-          {showFull && <span style={psStyles.evalChip}>{SCORE.evalChip}</span>}
+          {showFull && <span style={psStyles.evalChip}>{lhEvalChip(locale, SCORE.evalA, SCORE.evalB)}</span>}
           <ExportButton formats={["image-copy", "png", "pdf"]} />
           {!showFull && (
             <Button
@@ -146,7 +148,7 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
               trailingIcon={<ArrowRight size={16} />}
               onClick={() => setNbaSheetOpen(true)}
             >
-              View all
+              {lhP(locale, "viewAll")}
             </Button>
           )}
         </div>
@@ -171,7 +173,7 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
               </div>
             </div>
             <div style={psStyles.ringChips}>
-              <TrendChip text={SCORE.trend.text} trend={scoreTrendKey} />
+              <TrendChip text={lhPtsThisWeek(locale, SCORE.trend.pts)} trend={scoreTrendKey} />
               <span
                 style={{
                   ...psStyles.tierChip,
@@ -179,7 +181,7 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
                   color: band.badgeText,
                 }}
               >
-                {band.label}
+                {lhP(locale, band.labelKey)}
               </span>
             </div>
           </div>
@@ -190,13 +192,13 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
               const trend = seriesTrend(points);
               const belowT = m.target != null && m.base < m.target;
               return (
-                <div key={m.label} style={psStyles.metricCell}>
+                <div key={m.labelKey} style={psStyles.metricCell}>
                   <div style={psStyles.metricCellLeft}>
-                    <span style={psStyles.metricLabel}>{m.label}</span>
+                    <span style={psStyles.metricLabel}>{lhP(locale, m.labelKey)}</span>
                     <div style={psStyles.metricValueRow}>
                       <span style={psStyles.metricValue}>{m.value}</span>
                       {m.target != null && (
-                        <GoalChip base={m.base} target={m.target} />
+                        <GoalChip base={m.base} target={m.target} locale={locale} />
                       )}
                     </div>
                     {m.target != null && (
@@ -206,10 +208,10 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
                           color: belowT ? "var(--chart-coral)" : "var(--text-secondary)",
                         }}
                       >
-                        target {m.target}%
+                        {lhTargetPct(locale, m.target)}
                       </span>
                     )}
-                    <TrendChip text={m.deltaText} trend={trend} />
+                    <TrendChip text={m.deltaPts == null ? lhP(locale, "stable") : lhPts(locale, m.deltaPts)} trend={trend} />
                   </div>
                   <div style={psStyles.metricCellRight}>
                     <MetricSparkline
@@ -235,6 +237,7 @@ export default function PerformanceScore({ onAssign, dateRange, milestone }) {
         hideHeader={!showFull}
         sheetOpen={nbaSheetOpen}
         onSheetOpenChange={setNbaSheetOpen}
+        locale={locale}
       />
     </Card>
   );
@@ -256,7 +259,7 @@ function TrendChip({ text, trend }) {
 // metric's value: the current value as a percentage of its target,
 // colour-banded (success ≥ 100, amber 90–99, error below 90). Count
 // metrics omit it — their fraction already carries the ratio.
-function GoalChip({ base, target }) {
+function GoalChip({ base, target, locale = "en" }) {
   const ratio = Math.round((base / target) * 100);
   const band =
     ratio >= 100
@@ -266,7 +269,7 @@ function GoalChip({ base, target }) {
         : { bg: "var(--color-error-bg)", text: "var(--color-error)" };
   return (
     <span style={{ ...psStyles.goalChip, background: band.bg, color: band.text }}>
-      {ratio}% of goal
+      {lhOfGoal(locale, ratio)}
     </span>
   );
 }

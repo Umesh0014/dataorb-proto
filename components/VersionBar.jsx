@@ -19,9 +19,9 @@ import React from "react";
 
 const DEFAULT_VERSIONS = [
   { id: "current", label: "Current design", iterations: [] },
-  { id: "v1", label: "v1", iterations: [] },
-  { id: "v2", label: "v2", iterations: ["i1", "i2", "i3"] },
-  { id: "v3", label: "v3", iterations: ["i1", "i2"] },
+  { id: "v1", label: "v1", iterations: ["i1", "i2"] },
+  { id: "v2", label: "v2", iterations: ["i1", "i2"] },
+  { id: "v3", label: "v3", iterations: ["i1"] },
 ];
 
 // Baseline-block dropdown options. Picking one updates the baseline
@@ -37,6 +37,7 @@ const CLOSE_SIZE = 52;
 export default function VersionBar({
   versions = DEFAULT_VERSIONS,
   baselineOptions = BASELINE_OPTIONS,
+  staticBaseline = false,
   defaultActiveId = "current",
   value,
   onChange,
@@ -233,12 +234,12 @@ export default function VersionBar({
 
   const baselineSelected =
     baselineOptions.find((o) => o.id === baselineId) || baselineOptions[0];
-  // Chips = every version that isn't the baseline option being displayed.
   // Empty versions array → no chips, no first divider. In tabsMode there is
-  // no baseline block, so every version renders as a chip.
-  const chips = tabsMode
-    ? versions
-    : versions.filter((v) => v.id !== baselineSelected?.id);
+  // no baseline block, so every version renders as a chip. Otherwise chips =
+  // every version that isn't a baseline option (filtering on the full
+  // baselineOptions set keeps the unpicked baseline out of the chips).
+  const baselineIds = new Set(baselineOptions.map((o) => o.id));
+  const chips = tabsMode ? versions : versions.filter((v) => !baselineIds.has(v.id));
   const hasChips = chips.length > 0;
 
   return (
@@ -277,6 +278,7 @@ export default function VersionBar({
                     active={activeId === baselineSelected.id}
                     menuOpen={baselineMenuOpen}
                     onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
+                    isStatic={staticBaseline}
                   />
                   {hasChips && <span className="vb-divider" aria-hidden="true" />}
                 </>
@@ -321,7 +323,7 @@ export default function VersionBar({
             </div>
           </div>
           <span className="vb-badge" aria-hidden="true">
-            {(tabsMode ? 0 : baselineOptions.length) + chips.length}
+            {(tabsMode || staticBaseline ? 0 : baselineOptions.length) + chips.length}
           </span>
         </div>
         <button
@@ -422,7 +424,24 @@ function useAnchorRect(ref, active, ...deps) {
 
 // ---- Bar children --------------------------------------------------------
 
-function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu }) {
+function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu, isStatic }) {
+  // Static mode (e.g. Credits & Usage): the baseline is a plain label,
+  // not a design-phase dropdown — no chevron, no menu, not interactive.
+  if (isStatic) {
+    return (
+      <span
+        style={{
+          ...vbStyles.baseline,
+          background: "var(--vb-pill)",
+          color: "var(--vb-txt)",
+          fontWeight: 500,
+          cursor: "default",
+        }}
+      >
+        <span>{selected.label}</span>
+      </span>
+    );
+  }
   return (
     <button
       ref={btnRef}

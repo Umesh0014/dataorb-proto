@@ -22,6 +22,9 @@ import {
   SOURCE_TYPE_TONE,
   formatTimer,
 } from "./mocks/guideSession";
+import {
+  lhGS, lhDir, lhRetrieved, lhSourceType, lhGuideTurn, lhGuideSource,
+} from "./learningHubLocale";
 
 // GuideSessionPage — Guide AI Tutor runtime (the page an Advisor lands
 // on after starting a published Guide). Voice-first: a soft orb on the
@@ -56,8 +59,9 @@ function authorTone(initial) {
   return AUTHOR_PALETTE[i];
 }
 
-export default function GuideSessionPage({ guide, onEnd }) {
+export default function GuideSessionPage({ guide, onEnd, locale = "en" }) {
   const meta = { ...GUIDE_SESSION_META, ...(guide || {}) };
+  const title = locale === "ar" && meta.title === GUIDE_SESSION_META.title ? lhGS(locale, "title") : meta.title;
 
   // Phase state machine. Sources visibility is orthogonal — when true,
   // the conversation column narrows + panel pushes in regardless of
@@ -114,11 +118,12 @@ export default function GuideSessionPage({ guide, onEnd }) {
     <div style={styles.outer}>
       <div style={styles.card}>
         <Header
-          title={meta.title}
+          title={title}
           interactionId={meta.interactionId}
           sourceCount={GUIDE_SOURCES.length}
           onSources={() => setSourcesOpen(true)}
           sourcesActive={sourcesOpen}
+          locale={locale}
         />
 
         <div style={styles.body}>
@@ -129,6 +134,7 @@ export default function GuideSessionPage({ guide, onEnd }) {
             onToggleMute={() => setMuted((m) => !m)}
             onEnd={onEnd}
             compact={sourcesOpen}
+            locale={locale}
           />
 
           <ConversationColumn
@@ -137,6 +143,7 @@ export default function GuideSessionPage({ guide, onEnd }) {
             thinking={thinking}
             onOpenSources={() => setSourcesOpen(true)}
             compact={sourcesOpen}
+            locale={locale}
           />
 
           {sourcesOpen && (
@@ -146,6 +153,7 @@ export default function GuideSessionPage({ guide, onEnd }) {
               onSearchChange={setSearch}
               onClose={() => setSourcesOpen(false)}
               items={filteredSources}
+              locale={locale}
             />
           )}
         </div>
@@ -156,18 +164,18 @@ export default function GuideSessionPage({ guide, onEnd }) {
 
 // ---- Header ------------------------------------------------------------
 
-function Header({ title, interactionId, sourceCount, onSources, sourcesActive }) {
+function Header({ title, interactionId, sourceCount, onSources, sourcesActive, locale = "en" }) {
   return (
     <header style={styles.header}>
       <div style={styles.headerLeft}>
-        <span style={styles.guideTitle}>{title}</span>
+        <span style={styles.guideTitle} dir="auto">{title}</span>
         <span style={styles.headerDot} aria-hidden="true" />
-        <span style={styles.interactionId}>Interaction ID – {interactionId}</span>
+        <span style={styles.interactionId}>{lhGS(locale, "interactionId")} {interactionId}</span>
       </div>
       <button
         type="button"
         onClick={onSources}
-        aria-label={`Sources (${sourceCount})`}
+        aria-label={`${lhGS(locale, "sources")} (${sourceCount})`}
         style={{
           ...styles.sourcesBadge,
           background: sourcesActive ? "var(--color-icon-tertiary-bg)" : "#FFFFFF",
@@ -185,27 +193,27 @@ function Header({ title, interactionId, sourceCount, onSources, sourcesActive })
 
 // ---- Orb column --------------------------------------------------------
 
-function OrbColumn({ initials, muted, secondsLeft, onToggleMute, onEnd, compact }) {
+function OrbColumn({ initials, muted, secondsLeft, onToggleMute, onEnd, compact, locale = "en" }) {
   return (
     <aside style={{ ...styles.orbCol, width: compact ? 360 : 544, flexShrink: 0 }}>
       <div style={styles.orbStack}>
         <Orb initials={initials} muted={muted} />
         <div style={styles.statusBlock}>
           <span style={styles.statusHead}>
-            {muted ? "Mic Muted" : "Listening To You"}
+            {muted ? lhGS(locale, "micMuted") : lhGS(locale, "listening")}
           </span>
           <span style={styles.statusSub}>
-            {muted ? "Tap mic to resume" : "Pause whenever you're done"}
+            {muted ? lhGS(locale, "tapResume") : lhGS(locale, "pauseDone")}
           </span>
         </div>
-        <TimerPill secondsLeft={secondsLeft} />
+        <TimerPill secondsLeft={secondsLeft} locale={locale} />
       </div>
 
       <div style={styles.controlsRow}>
         <button
           type="button"
           onClick={onToggleMute}
-          aria-label={muted ? "Unmute mic" : "Mute mic"}
+          aria-label={muted ? lhGS(locale, "unmute") : lhGS(locale, "mute")}
           style={styles.mutePill}
         >
           {muted
@@ -216,7 +224,7 @@ function OrbColumn({ initials, muted, secondsLeft, onToggleMute, onEnd, compact 
         <button
           type="button"
           onClick={onEnd}
-          aria-label="End session"
+          aria-label={lhGS(locale, "endSession")}
           style={styles.endPill}
         >
           <PhoneOff size={22} color="#FFFFFF" />
@@ -224,7 +232,7 @@ function OrbColumn({ initials, muted, secondsLeft, onToggleMute, onEnd, compact 
       </div>
 
       <p style={styles.disclaimer}>
-        AI tutor — can make mistakes. Confirm anything customer-facing with your Team Lead.
+        {lhGS(locale, "disclaimer")}
       </p>
     </aside>
   );
@@ -242,11 +250,11 @@ function Orb({ initials, muted }) {
   );
 }
 
-function TimerPill({ secondsLeft }) {
+function TimerPill({ secondsLeft, locale = "en" }) {
   return (
     <span style={styles.timerPill}>
       <span style={styles.timerDot} aria-hidden="true" />
-      <span style={styles.timerLabel}>{formatTimer(secondsLeft)} min left</span>
+      <span style={styles.timerLabel}>{formatTimer(secondsLeft)} {lhGS(locale, "minLeft")}</span>
     </span>
   );
 }
@@ -254,7 +262,7 @@ function TimerPill({ secondsLeft }) {
 // ---- Conversation column ----------------------------------------------
 
 const ConversationColumn = React.forwardRef(function ConversationColumn(
-  { turns, thinking, onOpenSources, compact },
+  { turns, thinking, onOpenSources, compact, locale = "en" },
   ref,
 ) {
   return (
@@ -263,35 +271,35 @@ const ConversationColumn = React.forwardRef(function ConversationColumn(
     >
       <div ref={ref} style={styles.transcript}>
         {turns.map((turn) => (
-          <ConversationTurn key={turn.id} turn={turn} onOpenSources={onOpenSources} />
+          <ConversationTurn key={turn.id} turn={turn} onOpenSources={onOpenSources} locale={locale} />
         ))}
-        {thinking && <ThinkingIndicator />}
+        {thinking && <ThinkingIndicator locale={locale} />}
       </div>
     </section>
   );
 });
 
-function ConversationTurn({ turn, onOpenSources }) {
+function ConversationTurn({ turn, onOpenSources, locale = "en" }) {
   const isGuide = turn.speaker === "GUIDE";
   return (
     <div style={styles.turn}>
       <div style={styles.turnHead}>
         <span style={styles.turnDot} aria-hidden="true" />
         <span style={{ ...styles.turnSpeaker, color: isGuide ? "var(--color-text-deep)" : "var(--color-text-tertiary)" }}>
-          {turn.speaker}
+          {lhGS(locale, isGuide ? "guide" : "advisor")}
         </span>
         <span style={styles.turnTimestamp}>{turn.timestamp}</span>
       </div>
       <div style={styles.turnBodyWrap}>
-        <p style={{ ...styles.turnBody, color: isGuide ? "var(--color-text-deep)" : "var(--color-text-tertiary)" }}>
-          {turn.body}
+        <p style={{ ...styles.turnBody, color: isGuide ? "var(--color-text-deep)" : "var(--color-text-tertiary)" }} dir="auto">
+          {lhGuideTurn(locale, turn.id, turn.body)}
         </p>
       </div>
       {isGuide && turn.retrieved > 0 && (
         <button type="button" onClick={onOpenSources} style={styles.retrievedRow}>
           <FileText size={14} color="var(--color-text-tertiary)" />
           <span style={styles.retrievedLabel}>
-            Retrieved from {turn.retrieved} artifacts
+            {lhRetrieved(locale, turn.retrieved)}
           </span>
           <ChevronDown size={14} color="var(--color-text-tertiary)" />
         </button>
@@ -300,26 +308,26 @@ function ConversationTurn({ turn, onOpenSources }) {
   );
 }
 
-function ThinkingIndicator() {
+function ThinkingIndicator({ locale = "en" }) {
   return (
     <div style={styles.thinking}>
       <Sparkles size={14} color="var(--color-text-tertiary)" />
-      <span style={styles.thinkingLabel}>Thinking…</span>
+      <span style={styles.thinkingLabel}>{lhGS(locale, "thinking")}</span>
     </div>
   );
 }
 
 // ---- Sources panel -----------------------------------------------------
 
-function SourcesPanel({ count, search, onSearchChange, onClose, items }) {
+function SourcesPanel({ count, search, onSearchChange, onClose, items, locale = "en" }) {
   return (
     <aside style={styles.sourcesPanel}>
       <div style={styles.sourcesHeader}>
         <span style={styles.sourcesHeaderLeft}>
           <Folder size={18} color="var(--color-text-deep)" />
-          <span style={styles.sourcesHeaderTitle}>Sources ({count})</span>
+          <span style={styles.sourcesHeaderTitle}>{lhGS(locale, "sources")} ({count})</span>
         </span>
-        <button type="button" onClick={onClose} aria-label="Close sources" style={styles.iconBtn}>
+        <button type="button" onClick={onClose} aria-label={lhGS(locale, "closeSources")} style={styles.iconBtn}>
           <X size={16} color="var(--color-text-tertiary)" />
         </button>
       </div>
@@ -330,33 +338,35 @@ function SourcesPanel({ count, search, onSearchChange, onClose, items }) {
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search sources"
-          aria-label="Search sources"
+          placeholder={lhGS(locale, "searchSources")}
+          aria-label={lhGS(locale, "searchSources")}
           style={styles.sourcesSearchInput}
         />
       </div>
 
       <div style={styles.sourcesList}>
         {items.length === 0 ? (
-          <div style={styles.sourcesEmpty}>No sources match your search.</div>
+          <div style={styles.sourcesEmpty}>{lhGS(locale, "noSources")}</div>
         ) : (
-          items.map((item) => <SourceRow key={item.id} item={item} />)
+          items.map((item) => <SourceRow key={item.id} item={item} locale={locale} />)
         )}
       </div>
     </aside>
   );
 }
 
-function SourceRow({ item }) {
+function SourceRow({ item, locale = "en" }) {
   const tone = authorTone(item.author);
   const typeTone = SOURCE_TYPE_TONE[item.type] || SOURCE_TYPE_TONE.Playbook;
+  const c = lhGuideSource(locale, item.id);
+  const titleText = c?.title ?? item.title;
   return (
     <div style={styles.sourceRow}>
       <div style={styles.sourceRowTop}>
-        <span style={styles.sourceTitle} title={item.title}>{item.title}</span>
+        <span style={styles.sourceTitle} title={titleText} dir="auto">{titleText}</span>
         <button
           type="button"
-          aria-label={`Open ${item.title}`}
+          aria-label={`${lhGS(locale, "open")} ${titleText}`}
           onClick={() => {
             // Open-artefact destination is out of scope; stub for now.
             // eslint-disable-next-line no-console
@@ -374,10 +384,10 @@ function SourceRow({ item }) {
         >
           {item.author}
         </span>
-        <span style={styles.sourceDate}>{item.date}</span>
+        <span style={styles.sourceDate} dir="auto">{c?.date ?? item.date}</span>
         <span style={styles.sourceMetaDot} aria-hidden="true" />
         <span style={{ ...styles.sourceTypePill, background: typeTone.bg, color: typeTone.fg }}>
-          {item.type}
+          {lhSourceType(locale, item.type)}
         </span>
       </div>
     </div>
@@ -392,8 +402,9 @@ const styles = {
   // doesn't constrain it). Page lavender gradient shows through.
   outer: {
     position: "fixed",
-    top: 0, right: 0, bottom: 0,
-    left: 64,
+    top: 0, bottom: 0,
+    insetInlineStart: 64,
+    insetInlineEnd: 0,
     padding: 32,
     display: "flex",
     background: "transparent",
@@ -467,7 +478,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     background: "#FFFFFF",
-    borderRight: "2px solid var(--color-border-card-soft)",
+    borderInlineEnd: "2px solid var(--color-border-card-soft)",
     padding: "24px 24px 0",
     transition: "width 200ms ease",
   },
@@ -625,8 +636,8 @@ const styles = {
     color: "#8C90A6",
   },
   turnBodyWrap: {
-    paddingLeft: 16,
-    borderLeft: "2px solid var(--color-text-deep)",
+    paddingInlineStart: 16,
+    borderInlineStart: "2px solid var(--color-text-deep)",
   },
   turnBody: {
     margin: 0,
@@ -665,14 +676,16 @@ const styles = {
   sourcesPanel: {
     width: 400, flexShrink: 0,
     background: "#FFFFFF",
-    borderLeft: "2px solid var(--color-border-card-soft)",
+    borderInlineStart: "2px solid var(--color-border-card-soft)",
     display: "flex", flexDirection: "column",
     minHeight: 0,
     animation: "panelSlideIn 200ms ease",
   },
   sourcesHeader: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "16px 16px 16px 20px",
+    paddingBlock: 16,
+    paddingInlineStart: 20,
+    paddingInlineEnd: 16,
     borderBottom: "1px solid var(--color-border-card-soft)",
     flexShrink: 0,
   },
@@ -686,7 +699,9 @@ const styles = {
   },
   sourcesSearch: {
     display: "flex", alignItems: "center", gap: 12,
-    padding: "12px 16px 12px 20px",
+    paddingBlock: 12,
+    paddingInlineStart: 20,
+    paddingInlineEnd: 16,
     borderBottom: "1px solid var(--color-border-card-soft)",
     flexShrink: 0,
   },
@@ -700,7 +715,8 @@ const styles = {
   sourcesList: {
     flex: 1, minHeight: 0,
     overflowY: "auto",
-    padding: "0 18px 0 20px",
+    paddingInlineStart: 20,
+    paddingInlineEnd: 18,
   },
   sourcesEmpty: {
     padding: "24px 0",

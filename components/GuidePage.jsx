@@ -6,6 +6,10 @@ import PageHeader from "./PageHeader";
 import TabsRow from "./TabsRow";
 import Card from "./Card";
 import { GUIDES, GUIDE_TAB_COUNTS } from "./mocks/guides";
+import { localizedMonths } from "./formatDate";
+import {
+  lhG, lhText, lhGuideEmptyLane, lhGuideEmptySearchBody, lhGuideContent, lhTerm, buildLocaleFilter,
+} from "./learningHubLocale";
 
 // GuidePage — Learning Hub Guide landing.
 //
@@ -18,11 +22,12 @@ import { GUIDES, GUIDE_TAB_COUNTS } from "./mocks/guides";
 // updates / no-op stubs until the Guide creation flow ships. Active
 // sessions or downstream consumers are untouched.
 
+// Lane labels localize via lhG(`tab_${id}`); counts come from the mock.
 const TABS = [
-  { id: "active",      label: "Active",         count: GUIDE_TAB_COUNTS.active },
-  { id: "calibration", label: "In Calibration", count: GUIDE_TAB_COUNTS.calibration },
-  { id: "draft",       label: "Draft",          count: GUIDE_TAB_COUNTS.draft },
-  { id: "archived",    label: "Archived",       count: GUIDE_TAB_COUNTS.archived },
+  { id: "active",      labelKey: "tab_active",      count: GUIDE_TAB_COUNTS.active },
+  { id: "calibration", labelKey: "tab_calibration", count: GUIDE_TAB_COUNTS.calibration },
+  { id: "draft",       labelKey: "tab_draft",       count: GUIDE_TAB_COUNTS.draft },
+  { id: "archived",    labelKey: "tab_archived",    count: GUIDE_TAB_COUNTS.archived },
 ];
 
 const TAG_MAX = 15;
@@ -31,17 +36,19 @@ function truncate(s, n) {
   return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
-function formatDate(iso) {
+// Day-first date with localized month (e.g. "07 May, 2026").
+function formatDate(iso, locale = "en") {
   if (!iso) return "";
   const d = new Date(`${iso}T00:00:00Z`);
   if (Number.isNaN(d.getTime())) return iso;
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = localizedMonths(locale);
   return `${String(d.getUTCDate()).padStart(2, "0")} ${months[d.getUTCMonth()]}, ${d.getUTCFullYear()}`;
 }
 
-export default function GuidePage({ onCreateGuide, onOpenGuide }) {
+export default function GuidePage({ onCreateGuide, onOpenGuide, locale = "en", onLocaleChange }) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [search, setSearch] = React.useState("");
+  const tabs = TABS.map((t) => ({ ...t, label: lhG(locale, t.labelKey) }));
 
   const guides = React.useMemo(
     () => GUIDES.filter((g) => g.state === activeTab),
@@ -60,34 +67,35 @@ export default function GuidePage({ onCreateGuide, onOpenGuide }) {
       <PageHeader
         identifier={{
           icon: <BookOpen size={16} color="var(--color-icon-tertiary-fg)" />,
-          label: "Guide",
+          label: lhG(locale, "title"),
           withDropdown: false,
           iconBg: "var(--color-icon-tertiary-bg)",
           iconColor: "var(--color-icon-tertiary-fg)",
         }}
         primaryAction={{
-          label: "Guide",
+          label: lhG(locale, "title"),
           icon: <Plus size={16} />,
           onClick: () => onCreateGuide?.(),
         }}
-        search={{ value: search, onChange: setSearch, placeholder: "Search" }}
+        search={{ value: search, onChange: setSearch, placeholder: lhText(locale, "search") }}
+        filters={[buildLocaleFilter(locale, onLocaleChange)]}
         toolbar={[{
           id: "filters",
           icon: <SlidersHorizontal size={18} />,
-          label: "Filters",
+          label: lhText(locale, "filters"),
           // TODO: wire filter drawer when Guide filter set is defined.
           onClick: () => {},
         }]}
       />
 
-      <TabsRow tabs={TABS} activeTab={activeTab} onTabClick={setActiveTab} />
+      <TabsRow tabs={tabs} activeTab={activeTab} onTabClick={setActiveTab} />
 
       {filtered.length === 0 ? (
-        <EmptyState query={search} tabLabel={TABS.find((t) => t.id === activeTab)?.label} />
+        <EmptyState query={search} tabLabel={lhG(locale, `tab_${activeTab}`)} locale={locale} />
       ) : (
         <div style={styles.grid}>
           {filtered.map((g) => (
-            <GuideCard key={g.id} guide={g} onClick={() => onOpenGuide?.(g.id)} />
+            <GuideCard key={g.id} guide={g} onClick={() => onOpenGuide?.(g.id)} locale={locale} />
           ))}
         </div>
       )}
@@ -97,10 +105,11 @@ export default function GuidePage({ onCreateGuide, onOpenGuide }) {
 
 // ---- Guide card --------------------------------------------------------
 
-function GuideCard({ guide, onClick }) {
+function GuideCard({ guide, onClick, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
   const langs = guide.languages || [];
   const extraLangs = Math.max(0, langs.length - 1);
+  const content = lhGuideContent(locale, guide.id);
 
   return (
     <button
@@ -129,12 +138,12 @@ function GuideCard({ guide, onClick }) {
       </div>
 
       <div style={styles.body}>
-        <span style={styles.title}>{guide.title}</span>
-        <p style={styles.description}>{guide.description}</p>
+        <span style={styles.title} dir="auto">{content?.title ?? guide.title}</span>
+        <p style={styles.description} dir="auto">{content?.description ?? guide.description}</p>
         <div style={styles.langRow}>
           {langs.length > 0 && (
-            <span style={styles.langChip} title={langs[0]}>
-              {truncate(langs[0], TAG_MAX)}
+            <span style={styles.langChip} title={lhTerm(locale, langs[0])}>
+              {truncate(lhTerm(locale, langs[0]), TAG_MAX)}
             </span>
           )}
           {extraLangs > 0 && (
@@ -148,10 +157,10 @@ function GuideCard({ guide, onClick }) {
       <div style={styles.metaRow}>
         <span style={styles.metaArtefacts}>
           <span style={styles.artefactCount}>{guide.artefacts}</span>
-          <span style={styles.metaLabel}>Artefacts</span>
+          <span style={styles.metaLabel}>{lhG(locale, "artefacts")}</span>
         </span>
         <span style={styles.dot} aria-hidden="true">·</span>
-        <span style={styles.metaDate}>{formatDate(guide.updatedAt)}</span>
+        <span style={styles.metaDate}>{formatDate(guide.updatedAt, locale)}</span>
       </div>
     </button>
   );
@@ -159,13 +168,13 @@ function GuideCard({ guide, onClick }) {
 
 // ---- Empty state -------------------------------------------------------
 
-function EmptyState({ query, tabLabel }) {
+function EmptyState({ query, tabLabel, locale = "en" }) {
   const heading = query
-    ? "No guides match your search"
-    : `No guides in ${tabLabel?.toLowerCase() || "this lane"}`;
+    ? lhG(locale, "emptyNoMatch")
+    : lhGuideEmptyLane(locale, tabLabel);
   const body = query
-    ? `Try a different keyword or clear the search to see all ${tabLabel?.toLowerCase() || "guides"}.`
-    : "Once guides land in this lane, they appear here.";
+    ? lhGuideEmptySearchBody(locale, tabLabel)
+    : lhG(locale, "emptyBodyLane");
   return (
     <Card padX={32} padY={32} style={styles.empty}>
       <span style={styles.emptyIconTile} aria-hidden="true">
@@ -204,7 +213,7 @@ const styles = {
     flexDirection: "column",
     gap: 16,
     cursor: "pointer",
-    textAlign: "left",
+    textAlign: "start",
     fontFamily: "inherit",
     width: "100%",
     transition: "box-shadow 120ms ease",

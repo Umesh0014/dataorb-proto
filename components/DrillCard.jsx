@@ -15,6 +15,14 @@ import Button from "./Button";
 //   3. Description (3-4 lines, clamps with ellipsis)
 //   4. Two chips (category, difficulty)
 //   5. Full-width primary "View Details" CTA
+//
+// Localization (ticket: GUI multilingual + RTL): the GUI strings — the
+// taxonomy chips and the CTA — accept localized display labels via
+// `categoryLabel` / `difficultyLabel` / `ctaLabel` while `difficulty`
+// stays the English semantic key that drives the color band. The raw
+// scenario content (customer name, title, description) is the ground-truth
+// transcript and is never translated, so it renders `dir="auto"` to keep
+// its own reading direction even when the surrounding GUI is RTL.
 export default function DrillCard({
   mood,
   customer,
@@ -22,23 +30,26 @@ export default function DrillCard({
   description,
   category,
   difficulty,
+  categoryLabel,
+  difficultyLabel,
+  ctaLabel = "View Details",
   onViewDetails,
 }) {
   return (
     <Card padX={24} padY={24} shadow style={dcStyles.card}>
       <div style={dcStyles.header}>
         <span style={dcStyles.mood} aria-hidden="true">{mood}</span>
-        <span style={dcStyles.customer}>{customer}</span>
+        <span style={dcStyles.customer} dir="auto">{customer}</span>
       </div>
 
       <div style={dcStyles.divider} />
 
-      <div style={dcStyles.title}>{title}</div>
-      <div style={dcStyles.description}>{description}</div>
+      <div style={dcStyles.title} dir="auto">{title}</div>
+      <div style={dcStyles.description} dir="auto">{description}</div>
 
       <div style={dcStyles.chipRow}>
-        <CategoryChip>{category}</CategoryChip>
-        <DifficultyChip level={difficulty} />
+        <CategoryChip>{categoryLabel ?? category}</CategoryChip>
+        <DifficultyChip level={difficulty} label={difficultyLabel ?? difficulty} />
       </div>
 
       <Button
@@ -47,7 +58,7 @@ export default function DrillCard({
         onClick={onViewDetails}
         style={dcStyles.cta}
       >
-        View Details
+        {ctaLabel}
       </Button>
     </Card>
   );
@@ -59,7 +70,7 @@ function CategoryChip({ children }) {
   );
 }
 
-function DifficultyChip({ level }) {
+function DifficultyChip({ level, label }) {
   const palette = DIFFICULTY_PALETTE[level] || DIFFICULTY_PALETTE.Simple;
   return (
     <span
@@ -69,7 +80,7 @@ function DifficultyChip({ level }) {
         color: palette.text,
       }}
     >
-      {level}
+      {label ?? level}
     </span>
   );
 }

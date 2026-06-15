@@ -33,15 +33,20 @@ export default function RailFlyout({
   role = "menu",
 }) {
   const popoverRef = React.useRef(null);
-  const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const [pos, setPos] = React.useState({ top: 0, left: 0, rtl: false });
 
   React.useEffect(() => {
     if (!anchorRef?.current) return;
     const rect = anchorRef.current.getBoundingClientRect();
-    // Anchor against the trigger's right edge so the flyout sits correctly
-    // at both rail widths (64 collapsed / 260 expanded) without hardcoding.
-    setPos({ top: rect.top, left: rect.right + 12 });
-  }, [open, anchorRef]);
+    // The rail sits on the inline-start edge — left under LTR, right under
+    // RTL (Arabic). Open the flyout toward the inline-end (into the content)
+    // so it never lands off-screen: past the trigger's right edge under LTR,
+    // past its left edge under RTL.
+    const isRtl = typeof document !== "undefined"
+      && document.documentElement.getAttribute("dir") === "rtl";
+    const left = isRtl ? rect.left - width - 12 : rect.right + 12;
+    setPos({ top: rect.top, left, rtl: isRtl });
+  }, [open, anchorRef, width]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -89,7 +94,7 @@ export default function RailFlyout({
         gap: 4,
         opacity: open ? 1 : 0,
         transform: open ? "scale(1)" : "scale(0.95)",
-        transformOrigin: "top left",
+        transformOrigin: pos.rtl ? "top right" : "top left",
         transition: "opacity 150ms ease-out, transform 150ms ease-out",
         pointerEvents: open ? "auto" : "none",
       }}

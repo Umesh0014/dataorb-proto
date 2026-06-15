@@ -13,8 +13,10 @@ import Button from "./Button";
 import StatusBadge from "./StatusBadge";
 import KebabMenu from "./KebabMenu";
 import ReplayEditPanel from "./ReplayEditPanel";
-import { formatDate } from "./formatDate";
 import { OUTCOME_TINTS, OUTCOME_LABELS } from "./mocks/replays";
+import {
+  lhR, lhTerm, lhReplayContent, lhReplayTitle, lhEditedBy, lhCreatedBy,
+} from "./learningHubLocale";
 
 // ReplayRecordView — one collection: its overview plus published and
 // to-review replays (default sorted most-recently-published). The review
@@ -29,14 +31,14 @@ const OUTCOME_ICONS = {
   compliance: Scale, upsell: TrendingUp, csat: Heart, collections: Coins, onboarding: Rocket,
 };
 
-const STATUS_META = {
-  published: { tone: "success", label: "Published" },
-  suggested: { tone: "warning", label: "Suggested" },
-  generating: { tone: "info", label: "Generating" },
-  archived: { tone: "danger", label: "Archived" },
+const STATUS_TONE = {
+  published: "success",
+  suggested: "warning",
+  generating: "info",
+  archived: "danger",
 };
 
-export default function ReplayRecordView({ collection, onBack, onPlay, onApprove, onArchive, onSaveEdit }) {
+export default function ReplayRecordView({ collection, onBack, onPlay, onApprove, onArchive, onSaveEdit, locale = "en" }) {
   const [editingId, setEditingId] = React.useState(null);
   const live = collection.replays.filter((r) => r.status !== "archived");
   const toReview = live.filter((r) => r.status === "suggested" || r.status === "generating");
@@ -69,10 +71,11 @@ export default function ReplayRecordView({ collection, onBack, onPlay, onApprove
   const tint = OUTCOME_TINTS[collection.outcome] || OUTCOME_TINTS.retention;
   const Icon = OUTCOME_ICONS[collection.outcome] || ShieldCheck;
   const isAi = collection.maintainedBy === "ai";
+  const content = lhReplayContent(locale, collection.id);
 
   const TABS = [
-    { id: "review", label: "To review", count: toReview.length },
-    { id: "published", label: "Published", count: published.length },
+    { id: "review", label: lhR(locale, "rec_toReview"), count: toReview.length },
+    { id: "published", label: lhR(locale, "rec_published"), count: published.length },
   ];
   const list = tab === "review" ? toReview : published;
 
@@ -80,22 +83,22 @@ export default function ReplayRecordView({ collection, onBack, onPlay, onApprove
     <div style={s.column}>
       <PageHeader
         back={onBack}
-        identifier={{ icon: <Icon size={16} color={tint.fg} />, label: collection.name, iconBg: tint.bg, iconColor: tint.fg }}
+        identifier={{ icon: <Icon size={16} color={tint.fg} />, label: content?.name ?? collection.name, iconBg: tint.bg, iconColor: tint.fg }}
         meta={
           <span style={s.metaRow}>
-            <MaintainTag isAi={isAi} />
+            <MaintainTag isAi={isAi} locale={locale} />
             <span style={s.metaDot} aria-hidden="true">·</span>
-            <span>{OUTCOME_LABELS[collection.outcome]} · {collection.driver}</span>
+            <span>{lhTerm(locale, OUTCOME_LABELS[collection.outcome])} · {lhTerm(locale, collection.driver)}</span>
           </span>
         }
       />
 
-      <OverviewCard collection={collection} />
+      <OverviewCard collection={collection} locale={locale} />
 
       <TabsRow tabs={TABS} activeTab={tab} onTabClick={setTab} />
 
       {list.length === 0 ? (
-        <EmptyState tab={tab} sampling={collection.replays.length === 0} />
+        <EmptyState tab={tab} sampling={collection.replays.length === 0} locale={locale} />
       ) : (
         <div style={s.grid}>
           {list.map((r) => (
@@ -107,6 +110,7 @@ export default function ReplayRecordView({ collection, onBack, onPlay, onApprove
               onEdit={() => setEditingId(r.id)}
               onApprove={() => onApprove(r.id)}
               onArchive={() => onArchive(r.id)}
+              locale={locale}
             />
           ))}
         </div>
@@ -117,19 +121,20 @@ export default function ReplayRecordView({ collection, onBack, onPlay, onApprove
 
 // ---- Collection overview ----------------------------------------------
 
-function OverviewCard({ collection }) {
+function OverviewCard({ collection, locale = "en" }) {
   const cfg = collection.config || {};
+  const content = lhReplayContent(locale, collection.id);
   const chips = [
-    cfg.eligibilityWindow,
-    cfg.maxReplays ? `Max ${cfg.maxReplays}` : null,
-    cfg.refreshFrequency ? `${cfg.refreshFrequency} · auto` : null,
-    collection.publishMode === "auto" ? "AI publishes" : "Manual review",
+    cfg.eligibilityWindow ? lhTerm(locale, cfg.eligibilityWindow) : null,
+    cfg.maxReplays ? `${lhR(locale, "rec_max")} ${cfg.maxReplays}` : null,
+    cfg.refreshFrequency ? `${lhTerm(locale, cfg.refreshFrequency)} · ${lhR(locale, "rec_auto")}` : null,
+    collection.publishMode === "auto" ? lhR(locale, "rec_aiPublishes") : lhR(locale, "rec_manualReview"),
   ].filter(Boolean);
   return (
     <Card padX={24} padY={20} style={s.overview}>
-      <p style={s.overviewDesc}>{collection.description}</p>
+      <p style={s.overviewDesc} dir="auto">{content?.description ?? collection.description}</p>
       {collection.objective && (
-        <p style={s.overviewObjective}><span style={s.objectiveLabel}>Objective</span>{collection.objective}</p>
+        <p style={s.overviewObjective}><span style={s.objectiveLabel}>{lhR(locale, "rec_objective")}</span><span dir="auto">{collection.objective}</span></p>
       )}
       <div style={s.chipRow}>
         {chips.map((c) => <span key={c} style={s.cfgChip}>{c}</span>)}
@@ -140,17 +145,19 @@ function OverviewCard({ collection }) {
 
 // ---- Replay card (short, skill-card style) ----------------------------
 
-function ReplayCard({ replay, collection, onPlay, onEdit, onApprove, onArchive }) {
+function ReplayCard({ replay, collection, onPlay, onEdit, onApprove, onArchive, locale = "en" }) {
   const [hover, setHover] = React.useState(false);
-  const meta = STATUS_META[replay.status] || STATUS_META.suggested;
+  const tone = STATUS_TONE[replay.status] || STATUS_TONE.suggested;
+  const statusLabel = lhR(locale, `rec_${replay.status}`);
+  const title = lhReplayTitle(locale, replay.id, replay.title);
   const isSuggested = replay.status === "suggested";
   const isGenerating = replay.status === "generating";
   const canReview = collection.publishMode === "manual" && isSuggested;
 
   const kebabItems = [
-    { label: "Edit replay", onClick: onEdit },
-    { label: "Move to another collection", onClick: () => {} },
-    { label: "Archive", onClick: onArchive },
+    { label: lhR(locale, "rec_editReplay"), onClick: onEdit },
+    { label: lhR(locale, "rec_moveColl"), onClick: () => {} },
+    { label: lhR(locale, "rec_archiveAction"), onClick: onArchive },
   ];
 
   return (
@@ -162,29 +169,29 @@ function ReplayCard({ replay, collection, onPlay, onEdit, onApprove, onArchive }
     >
       <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={s.replayInner}>
         <div style={s.replayTop}>
-          <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
-          <PublishSource replay={replay} hover={hover} />
+          <StatusBadge tone={tone}>{statusLabel}</StatusBadge>
+          <PublishSource replay={replay} hover={hover} locale={locale} />
           <span style={s.duration}>{formatDuration(replay.durationSec)}</span>
         </div>
 
-        <span style={s.replayTitle}>{replay.title}</span>
+        <span style={s.replayTitle} dir="auto">{title}</span>
 
-        <Provenance replay={replay} />
+        <Provenance replay={replay} locale={locale} />
 
         <div style={s.replayFooter}>
-          <AudioState replay={replay} />
+          <AudioState replay={replay} locale={locale} />
           <div style={s.actions}>
             {canReview ? (
               <>
-                <Button variant="text" uppercase={false} leadingIcon={<Pencil size={14} />} onClick={onEdit} style={s.editBtn}>Edit</Button>
-                <Button variant="primary" uppercase={false} leadingIcon={<Check size={14} />} onClick={onApprove} style={s.approveBtn}>Approve</Button>
+                <Button variant="text" uppercase={false} leadingIcon={<Pencil size={14} />} onClick={onEdit} style={s.editBtn}>{lhR(locale, "rec_edit")}</Button>
+                <Button variant="primary" uppercase={false} leadingIcon={<Check size={14} />} onClick={onApprove} style={s.approveBtn}>{lhR(locale, "rec_approve")}</Button>
               </>
             ) : isGenerating ? (
-              <span style={s.generatingNote}><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Generating audio…</span>
+              <span style={s.generatingNote}><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> {lhR(locale, "rec_genAudio")}</span>
             ) : (
-              <Button variant="primary" uppercase={false} leadingIcon={<Play size={14} />} onClick={onPlay} style={s.approveBtn}>Play</Button>
+              <Button variant="primary" uppercase={false} leadingIcon={<Play size={14} />} onClick={onPlay} style={s.approveBtn}>{lhR(locale, "rec_play")}</Button>
             )}
-            <KebabMenu items={kebabItems} ariaLabel={`More actions for ${replay.title}`} />
+            <KebabMenu items={kebabItems} ariaLabel={title} />
           </div>
         </div>
       </div>
@@ -193,51 +200,51 @@ function ReplayCard({ replay, collection, onPlay, onEdit, onApprove, onArchive }
 }
 
 // AI-published shows a mirror icon; human-published shows the outcome icon.
-function PublishSource({ replay, hover }) {
+function PublishSource({ replay, hover, locale = "en" }) {
   const isAi = replay.publishedBy === "ai";
   const Outcome = OUTCOME_ICONS[replay.outcome] || ShieldCheck;
   return (
-    <span style={{ ...s.sourceIcon, opacity: hover ? 1 : 0.55, transition: "opacity 120ms ease" }} title={isAi ? "AI-published" : `Published by ${replay.publishedBy}`}>
+    <span style={{ ...s.sourceIcon, opacity: hover ? 1 : 0.55, transition: "opacity 120ms ease" }} title={isAi ? lhR(locale, "aiMaintained") : lhCreatedBy(locale, replay.publishedBy)}>
       {isAi ? <FlipHorizontal2 size={15} color="var(--color-icon-tertiary-fg)" /> : <Outcome size={15} color="var(--color-text-tertiary)" />}
     </span>
   );
 }
 
 // Unedited AI replay → disclaimer; once a human edits → editor credit.
-function Provenance({ replay }) {
+function Provenance({ replay, locale = "en" }) {
   if (replay.edited && replay.editor) {
     return (
       <span style={s.provenance}>
         <span style={{ ...s.editorAvatar, background: replay.editor.bg, color: replay.editor.fg }} aria-hidden="true">{replay.editor.initial}</span>
-        <span style={s.provenanceText}>Edited by {replay.editor.name}</span>
+        <span style={s.provenanceText}>{lhEditedBy(locale, replay.editor.name)}</span>
       </span>
     );
   }
   return (
     <span style={s.provenance}>
       <Sparkles size={13} color="var(--color-icon-tertiary-fg)" />
-      <span style={{ ...s.provenanceText, color: "var(--color-icon-tertiary-fg)" }}>AI-generated · unedited</span>
+      <span style={{ ...s.provenanceText, color: "var(--color-icon-tertiary-fg)" }}>{lhR(locale, "rec_aiGenerated")}</span>
     </span>
   );
 }
 
-function AudioState({ replay }) {
+function AudioState({ replay, locale = "en" }) {
   if (replay.audioReady) {
-    return <span style={s.audioReady}><AudioLines size={14} color="var(--color-success)" /> Audio ready</span>;
+    return <span style={s.audioReady}><AudioLines size={14} color="var(--color-success)" /> {lhR(locale, "rec_audioReady")}</span>;
   }
   if (replay.status === "generating") {
-    return <span style={s.audioPending}>Audio generating…</span>;
+    return <span style={s.audioPending}>{lhR(locale, "rec_audioGen")}</span>;
   }
-  return <span style={s.audioPending}>Audio generates on approval</span>;
+  return <span style={s.audioPending}>{lhR(locale, "rec_audioOnApproval")}</span>;
 }
 
-function EmptyState({ tab, sampling }) {
+function EmptyState({ tab, sampling, locale = "en" }) {
   const heading = sampling
-    ? "The AI is still building replays"
-    : tab === "review" ? "Nothing waiting on you" : "No published replays yet";
+    ? lhR(locale, "rec_emptySamplingH")
+    : tab === "review" ? lhR(locale, "rec_emptyReviewH") : lhR(locale, "rec_emptyPublishedH");
   const body = sampling
-    ? "Replays appear here as the AI samples eligible calls. Check back shortly."
-    : tab === "review" ? "Every suggested replay has been reviewed." : "Approve a suggested replay to publish it here.";
+    ? lhR(locale, "rec_emptySamplingB")
+    : tab === "review" ? lhR(locale, "rec_emptyReviewB") : lhR(locale, "rec_emptyPublishedB");
   return (
     <Card padX={32} padY={40} style={s.empty}>
       <span style={s.emptyHeading}>{heading}</span>
@@ -246,12 +253,12 @@ function EmptyState({ tab, sampling }) {
   );
 }
 
-function MaintainTag({ isAi }) {
+function MaintainTag({ isAi, locale = "en" }) {
   return (
     <span style={s.maintainTag}>
       {isAi ? <Sparkles size={12} color="var(--color-icon-tertiary-fg)" /> : <User size={12} color="var(--color-text-tertiary)" />}
       <span style={{ color: isAi ? "var(--color-icon-tertiary-fg)" : "var(--color-text-tertiary)", fontWeight: 700 }}>
-        {isAi ? "AI-maintained" : "Self-maintained"}
+        {isAi ? lhR(locale, "aiMaintained") : lhR(locale, "selfMaintained")}
       </span>
     </span>
   );
@@ -282,7 +289,7 @@ const s = {
   replayInner: { display: "flex", flexDirection: "column", gap: 10, padding: "18px 20px" },
   replayTop: { display: "flex", alignItems: "center", gap: 10 },
   sourceIcon: { display: "inline-grid", placeItems: "center" },
-  duration: { marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-text-tertiary)" },
+  duration: { marginInlineStart: "auto", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-text-tertiary)" },
   replayTitle: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.4 },
 
   provenance: { display: "inline-flex", alignItems: "center", gap: 6 },

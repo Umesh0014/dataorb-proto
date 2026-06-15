@@ -18,6 +18,7 @@ import FocusAreaStep, { isFocusAreaValid } from "./FocusAreaStep";
 import RecruitStep, { isRecruitValid } from "./RecruitStep";
 import PreviewStep, { isPreviewValid } from "./PreviewStep";
 import { formatDate } from "./formatDate";
+import { lhMW, lhText, lhDir, lhDurationWeeks } from "./learningHubLocale";
 
 // MissionWizardPage — Create Mission flow shell. Five steps; only
 // "define" has real content. Other steps mount the same shell with a
@@ -90,11 +91,13 @@ export default function MissionWizardPage({
   onCancel,
   onSave,
   onPublish,
+  locale = "en",
 }) {
   const data = draft || EMPTY_MISSION_DRAFT;
   const idx = MISSION_WIZARD_STEPS.findIndex((s) => s.id === step);
   const safeIdx = idx === -1 ? 0 : idx;
   const isLast = safeIdx === MISSION_WIZARD_STEPS.length - 1;
+  const localizedSteps = MISSION_WIZARD_STEPS.map((s) => ({ ...s, label: lhMW(locale, `step_${s.id}`) }));
 
   const dirty = isDirty(data);
   const stepValid = isStepValid(step, data);
@@ -104,7 +107,7 @@ export default function MissionWizardPage({
       // TODO: confirm-dialog primitive — fallback to native confirm
       // until a shared dialog exists in the prototype.
       const ok = typeof window !== "undefined"
-        ? window.confirm("Discard changes? Your draft mission will be lost.")
+        ? window.confirm(lhMW(locale, "discard"))
         : true;
       if (!ok) return;
     }
@@ -133,9 +136,10 @@ export default function MissionWizardPage({
     <div style={mwStyles.column}>
       <Card padX={20} padY={16}>
         <Stepper
-          steps={MISSION_WIZARD_STEPS}
+          steps={localizedSteps}
           activeIndex={safeIdx}
           onBack={goBack}
+          locale={locale}
         />
       </Card>
 
@@ -144,18 +148,19 @@ export default function MissionWizardPage({
           draft={data}
           onChange={onChange}
           onStepChange={onStepChange}
-          stepLabel={MISSION_WIZARD_STEPS[safeIdx].label}
+          stepLabel={localizedSteps[safeIdx].label}
+          locale={locale}
         />
       </Card>
 
       <Card padX={24} padY={16}>
         <div style={mwStyles.footerRow}>
           <Button variant="text" uppercase={false} onClick={requestCancel}>
-            Cancel
+            {lhText(locale, "cancel")}
           </Button>
           <div style={mwStyles.footerRight}>
             <Button variant="text" uppercase={false} onClick={() => onSave?.(data)}>
-              Save
+              {lhMW(locale, "save")}
             </Button>
             <Button
               variant="primary"
@@ -165,7 +170,7 @@ export default function MissionWizardPage({
               trailingIcon={isLast ? <Send size={14} /> : <ChevronRight size={16} />}
               style={{ height: 40, minWidth: 0, paddingInline: 20 }}
             >
-              {isLast ? "Publish" : "Next"}
+              {isLast ? lhMW(locale, "publish") : lhMW(locale, "next")}
             </Button>
           </div>
         </div>
@@ -176,16 +181,17 @@ export default function MissionWizardPage({
 
 // ---------- Stepper ----------
 
-function Stepper({ steps, activeIndex, onBack }) {
+function Stepper({ steps, activeIndex, onBack, locale = "en" }) {
+  const flip = lhDir(locale) === "rtl" ? { transform: "scaleX(-1)" } : undefined;
   return (
     <div style={mwStyles.stepperRow}>
       <button
         type="button"
         onClick={onBack}
-        aria-label="Back"
+        aria-label={lhMW(locale, "back")}
         style={mwStyles.backBtn}
       >
-        <ArrowLeft size={20} />
+        <ArrowLeft size={20} style={flip} />
       </button>
       <div style={mwStyles.stepperCrumbs}>
         {steps.map((s, i) => {
@@ -203,7 +209,7 @@ function Stepper({ steps, activeIndex, onBack }) {
                 {s.label}
               </span>
               {i < steps.length - 1 && (
-                <ChevronRight size={14} color="var(--color-text-tertiary)" />
+                <ChevronRight size={14} color="var(--color-text-tertiary)" style={flip} />
               )}
             </React.Fragment>
           );
@@ -215,63 +221,67 @@ function Stepper({ steps, activeIndex, onBack }) {
 
 // ---------- Step 1: Define Mission ----------
 
-function DefineMissionStep({ draft, onChange }) {
+function DefineMissionStep({ draft, onChange, locale = "en" }) {
   const setField = (key) => (next) => onChange({ ...draft, [key]: next });
 
   return (
     <>
       <div style={mwStyles.titleBlock}>
         <div style={mwStyles.titleRow}>
-          <span style={mwStyles.title}>Define Mission</span>
+          <span style={mwStyles.title}>{lhMW(locale, "step_define")}</span>
           <span style={mwStyles.required}>*</span>
         </div>
-        <div style={mwStyles.subtitle}>Set the scope and timeline for this mission.</div>
+        <div style={mwStyles.subtitle}>{lhMW(locale, "subtitle")}</div>
       </div>
 
       <div style={mwStyles.fieldGrid}>
-        <Field label="Name">
+        <Field label={lhMW(locale, "name")}>
           <SingleLineInput
             value={draft.name}
             onChange={setField("name")}
             max={NAME_MAX}
-            placeholder="E.g. Billing Objection Readiness — Q2"
+            placeholder={lhMW(locale, "ph_name")}
           />
         </Field>
 
-        <Field label="Description">
+        <Field label={lhMW(locale, "description")}>
           <MultiLineInput
             value={draft.description}
             onChange={setField("description")}
             max={DESCRIPTION_MAX}
             rows={3}
-            placeholder="E.g. Prepare agents to handle billing disputes with confident de-escalation and accurate resolution."
+            placeholder={lhMW(locale, "ph_description")}
           />
         </Field>
 
         <div style={mwStyles.row2}>
-          <Field label="Start date">
+          <Field label={lhMW(locale, "startDate")}>
             <DateField
               value={draft.startDate}
               onChange={setField("startDate")}
-              placeholder="Select a date"
+              placeholder={lhMW(locale, "selectDate")}
+              locale={locale}
             />
           </Field>
-          <Field label="Duration">
+          <Field label={lhMW(locale, "duration")}>
             <Dropdown
               value={draft.duration}
               onChange={setField("duration")}
               options={DURATION_OPTIONS}
+              renderOption={(o) => lhDurationWeeks(locale, o)}
+              locale={locale}
             />
           </Field>
         </div>
 
         <Field
-          label="Minimum practice sessions per driver"
-          info="The minimum number of practice sessions each agent must complete during this mission."
+          label={lhMW(locale, "sessionsField")}
+          info={lhMW(locale, "sessionsInfo")}
         >
           <SessionsControl
             value={draft.sessions}
             onChange={setField("sessions")}
+            locale={locale}
           />
         </Field>
       </div>
@@ -335,7 +345,7 @@ function SingleLineInput({ value, onChange, max, placeholder }) {
 
 // ---------- Dropdown (mirrors NewRoleplayPage local primitive) ----------
 
-function Dropdown({ value, onChange, options, placeholder }) {
+function Dropdown({ value, onChange, options, placeholder, renderOption = (o) => o, locale = "en" }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
 
@@ -357,7 +367,7 @@ function Dropdown({ value, onChange, options, placeholder }) {
             color: value ? "var(--color-text-deep)" : "var(--color-text-placeholder)",
           }}
         >
-          {value || placeholder || "Select"}
+          {value ? renderOption(value) : (placeholder || lhMW(locale, "select"))}
         </span>
         <ChevronDown size={18} color="var(--color-text-tertiary)" />
       </button>
@@ -375,7 +385,7 @@ function Dropdown({ value, onChange, options, placeholder }) {
                 setOpen(false);
               }}
             >
-              {opt}
+              {renderOption(opt)}
             </div>
           ))}
         </div>
@@ -391,7 +401,7 @@ function Dropdown({ value, onChange, options, placeholder }) {
 // DD MMM YYYY. A real date-picker primitive is missing in the
 // prototype — surfaced as a gap.
 
-function DateField({ value, onChange, placeholder = "Select a date" }) {
+function DateField({ value, onChange, placeholder = "Select a date", locale = "en" }) {
   const inputRef = React.useRef(null);
   const isFilled = Boolean(value);
 
@@ -415,7 +425,7 @@ function DateField({ value, onChange, placeholder = "Select a date" }) {
             color: isFilled ? "var(--color-text-deep)" : "var(--color-text-placeholder)",
           }}
         >
-          {isFilled ? formatDate(value) : placeholder}
+          {isFilled ? formatDate(value, locale) : placeholder}
         </span>
         <Calendar size={18} color="var(--color-text-tertiary)" />
       </button>
@@ -435,8 +445,9 @@ function DateField({ value, onChange, placeholder = "Select a date" }) {
 
 // ---------- SessionsControl (number input + slider, two-way bound) ----------
 
-function SessionsControl({ value, onChange }) {
+function SessionsControl({ value, onChange, locale = "en" }) {
   const clamp = (n) => Math.min(SESSIONS_MAX, Math.max(SESSIONS_MIN, n));
+  const isRtl = lhDir(locale) === "rtl";
 
   const handleNumber = (e) => {
     const raw = e.target.value;
@@ -463,7 +474,7 @@ function SessionsControl({ value, onChange }) {
           onChange={handleNumber}
           style={mwStyles.numberInput}
         />
-        <span style={mwStyles.numberSuffix}>sessions</span>
+        <span style={mwStyles.numberSuffix}>{lhMW(locale, "sessions")}</span>
       </div>
       <div style={mwStyles.sliderColumn}>
         <input
@@ -474,7 +485,7 @@ function SessionsControl({ value, onChange }) {
           onChange={handleSlider}
           style={{
             ...mwStyles.slider,
-            background: `linear-gradient(to right, var(--color-icon-tertiary-fg) 0%, var(--color-icon-tertiary-fg) ${pct}%, var(--color-divider-card) ${pct}%, var(--color-divider-card) 100%)`,
+            background: `linear-gradient(to ${isRtl ? "left" : "right"}, var(--color-icon-tertiary-fg) 0%, var(--color-icon-tertiary-fg) ${pct}%, var(--color-divider-card) ${pct}%, var(--color-divider-card) 100%)`,
           }}
         />
         <div style={mwStyles.sliderEnds}>
@@ -601,7 +612,7 @@ const mwStyles = {
     color: "var(--color-text-deep)",
     lineHeight: 1.3,
   },
-  required: { color: "var(--color-error)", marginLeft: 2, fontSize: 20, fontWeight: 700 },
+  required: { color: "var(--color-error)", marginInlineStart: 2, fontSize: 20, fontWeight: 700 },
   subtitle: {
     fontFamily: '"Mulish", sans-serif',
     fontSize: 14,
@@ -636,7 +647,9 @@ const mwStyles = {
   singleInput: {
     width: "100%",
     height: 56,
-    padding: "0 80px 0 16px",
+    paddingBlock: 0,
+    paddingInlineStart: 16,
+    paddingInlineEnd: 80,
     borderRadius: 8,
     border: "1px solid var(--color-divider-card)",
     background: "var(--surface-white)",
@@ -649,7 +662,7 @@ const mwStyles = {
   counter: {
     position: "absolute",
     top: "50%",
-    right: 16,
+    insetInlineEnd: 16,
     transform: "translateY(-50%)",
     fontFamily: '"Mulish", sans-serif',
     fontSize: 12,
@@ -755,7 +768,7 @@ const mwStyles = {
     fontFamily: '"Mulish", sans-serif',
     fontSize: 13,
     color: "var(--color-text-tertiary)",
-    marginLeft: 8,
+    marginInlineStart: 8,
   },
   sliderColumn: { flex: 1, display: "flex", flexDirection: "column", gap: 8 },
   slider: {
