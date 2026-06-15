@@ -115,10 +115,12 @@ export default function CreditsUsageAgentCaps({ onBack }) {
         </div>
       </Section>
 
-      {/* Billing model — the existing cap / allow-additional screens */}
+      {/* Billing + session limits side by side to use the horizontal space */}
+      <div style={styles.pairRow}>
       <Section
         title="When the pool runs out"
         description="Cap spend, or allow capped additional usage."
+        style={styles.pairCard}
       >
         <AdditionalUsageChoice
           mode={usageMode}
@@ -132,6 +134,7 @@ export default function CreditsUsageAgentCaps({ onBack }) {
       <Section
         title="Practice session limits"
         description="A weekly session cap applies to every agent over a Mon–Sun window."
+        style={styles.pairCard}
       >
         <div style={styles.limitsRow}>
           <Field label="Weekly session cap">
@@ -221,6 +224,7 @@ export default function CreditsUsageAgentCaps({ onBack }) {
 
         <AgentBannerPreview />
       </Section>
+      </div>
 
       {/* Per-agent usage */}
       <Section
@@ -332,6 +336,9 @@ const styles = {
   barPct: { fontSize: 22, fontWeight: 600, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums" },
   barNote: { fontSize: 12, color: "var(--color-text-tertiary)" },
   kpiRow: { display: "flex", gap: 12 },
+
+  pairRow: { display: "flex", gap: 16, alignItems: "flex-start" },
+  pairCard: { flex: 1, minWidth: 0 },
 
   limitsRow: { display: "flex", gap: 28, flexWrap: "wrap" },
   dayLimit: { display: "flex", alignItems: "center", gap: 10 },
