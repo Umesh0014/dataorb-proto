@@ -56,6 +56,7 @@ export default function LearningHubPage({
   locale = "en",
   onLocaleChange,
   isAgent = false,
+  onPersonaChange,
 }) {
   const [activeTab, setActiveTab] = React.useState("active");
   const [searchValue, setSearchValue] = React.useState("");
@@ -109,6 +110,21 @@ export default function LearningHubPage({
     onClick: () => {},
   };
 
+  // Persona view switch (Team Leader ↔ Agent) — an inline header pill so
+  // it's always visible (the floating bar was too easy to miss). Team
+  // Leader = full management UI; Agent = use-only (no edit, active drills,
+  // Run drill → guided runtime).
+  const personaFilter = {
+    id: "persona",
+    label: t("view"),
+    value: isAgent ? t("personaAgent") : t("personaTeamLead"),
+    options: [
+      { label: t("personaTeamLead"), value: "tl" },
+      { label: t("personaAgent"), value: "agent" },
+    ],
+    onSelect: (v) => onPersonaChange?.(v),
+  };
+
   return (
     <div style={lhStyles.column} dir={dir} lang={locale}>
         <PageHeader
@@ -130,7 +146,7 @@ export default function LearningHubPage({
             onChange: setSearchValue,
             placeholder: t("search"),
           }}
-          filters={[localeFilter]}
+          filters={[personaFilter, localeFilter]}
           toolbar={[filtersTool]}
         />
 

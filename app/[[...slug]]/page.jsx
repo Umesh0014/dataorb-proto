@@ -30,7 +30,6 @@ import CreditsUsageShell from "../../components/CreditsUsageShell";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
-import VersionBar from "../../components/VersionBar";
 import ReplayPage from "../../components/ReplayPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
@@ -99,13 +98,6 @@ const LEARNING_PAGES = {
   "guide":        { Component: GuidePage,       pageName: "Guide" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
 };
-
-// Drill persona switch options (Team Leader ↔ Agent), rendered as tabs in
-// the VersionBar.
-const DRILL_PERSONAS = [
-  { id: "tl", label: "Team Leader", iterations: [] },
-  { id: "agent", label: "Agent", iterations: [] },
-];
 
 const MIRA_PAGES = {
   "chat":    { Component: AskMiraProPage, pageName: "Ask Mira Pro" },
@@ -735,6 +727,7 @@ export default function Page() {
         <LearningPage
           pageName={pageName}
           isAgent={onDrill ? isAgentDrill : false}
+          onPersonaChange={(p) => { setDrillDetailId(null); setDrillPersona(p); }}
           onOpenDrill={(id) => setDrillDetailId(id)}
           onCreateRoleplay={() => {
             setRoleplay(EMPTY_ROLEPLAY);
@@ -814,26 +807,9 @@ export default function Page() {
       );
     } else {
       // Drill landing + detail carry the Team Leader ↔ Agent persona
-      // switch (VersionBar, mirroring Missions). Not shown during the
-      // Roleplay wizard or on the Agents/Guide sub-surfaces.
-      const showDrillPersona = onDrill && !roleplayStep;
-      moduleContent = (
-        <>
-          <PageLayout>{drillContent}</PageLayout>
-          {showDrillPersona && (
-            <VersionBar
-              tabsMode
-              versions={DRILL_PERSONAS}
-              baselineOptions={[]}
-              value={{ versionId: drillPersona, iterationId: null }}
-              onChange={({ versionId }) => {
-                setDrillDetailId(null);
-                setDrillPersona(versionId);
-              }}
-            />
-          )}
-        </>
-      );
+      // switch — surfaced as an inline header pill inside LearningHubPage
+      // (always visible), not a floating bar.
+      moduleContent = <PageLayout>{drillContent}</PageLayout>;
     }
   } else {
     const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");
