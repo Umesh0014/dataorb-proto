@@ -43,6 +43,8 @@ export default function VersionBar({
   onChange,
   figmaHref,
   onOpenFigma,
+  notionHref,
+  onOpenNotion,
   help,
 }) {
   // The help (?) button is disabled until the consumer wires content.
@@ -198,6 +200,16 @@ export default function VersionBar({
     else if (typeof window !== "undefined")
       window.open(figmaHref, "_blank", "noopener,noreferrer");
   };
+  // The Notion button mirrors Figma: disabled until the consumer wires
+  // a custom onOpenNotion handler or a notionHref ticket URL. No
+  // fallback link so a missing ticket reads as "not yet linked".
+  const notionEnabled = typeof onOpenNotion === "function" || typeof notionHref === "string";
+  const notion = () => {
+    if (!notionEnabled) return;
+    if (onOpenNotion) onOpenNotion();
+    else if (typeof window !== "undefined")
+      window.open(notionHref, "_blank", "noopener,noreferrer");
+  };
 
   const selectVersion = (v) => {
     setBaselineMenuOpen(false);
@@ -310,6 +322,13 @@ export default function VersionBar({
                 disabled={!figmaEnabled}
               >
                 <FigmaMark muted={!figmaEnabled} />
+              </CircleBtn>
+              <CircleBtn
+                ariaLabel={notionEnabled ? "Open Notion ticket" : "Notion link not set"}
+                onClick={notion}
+                disabled={!notionEnabled}
+              >
+                <NotionMark muted={!notionEnabled} />
               </CircleBtn>
             </div>
             <div className="vb-m-icon" aria-hidden="true">
@@ -630,6 +649,20 @@ function FigmaMark({ muted = false }) {
       <path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19Z" fill={fill("#FF7262")} />
       <path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5Z" fill={fill("#F24E1E")} />
       <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5Z" fill={fill("#A259FF")} />
+    </svg>
+  );
+}
+
+function NotionMark({ muted = false }) {
+  // Notion's "N" mark. When muted it desaturates to a single grey so the
+  // icon reads as "not actionable", matching FigmaMark's disabled state.
+  const fill = muted ? "var(--vb-muted)" : "var(--vb-txt)";
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 4.2 14 3.5l5.4 4.1V20l-3.2.3-6-8.3V19l2 .4v.9l-5.7.4v-.9l1.5-.4V6.6L6.4 6 4.5 5.1Z"
+        fill={fill}
+      />
     </svg>
   );
 }

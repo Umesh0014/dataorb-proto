@@ -95,6 +95,7 @@ export default function MissionsLandingShell({
         baselineOptions={PERSONA_BASELINE}
         value={{ versionId: activeVersionId, iterationId: null }}
         onChange={handleVersionChange}
+        notionHref="https://app.notion.com/p/37e7c82646568189b497c868391655d4"
       />
     </>
   );

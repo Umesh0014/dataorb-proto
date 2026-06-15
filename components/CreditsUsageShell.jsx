@@ -42,6 +42,7 @@ export default function CreditsUsageShell({ onBack }) {
         staticBaseline
         value={{ versionId: variant.toLowerCase(), iterationId: null }}
         onChange={({ versionId }) => setVariant(versionId.toUpperCase())}
+        notionHref="https://app.notion.com/p/36e7c82646568161bd49f771f96f2a1d"
       />
     </>
   );
