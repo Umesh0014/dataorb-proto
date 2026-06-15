@@ -13,6 +13,9 @@
 export const GUIDED_DRILL_META = {
   workflowTitle: "Bill-shock retention — IPC tariff",
   scenarioTitle: "Marcus Bell — bill higher than expected",
+  customerName: "Marcus Bell",
+  scenarioBody:
+    "Marcus is calling because his bill rose from £29.90 to £38.50 with no notice. He's a six-year customer and is openly weighing other providers — find what changed and put it right.",
   interactionId: "20471",
   initials: "MB",
   language: "English (UK)",
@@ -22,6 +25,29 @@ export const GUIDED_DRILL_META = {
   sessionsAllowed: 3,
   sessionsUsed: 1,
 };
+
+// Coarse phase strip above the step list (Assisted-mode variant). State:
+// "done" | "current" | "pending".
+export const GUIDED_DRILL_PHASES = [
+  { id: "open", label: "Open", state: "done" },
+  { id: "verify", label: "Verify", state: "done" },
+  { id: "diagnose", label: "Diagnose", state: "current" },
+  { id: "resolve", label: "Resolve", state: "pending" },
+  { id: "close", label: "Close", state: "pending" },
+];
+
+// Sub-checks ("dos") the listener ticks off within the active step, plus
+// the branch paths it's listening for next. Used by the Assisted variant.
+export const GUIDED_DRILL_ACTIVE_DOS = [
+  { id: "do-1", label: "Pull up this month's charges and read the delta back", hit: true },
+  { id: "do-2", label: "Compare line by line against last month", hit: true },
+  { id: "do-3", label: "Name the exact line that changed", hit: false },
+];
+
+export const GUIDED_DRILL_BRANCHES = [
+  { id: "br-1", label: "Charge is the IPC tariff → explain the adjustment & amount" },
+  { id: "br-2", label: "An add-on slipped in → itemise it and offer to remove" },
+];
 
 // Each step of the guided workflow.
 //   id          unique

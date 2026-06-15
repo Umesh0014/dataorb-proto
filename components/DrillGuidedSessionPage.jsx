@@ -8,6 +8,7 @@ import {
   X,
   Sparkles,
   CheckCircle2,
+  Check,
   AlertTriangle,
   Circle,
   ChevronDown,
@@ -24,6 +25,9 @@ import {
   GUIDED_DRILL_HINTS,
   GUIDED_DRILL_TURNS,
   GUIDED_DRILL_EVAL,
+  GUIDED_DRILL_PHASES,
+  GUIDED_DRILL_ACTIVE_DOS,
+  GUIDED_DRILL_BRANCHES,
   formatDrillTimer,
 } from "./mocks/guidedDrill";
 
@@ -54,6 +58,7 @@ const DIRECTIONS = [
   { id: "coach", label: "Coach" },
   { id: "spine", label: "Spine" },
   { id: "inline", label: "Inline" },
+  { id: "assisted", label: "Assisted" },
 ];
 const DIRECTION_VERSIONS = DIRECTIONS.map((d) => ({ ...d, iterations: [] }));
 
@@ -161,6 +166,24 @@ export default function DrillGuidedSessionPage({ onEnd }) {
 
         {ended ? (
           <EvalResult onBackToDrill={onEnd} onUnassisted={onEnd} />
+        ) : variant === "assisted" ? (
+          <div style={styles.assistedBody}>
+            <PersonaScenarioColumn
+              meta={meta}
+              muted={muted}
+              onToggleMute={() => setMuted((m) => !m)}
+              onEnd={endCall}
+            />
+            <AssistedGuide
+              steps={steps}
+              doneCount={doneCount}
+              activeStep={activeStep}
+              skippedSteps={skippedSteps}
+              activeHint={activeHint}
+              hintOpen={hintOpen}
+              onToggleHint={() => setHintOpen((o) => !o)}
+            />
+          </div>
         ) : (
           <div style={variant === "spine" ? styles.bodyStacked : styles.body}>
             {variant === "spine" ? (
@@ -768,6 +791,224 @@ function ProgressSpine({ steps, activeHint, hintOpen, onToggleHint }) {
   );
 }
 
+// ---- Assisted (HTML reference) -----------------------------------------
+// Two-column persona-call + Guided Workflow with a phase strip, auto-
+// detected step tags, a current-step sub-checklist, peek-phrasing, and the
+// branch paths the listener is waiting on. Mirrors the supplied HTML
+// reference, rebuilt on DataOrb tokens (no raw hex / Poppins).
+
+function EqBars({ tone = "var(--color-icon-tertiary-fg)" }) {
+  const heights = [6, 13, 9, 12];
+  return (
+    <span style={styles.eqBars} aria-hidden="true">
+      {heights.map((h, i) => (
+        <span
+          key={i}
+          style={{
+            ...styles.eqBar,
+            height: h,
+            background: tone,
+            animation: "drillEq 1s ease-in-out infinite",
+            animationDelay: `${i * 0.15}s`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function PersonaScenarioColumn({ meta, muted, onToggleMute, onEnd }) {
+  return (
+    <section style={styles.persona}>
+      <div style={styles.personaStack}>
+        <div style={styles.haloWrap}>
+          <span className="drillRipple" style={styles.haloRing} aria-hidden="true" />
+          <span style={styles.halo} aria-hidden="true">
+            <span style={styles.haloInitials}>{meta.initials}</span>
+          </span>
+        </div>
+        <div style={styles.speakingRow}>
+          <span style={styles.speakingLabel}>
+            {muted ? "Mic muted" : `${meta.customerName} is speaking`}
+          </span>
+          {!muted && <EqBars />}
+        </div>
+        <div style={styles.scenarioBlock}>
+          <span style={styles.scenarioHeading}>{meta.workflowTitle}</span>
+          <p style={styles.scenarioBody}>{meta.scenarioBody}</p>
+        </div>
+      </div>
+
+      <div style={styles.callBar}>
+        <span style={styles.connPill}>
+          <span style={styles.connDot} aria-hidden="true" />
+          Connected
+        </span>
+        <div style={styles.callCtl}>
+          <button
+            type="button"
+            onClick={onToggleMute}
+            aria-label={muted ? "Unmute microphone" : "Mute microphone"}
+            aria-pressed={muted}
+            className="drill-focusable"
+            style={styles.mutePill}
+          >
+            {muted
+              ? <MicOff size={20} color="var(--color-text-deep)" />
+              : <Mic size={20} color="var(--color-text-deep)" />}
+          </button>
+          <button
+            type="button"
+            onClick={onEnd}
+            aria-label="End call and see result"
+            className="drill-focusable"
+            style={styles.endPill}
+          >
+            <PhoneOff size={20} color="var(--surface-white)" />
+          </button>
+        </div>
+        <div style={{ flex: 1 }} />
+      </div>
+    </section>
+  );
+}
+
+function PhaseStrip({ phases }) {
+  const labelColor = (state) =>
+    state === "pending" ? "var(--color-text-tertiary)" : "var(--color-icon-tertiary-fg)";
+  const underline = (state) =>
+    state === "current"
+      ? "var(--color-icon-tertiary-fg)"
+      : state === "done"
+      ? "var(--color-border-tab)"
+      : "var(--color-divider-card)";
+  return (
+    <ol style={styles.phaseStrip} role="list">
+      {phases.map((p) => (
+        <li key={p.id} role="listitem" style={styles.phaseItem} aria-current={p.state === "current" ? "step" : undefined}>
+          <span style={{ ...styles.phaseLabel, color: labelColor(p.state) }}>{p.label}</span>
+          <span style={{ ...styles.phaseUnderline, background: underline(p.state) }} aria-hidden="true" />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function AssistedGuide({ steps, doneCount, activeStep, activeHint, hintOpen, onToggleHint }) {
+  return (
+    <aside style={styles.guide} aria-label="Guided workflow">
+      <div style={styles.guideHead}>
+        <span style={styles.guideTitle}>Guided workflow</span>
+        <span style={styles.listenPill}>
+          <EqBars tone="var(--color-icon-tertiary-fg)" />
+          Listening
+        </span>
+        <div style={{ flex: 1 }} />
+        <span style={styles.gprog}>
+          <b style={styles.gprogNum}>{doneCount}</b> of {steps.length} steps
+        </span>
+      </div>
+
+      <PhaseStrip phases={GUIDED_DRILL_PHASES} />
+
+      <div style={styles.assistedSteps}>
+        {steps.map((step) => {
+          if (step.state === "done") return <AssistedDoneRow key={step.id} step={step} />;
+          if (step.state === "skipped") return <AssistedSkippedRow key={step.id} step={step} />;
+          if (step.state === "active") {
+            return (
+              <AssistedCurrentCard
+                key={step.id}
+                step={step}
+                activeHint={activeHint}
+                hintOpen={hintOpen}
+                onToggleHint={onToggleHint}
+              />
+            );
+          }
+          return null;
+        })}
+
+        <span style={styles.nextLbl}>Listening for the path…</span>
+        {GUIDED_DRILL_BRANCHES.map((b) => (
+          <div key={b.id} style={styles.branchRow}>
+            <span style={styles.branchNode} aria-hidden="true" />
+            <span style={styles.branchLabel}>{b.label}</span>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function AssistedDoneRow({ step }) {
+  return (
+    <div style={styles.aStep}>
+      <span style={styles.aCheckDone} aria-hidden="true">
+        <Check size={13} color="var(--surface-white)" />
+      </span>
+      <div style={styles.aStepBody}>
+        <span style={styles.aStepLabel}>{step.label}</span>
+        <span style={styles.aWhen}>
+          <span style={styles.tagAi}>Auto-detected</span>
+          {step.at && <span style={styles.aWhenTime}>{step.at}</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function AssistedSkippedRow({ step }) {
+  return (
+    <div style={{ ...styles.aStep, background: "var(--color-warning-bg)" }}>
+      <span style={styles.aCheckSkip} aria-hidden="true">
+        <AlertTriangle size={13} color="var(--color-warning-dark)" />
+      </span>
+      <div style={styles.aStepBody}>
+        <span style={styles.aStepLabel}>{step.label}</span>
+        <span style={styles.aFlag}>
+          Skipped — no evidence found. You can still cover it before the call ends.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function AssistedCurrentCard({ step, activeHint, hintOpen, onToggleHint }) {
+  const showDos = step.id === "diagnose";
+  return (
+    <div style={styles.aCurrentCard} aria-current="step">
+      <div style={styles.aCurrentHead}>
+        <span style={styles.aCurrentDot} aria-hidden="true">
+          <span style={styles.activeDot} />
+        </span>
+        <div style={styles.aStepBody}>
+          <span style={styles.aCurrentTag}>Current step</span>
+          <span style={styles.aCurrentLabel}>{step.label}</span>
+        </div>
+      </div>
+      {showDos && (
+        <div style={styles.dos}>
+          {GUIDED_DRILL_ACTIVE_DOS.map((d) => (
+            <div key={d.id} style={styles.doi}>
+              <span style={d.hit ? styles.doBoxHit : styles.doBox} aria-hidden="true">
+                {d.hit && <Check size={11} color="var(--surface-white)" />}
+              </span>
+              <span style={{ ...styles.doLabel, color: d.hit ? "var(--color-text-deep)" : "var(--color-text-tertiary)" }}>
+                {d.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={styles.aPeek}>
+        <SuggestPhrasing hint={activeHint} open={hintOpen} onToggle={onToggleHint} />
+        <span style={styles.aPeekNote}>Viewed hints are logged</span>
+      </div>
+    </div>
+  );
+}
+
 // ---- Post-session eval (shared) ---------------------------------------
 
 function EvalResult({ onBackToDrill, onUnassisted }) {
@@ -1281,4 +1522,141 @@ const styles = {
     display: "inline-flex", alignItems: "center", gap: 6,
     fontSize: 12, fontWeight: 600, color: "var(--color-success-text)",
   },
+
+  // Assisted variant (two-column persona-call + guided workflow)
+  assistedBody: {
+    flex: 1, minHeight: 0, display: "grid",
+    gridTemplateColumns: "minmax(0, 11fr) minmax(0, 9fr)",
+  },
+  persona: {
+    display: "flex", flexDirection: "column", minHeight: 0,
+    background: "var(--surface-white)",
+    borderRight: "2px solid var(--color-border-card-soft)",
+    padding: "28px 28px 18px",
+  },
+  personaStack: {
+    flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+    justifyContent: "center", gap: 8, textAlign: "center", minHeight: 0,
+  },
+  haloWrap: { position: "relative", width: 168, height: 168, display: "inline-grid", placeItems: "center" },
+  haloRing: {
+    position: "absolute", inset: -10, borderRadius: "50%",
+    border: "2px solid var(--color-icon-tertiary-fg)",
+    animation: "drillRipple 2.2s ease-out infinite",
+  },
+  halo: {
+    width: 104, height: 104, borderRadius: "50%",
+    background: "var(--color-icon-tertiary-bg)", display: "inline-grid", placeItems: "center",
+  },
+  haloInitials: { fontSize: 30, fontWeight: 600, color: "var(--color-icon-tertiary-fg)" },
+  speakingRow: { marginTop: 16, display: "inline-flex", alignItems: "center", gap: 10 },
+  speakingLabel: { fontSize: 15, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  eqBars: { display: "inline-flex", alignItems: "flex-end", gap: 3, height: 14 },
+  eqBar: { width: 3, borderRadius: 2, transformOrigin: "bottom", display: "block" },
+  scenarioBlock: { marginTop: 28, maxWidth: 480, display: "flex", flexDirection: "column", gap: 8 },
+  scenarioHeading: { fontSize: 18, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.35 },
+  scenarioBody: { margin: 0, fontSize: 13.5, fontWeight: 400, lineHeight: 1.65, color: "var(--color-text-tertiary)" },
+  callBar: {
+    display: "flex", alignItems: "center", marginTop: 24, paddingTop: 16,
+    borderTop: "1px solid var(--color-border-card-soft)",
+  },
+  connPill: {
+    display: "inline-flex", alignItems: "center", gap: 7,
+    background: "var(--color-success-bg)", color: "var(--color-success-text)",
+    fontSize: 13, fontWeight: 600, borderRadius: 999, padding: "6px 14px",
+  },
+  connDot: { width: 8, height: 8, borderRadius: 999, background: "var(--color-success)" },
+  callCtl: { display: "flex", gap: 12, alignItems: "center", justifyContent: "center", flex: 1 },
+
+  // Guide panel
+  guide: {
+    display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden",
+    background: "var(--surface-white)",
+  },
+  guideHead: {
+    display: "flex", alignItems: "center", gap: 12,
+    padding: "18px 22px 14px", borderBottom: "1px solid var(--color-border-card-soft)", flexShrink: 0,
+  },
+  guideTitle: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
+  listenPill: {
+    display: "inline-flex", alignItems: "center", gap: 8,
+    fontSize: 12, fontWeight: 600, color: "var(--color-icon-tertiary-fg)",
+    background: "var(--color-icon-tertiary-bg)", borderRadius: 999, padding: "4px 11px",
+  },
+  gprog: { fontSize: 12, color: "var(--color-text-tertiary)" },
+  gprogNum: { color: "var(--color-text-deep)", fontWeight: 700 },
+  phaseStrip: { listStyle: "none", margin: 0, padding: "12px 22px 4px", display: "flex", gap: 4 },
+  phaseItem: {
+    flex: 1, textAlign: "center", display: "flex", flexDirection: "column", gap: 8, paddingBottom: 8,
+  },
+  phaseLabel: { fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" },
+  phaseUnderline: { height: 3, borderRadius: 2 },
+  assistedSteps: {
+    flex: 1, overflowY: "auto", padding: "14px 22px 20px",
+    display: "flex", flexDirection: "column", gap: 10, minHeight: 0,
+  },
+  aStep: {
+    border: "1px solid var(--color-border-card-soft)", borderRadius: 14, padding: "13px 15px",
+    display: "flex", gap: 12, alignItems: "flex-start", background: "var(--surface-dim)",
+  },
+  aCheckDone: {
+    width: 22, height: 22, borderRadius: 999, flexShrink: 0, marginTop: 1,
+    background: "var(--color-success)", display: "grid", placeItems: "center",
+  },
+  aCheckSkip: {
+    width: 22, height: 22, borderRadius: 999, flexShrink: 0, marginTop: 1,
+    background: "var(--surface-white)", border: "1px solid var(--color-warning-dark)",
+    display: "grid", placeItems: "center",
+  },
+  aStepBody: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 },
+  aStepLabel: { fontSize: 13.5, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
+  aWhen: { display: "inline-flex", alignItems: "center", gap: 6 },
+  aWhenTime: { fontSize: 11, color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)" },
+  tagAi: {
+    background: "var(--color-icon-tertiary-bg)", color: "var(--color-icon-tertiary-fg)",
+    borderRadius: 5, padding: "1px 6px", fontWeight: 700, fontSize: 10,
+  },
+  aFlag: { display: "flex", gap: 7, alignItems: "center", fontSize: 11.5, color: "var(--color-warning-text)", marginTop: 4 },
+  aCurrentCard: {
+    border: "1.5px solid var(--color-icon-tertiary-fg)", borderRadius: 14, padding: "14px 16px",
+    background: "var(--surface-white)", boxShadow: "var(--shadow-card)",
+    display: "flex", flexDirection: "column",
+  },
+  aCurrentHead: { display: "flex", gap: 12, alignItems: "flex-start" },
+  aCurrentDot: {
+    width: 22, height: 22, borderRadius: 999, border: "2px solid var(--color-icon-tertiary-fg)",
+    background: "var(--surface-white)", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1,
+  },
+  aCurrentTag: {
+    fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  aCurrentLabel: { fontSize: 14.5, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.4 },
+  dos: { margin: "12px 0 0 34px", display: "flex", flexDirection: "column", gap: 8 },
+  doi: { display: "flex", gap: 10, alignItems: "flex-start" },
+  doBox: {
+    width: 16, height: 16, borderRadius: 5, border: "1.5px solid var(--color-divider-card)",
+    flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
+  },
+  doBoxHit: {
+    width: 16, height: 16, borderRadius: 5, flexShrink: 0, marginTop: 1,
+    background: "var(--color-success)", border: "1.5px solid var(--color-success)",
+    display: "grid", placeItems: "center",
+  },
+  doLabel: { fontSize: 12.5, lineHeight: 1.45 },
+  aPeek: { margin: "12px 0 0 34px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  aPeekNote: { fontSize: 10.5, color: "var(--color-text-tertiary)" },
+  nextLbl: {
+    fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+    color: "var(--color-text-tertiary)", margin: "4px 0 -2px 2px",
+  },
+  branchRow: {
+    display: "flex", gap: 12, alignItems: "center", borderRadius: 14, padding: "13px 15px",
+    border: "1px dashed var(--color-divider-card)", background: "var(--surface-white)",
+  },
+  branchNode: {
+    width: 10, height: 10, borderRadius: 999, flexShrink: 0,
+    border: "1.5px dashed var(--color-text-tertiary)",
+  },
+  branchLabel: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)", lineHeight: 1.4 },
 };

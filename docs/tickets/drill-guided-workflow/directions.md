@@ -93,3 +93,4 @@ fourth; D4 and D10 are rejected on gate risk and are not worth building.
 | **Coach** | B / D5 | Single current-step coach card, minimal load |
 | **Spine** | C / D3 | Top progress stepper, branch lights up, expand for detail |
 | **Inline** | D / D2 | Added in review — guidance lives in the chat, no side panel; a CTA reveals the full step-by-step guide |
+| **Assisted** | E | Added in review from Umesh's supplied HTML reference — two-column persona-call + Guided Workflow with a phase strip, auto-detected step tags, a current-step sub-checklist (nested "dos"), peek-phrasing, and the branch paths the listener is waiting on. Rebuilt on DataOrb tokens. Evaluator: 13/13 gates, 92%, Handoff-ready. |
