@@ -840,10 +840,12 @@ function PersonaScenarioColumn({ meta, muted, onToggleMute, onEnd }) {
       </div>
 
       <div style={styles.callBar}>
-        <span style={styles.connPill}>
-          <span style={styles.connDot} aria-hidden="true" />
-          Connected
-        </span>
+        <div style={styles.callBarSide}>
+          <span style={styles.connPill}>
+            <span style={styles.connDot} aria-hidden="true" />
+            Connected
+          </span>
+        </div>
         <div style={styles.callCtl}>
           <button
             type="button"
@@ -867,7 +869,7 @@ function PersonaScenarioColumn({ meta, muted, onToggleMute, onEnd }) {
             <PhoneOff size={20} color="var(--surface-white)" />
           </button>
         </div>
-        <div style={{ flex: 1 }} />
+        <div style={styles.callBarSide} />
       </div>
     </section>
   );
@@ -1526,7 +1528,7 @@ const styles = {
   // Assisted variant (two-column persona-call + guided workflow)
   assistedBody: {
     flex: 1, minHeight: 0, display: "grid",
-    gridTemplateColumns: "minmax(0, 11fr) minmax(0, 9fr)",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
   },
   persona: {
     display: "flex", flexDirection: "column", minHeight: 0,
@@ -1566,7 +1568,9 @@ const styles = {
     fontSize: 13, fontWeight: 600, borderRadius: 999, padding: "6px 14px",
   },
   connDot: { width: 8, height: 8, borderRadius: 999, background: "var(--color-success)" },
-  callCtl: { display: "flex", gap: 12, alignItems: "center", justifyContent: "center", flex: 1 },
+  // Equal side gutters so mic/end sit dead-centre in the call column.
+  callBarSide: { flex: 1, minWidth: 0, display: "flex", alignItems: "center" },
+  callCtl: { display: "flex", gap: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
   // Guide panel
   guide: {
