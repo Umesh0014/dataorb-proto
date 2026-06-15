@@ -71,3 +71,54 @@ export const AGENTS_SAMPLE = [
 ];
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// ---- Jun 15 V1 (per-agent weekly session caps, org-level) -----------------
+// V1 deferred team-level distribution: credit is tracked at the tenant and
+// limits are a per-agent WEEKLY session cap (with an optional per-day cap),
+// over a Mon–Sun window. The fields below are additive — the team variants
+// (A/B/C) ignore them. tenure tag (Tenured/New/Onboarding) is surfaced now;
+// multi-select filtering by tag is a later version.
+
+export const POOL_SAMPLE = {
+  totalMinutes: 24000,
+  consumedMinutes: 14880,
+  remainingMinutes: 9120,
+  periodLabel: "Jun 1 – Jun 30",
+  daysToReset: 2, // days to the weekly (Mon–Sun) reset
+};
+
+export const AGENT_CAP_DEFAULTS = {
+  weeklySessionCap: 15,
+  perDayEnabled: true,
+  perDayCap: 10,
+  limitRule: "block", // "block" | "manual" | "additional"
+};
+
+export const AGENT_TAGS = ["Tenured", "New", "Onboarding"];
+
+// Per-agent weekly session usage. sessionsUsed is this Mon–Sun window;
+// override is the per-agent exception to the global overage rule.
+export const AGENT_SESSION_SAMPLE = [
+  { id: 5, name: "Meera Joshi", tag: "Onboarding", sessionsUsed: 15, lastActive: "2h ago", override: "default" },
+  { id: 6, name: "Arjun Nair", tag: "Onboarding", sessionsUsed: 18, lastActive: "1h ago", override: "default" },
+  { id: 11, name: "Pooja Iyer", tag: "Onboarding", sessionsUsed: 17, lastActive: "4h ago", override: "allow" },
+  { id: 15, name: "Divya Menon", tag: "Onboarding", sessionsUsed: 14, lastActive: "Yesterday", override: "default" },
+  { id: 20, name: "Gaurav Bhat", tag: "Onboarding", sessionsUsed: 16, lastActive: "3h ago", override: "default" },
+  { id: 1, name: "Priya Sharma", tag: "New", sessionsUsed: 13, lastActive: "5h ago", override: "default" },
+  { id: 2, name: "Rahul Verma", tag: "New", sessionsUsed: 16, lastActive: "1h ago", override: "default" },
+  { id: 13, name: "Neha Kulkarni", tag: "New", sessionsUsed: 11, lastActive: "Yesterday", override: "default" },
+  { id: 3, name: "Anita Desai", tag: "Tenured", sessionsUsed: 6, lastActive: "2d ago", override: "default" },
+  { id: 4, name: "Vikram Patel", tag: "Tenured", sessionsUsed: 9, lastActive: "Yesterday", override: "default" },
+  { id: 9, name: "Sneha Reddy", tag: "Tenured", sessionsUsed: 4, lastActive: "3d ago", override: "default" },
+  { id: 10, name: "Karan Mehta", tag: "Tenured", sessionsUsed: 17, lastActive: "2h ago", override: "manual" },
+  { id: 18, name: "Manish Agarwal", tag: "Tenured", sessionsUsed: 7, lastActive: "Yesterday", override: "default" },
+  { id: 21, name: "Ritu Malhotra", tag: "New", sessionsUsed: 14, lastActive: "6h ago", override: "default" },
+];
+
+// Single "what happens when an agent reaches their limit" control.
+// "additional" is last and reveals the additional-cap config when chosen.
+export const OVERAGE_RULES = [
+  { id: "block", label: "Hard stop", description: "No more practice until the weekly cap resets." },
+  { id: "manual", label: "Manual override per agent", description: "You decide, per agent, who can practise past the cap." },
+  { id: "additional", label: "Allow additional — capped", description: "Practice continues past the cap, up to an additional cap you set." },
+];
