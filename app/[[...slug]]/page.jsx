@@ -34,6 +34,7 @@ import ReplayPage from "../../components/ReplayPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
+import GuidedWorkflowAuthoringPage from "../../components/GuidedWorkflowAuthoringPage";
 import CreateTaskWizardPage, {
   EMPTY_TASK_DRAFT,
   SKILL_CATALOGUE,
@@ -96,6 +97,7 @@ const LEARNING_PAGES = {
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
+  "guided-workflow": { Component: GuidedWorkflowAuthoringPage, pageName: "Guided Workflow" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
 };
 

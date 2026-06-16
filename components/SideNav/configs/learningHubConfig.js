@@ -58,6 +58,13 @@ export const learningHubConfig = {
       wip: true,
     },
     {
+      id: "guided-workflow",
+      label: "Workflow",
+      Icon: GuideIcon,
+      route: "/learning/guided-workflow",
+      wip: true,
+    },
+    {
       id: "replay",
       label: "Replay",
       Icon: ReplayIcon,
