@@ -34,7 +34,7 @@ import ReplayPage from "../../components/ReplayPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
-import { GuidedWorkflowPanel } from "../../components/GuidedWorkflowAuthoringPage";
+import GuidedWorkflowAuthoringPage from "../../components/GuidedWorkflowAuthoringPage";
 import CreateTaskWizardPage, {
   EMPTY_TASK_DRAFT,
   SKILL_CATALOGUE,
@@ -810,20 +810,21 @@ export default function Page() {
         />
       );
     } else {
-      // Drill landing + detail carry the Team Leader ↔ Agent persona
-      // switch — surfaced as an inline header pill inside LearningHubPage
-      // (always visible), not a floating bar.
-      const workflowRightPanel = workflowPanelId
-        ? <GuidedWorkflowPanel workflowId={workflowPanelId} onClose={() => setWorkflowPanelId(null)} />
-        : null;
-      moduleContent = (
-        <PageLayout
-          rightPanel={workflowRightPanel}
-          onPanelClose={() => setWorkflowPanelId(null)}
-        >
-          {drillContent}
-        </PageLayout>
-      );
+      if (onDrill && workflowPanelId) {
+        // Guided Workflow authoring — full page takeover with back arrow.
+        // Bypasses PageLayout like DrillGuidedSessionPage for full width.
+        moduleContent = (
+          <GuidedWorkflowAuthoringPage
+            workflowId={workflowPanelId}
+            onBack={() => setWorkflowPanelId(null)}
+          />
+        );
+      } else {
+        // Drill landing + detail carry the Team Leader ↔ Agent persona
+        // switch — surfaced as an inline header pill inside LearningHubPage
+        // (always visible), not a floating bar.
+        moduleContent = <PageLayout>{drillContent}</PageLayout>;
+      }
     }
   } else {
     const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");

@@ -82,30 +82,22 @@ function rateColor(rate) {
   return "var(--color-error, #DC2626)";
 }
 
-export default function GuidedWorkflowAuthoringPage({ onBack }) {
-  const [mode, setMode] = React.useState("listing");
-  const [workflow, setWorkflow] = React.useState(SAMPLE_WORKFLOW);
+export default function GuidedWorkflowAuthoringPage({ onBack, workflowId }) {
+  const [workflow] = React.useState(workflowId === "new" ? EMPTY_WORKFLOW : SAMPLE_WORKFLOW);
   const [variant, setVariant] = React.useState("accordion");
 
-  if (mode === "listing") {
-    return (
-      <ListingView
-        onCreateNew={() => { setWorkflow(EMPTY_WORKFLOW); setMode("authoring"); }}
-        onOpenWorkflow={() => { setWorkflow(SAMPLE_WORKFLOW); setMode("authoring"); }}
-      />
-    );
-  }
+  const goBack = onBack || (() => {});
 
   return (
     <div style={s.root}>
       {variant === "accordion" && (
-        <AccordionVariant workflow={workflow} onBack={() => setMode("listing")} />
+        <AccordionVariant workflow={workflow} onBack={goBack} />
       )}
       {variant === "board" && (
-        <BoardVariant workflow={workflow} onBack={() => setMode("listing")} />
+        <BoardVariant workflow={workflow} onBack={goBack} />
       )}
       {variant === "recipe" && (
-        <RecipeVariant workflow={workflow} onBack={() => setMode("listing")} />
+        <RecipeVariant workflow={workflow} onBack={goBack} />
       )}
 
       <VersionBar
@@ -874,7 +866,7 @@ function EditorHeader({ workflow, onBack }) {
   return (
     <div style={s.editorHead}>
       <button type="button" className="drill-focusable" onClick={onBack} style={s.backBtn}>
-        ← Back to workflows
+        ← Back to Drill
       </button>
       <div style={s.editorTitleRow}>
         <h1 style={s.editorTitle}>{workflow.title || "New Guided Workflow"}</h1>
@@ -942,7 +934,12 @@ function EditorFooter() {
 // ============================================================
 
 const s = {
-  root: { position: "relative", width: "100%" },
+  root: {
+    position: "fixed", top: 0, right: 0, bottom: 0, left: 64,
+    display: "flex", flexDirection: "column",
+    background: "var(--surface-bg)", fontFamily: "var(--font-sans)",
+    overflow: "auto",
+  },
   column: { display: "flex", flexDirection: "column", gap: 16, width: "100%", fontFamily: "var(--font-sans)" },
 
   // Listing
