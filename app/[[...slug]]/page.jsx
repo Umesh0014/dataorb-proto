@@ -376,10 +376,11 @@ export default function Page() {
   }, [router]);
 
   const [drillDetailId, setDrillDetailId] = React.useState(null);
-  // Drill persona (Team Leader ↔ Agent). Team Leader sees the current
-  // management landing + detail; Agent sees a use-only landing whose
-  // "Run drill" launches the guided runtime. In-memory only.
-  const [drillPersona, setDrillPersona] = React.useState("tl");
+  // Drill persona (Team Leader ↔ Agent). Default Agent (use-only view) per
+  // the Drill View-switcher handoff. Team Leader = full management landing +
+  // detail; Agent = use-only landing whose "Run drill" launches the guided
+  // runtime. In-memory only.
+  const [drillPersona, setDrillPersona] = React.useState("agent");
   const [agentProfileId, setAgentProfileId] = React.useState(null);
   const [selectedMissionId, setSelectedMissionId] = React.useState(null);
   const [roleplayStep, setRoleplayStep] = React.useState(null); // null | 'persona' | 'context' | 'generated'

@@ -7,6 +7,7 @@ import TabsRow from "./TabsRow";
 import DrillCard from "./DrillCard";
 import ComingSoon from "./ComingSoon";
 import Banner from "./Banner";
+import VersionBar from "./VersionBar";
 import { DRILL_CARDS } from "./mocks/drillCards";
 import { evaluateRoleplayGate, gateCopy } from "./SettingsPage";
 import {
@@ -31,6 +32,15 @@ const DrillAvatarIcon = () => (
     co_present
   </span>
 );
+
+// Team Leader ⇄ Agent View switch — driven through the shared VersionBar
+// baseline dropdown, identical to the Missions persona switch
+// (MissionsLandingShell's PERSONA_BASELINE). Same component, same labels,
+// same tokens — the View toggle reads as a first-class view control.
+const DRILL_PERSONA_BASELINE = [
+  { id: "tl",    label: "Team Leader" },
+  { id: "agent", label: "Agent" },
+];
 
 // LearningHubPage — Drill page + the localization layer. The page title,
 // primary CTA, search, Filters, tabs, and the taxonomy chips (category +
@@ -110,22 +120,8 @@ export default function LearningHubPage({
     onClick: () => {},
   };
 
-  // Persona view switch (Team Leader ↔ Agent) — an inline header pill so
-  // it's always visible (the floating bar was too easy to miss). Team
-  // Leader = full management UI; Agent = use-only (no edit, active drills,
-  // Run drill → guided runtime).
-  const personaFilter = {
-    id: "persona",
-    label: t("view"),
-    value: isAgent ? t("personaAgent") : t("personaTeamLead"),
-    options: [
-      { label: t("personaTeamLead"), value: "tl" },
-      { label: t("personaAgent"), value: "agent" },
-    ],
-    onSelect: (v) => onPersonaChange?.(v),
-  };
-
   return (
+    <>
     <div style={lhStyles.column} dir={dir} lang={locale}>
         <PageHeader
           identifier={{
@@ -146,7 +142,7 @@ export default function LearningHubPage({
             onChange: setSearchValue,
             placeholder: t("search"),
           }}
-          filters={[personaFilter, localeFilter]}
+          filters={[localeFilter]}
           toolbar={[filtersTool]}
         />
 
@@ -182,6 +178,15 @@ export default function LearningHubPage({
           </div>
         )}
     </div>
+    {/* Team Leader ⇄ Agent View switch — shared VersionBar, mounted like
+        Missions' persona switch (same component/states/tokens). */}
+    <VersionBar
+      versions={[]}
+      baselineOptions={DRILL_PERSONA_BASELINE}
+      value={{ versionId: isAgent ? "agent" : "tl", iterationId: null }}
+      onChange={({ versionId }) => onPersonaChange?.(versionId)}
+    />
+    </>
   );
 }
 
