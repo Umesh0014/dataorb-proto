@@ -312,6 +312,7 @@ body {
   [style*="panelSlideIn"],
   [style*="drillStepIn"],
   [style*="drillRipple"],
+  [style*="drillSlideLeft"],
   [style*="drillEq"] {
     animation: none !important;
   }
@@ -320,6 +321,13 @@ body {
 @keyframes drillStepIn {
   from { transform: translateY(6px); opacity: 0; }
   to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* Filmstrip variant — the now-lane card slides in from the right one lane
+   at a time as the listener advances the workflow (continuity motion). */
+@keyframes drillSlideLeft {
+  from { transform: translateX(22px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
 
 /* Assisted-mode variant — persona halo ripple + listening equaliser. */
