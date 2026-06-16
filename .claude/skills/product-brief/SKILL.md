@@ -87,6 +87,12 @@ Read the ticket body sentence by sentence. If any requirement is missing from th
 checklist, add it before proceeding. This catch prevents the #1 failure mode — leaked
 requirements.
 
+**CTA journey map check:** Verify `requirements.md` contains a CTA Journey Map
+section. If missing, read the current implementation, identify every clickable element,
+and add the map. Every CTA must have: destination, journey states, return path, and
+build status. A requirements file without a CTA journey map is incomplete — don't
+proceed to HoP until every CTA is documented.
+
 ### 4. Head of Product agent
 Spawn the **head-of-product** agent (`agentType: 'head-of-product'`). Pass it:
 - Notion ticket content

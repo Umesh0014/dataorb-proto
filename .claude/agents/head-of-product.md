@@ -61,6 +61,12 @@ surface — not a feature list.]
 - Upstream: [what feeds data/state into this surface]
 - Downstream: [what this surface feeds into]
 - Adjacent: [related surfaces the user might navigate to/from]
+
+### CTA journey context
+For every known CTA on this surface (from current implementation or ticket spec):
+- [CTA label] → [where it leads in the product] — [is the destination built? what's the user's mental model of what happens?]
+- Flag any CTA whose journey crosses module boundaries (e.g. a Learning Hub CTA that opens a Missions surface) — these need extra context because the user's mental model shifts.
+- Flag any CTA whose destination doesn't exist yet — the direction must either block it visibly or exclude it.
 ```
 
 ### Deliverable 2: Direction context annotations
@@ -75,6 +81,9 @@ For each direction, add:
   a different product? [coherent / stretch / misaligned]
 - **Context the PM missed:** Any requirement, edge case, or persona need that the
   direction doesn't account for?
+- **CTA journey gaps:** Any CTA in this direction without a clear destination, or
+  with a journey that crosses modules without acknowledging the mental model shift?
+  Any async CTA (generate, send) missing loading/error states in the concept?
 
 Don't score numerically — that's the PO's job. Your annotations add the "product
 smell test" that pure requirements analysis can miss.

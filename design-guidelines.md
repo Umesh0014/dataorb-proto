@@ -70,6 +70,8 @@ The document has five parts:
 
 11. **Escape the chatbot pattern.** `[W:1]` Lead with task-based, structured interactions; reserve free-form Q&A as an on-demand follow-up, not the main interface. "The worst thing we can do is build another chatbot."
 
+12. **Every CTA must have a journey.** `[GATE]` No button, link, card-click, row-click, or action control ships without a documented journey: where it leads, what states the user passes through (loading → success / error / empty), what happens on completion, and how the user returns. A CTA without a journey is a dead end — it promises an action the product can't deliver. If the destination isn't built yet, the CTA must be visibly blocked or absent, never present-but-broken. For CTAs that open drawers/sidecars, the drawer content and its own CTAs are part of the journey. For CTAs that trigger async operations (generate, send, publish), the journey includes the in-progress state, the success state, and the failure/retry state. A screen with undocumented CTAs is incomplete regardless of how polished it looks.
+
 ---
 
 ## 3 · WCAG AA
@@ -151,8 +153,9 @@ The same principles, reorganized so any screen, prototype, or handoff can be sco
 | G11 | Full keyboard operability with logical tab order | WCAG-4 |
 | G12 | Real semantic elements + correct ARIA (`button`/`nav`/`list`, `aria-current`, `aria-haspopup`) | WCAG-5 |
 | G13 | Respects `prefers-reduced-motion`; no flashing > 3×/sec (WCAG 2.3.1) | WCAG-11 / MOT-4 |
+| G14 | Every CTA has a documented journey: destination, states (loading/success/error/empty), completion, and return path; unbuilt destinations are blocked or absent, never present-but-broken | INT-12 |
 
-**Rule:** all 13 gates must pass. A single gate failure = **Blocked**, regardless of weighted score.
+**Rule:** all 14 gates must pass. A single gate failure = **Blocked**, regardless of weighted score.
 
 ## B · Strong preferences (Weighted) — scored 0–2, multiplied by weight
 
@@ -206,7 +209,7 @@ Score each: **0** = misses, **1** = partial, **2** = fully meets.
 ## D · Scoring rubric
 
 ```
-1. GATES        → all 13 pass?  No → BLOCKED (stop).  Yes → continue.
+1. GATES        → all 14 pass?  No → BLOCKED (stop).  Yes → continue.
 2. WEIGHTED      → score = Σ(rating 0–2 × weight)
                   percent = score ÷ 104 × 100
 3. GOOD-TO-HAVES → + (count × 1), capped at +5 points, added to score
@@ -222,7 +225,7 @@ Score each: **0** = misses, **1** = partial, **2** = fully meets.
 | **< 55%** | Rework | Back to design; structural issues |
 | any gate fails | **Blocked** | Fix the gate first — score is irrelevant until it passes |
 
-**Worked example (illustrative).** A Missions detail screen passes all 13 gates. It scores full marks on reuse, primitives, and motion, but only *partial* (1) on drill-down discoverability and empty states, and *misses* (0) chart-as-table. Weighted = 92 of 104 = **88%** → **Handoff-ready**, with two flagged patches (discoverability, empty state) noted for the next round. One good-to-have present (downloadable PDF) → +1, comfortably clear of the 85% line.
+**Worked example (illustrative).** A Missions detail screen passes all 14 gates. It scores full marks on reuse, primitives, and motion, but only *partial* (1) on drill-down discoverability and empty states, and *misses* (0) chart-as-table. Weighted = 92 of 104 = **88%** → **Handoff-ready**, with two flagged patches (discoverability, empty state) noted for the next round. One good-to-have present (downloadable PDF) → +1, comfortably clear of the 85% line.
 
 ---
 
@@ -276,6 +279,7 @@ Per Neil's standing directive: map **user journeys, not product flows**, before 
 - [ ] **Cover all use cases** `[W:2]` — error, empty, loading, connection-error, truncation, absence of data.
 - [ ] **Use real content** — real strings, truncation, short text, missing data; no Lorem Ipsum; test ES/FR/NL length.
 - [ ] **Define clickable areas** — every clickable region identified across all scenarios.
+- [ ] **CTA journey map** `[GATE]` — every CTA has a documented journey: destination, states (loading/success/error/empty), return path. No dead-end CTAs. Unbuilt destinations blocked or absent. Async CTAs show in-progress + success + failure. Cross-module CTAs annotated with mental-model shifts.
 - [ ] **Usability + visual principles** — the four-category principles above are satisfied.
 - [ ] **Micro-interactions** — which pieces are interactive, and every status change they can show.
 - [ ] **Consistency** `[W:2]` — elements and zones reuse existing primitives; no forked components or hardcoded hex `[GATE]`.
@@ -301,6 +305,7 @@ Per Neil's standing directive: map **user journeys, not product flows**, before 
 - [ ] **Use real content** — verified, no placeholder text.
 - [ ] **Spell check & organise** — final clean pass.
 - [ ] **Define clickable areas** — every interactive region annotated.
+- [ ] **CTA journey audit** `[GATE]` — verify every CTA's journey is documented and buildable. Every onClick/href has a destination, every async action has loading/success/error states, every dead end is blocked or removed. Include CTA audit table in handoff notes.
 - [ ] **Micro-interactions** — interactive pieces and status changes spelled out.
 - [ ] **Dev notes** — kept alongside the screens / micro-interactions they describe.
 - [ ] **Documentation** — formal write-up of decisions and the items above.

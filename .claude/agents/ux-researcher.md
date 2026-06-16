@@ -52,7 +52,15 @@ For each comparable (3–5):
 - Anything specific to this surface's user context (shift workers, noisy environments,
   multilingual teams, mobile-adjacent usage patterns)
 
-### 6. Key constraints surfaced
+### 6. CTA & journey patterns from comparables
+- For each comparable, document how they handle CTA journeys:
+  - What happens when you click the primary action? (destination, transition, states)
+  - How do they handle async operations? (loading indicators, success/error feedback)
+  - How does the user return to the previous surface?
+  - Any dead-end patterns to avoid? (CTAs that lead nowhere, unclear destinations)
+- Surface patterns the PM should adopt or avoid when designing CTA journeys.
+
+### 7. Key constraints surfaced
 - [Constraint]: [source] — things the PM must account for that aren't in the ticket
 ```
 

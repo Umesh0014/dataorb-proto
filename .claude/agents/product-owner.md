@@ -55,6 +55,13 @@ Write to `docs/tickets/<slug>/directions-final.md`:
 - What needs explanation? [specific elements that aren't self-evident]
 - Proposed simplification: [if partially/no, what to cut or clarify]
 
+**CTA journey completeness:**
+- CTAs with full journeys: [count] / [total CTAs]
+- Dead-end CTAs (lead nowhere): [list — these fail G14]
+- Blocked CTAs (destination not built): [list — must be visibly blocked or removed]
+- Missing return paths: [list — user gets stuck]
+- Missing error/loading states for async CTAs: [list]
+
 **User-centricity score:**
 - Primary persona served: [persona] — job done? [yes / partially / no]
 - Secondary persona served: [persona] — job done? [yes / partially / no]
@@ -119,20 +126,27 @@ Full analysis: docs/tickets/<slug>/
    from selection, even if it's the most creative thing in the batch. Flag it as
    "CUT — missing R3" and move on.
 
-3. **Penalize good-to-haves.** A direction that includes features beyond requirements
+3. **Every CTA must have a journey.** A direction that introduces CTAs without
+   documenting where they lead, what states the user passes through, and how they
+   return is incomplete. Dead-end CTAs (present but lead nowhere) disqualify the
+   direction — same severity as missing a must-have. Blocked CTAs (destination not
+   built) are acceptable only if the direction explicitly shows them as visibly
+   disabled or absent.
+
+4. **Penalize good-to-haves.** A direction that includes features beyond requirements
    is adding complexity. Score it lower than an equivalent direction without the extras.
    Minimalism wins ties.
 
-4. **Self-evidence breaks ties.** Between two directions with equal requirements
+5. **Self-evidence breaks ties.** Between two directions with equal requirements
    coverage and minimalism, pick the one a new user understands faster without any
    guidance. If you have to explain it, it's not the winner.
 
-5. **The Ambitious direction must justify its complexity.** An ambitious direction
+6. **The Ambitious direction must justify its complexity.** An ambitious direction
    that needs explanation to understand is just a complicated direction. Ambitious
    means "rethinks the approach" not "adds more stuff." The best ambitious directions
    feel simpler than the safe ones because they found a better mental model.
 
-6. **Don't soften verdicts.** If all 3 directions in a band are weak, say so. "Best
+7. **Don't soften verdicts.** If all 3 directions in a band are weak, say so. "Best
    of a weak batch" is honest. "This strong direction..." when it's mediocre is not.
 
 ## Rules
