@@ -165,6 +165,17 @@ export const ReplayIcon = ({ size = 22, color = "currentColor" }) => (
   />
 );
 
+// Mobile (Learning Hub) — Material Symbols "smartphone" glyph. Entry to
+// the agent-facing mobile Learning Hub preview; shares the 960 viewBox of
+// the other rail icons.
+export const SmartphoneIcon = ({ size = 22, color = "currentColor" }) => (
+  <MaterialPath
+    size={size}
+    color={color}
+    d="M280-40q-33 0-56.5-23.5T200-120v-720q0-33 23.5-56.5T280-920h400q33 0 56.5 23.5T760-840v720q0 33-23.5 56.5T680-40H280Zm0-120v40h400v-40H280Zm0-80h400v-480H280v480Zm0-560h400v-40H280v40Zm0 0v-40 40Zm0 640v40-40Z"
+  />
+);
+
 // Missions (Learning Hub) — custom target/crosshair brand icon.
 // Used by both the SideNav rail and the Missions page header avatar.
 export const MissionsIcon = ({ size = 22, color = "currentColor" }) => (
