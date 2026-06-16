@@ -514,10 +514,9 @@ function BoardVariant({ workflow, onBack }) {
                 ))}
               </div>
               <div style={s.laneFooter}>
-                <button type="button" className="drill-focusable" style={s.laneAdd} onClick={() => {}}>
-                  <Plus size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
-                  <span style={s.laneAddText}>Add step</span>
-                </button>
+                <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => {}}>
+                  Add step
+                </Button>
                 <SuggestedSteps stageId={stage.id} />
               </div>
             </div>
@@ -583,9 +582,9 @@ function BoardCurtain({ step, onClose }) {
       <div style={s.curtain} role="complementary" aria-label="Step editor">
         <div style={s.curtainHead}>
           <span style={s.curtainTitle}>Edit Step</span>
-          <button type="button" className="drill-focusable" onClick={onClose} style={s.curtainClose} aria-label="Close">
-            <X size={18} aria-hidden="true" />
-          </button>
+          <Button variant="icon" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </Button>
         </div>
         <div style={s.curtainBody}>
           {/* PRIMARY — editable fields */}
@@ -749,10 +748,9 @@ function RecipeVariant({ workflow, onBack }) {
               ))}
 
               <div style={s.recipeAddWrap}>
-                <button type="button" className="drill-focusable" style={s.recipeAddStep} onClick={() => {}}>
-                  <Plus size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
-                  <span>Add instruction</span>
-                </button>
+                <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => {}}>
+                  Add instruction
+                </Button>
                 <SuggestedSteps stageId={stage.id} />
               </div>
             </div>
@@ -837,9 +835,11 @@ function RecipeStep({ step, index, isExpanded, isEditing, onToggle, onEdit }) {
           </div>
 
           {/* EDIT TOGGLE */}
-          <button type="button" className="drill-focusable" onClick={onEdit} style={s.recipeEditBtn}>
-            {isEditing ? "Done editing" : "Edit fields"}
-          </button>
+          <div style={{ alignSelf: "flex-start" }}>
+            <Button variant="text" onClick={onEdit}>
+              {isEditing ? "Done editing" : "Edit fields"}
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -863,33 +863,32 @@ function RecipeMeta({ icon, label, value }) {
 // ============================================================
 
 function EditorHeader({ workflow, onBack }) {
-  return (
-    <div style={s.editorHead}>
-      <button type="button" className="drill-focusable" onClick={onBack} style={s.backBtn}>
-        ← Back to Drill
-      </button>
-      <div style={s.editorTitleRow}>
-        <h1 style={s.editorTitle}>{workflow.title || "New Guided Workflow"}</h1>
-        <div style={s.editorBadges}>
-          {workflow.safetyWheelOn && (
-            <span style={s.safetyBadge}>
-              <Shield size={12} aria-hidden="true" /> Safety wheel on
-            </span>
-          )}
-          <span style={s.stateBadge}>{workflow.state}</span>
-        </div>
-      </div>
-      <div style={s.auditRow}>
-        <span style={s.auditText}>
-          by {workflow.author.name || "—"} · Updated {formatDate(workflow.updatedAt)}
+  const badges = (
+    <div style={s.editorMeta}>
+      {workflow.safetyWheelOn && (
+        <span style={s.safetyBadge}>
+          <Shield size={12} aria-hidden="true" /> Safety wheel on
         </span>
+      )}
+      <span style={s.stateBadge}>{workflow.state}</span>
+      <span style={s.auditText}>
+        by {workflow.author.name || "—"} · Updated {formatDate(workflow.updatedAt)}
         {workflow.attachedPersonas.length > 0 && (
-          <span style={s.auditText}>
-            · {workflow.attachedPersonas.length} persona{workflow.attachedPersonas.length > 1 ? "s" : ""} attached
-          </span>
+          <> · {workflow.attachedPersonas.length} persona{workflow.attachedPersonas.length > 1 ? "s" : ""} attached</>
         )}
-      </div>
+      </span>
     </div>
+  );
+
+  return (
+    <PageHeader
+      back={onBack}
+      identifier={{
+        icon: <CheckSquare size={16} />,
+        label: workflow.title || "New Guided Workflow",
+      }}
+      meta={badges}
+    />
   );
 }
 
@@ -937,10 +936,14 @@ const s = {
   root: {
     position: "fixed", top: 0, right: 0, bottom: 0, left: 64,
     display: "flex", flexDirection: "column",
-    background: "var(--surface-bg)", fontFamily: "var(--font-sans)",
-    overflow: "auto",
+    background: "var(--surface-canvas)", fontFamily: "var(--font-sans)",
+    overflow: "auto", padding: 32,
   },
-  column: { display: "flex", flexDirection: "column", gap: 16, width: "100%", fontFamily: "var(--font-sans)" },
+  column: {
+    display: "flex", flexDirection: "column", gap: 16,
+    width: "100%", maxWidth: 1068, marginInline: "auto",
+    fontFamily: "var(--font-sans)",
+  },
 
   // Listing
   grid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 16 },
@@ -965,15 +968,10 @@ const s = {
   wMeta: { paddingTop: 12, borderTop: "1px solid var(--color-border-card-soft)", display: "flex", gap: 8 },
   wMetaText: { fontSize: 12, color: "var(--color-text-tertiary)" },
 
-  // Editor header
-  editorHead: { display: "flex", flexDirection: "column", gap: 4 },
-  backBtn: { appearance: "none", border: "none", background: "none", color: "var(--color-button-primary-bg)", fontSize: 13, fontWeight: 500, cursor: "pointer", padding: 0, textAlign: "start", fontFamily: "inherit" },
-  editorTitleRow: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" },
-  editorTitle: { margin: 0, fontSize: 20, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: "28px" },
-  editorBadges: { display: "flex", gap: 8, alignItems: "center" },
+  // Editor header meta row (rendered inside PageHeader via meta prop)
+  editorMeta: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
   safetyBadge: { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 500, color: "var(--color-success-text)", background: "var(--color-success-bg)", padding: "3px 8px", borderRadius: 4 },
   stateBadge: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)", background: "var(--color-chip-bg)", padding: "3px 8px", borderRadius: 4, textTransform: "capitalize" },
-  auditRow: { display: "flex", gap: 0, flexWrap: "wrap" },
   auditText: { fontSize: 12, color: "var(--color-text-tertiary)" },
 
   // Metadata bar
@@ -1101,11 +1099,6 @@ const s = {
   laneEmpty: { padding: "12px 4px", textAlign: "center" },
   laneEmptyText: { fontSize: 12, color: "var(--color-text-tertiary)" },
   laneFooter: { display: "flex", flexDirection: "column", gap: 2, padding: "4px 8px 8px" },
-  laneAdd: {
-    appearance: "none", border: "none", background: "none", display: "flex",
-    alignItems: "center", gap: 4, padding: "8px 4px", cursor: "pointer", fontFamily: "inherit", minHeight: 44,
-  },
-  laneAddText: { fontSize: 12, color: "var(--color-text-tertiary)" },
 
   boardCard: {
     appearance: "none", border: "2px solid transparent", background: "var(--surface-white)",
@@ -1132,11 +1125,6 @@ const s = {
     padding: "16px 20px", borderBottom: "1px solid var(--color-border-card-soft)",
   },
   curtainTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },
-  curtainClose: {
-    appearance: "none", border: "none", background: "none", cursor: "pointer",
-    color: "var(--color-text-tertiary)", padding: 8, minWidth: 44, minHeight: 44,
-    display: "inline-grid", placeItems: "center",
-  },
   curtainBody: {
     display: "flex", flexDirection: "column", gap: 16, padding: 20,
     overflow: "auto", flex: 1,
@@ -1146,7 +1134,7 @@ const s = {
   recipeHero: { display: "flex", gap: 32, alignItems: "flex-start" },
   recipeHeroLeft: { flex: 1, display: "flex", flexDirection: "column", gap: 8 },
   recipeLabel: { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "1px" },
-  recipeTitle: { margin: 0, fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: "30px" },
+  recipeTitle: { margin: 0, fontSize: 20, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: "28px" },
   recipeDesc: { margin: 0, fontSize: 14, color: "var(--color-text-medium)", lineHeight: "22px", maxWidth: 560 },
   recipeHeroRight: { display: "flex", flexDirection: "column", gap: 12, minWidth: 280, flexShrink: 0 },
   recipeMetaItem: { display: "flex", gap: 8, alignItems: "flex-start" },
@@ -1183,37 +1171,7 @@ const s = {
   recipeFieldBody: { margin: 0, fontSize: 13, color: "var(--color-text-medium)", lineHeight: "20px", cursor: "pointer" },
 
   recipeAddWrap: { display: "flex", flexDirection: "column", gap: 4 },
-  recipeAddStep: {
-    appearance: "none", border: "none", background: "none", display: "flex",
-    alignItems: "center", gap: 4, padding: "8px 0", cursor: "pointer",
-    fontFamily: "inherit", fontSize: 12, color: "var(--color-text-tertiary)",
-  },
-  recipeEditBtn: {
-    appearance: "none", border: "1px solid var(--color-border-card-soft)",
-    background: "var(--surface-white)", borderRadius: 4, padding: "4px 10px",
-    cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 500,
-    color: "var(--color-button-primary-bg)", alignSelf: "flex-start",
-  },
 
-  // ---- Panel variant (right panel, 320px) ----
-  panelColumn: { display: "flex", flexDirection: "column", gap: 12, fontFamily: "var(--font-sans)" },
-  panelTitle: { margin: 0, fontSize: 15, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: "22px" },
-  panelDesc: { margin: 0, fontSize: 12, color: "var(--color-text-tertiary)", lineHeight: "18px" },
-  panelMeta: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 12px" },
-  panelStageHead: {
-    appearance: "none", border: "none", background: "none", width: "100%",
-    display: "flex", alignItems: "center", gap: 6, padding: "10px 0",
-    cursor: "pointer", fontFamily: "inherit", borderTop: "1px solid var(--color-border-card-soft)",
-  },
-  panelStepRow: {
-    appearance: "none", border: "none", background: "none", width: "100%",
-    display: "flex", alignItems: "center", gap: 6, padding: "8px 8px",
-    cursor: "pointer", fontFamily: "inherit", minHeight: 40, textAlign: "start",
-    borderBottom: "1px solid var(--color-border-card-soft)",
-  },
-  panelStepLabel: { fontSize: 12, fontWeight: 500, color: "var(--color-text-medium)", flex: 1, textAlign: "start", lineHeight: "16px" },
-  panelExpand: { display: "flex", flexDirection: "column", gap: 10, padding: "8px 8px 12px", background: "var(--surface-alt)", borderRadius: 4 },
-  panelFooter: { display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid var(--color-border-card-soft)" },
 };
 
 // ============================================================
@@ -1273,121 +1231,3 @@ export function GuidedWorkflowListing({ onOpenWorkflow }) {
   );
 }
 
-/**
- * GuidedWorkflowPanel — 320px-wide right-panel authoring view.
- * Vertical accordion layout optimised for panel width.
- */
-export function GuidedWorkflowPanel({ workflowId, onClose }) {
-  const workflow = workflowId === "new" ? EMPTY_WORKFLOW : SAMPLE_WORKFLOW;
-  const [openStage, setOpenStage] = React.useState(null);
-  const [editingStep, setEditingStep] = React.useState(null);
-
-  const toggle = (id) => setOpenStage((prev) => prev === id ? null : id);
-
-  return (
-    <div style={s.panelColumn}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={s.panelTitle}>{workflow.title || "New Guided Workflow"}</span>
-        <button type="button" className="drill-focusable" onClick={onClose} style={s.curtainClose} aria-label="Close">
-          <X size={16} aria-hidden="true" />
-        </button>
-      </div>
-      {workflow.description && <p style={s.panelDesc}>{workflow.description}</p>}
-
-      {/* Metadata */}
-      <div style={s.panelMeta}>
-        <MetaField label="Contact reason" value={workflow.contactReason} />
-        <MetaField label="Job to be done" value={workflow.jobToBeDone} />
-        <MetaField label="Domain" value={workflow.domain} />
-        <MetaField label="Attempts" value={`${workflow.attemptsAllowed} per agent`} />
-      </div>
-
-      {/* Stages accordion */}
-      {workflow.stages.map((stage) => {
-        const meta = stageMeta(stage.id);
-        const isOpen = openStage === stage.id;
-        return (
-          <div key={stage.id}>
-            <button
-              type="button"
-              className="drill-focusable"
-              onClick={() => toggle(stage.id)}
-              style={s.panelStageHead}
-              aria-expanded={isOpen}
-            >
-              <span style={{ ...s.stageDot, background: meta.color }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", flex: 1, textAlign: "start" }}>
-                {meta.label}
-              </span>
-              <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{stage.steps.length}</span>
-              <ChevronDown
-                size={14}
-                color="var(--color-text-tertiary)"
-                aria-hidden="true"
-                style={{ transform: isOpen ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
-              />
-            </button>
-
-            {isOpen && (
-              <div>
-                {stage.steps.map((step) => {
-                  const tm = typeMeta(step.type);
-                  const mm = mandatoryMeta(step.mandatory);
-                  const metrics = getMetrics(step.id);
-                  const isEdit = editingStep === step.id;
-                  return (
-                    <div key={step.id}>
-                      <button
-                        type="button"
-                        className="drill-focusable"
-                        style={s.panelStepRow}
-                        onClick={() => setEditingStep(isEdit ? null : step.id)}
-                      >
-                        <span style={s.panelStepLabel}>{step.label}</span>
-                        <span style={{ ...s.metricsInlineSm, color: rateColor(metrics.successRate) }}>
-                          {metrics.successRate}%
-                        </span>
-                        <ChevronDown
-                          size={12}
-                          color="var(--color-text-tertiary)"
-                          aria-hidden="true"
-                          style={{ flexShrink: 0, transform: isEdit ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
-                        />
-                      </button>
-                      {isEdit && (
-                        <div style={s.panelExpand}>
-                          <div style={s.fieldGroup}>
-                            <label style={s.fieldLabel}>Instruction</label>
-                            <textarea style={s.fieldTextarea} defaultValue={step.detail} rows={2} />
-                          </div>
-                          <div style={s.fieldGroup}>
-                            <label style={s.fieldLabel}>Script</label>
-                            <textarea style={{ ...s.fieldTextarea, fontStyle: "italic" }} defaultValue={step.script || ""} rows={2} />
-                          </div>
-                          <StepMetricsBlock stepId={step.id} />
-                          <div style={{ display: "flex", gap: 4 }}>
-                            <span style={{ ...s.chipSm, background: tm.bg, color: tm.fg }}>{tm.label}</span>
-                            <span style={{ ...s.chipSm, background: mm.bg, color: mm.fg }}>{mm.label}</span>
-                          </div>
-                          <KnowledgeCards knowledgeCard={step.knowledgeCard} />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                <SuggestedSteps stageId={stage.id} />
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Footer */}
-      <div style={s.panelFooter}>
-        <Button variant="text" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => {}}>Save</Button>
-      </div>
-    </div>
-  );
-}
