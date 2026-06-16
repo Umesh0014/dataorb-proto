@@ -167,7 +167,7 @@ export default function GuidedWorkflowAuthoringPage({ onBack, workflowId }) {
       <EditorFooter onCancel={goBack} onSaveDraft={saveDraft} onPublish={publish} />
 
       {saveStatus && (
-        <div style={s.toast}>
+        <div style={s.toast} role="status" aria-live="polite">
           {saveStatus === "saved" ? "✓ Draft saved" : "✓ Published"}
         </div>
       )}
@@ -494,16 +494,18 @@ function AccordionStep({ step, isEditing, onToggleEdit }) {
         <div style={s.accStepExpand}>
           {/* PRIMARY — editable instruction + script */}
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Instruction</label>
+            <label htmlFor={`${step.id}-instr`} style={s.fieldLabel}>Instruction</label>
             <textarea
+              id={`${step.id}-instr`}
               style={s.fieldTextarea}
               defaultValue={step.detail}
               rows={2}
             />
           </div>
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Script (suggested phrasing)</label>
+            <label htmlFor={`${step.id}-script`} style={s.fieldLabel}>Script (suggested phrasing)</label>
             <textarea
+              id={`${step.id}-script`}
               style={{ ...s.fieldTextarea, fontStyle: "italic" }}
               defaultValue={step.script || ""}
               placeholder="No script — add suggested phrasing…"
@@ -657,16 +659,17 @@ function BoardCurtain({ step, onClose }) {
         <div style={s.curtainBody}>
           {/* PRIMARY — editable fields */}
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Step name</label>
-            <input type="text" style={s.fieldInput} defaultValue={step.label} />
+            <label htmlFor={`${step.id}-name`} style={s.fieldLabel}>Step name</label>
+            <input id={`${step.id}-name`} type="text" style={s.fieldInput} defaultValue={step.label} />
           </div>
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Instruction</label>
-            <textarea style={s.fieldTextarea} defaultValue={step.detail} rows={3} />
+            <label htmlFor={`${step.id}-instr`} style={s.fieldLabel}>Instruction</label>
+            <textarea id={`${step.id}-instr`} style={s.fieldTextarea} defaultValue={step.detail} rows={3} />
           </div>
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Script (suggested phrasing)</label>
+            <label htmlFor={`${step.id}-script`} style={s.fieldLabel}>Script (suggested phrasing)</label>
             <textarea
+              id={`${step.id}-script`}
               style={{ ...s.fieldTextarea, fontStyle: "italic" }}
               defaultValue={step.script || ""}
               placeholder="No script — add suggested phrasing…"
@@ -857,18 +860,18 @@ function RecipeStep({ step, index, isExpanded, isEditing, onToggle, onEdit }) {
         <div style={s.recipeStepExpand}>
           {/* PRIMARY — instruction + script */}
           <div style={s.recipeFieldBlock}>
-            <span style={s.recipeFieldLabel}>What to do</span>
+            <label htmlFor={`${step.id}-r-instr`} style={s.recipeFieldLabel}>What to do</label>
             {isEditing ? (
-              <textarea style={s.fieldTextarea} defaultValue={step.detail} rows={2} />
+              <textarea id={`${step.id}-r-instr`} style={s.fieldTextarea} defaultValue={step.detail} rows={2} />
             ) : (
               <p style={s.recipeFieldBody} onClick={onEdit}>{step.detail}</p>
             )}
           </div>
           {(step.script || isEditing) && (
             <div style={s.recipeFieldBlock}>
-              <span style={s.recipeFieldLabel}>Script</span>
+              <label htmlFor={`${step.id}-r-script`} style={s.recipeFieldLabel}>Script</label>
               {isEditing ? (
-                <textarea style={{ ...s.fieldTextarea, fontStyle: "italic" }} defaultValue={step.script || ""} placeholder="Add script…" rows={2} />
+                <textarea id={`${step.id}-r-script`} style={{ ...s.fieldTextarea, fontStyle: "italic" }} defaultValue={step.script || ""} placeholder="Add script…" rows={2} />
               ) : (
                 <p style={{ ...s.recipeFieldBody, fontStyle: "italic" }} onClick={onEdit}>"{step.script}"</p>
               )}
@@ -1073,13 +1076,13 @@ const s = {
   fieldInput: {
     fontSize: 13, color: "var(--color-text-medium)", padding: "6px 10px",
     border: "1px solid var(--color-border-card-soft)", borderRadius: 6,
-    background: "var(--surface-dim)", fontFamily: "inherit", outline: "none",
+    background: "var(--surface-dim)", fontFamily: "inherit",
   },
   fieldTextarea: {
     fontSize: 13, color: "var(--color-text-medium)", padding: "8px 10px",
     border: "1px solid var(--color-border-card-soft)", borderRadius: 6,
     background: "var(--surface-dim)", lineHeight: "20px", minHeight: 48,
-    fontFamily: "inherit", resize: "vertical", outline: "none",
+    fontFamily: "inherit", resize: "vertical",
   },
   fieldRow: { display: "flex", gap: 16 },
 
