@@ -1,101 +1,150 @@
-# Drill — Guided Workflow (assisted "safety wheel" mode)
+# Drill — Guided Workflow: 10 Design Directions (Rev 2)
 
-**Ticket:** [Learning hub] Drill — Guided Workflow (assisted "safety wheel" mode) · P1 · `Inprogress`
-**Notion:** https://app.notion.com/p/37c7c8264656819dbc5dcdab7ebdb322
-**Surface built:** the **live guided drill experience** (agent-facing) + its post-session eval
-banner. Chosen with Umesh over the team-lead authoring tool (Neil still sending HTML
-reference screens for that) and the standalone eval surface (narrower).
+**Ticket:** [Learning hub] Drill — Guided Workflow
+**Surface:** Agent-side in-drill experience — how the guided workflow steps surface during a live role-play call
+**Scored against:** `design-guidelines.md` (13 gates, 104-point weighted rubric)
+**Date:** 2026-06-16
+**Replaces:** Rev 1 directions (Sidecar/Coach/Spine/Inline/Assisted explored pre-Jun-16 lock)
 
-This file is the audit trail for the divergence: 10 directions, scored against
-`design-guidelines.md`, culled to the 3 that were built behind the switcher.
+## Locked constraints (Jun 16 session — non-negotiable)
 
----
+1. **Progressive disclosure** — previous/current/next three-position view
+2. **No transcript** in the guided view — distracting, no purpose
+3. **Step / Script / Knowledge-card** triplet per step
+4. **Five universal stages:** Open → Verify → Discover → Act → Close
+5. Conversation left, guided card right (not transcript)
+6. "Show all / show completed" is a deliberate action, never forced
+7. Flat checklist, NO branching flowcharts
+8. The guided workflow AI is order-agnostic — checks steps off when evidence found
 
-## What the surface must do (from the brief)
+## What varies across directions
 
-- Agent converses with a simulated customer; **a second AI listens and checks off the
-  steps** of the conversation's guided workflow (greeting ✓, verification ✓, …) in real
-  time, and **flags skipped mandatory steps** ("no evidence found").
-- A **Suggest phrasing** affordance the agent can pull mid-call (e.g. how to de-escalate).
-- The workflow is a **branching call path** (who's on the line → validation →
-  bill-higher → IPC tariff → churn signal? → offer → agreement → close).
-- After the call, the eval shows the result **but a banner makes clear the score is NOT
-  counted toward the readiness profile** (safety-on = new "assisted mode" exclusion,
-  mirroring calibration mode), with a CTA: "ready to drill without the training wheel?"
-- The agent must **stay focused on the call** — detection happens behind the scenes.
-
-Constant across every direction (not a differentiator): the live conversation column,
-the mic/end controls, the skipped-mandatory flag, suggest-phrasing, and the post-session
-eval + exclusion banner. The directions differ in **how the live guidance is structured
-and surfaced**.
+Given the locked decisions, the degrees of freedom are:
+- HOW the three-position view is rendered (stacking, sliding, carousel, etc.)
+- WHERE the phase strip lives and how prominent it is
+- HOW script + knowledge-card are accessed (inline, accordion, popover, drawer)
+- The RATIO between conversation space and guidance space
+- HOW "show all steps" surfaces when the agent needs it
 
 ---
 
 ## The 10 directions
 
-Scored 0–2 on the rubric preferences decidable at concept stage, ×weight. Columns:
-UI-2 reuse (3) · INT-1 affordance (3) · INT-2 drill-down (3) · UI-6 highlight-distinct (2)
-· UI-8 multilingual-cards (2) · INT-3 one-primitive (2) · INT-5 empty/zero (2) · MOT-3
-choreograph-focus (2). Gate-risk column flags any approach that structurally fights a gate.
+### D1 — Vertical Card Stack
 
-| # | Direction | Reuse·3 | Afford·3 | Drill·3 | Hl·2 | i18n·2 | Prim·2 | Empty·2 | Focus·2 | Σ/48 | Gate risk |
-|---|-----------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|---|
-| **D1** | **Sidecar checklist rail** (right panel, live check-off) | 6 | 6 | 6 | 4 | 4 | 4 | 4 | 4 | **42** | — |
-| **D5** | **Coach focus** (one current step, peek-next) | 4 | 6 | 4 | 4 | 4 | 4 | 4 | 6 | **36** | — |
-| **D3** | **Progress spine** (top stepper + expand) | 4 | 6 | 6 | 4 | 2 | 2 | 4 | 4 | **32** | — |
-| D9 | Tabbed guidance (Steps / Phrasing / Path) | 6 | 4 | 2 | 2 | 4 | 4 | 4 | 4 | 30 | tabs hide path |
-| D2 | Inline transcript annotations | 4 | 2 | 2 | 4 | 2 | 4 | 4 | 6 | 28 | color-only risk (G9) |
-| D7 | Bottom HUD control bar | 2 | 4 | 4 | 4 | 2 | 2 | 4 | 4 | 26 | — |
-| D6 | Split: checklist-primary left | 4 | 4 | 4 | 2 | 4 | 2 | 2 | 2 | 24 | — |
-| D8 | Dedicated "skips" alert lane | 2 | 4 | 4 | 2 | 2 | 2 | 6 | 2 | 24 | thin without a base layout |
-| D4 | Branching call-path flowchart | 2 | 2 | 4 | 2 | 0 | 2 | 2 | 2 | 16 | node-graph ≈ chart, fails table-export + contrast (G2/G8) |
-| D10 | Card-stack / swipe-to-advance | 2 | 2 | 2 | 2 | 2 | 0 | 2 | 0 | 12 | motion reads playful, fights MOT-5/6 restraint |
+Three cards stacked vertically in a right panel (~40% width). Previous card: collapsed 1-liner (faded). Current card: expanded with step label, script accordion, knowledge-card link. Next card: partially visible (teased, 2 lines). Cards animate upward on step-advance (150ms ease). Phase breadcrumb at top of panel. "Show all steps" button at panel bottom.
 
-(Scores are concept-stage rubric *alignment*, not a build measurement — the evaluator
-re-scores the built variants against all 13 gates + the full weighted table afterward.)
+**Reuse:** Card primitive, PhaseStrip, SuggestPhrasing, stepStateMeta helpers.
+**User problem:** Direct mapping of Neil's "where was I / where am I / where am I going" mental model.
+
+### D2 — Sliding Window
+
+Right panel shows a single expanded step at a time. Previous and next steps are visible as thin strips (32px) above and below the current step, showing just the label + status icon. Clicking a strip scrolls it into the expanded position (300ms ease). The expanded step shows step + script + knowledge card inline. Phase strip at top.
+
+**Reuse:** Card, step state helpers, existing phase components.
+**User problem:** Maximum reading space for the current step's script and knowledge card — previous/next are present but don't compete for attention.
+
+### D3 — Phase-Gated Columns
+
+The 5 phases render as equal-width vertical columns in the right panel. Each column lists its steps as compact rows. The active phase column is highlighted and its active step is expanded (step + script + knowledge-card). Completed phases collapse to a check mark + phase name. The layout naturally shows "where in the arc" the agent is.
+
+**Reuse:** PhaseStrip concepts, Card, step state helpers.
+**User problem:** Phase awareness is primary — the agent sees the full conversation arc at all times, not just the step sequence.
+
+### D4 — Coach Card + Phase Ribbon
+
+Thin horizontal phase ribbon below the session header (40px). Below: the conversation column (left, 55%) and a single coach card (right, 45%). The coach card shows only the current step in full detail: step label, script (always visible), knowledge card (expandable). Below the card: a "peek-next" teaser line. Above the card: a small "previous step" summary. The ribbon pulses on the active phase.
+
+**Reuse:** PhaseStrip, Card, SuggestPhrasing, Banner.
+**User problem:** Minimal cognitive load — one thing at a time. The phase ribbon gives orientation; the coach card gives depth.
+
+### D5 — Accordion Rail
+
+Right panel (~38% width) lists ALL steps as collapsed accordion rows (label + status). The current step is auto-expanded showing step + script + knowledge card. Previous steps show green check + at-timestamp. The agent can expand any step to see its script + knowledge card. Phase section headers divide the list. Auto-scrolls to keep current step centered.
+
+**Reuse:** Existing AssistedGuide structure (very close), PhaseStrip, Card.
+**User problem:** Full context — the agent sees every step's status at a glance. Current step gets detail space. Agents who want to preview ahead or review behind can expand any row.
+
+### D6 — Floating Focus Pill
+
+No persistent right panel. A floating pill (200px wide, bottom-right, above VersionBar) shows the current step label + phase. Tapping it opens a 320px slide-in panel from the right edge (MOT-7) with the three-position view: previous (collapsed), current (expanded with script + knowledge card), next (teased). Phase strip at panel top. Dismissing the panel returns to the pill.
+
+**Reuse:** Card, drawer enter-from-edge pattern, step state helpers.
+**User problem:** Maximum conversation space. Guidance is one tap away but never covers the conversation unless the agent wants it.
+
+### D7 — Split Header + Detail Drawer
+
+The session header extends to include a compact step progress bar (dots for each step, colored by state). Below: full-width conversation. The current step's detail (step + script + knowledge card) opens in a right-edge drawer (300px) when the agent clicks the active dot or a "Current step" button in the header. The drawer shows the three-position view.
+
+**Reuse:** Drawer pattern (MOT-7), step state dots, Card.
+**User problem:** The progress bar gives constant progress awareness without consuming vertical space. Detail is on-demand via the drawer.
+
+### D8 — Dual-Track Timeline
+
+Right panel (~42% width) with two parallel vertical tracks: the left track is a thin timeline of all steps (dots + labels, 40px wide), the right track shows the expanded three-position view (prev/current/next cards). The timeline scrolls independently, and tapping any step on the timeline scrolls the cards to that position. Phase labels are inline on the timeline.
+
+**Reuse:** Card, step state meta, PhaseStrip concepts.
+**User problem:** Overview + detail side by side — the timeline is the "map", the cards are the "territory". Agents can jump to any step.
+
+### D9 — Tabbed Guidance Panel
+
+Right panel (~40% width) with 3 tabs at the top: **Guide** (the three-position step view), **Script** (the current step's full script, always visible, no accordion), **Knowledge** (the current step's linked knowledge card, full display). Only one tab active at a time. Phase strip below the tabs. The Guide tab is default; Script and Knowledge tabs light up with a badge when they have content for the current step.
+
+**Reuse:** TabsRow, Card, PhaseStrip.
+**User problem:** Each asset type (step, script, knowledge) gets full panel space — no cramming three things into one card. Clean separation of concerns.
+
+### D10 — Contextual Inline Notes
+
+No right panel. Guidance surfaces as contextual notes WITHIN the conversation column (similar to existing Inline variant but redesigned for the locked constraints). Instead of a transcript, the conversation column shows: the persona orb + controls on the left half, and on the right half, the three-position step view (prev/current/next) rendered as inline cards. Script + knowledge card are accordion items inside the current step card. Phase strip at the top of the right half.
+
+**Reuse:** Existing Inline patterns, Card, PhaseStrip, SuggestPhrasing.
+**User problem:** No split — everything lives in one flow. The conversation controls and the guidance are co-located. Works well for mobile-first (single column on narrow screens).
 
 ---
 
-## The cut — why these 3
+## Scoring (concept-level rubric alignment)
 
-The trio is chosen for **rubric score AND structural variety**: three genuinely different
-spatial models (right rail / centred card / top spine), each leaning into a different user
-problem, and all three reuse `GuideSessionPage`'s full-bleed session shell + existing
-primitives with no gate risk.
+Scored 0–2 on weighted preferences decidable at concept stage, multiplied by weight.
 
-- **A — Sidecar checklist rail (D1).** Top score. The comprehensive, reference-grade view:
-  a persistent right panel mirrors `GuideSessionPage`'s push-in `SourcesPanel`, listing
-  every workflow step with live check-off, mandatory badges, the skipped-step flag, and
-  Suggest-phrasing inline on the active step. Highest reuse, clearest affordances, every
-  step is a schema container (UI-5). Wins on the "did I hit my goal" comprehensiveness axis.
-
-- **B — Coach focus (D5).** The opposite philosophy: surface **only the current step** as a
-  prominent coach card with a peek at what's next, so the agent's attention stays on the
-  call (MOT-3, "one thing at a time"). The full checklist is a secondary reveal. Lowest
-  cognitive load; best embodies "stay focused on the call, detection happens behind the
-  scenes." Distinct from A in kind, not just layout.
-
-- **C — Progress spine (D3).** A horizontal stepper across the top gives the Apple-Watch-ring
-  "how far through the outcome am I" read at a glance; each step expands to its detail and
-  the branch lights up live. Strongest at-a-glance orientation and drill-down
-  discoverability, and a third distinct spatial model (top vs. side vs. centre).
-
-Runners-up D9 (tabbed) and D2 (inline) are the next iteration candidates if Umesh wants a
-fourth; D4 and D10 are rejected on gate risk and are not worth building.
+| Dir | UI-2 Reuse (×3) | INT-1 Affordance (×3) | INT-2 Drill-down (×3) | UI-8 i18n (×2) | UI-9 Tab+sidecar (×2) | UI-10 Edit/dense (×2) | INT-3 One-prim (×2) | INT-5 Empty (×2) | MOT-7 Edge (×1) | INT-11 Task-first (×1) | Raw/42 | % | Gate risk |
+|-----|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| D1 Vertical Card Stack | 6 | 6 | 6 | 4 | 4 | 4 | 4 | 4 | 2 | 2 | **42** | **100%** | None |
+| D4 Coach Card + Phase Ribbon | 6 | 6 | 4 | 4 | 4 | 4 | 4 | 4 | 2 | 2 | **40** | **95%** | None |
+| D5 Accordion Rail | 6 | 6 | 6 | 4 | 4 | 2 | 4 | 4 | 2 | 2 | **40** | **95%** | None |
+| D2 Sliding Window | 4 | 6 | 4 | 4 | 4 | 4 | 4 | 4 | 2 | 2 | **38** | **90%** | None |
+| D9 Tabbed Guidance | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2 | 2 | **36** | **86%** | Tabs split triplet |
+| D10 Contextual Inline | 4 | 4 | 4 | 4 | 2 | 4 | 4 | 4 | 0 | 2 | **32** | **76%** | No edge entry |
+| D6 Floating Focus Pill | 4 | 4 | 2 | 4 | 4 | 4 | 4 | 4 | 2 | 2 | **34** | **81%** | INT-2: guidance hidden |
+| D3 Phase-Gated Columns | 4 | 4 | 6 | 2 | 2 | 2 | 2 | 2 | 0 | 2 | **26** | **62%** | 5 columns is dense |
+| D7 Split Header + Drawer | 4 | 2 | 4 | 4 | 4 | 4 | 4 | 4 | 2 | 2 | **34** | **81%** | INT-1: dots ambiguous |
+| D8 Dual-Track Timeline | 2 | 4 | 4 | 2 | 2 | 2 | 2 | 2 | 0 | 2 | **22** | **52%** | Novel primitive, dense |
 
 ---
 
-> **Final cut (per Umesh's review):** the shipped switcher carries only
-> **Inline** and **Assisted**. Sidecar, Coach and Spine were explored and
-> reviewed (history below + in the branch's git log) but removed from the
-> runtime switcher before the merge to keep the two directions Umesh chose.
+## Top 3 — why each won
 
-## Switcher legend (for the Notion post)
+### Winner A: D1 — Vertical Card Stack (100%)
 
-| Chip | Direction | One-liner |
-|------|-----------|-----------|
-| **Sidecar** | A / D1 | Persistent right-rail checklist, live check-off + skip flags |
-| **Coach** | B / D5 | Single current-step coach card, minimal load |
-| **Spine** | C / D3 | Top progress stepper, branch lights up, expand for detail |
-| **Inline** | D / D2 | Added in review — guidance lives in the chat, no side panel; a CTA reveals the full step-by-step guide |
-| **Assisted** | E | Added in review from Umesh's supplied HTML reference — two-column persona-call + Guided Workflow with a phase strip, auto-detected step tags, a current-step sub-checklist (nested "dos"), peek-phrasing, and the branch paths the listener is waiting on. Rebuilt on DataOrb tokens. Evaluator: 13/13 gates, 92%, Handoff-ready. |
+Top score. Direct implementation of Neil's locked "moving three-position view." Three vertically stacked cards — previous (collapsed), current (expanded with script + knowledge-card), next (teased). Maximum rubric alignment: reuses Card/PhaseStrip/VersionBar, progressive disclosure IS the structural approach, drill-down is built into the card expansion, i18n-safe cards absorb text expansion naturally. The step/script/knowledge-card triplet maps 1:1 to the current card's sections.
+
+### Winner B: D4 — Coach Card + Phase Ribbon (95%)
+
+Structurally distinct from D1: a thin phase ribbon at the top + a single large coach card. The card shows ONLY the current step in full detail (step + script + always-visible knowledge card). Previous and next are minimal teasers above and below. Lowest cognitive load — one thing at a time, with the ribbon providing orientation. Best for agents who want to focus on execution, not awareness.
+
+### Winner C: D5 — Accordion Rail (95%)
+
+Tied score with D4, different philosophy: the full step list is always visible as collapsed accordion rows. Only the current step is auto-expanded. The agent sees every step's status at a glance and can expand any step to preview its script + knowledge card. Closest to the existing Assisted variant (maximum code reuse), upgraded with the script/knowledge-card triplet. Best for agents who want full context and the freedom to look ahead.
+
+---
+
+## Eliminated — reasons
+
+| Dir | Score | Reason |
+|-----|-------|--------|
+| D2 Sliding Window | 90% | Good score but structurally similar to D1 — replaced by the stronger version |
+| D9 Tabbed Guidance | 86% | Tabs split the step/script/knowledge-card triplet across views — fights the "one card per step" model |
+| D6 Floating Focus Pill | 81% | Guidance hidden by default — new agents need the safety wheel visible, not behind a tap (INT-2) |
+| D7 Split Header + Drawer | 81% | Dot affordances in the header are ambiguous (INT-1); the drawer is a good pattern but dots are risky |
+| D10 Contextual Inline | 76% | No edge-entry motion; similar to the existing Inline variant that the Jun 16 lock supersedes |
+| D3 Phase-Gated Columns | 62% | 5 vertical columns is too dense for a training surface; i18n expansion truncates column labels |
+| D8 Dual-Track Timeline | 52% | Novel dual-track primitive has no precedent in the codebase; dense, hard to parse |

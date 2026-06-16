@@ -50,87 +50,117 @@ export const GUIDED_DRILL_BRANCHES = [
 ];
 
 // Each step of the guided workflow.
-//   id          unique
-//   label       short imperative — what the agent should do
-//   detail      the evidence the listener looks for
-//   mandatory   true = required step; a skipped mandatory step is flagged
-//   branch      optional label when the step belongs to a branch the call took
-//   state       "done" | "active" | "pending" | "skipped"
-//   at          transcript timestamp the step was satisfied (done only)
+//   id            unique
+//   label         short imperative — what the agent should do
+//   detail        the evidence the listener looks for
+//   mandatory     true = required step; a skipped mandatory step is flagged
+//   phase         which of the 5 universal stages this step belongs to
+//   branch        optional label when the step belongs to a branch
+//   state         "done" | "active" | "pending" | "skipped"
+//   at            transcript timestamp the step was satisfied (done only)
+//   script        suggested phrasing for this step (the "Script" asset)
+//   knowledgeCard linked knowledge snippet (the "Knowledge card" asset)
 export const GUIDED_DRILL_STEPS = [
   {
     id: "greet",
     label: "Greeting & brand identification",
     detail: "Agent opens with name + brand and a reason-for-call check.",
     mandatory: true,
+    phase: "open",
     state: "done",
     at: "0:04",
+    script: "Hi, you’re through to [Brand], my name’s [Your Name]. I can see you’re calling about [reason] — happy to help with that.",
+    knowledgeCard: null,
   },
   {
     id: "verify",
     label: "Verify identity (two data points)",
     detail: "Confirm two account identifiers before discussing the bill.",
     mandatory: true,
+    phase: "verify",
     state: "skipped",
     at: null,
+    script: "Before we look into anything, can I just confirm the postcode and date of birth on the account?",
+    knowledgeCard: { title: "Identity verification policy", body: "Two-factor identity check is mandatory before disclosing any account information. Acceptable pairs: postcode + DOB, account number + security word, or email + last 4 of payment card." },
   },
   {
     id: "acknowledge",
     label: "Acknowledge the concern",
     detail: "A one-line empathy beat before moving to diagnosis.",
     mandatory: false,
+    phase: "discover",
     state: "done",
     at: "0:22",
+    script: "I completely understand — seeing a higher number you weren’t expecting is frustrating. Let’s get to the bottom of it together.",
+    knowledgeCard: null,
   },
   {
     id: "diagnose",
     label: "Diagnose the charge",
     detail: "Locate the line-item delta on this month's bill.",
     mandatory: true,
+    phase: "discover",
     state: "active",
     at: null,
+    script: "Let me pull up this month’s charges and compare them line by line with last month so we can see precisely what moved.",
+    knowledgeCard: { title: "Bill comparison tool", body: "Use the Compare Bills screen (CRM → Billing → Compare). Select the two billing periods. The delta column highlights any line that changed by more than £0.50. Export as PDF if the customer asks for a copy." },
   },
   {
     id: "explain-ipc",
     label: "Explain the IPC annual tariff change",
     detail: "Name the adjustment and the amount in plain language.",
     mandatory: true,
+    phase: "act",
     branch: "Bill higher than expected",
     state: "pending",
     at: null,
+    script: "This is the annual IPC adjustment that applies across all plans each April — on your tariff that’s an extra £2.10 a month, and I can show you how it’s calculated.",
+    knowledgeCard: { title: "IPC annual tariff adjustment", body: "The In-Price Change (IPC) is a contractual annual adjustment tied to the Consumer Price Index. It applies every April. Current rate: CPI + 3.9%. The adjustment applies to the line rental and any add-on with an IPC clause. Customers on fixed-price contracts are exempt." },
   },
   {
     id: "churn-signal",
     label: "Check for a churn signal",
     detail: "Listen for competitor mention or switch intent.",
     mandatory: false,
+    phase: "act",
     branch: "Bill higher than expected",
     state: "pending",
     at: null,
+    script: "I hear you — and I’d hate for that to be the reason you consider moving. Can I take a look at what we can do to make this work for you?",
+    knowledgeCard: { title: "Churn signal keywords", body: "Key phrases that indicate switch intent: “looking at other providers”, “thinking of leaving”, “cancel”, “contract end date”, “switching”, competitor names (Sky, BT, Virgin, Vodafone). Flag in CRM under Retention → Churn Risk." },
   },
   {
     id: "offer",
     label: "Present the best-practice retention offer",
     detail: "Offer from the approved matrix; lead with value, not price.",
     mandatory: true,
+    phase: "act",
     state: "pending",
     at: null,
+    script: "Because you’ve been with us six years, I can hold your effective rate with a loyalty credit — that keeps you below the price you mentioned without changing your plan.",
+    knowledgeCard: { title: "Retention offer matrix", body: "Tenure 5+ years: eligible for Loyalty Credit (up to £5/mo for 12 months). Tenure 2–4 years: eligible for Plan Downgrade without penalty. Always lead with value (“what you get”), not discount (“how much less”). Log the offer in CRM → Retention → Offer Made." },
   },
   {
     id: "agreement",
     label: "Confirm agreement & record it",
     detail: "Read back the agreed terms and log them on the account.",
     mandatory: true,
+    phase: "close",
     state: "pending",
     at: null,
+    script: "So just to confirm — I’ve applied the £4 loyalty credit to your account, which brings your monthly bill to £34.50 for the next 12 months. Does that sound right?",
+    knowledgeCard: null,
   },
   {
     id: "close",
     label: "Recap & close",
     detail: "Summarise next steps and confirm nothing else is outstanding.",
     mandatory: true,
+    phase: "close",
     state: "pending",
     at: null,
+    script: "You’ll see the credit on your next bill. Is there anything else I can help with today? Thank you for staying with us, Marcus.",
+    knowledgeCard: null,
   },
 ];
 
