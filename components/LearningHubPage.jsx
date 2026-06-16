@@ -8,6 +8,7 @@ import DrillCard from "./DrillCard";
 import ComingSoon from "./ComingSoon";
 import Banner from "./Banner";
 import VersionBar from "./VersionBar";
+import { GuidedWorkflowListing } from "./GuidedWorkflowAuthoringPage";
 import { DRILL_CARDS } from "./mocks/drillCards";
 import { evaluateRoleplayGate, gateCopy } from "./SettingsPage";
 import {
@@ -63,6 +64,7 @@ const DRILL_PERSONA_BASELINE = [
 export default function LearningHubPage({
   onOpenDrill,
   onCreateRoleplay,
+  onOpenWorkflow,
   locale = "en",
   onLocaleChange,
   isAgent = false,
@@ -98,6 +100,7 @@ export default function LearningHubPage({
   const drillTabs = [
     { id: "active", label: t("tabActive") },
     { id: "library", label: t("tabLibrary") },
+    { id: "workflows", label: "Guided Workflows" },
   ];
 
   // Language as an inline header dropdown pill — native name + locale list,
@@ -153,7 +156,9 @@ export default function LearningHubPage({
           <TabsRow tabs={drillTabs} activeTab={activeTab} onTabClick={setActiveTab} />
         )}
 
-        {showLibrary ? (
+        {!isAgent && activeTab === "workflows" ? (
+          <GuidedWorkflowListing onOpenWorkflow={onOpenWorkflow} />
+        ) : showLibrary ? (
           <ComingSoon pageName={t("tabLibrary")} />
         ) : (
           <div style={lhStyles.grid}>

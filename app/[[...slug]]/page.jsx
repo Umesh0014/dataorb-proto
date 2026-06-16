@@ -34,7 +34,7 @@ import ReplayPage from "../../components/ReplayPage";
 import CreateGuideWizardPage, {
   EMPTY_GUIDE_DRAFT,
 } from "../../components/CreateGuideWizardPage";
-import GuidedWorkflowAuthoringPage from "../../components/GuidedWorkflowAuthoringPage";
+import { GuidedWorkflowPanel } from "../../components/GuidedWorkflowAuthoringPage";
 import CreateTaskWizardPage, {
   EMPTY_TASK_DRAFT,
   SKILL_CATALOGUE,
@@ -97,7 +97,6 @@ const LEARNING_PAGES = {
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
-  "guided-workflow": { Component: GuidedWorkflowAuthoringPage, pageName: "Guided Workflow" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
 };
 
@@ -383,6 +382,7 @@ export default function Page() {
   // detail; Agent = use-only landing whose "Run drill" launches the guided
   // runtime. In-memory only.
   const [drillPersona, setDrillPersona] = React.useState("agent");
+  const [workflowPanelId, setWorkflowPanelId] = React.useState(null);
   const [agentProfileId, setAgentProfileId] = React.useState(null);
   const [selectedMissionId, setSelectedMissionId] = React.useState(null);
   const [roleplayStep, setRoleplayStep] = React.useState(null); // null | 'persona' | 'context' | 'generated'
@@ -732,6 +732,7 @@ export default function Page() {
           isAgent={onDrill ? isAgentDrill : false}
           onPersonaChange={(p) => { setDrillDetailId(null); setDrillPersona(p); }}
           onOpenDrill={(id) => setDrillDetailId(id)}
+          onOpenWorkflow={(id) => setWorkflowPanelId(id)}
           onCreateRoleplay={() => {
             setRoleplay(EMPTY_ROLEPLAY);
             setRoleplayStep("persona");
@@ -812,7 +813,17 @@ export default function Page() {
       // Drill landing + detail carry the Team Leader ↔ Agent persona
       // switch — surfaced as an inline header pill inside LearningHubPage
       // (always visible), not a floating bar.
-      moduleContent = <PageLayout>{drillContent}</PageLayout>;
+      const workflowRightPanel = workflowPanelId
+        ? <GuidedWorkflowPanel workflowId={workflowPanelId} onClose={() => setWorkflowPanelId(null)} />
+        : null;
+      moduleContent = (
+        <PageLayout
+          rightPanel={workflowRightPanel}
+          onPanelClose={() => setWorkflowPanelId(null)}
+        >
+          {drillContent}
+        </PageLayout>
+      );
     }
   } else {
     const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");

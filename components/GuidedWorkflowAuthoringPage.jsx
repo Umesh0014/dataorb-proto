@@ -1197,4 +1197,200 @@ const s = {
     cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 500,
     color: "var(--color-button-primary-bg)", alignSelf: "flex-start",
   },
+
+  // ---- Panel variant (right panel, 320px) ----
+  panelColumn: { display: "flex", flexDirection: "column", gap: 12, fontFamily: "var(--font-sans)" },
+  panelTitle: { margin: 0, fontSize: 15, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: "22px" },
+  panelDesc: { margin: 0, fontSize: 12, color: "var(--color-text-tertiary)", lineHeight: "18px" },
+  panelMeta: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 12px" },
+  panelStageHead: {
+    appearance: "none", border: "none", background: "none", width: "100%",
+    display: "flex", alignItems: "center", gap: 6, padding: "10px 0",
+    cursor: "pointer", fontFamily: "inherit", borderTop: "1px solid var(--color-border-card-soft)",
+  },
+  panelStepRow: {
+    appearance: "none", border: "none", background: "none", width: "100%",
+    display: "flex", alignItems: "center", gap: 6, padding: "8px 8px",
+    cursor: "pointer", fontFamily: "inherit", minHeight: 40, textAlign: "start",
+    borderBottom: "1px solid var(--color-border-card-soft)",
+  },
+  panelStepLabel: { fontSize: 12, fontWeight: 500, color: "var(--color-text-medium)", flex: 1, textAlign: "start", lineHeight: "16px" },
+  panelExpand: { display: "flex", flexDirection: "column", gap: 10, padding: "8px 8px 12px", background: "var(--surface-alt)", borderRadius: 4 },
+  panelFooter: { display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid var(--color-border-card-soft)" },
 };
+
+// ============================================================
+// NAMED EXPORTS — for embedding in Drill Team Leader view
+// ============================================================
+
+/**
+ * GuidedWorkflowListing — workflow card grid for embedding in Drill TL tab.
+ * No PageHeader (host page owns that). Accepts onOpenWorkflow callback.
+ */
+export function GuidedWorkflowListing({ onOpenWorkflow }) {
+  const [search, setSearch] = React.useState("");
+  const [statusTab, setStatusTab] = React.useState("active");
+
+  const filtered = React.useMemo(() => {
+    const byTab = WORKFLOWS.filter((w) => w.state === statusTab);
+    const q = search.trim().toLowerCase();
+    if (!q) return byTab;
+    return byTab.filter(
+      (w) => w.title.toLowerCase().includes(q) || w.description.toLowerCase().includes(q),
+    );
+  }, [statusTab, search]);
+
+  const statusTabs = [
+    { id: "active", label: "Active", count: WORKFLOW_TAB_COUNTS.active },
+    { id: "calibration", label: "Calibration", count: WORKFLOW_TAB_COUNTS.calibration },
+    { id: "draft", label: "Draft", count: WORKFLOW_TAB_COUNTS.draft },
+  ];
+
+  return (
+    <div style={s.column}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search workflows…"
+          style={{ ...s.fieldInput, flex: 1 }}
+        />
+        <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => onOpenWorkflow?.("new")}>
+          New workflow
+        </Button>
+      </div>
+      <TabsRow tabs={statusTabs} activeTab={statusTab} onTabClick={setStatusTab} />
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 32 }}>
+          <span style={s.emptyH}>No workflows</span>
+        </div>
+      ) : (
+        <div style={s.grid}>
+          {filtered.map((w) => (
+            <WorkflowCard key={w.id} workflow={w} onClick={() => onOpenWorkflow?.(w.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * GuidedWorkflowPanel — 320px-wide right-panel authoring view.
+ * Vertical accordion layout optimised for panel width.
+ */
+export function GuidedWorkflowPanel({ workflowId, onClose }) {
+  const workflow = workflowId === "new" ? EMPTY_WORKFLOW : SAMPLE_WORKFLOW;
+  const [openStage, setOpenStage] = React.useState(null);
+  const [editingStep, setEditingStep] = React.useState(null);
+
+  const toggle = (id) => setOpenStage((prev) => prev === id ? null : id);
+
+  return (
+    <div style={s.panelColumn}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={s.panelTitle}>{workflow.title || "New Guided Workflow"}</span>
+        <button type="button" className="drill-focusable" onClick={onClose} style={s.curtainClose} aria-label="Close">
+          <X size={16} aria-hidden="true" />
+        </button>
+      </div>
+      {workflow.description && <p style={s.panelDesc}>{workflow.description}</p>}
+
+      {/* Metadata */}
+      <div style={s.panelMeta}>
+        <MetaField label="Contact reason" value={workflow.contactReason} />
+        <MetaField label="Job to be done" value={workflow.jobToBeDone} />
+        <MetaField label="Domain" value={workflow.domain} />
+        <MetaField label="Attempts" value={`${workflow.attemptsAllowed} per agent`} />
+      </div>
+
+      {/* Stages accordion */}
+      {workflow.stages.map((stage) => {
+        const meta = stageMeta(stage.id);
+        const isOpen = openStage === stage.id;
+        return (
+          <div key={stage.id}>
+            <button
+              type="button"
+              className="drill-focusable"
+              onClick={() => toggle(stage.id)}
+              style={s.panelStageHead}
+              aria-expanded={isOpen}
+            >
+              <span style={{ ...s.stageDot, background: meta.color }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", flex: 1, textAlign: "start" }}>
+                {meta.label}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{stage.steps.length}</span>
+              <ChevronDown
+                size={14}
+                color="var(--color-text-tertiary)"
+                aria-hidden="true"
+                style={{ transform: isOpen ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
+              />
+            </button>
+
+            {isOpen && (
+              <div>
+                {stage.steps.map((step) => {
+                  const tm = typeMeta(step.type);
+                  const mm = mandatoryMeta(step.mandatory);
+                  const metrics = getMetrics(step.id);
+                  const isEdit = editingStep === step.id;
+                  return (
+                    <div key={step.id}>
+                      <button
+                        type="button"
+                        className="drill-focusable"
+                        style={s.panelStepRow}
+                        onClick={() => setEditingStep(isEdit ? null : step.id)}
+                      >
+                        <span style={s.panelStepLabel}>{step.label}</span>
+                        <span style={{ ...s.metricsInlineSm, color: rateColor(metrics.successRate) }}>
+                          {metrics.successRate}%
+                        </span>
+                        <ChevronDown
+                          size={12}
+                          color="var(--color-text-tertiary)"
+                          aria-hidden="true"
+                          style={{ flexShrink: 0, transform: isEdit ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
+                        />
+                      </button>
+                      {isEdit && (
+                        <div style={s.panelExpand}>
+                          <div style={s.fieldGroup}>
+                            <label style={s.fieldLabel}>Instruction</label>
+                            <textarea style={s.fieldTextarea} defaultValue={step.detail} rows={2} />
+                          </div>
+                          <div style={s.fieldGroup}>
+                            <label style={s.fieldLabel}>Script</label>
+                            <textarea style={{ ...s.fieldTextarea, fontStyle: "italic" }} defaultValue={step.script || ""} rows={2} />
+                          </div>
+                          <StepMetricsBlock stepId={step.id} />
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <span style={{ ...s.chipSm, background: tm.bg, color: tm.fg }}>{tm.label}</span>
+                            <span style={{ ...s.chipSm, background: mm.bg, color: mm.fg }}>{mm.label}</span>
+                          </div>
+                          <KnowledgeCards knowledgeCard={step.knowledgeCard} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <SuggestedSteps stageId={stage.id} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Footer */}
+      <div style={s.panelFooter}>
+        <Button variant="text" onClick={onClose}>Cancel</Button>
+        <Button onClick={() => {}}>Save</Button>
+      </div>
+    </div>
+  );
+}
