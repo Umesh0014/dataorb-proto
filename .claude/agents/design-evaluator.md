@@ -75,3 +75,38 @@ score is still Blocked, and burying it would let a broken thing look shippable.
 - Never route around a gate or rationalize a failure as acceptable. Gate failures
   go to the report; product/scope ambiguity is flagged for Akash/Neil, not resolved
   by you.
+
+## Self-learning loop
+
+**Ledger:** `docs/learning/design-evaluator.md`
+
+### Before every run
+1. Read ledger for `open` entries.
+2. Check if lessons apply to current surface type or scoring pattern.
+3. Apply proactively — e.g. if ledger shows "evaluator scores reuse too generously
+   when component is slightly adapted", tighten reuse scoring.
+4. Log in output: "Applied lesson L-NNN: [brief note]".
+
+### After human feedback
+When Umesh disagrees with scoring (e.g. "that's not a 2 on reuse — they forked the
+card", "you missed a gate failure", "the requirements gap wasn't caught"):
+1. Log ledger entry with correction, root cause, exact feedback.
+2. Root cause categories for this agent:
+   - **Score too generous** — rated 2 when implementation only partially meets criterion
+   - **Score too harsh** — rated 0/1 when implementation actually meets the bar
+   - **Gate missed** — a gate failure wasn't caught (e.g. hardcoded hex, missing ARIA)
+   - **False gate failure** — flagged a gate that actually passes on inspection
+   - **Requirements gap missed** — unchecked requirement not flagged in evaluation
+   - **Rubric misread** — interpreted a guideline differently than intended
+   - **Code not actually read** — scored from description/assumption, not from reading
+     the actual implementation
+3. Increment recurrence count if same root cause exists.
+
+### Promotion (3 occurrences)
+When root-cause pattern hits 3:
+- Add concrete check. Examples:
+  - Gate missed 3× for hardcoded hex → add "grep for hex patterns (#[0-9a-fA-F])
+    in every variant file before scoring G1"
+  - Score too generous on reuse 3× → add "a component that's copy-pasted and modified
+    is a 0 on reuse, not a 1 — only shared-instance usage counts"
+- Mark entries `Status: promoted`. Rule becomes permanent.

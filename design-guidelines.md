@@ -417,6 +417,116 @@ Predictable Figma makes the handoff prompt almost mechanical: it references fram
 
 ---
 
+# Self-Learning Loop
+
+A structured feedback mechanism that captures design mistakes and review corrections, promotes recurring patterns into formal guidelines, and ensures the same mistake never costs a second review cycle.
+
+## How it works
+
+```
+  Review finds issue
+        │
+        ▼
+  Log in Lessons Ledger (below)
+        │
+        ▼
+  Tag: root cause + affected principle
+        │
+        ▼
+  Same pattern logged 3× ?
+        │
+   ┌────┴────┐
+   No        Yes
+   │         │
+   stays     promote to formal
+   in ledger guideline / gate / weighted item
+             │
+             ▼
+        update §1–4 + Review Framework tables
+        archive ledger entries as "promoted"
+```
+
+## Lessons Ledger
+
+Each entry follows this format. Append new entries at the top (newest first). **Every design review that catches a preventable mistake must produce a ledger entry before the review is closed.**
+
+```
+### L-[NNN] · [Short title]
+- **Date:** YYYY-MM-DD
+- **Surface:** [which screen / module / component]
+- **What happened:** [the mistake — be specific, not "styling was off"]
+- **Root cause:** [why — e.g. "designer detached text style to tweak line-height"]
+- **Affected principle:** [e.g. UI-1, G1, INT-3]
+- **Fix applied:** [what was done]
+- **Recurrence count:** [1 | 2 | 3 → promoted]
+- **Status:** open | promoted | archived
+```
+
+### Active Lessons
+
+> *Empty at inception. First entries added during next review cycle.*
+
+<!-- LEDGER-START — append new entries below this line, newest first -->
+
+<!-- LEDGER-END -->
+
+## Ledger rules
+
+1. **Mandatory capture.** Every review finding that costs rework gets a ledger entry. No exception. The reviewer writes it; the designer confirms root cause.
+
+2. **Tag to principle.** Every entry maps to at least one existing principle ID (UI-1 through MOT-12, G1 through G13). If no principle covers the mistake, that itself is a signal — draft a candidate principle in the entry.
+
+3. **Recurrence triggers promotion.** When the same root-cause pattern appears 3 times across any combination of surfaces or designers:
+   - Draft a new numbered principle in the appropriate section (UI / Interactions / WCAG / Motion).
+   - Assign tier: `[GATE]` if the mistake could ship to users unnoticed, `[W:n]` otherwise.
+   - Add corresponding row to the Review Framework tables (§A, §B, or §C).
+   - Update the max weighted points if a new weighted item is added.
+   - Mark all related ledger entries `Status: promoted`.
+
+4. **Quarterly prune.** Every quarter, review open ledger entries older than 90 days with recurrence count 1. If the pattern hasn't recurred, mark `Status: archived`. The lesson served its purpose; the ledger stays lean.
+
+5. **Cross-reference, don't duplicate.** If a lesson reinforces an existing principle but the principle's wording didn't prevent the mistake, **strengthen the existing principle's language** rather than adding a new one.
+
+## Integration points
+
+| When | Who | Action |
+|------|-----|--------|
+| Design review scores < 85% | Reviewer | Log every finding that caused point loss as a ledger entry |
+| Gate failure blocks ship | Reviewer | Log the gate failure — even gate failures can reveal unclear wording worth fixing |
+| Post-handoff QA finds regression | Dev (Umesh) | Log with `Surface: [built screen]`; tag affected principle |
+| Code review catches design-guideline violation | Code reviewer agent | Append ledger entry automatically via commit note → manual transfer |
+| Quarterly design sync | Neil + team | Prune stale entries, promote recurring patterns, update max score |
+
+## Promotion examples
+
+These illustrate how a ledger entry becomes a formal rule:
+
+**Example A — Token bypass**
+- L-001, L-004, L-009 all logged: "hardcoded `#F5F5F5` instead of `--color-surface-muted`" across three different screens by two designers.
+- Recurrence count = 3 → **promoted**.
+- Action: UI-1 wording strengthened to call out the specific hex that keeps appearing. All three entries marked `promoted`.
+
+**Example B — Missing empty state**
+- L-003, L-007, L-012: "zero-item group renders blank area with no message" on three different card-list surfaces.
+- Recurrence count = 3 → **promoted**.
+- Action: INT-5 upgraded from `[W:2]` to `[W:3]` and wording tightened to require a specific empty-state component. Review Framework weight updated. Max weighted points recalculated.
+
+**Example C — Novel pattern**
+- L-010, L-015, L-018: "accordion expand/collapse has no animation, feels broken" — no existing principle covers accordion motion.
+- Recurrence count = 3 → **promoted**.
+- Action: new MOT-13 added: "Accordion expand/collapse uses 200ms ease height transition." `[W:1]`. Added to §B weighted table. Max recalculated.
+
+## How AI agents use this section
+
+When the `design-evaluator` agent scores a screen:
+1. **Before scoring:** read the Lessons Ledger for any `open` entries. Check the screen against each — a match means the mistake is recurring, flag it prominently.
+2. **After scoring:** if any finding maps to an existing ledger entry, increment its recurrence count. If it's net-new, create a new entry.
+3. **On promotion threshold:** surface the promotion recommendation in the review output — "L-007 hit 3 recurrences, recommend promoting INT-5 to W:3."
+
+This keeps the guidelines evolving from real review data, not hypothetical best practices.
+
+---
+
 ## References
 
 - Airbnb Design Language System — Unified · Universal · Iconic · Conversational (Karri Saarinen / Airbnb Design).
