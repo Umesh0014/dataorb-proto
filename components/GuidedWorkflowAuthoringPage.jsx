@@ -17,6 +17,9 @@ import {
   SlidersHorizontal,
   Link2,
   X,
+  BarChart2,
+  MessageSquare,
+  Lightbulb,
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
@@ -32,17 +35,9 @@ import {
   WORKFLOWS,
   WORKFLOW_TAB_COUNTS,
   EMPTY_WORKFLOW,
+  STEP_METRICS,
+  SUGGESTED_STEPS,
 } from "./mocks/guidedWorkflow";
-
-// GuidedWorkflowAuthoringPage — Team-leader surface for creating, editing,
-// and managing Guided Workflow checklist artifacts.
-//
-// Two modes:
-//   Listing  — grid of workflow cards, lifecycle tabs, search (GuidePage pattern)
-//   Authoring — 3 switchable design directions behind VersionBar:
-//     "Accordion" (A · Safe)   — collapsible stage sections, inline step editing
-//     "Board"     (B · Balanced) — kanban lanes per stage, sidecar step editor
-//     "Recipe"    (C · Ambitious) — editorial recipe-card, hero + method sections
 
 const VARIANT_VERSIONS = [
   { id: "accordion", label: "A · Accordion", iterations: [] },
@@ -75,6 +70,16 @@ function typeMeta(id) {
 
 function mandatoryMeta(id) {
   return MANDATORY_OPTIONS.find((m) => m.id === id) || MANDATORY_OPTIONS[2];
+}
+
+function getMetrics(stepId) {
+  return STEP_METRICS[stepId] || { successRate: 0, bestPractices: [] };
+}
+
+function rateColor(rate) {
+  if (rate >= 90) return "var(--color-success)";
+  if (rate >= 75) return "var(--color-warning-dark)";
+  return "var(--color-error, #DC2626)";
 }
 
 export default function GuidedWorkflowAuthoringPage({ onBack }) {
@@ -211,15 +216,132 @@ function WorkflowCard({ workflow, onClick }) {
 }
 
 // ============================================================
+// SHARED: Step Metrics (success rate + best practices)
+// ============================================================
+
+function StepMetricsBlock({ stepId }) {
+  const metrics = getMetrics(stepId);
+  const [showPractices, setShowPractices] = React.useState(false);
+
+  return (
+    <div style={s.metricsBlock}>
+      <div style={s.metricsHeader}>
+        <BarChart2 size={14} color={rateColor(metrics.successRate)} aria-hidden="true" />
+        <span style={s.metricsLabel}>Success rate</span>
+        <span style={{ ...s.metricsValue, color: rateColor(metrics.successRate) }}>{metrics.successRate}%</span>
+      </div>
+      <div style={s.metricsBar}>
+        <div style={{ ...s.metricsBarFill, width: `${metrics.successRate}%`, background: rateColor(metrics.successRate) }} />
+      </div>
+
+      {metrics.bestPractices.length > 0 && (
+        <div style={s.practicesWrap}>
+          <button
+            type="button"
+            className="drill-focusable"
+            onClick={() => setShowPractices(!showPractices)}
+            style={s.practicesToggle}
+          >
+            <MessageSquare size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
+            <span>Best practices ({metrics.bestPractices.length} agents)</span>
+            <ChevronDown
+              size={12}
+              color="var(--color-text-tertiary)"
+              aria-hidden="true"
+              style={{ transform: showPractices ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
+            />
+          </button>
+          {showPractices && (
+            <div style={s.practicesList}>
+              {metrics.bestPractices.map((bp, i) => (
+                <div key={i} style={s.practiceItem}>
+                  <span style={s.practiceAgent}>{bp.agent}</span>
+                  <span style={s.practiceQuote}>"{bp.verbatim}"</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// SHARED: Expandable Knowledge Cards
+// ============================================================
+
+function KnowledgeCards({ knowledgeCard }) {
+  const cards = knowledgeCard ? [knowledgeCard] : [];
+  const [expanded, setExpanded] = React.useState(null);
+
+  if (cards.length === 0) return null;
+
+  return (
+    <div style={s.kcSection}>
+      <span style={s.kcSectionLabel}>
+        <BookOpen size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
+        Knowledge cards ({cards.length})
+      </span>
+      {cards.map((kc, i) => (
+        <button
+          key={kc.id}
+          type="button"
+          className="drill-focusable"
+          onClick={() => setExpanded(expanded === i ? null : i)}
+          style={s.kcExpandBtn}
+        >
+          <div style={s.kcExpandHead}>
+            <Link2 size={12} color="var(--color-button-primary-bg)" aria-hidden="true" />
+            <span style={s.kcTitle}>{kc.title}</span>
+            <ChevronDown
+              size={12}
+              color="var(--color-text-tertiary)"
+              aria-hidden="true"
+              style={{ marginLeft: "auto", transform: expanded === i ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
+            />
+          </div>
+          {expanded === i && (
+            <span style={s.kcSnippet}>{kc.snippet}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// SHARED: Suggested Steps
+// ============================================================
+
+function SuggestedSteps({ stageId }) {
+  const suggestions = SUGGESTED_STEPS[stageId] || [];
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div style={s.suggestWrap}>
+      <Lightbulb size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
+      {suggestions.map((sug) => (
+        <button key={sug.id} type="button" className="drill-focusable" style={s.suggestChip} onClick={() => {}}>
+          <Plus size={10} aria-hidden="true" />
+          <span>{sug.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
 // VARIANT A — ACCORDION (Safe)
-// Collapsible stage sections, inline step editing, single scroll
+// True accordion: one open at a time, all closed by default.
+// Inline text-field editing. Step metrics + expandable KC.
 // ============================================================
 
 function AccordionVariant({ workflow, onBack }) {
-  const [expanded, setExpanded] = React.useState({ open: true, verify: true, discover: true, act: true, close: true });
+  const [openStage, setOpenStage] = React.useState(null);
   const [editingStep, setEditingStep] = React.useState(null);
 
-  const toggle = (id) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
+  const toggle = (id) => setOpenStage((prev) => prev === id ? null : id);
 
   return (
     <div style={s.column}>
@@ -228,7 +350,7 @@ function AccordionVariant({ workflow, onBack }) {
 
       {workflow.stages.map((stage) => {
         const meta = stageMeta(stage.id);
-        const open = expanded[stage.id];
+        const isOpen = openStage === stage.id;
         return (
           <Card key={stage.id} padX={0} padY={0}>
             <button
@@ -236,7 +358,7 @@ function AccordionVariant({ workflow, onBack }) {
               className="drill-focusable"
               onClick={() => toggle(stage.id)}
               style={s.accStageHead}
-              aria-expanded={open}
+              aria-expanded={isOpen}
             >
               <span style={{ ...s.stageDot, background: meta.color }} />
               <span style={s.accStageLabel}>{meta.label}</span>
@@ -245,11 +367,11 @@ function AccordionVariant({ workflow, onBack }) {
                 size={16}
                 color="var(--color-text-tertiary)"
                 aria-hidden="true"
-                style={{ transform: open ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
+                style={{ transform: isOpen ? "rotate(0)" : "rotate(-90deg)", transition: "transform 150ms ease" }}
               />
             </button>
 
-            {open && (
+            {isOpen && (
               <div style={s.accStepList}>
                 {stage.steps.length === 0 && (
                   <div style={s.accEmpty}>
@@ -264,10 +386,12 @@ function AccordionVariant({ workflow, onBack }) {
                     onToggleEdit={() => setEditingStep(editingStep === step.id ? null : step.id)}
                   />
                 ))}
+
                 <div style={s.accAddRow}>
                   <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => {}}>
                     Add step
                   </Button>
+                  <SuggestedSteps stageId={stage.id} />
                 </div>
               </div>
             )}
@@ -283,10 +407,15 @@ function AccordionVariant({ workflow, onBack }) {
 function AccordionStep({ step, isEditing, onToggleEdit }) {
   const tm = typeMeta(step.type);
   const mm = mandatoryMeta(step.mandatory);
+  const metrics = getMetrics(step.id);
+
   return (
     <div style={s.accStep}>
       <button type="button" className="drill-focusable" style={s.accStepRow} onClick={onToggleEdit}>
         <span style={s.accStepLabel}>{step.label}</span>
+        <span style={{ ...s.metricsInline, color: rateColor(metrics.successRate) }}>
+          {metrics.successRate}%
+        </span>
         <div style={s.accStepChips}>
           <span style={{ ...s.chip, background: tm.bg, color: tm.fg }}>{tm.label}</span>
           <span style={{ ...s.chip, background: mm.bg, color: mm.fg }}>{mm.label}</span>
@@ -301,24 +430,29 @@ function AccordionStep({ step, isEditing, onToggleEdit }) {
 
       {isEditing && (
         <div style={s.accStepExpand}>
+          {/* PRIMARY — editable instruction + script */}
           <div style={s.fieldGroup}>
             <label style={s.fieldLabel}>Instruction</label>
-            <div style={s.fieldValue}>{step.detail}</div>
+            <textarea
+              style={s.fieldTextarea}
+              defaultValue={step.detail}
+              rows={2}
+            />
           </div>
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Script</label>
-            <div style={s.fieldValue}>{step.script || "—"}</div>
+            <label style={s.fieldLabel}>Script (suggested phrasing)</label>
+            <textarea
+              style={{ ...s.fieldTextarea, fontStyle: "italic" }}
+              defaultValue={step.script || ""}
+              placeholder="No script — add suggested phrasing…"
+              rows={2}
+            />
           </div>
-          {step.knowledgeCard && (
-            <div style={s.fieldGroup}>
-              <label style={s.fieldLabel}>Knowledge Card</label>
-              <div style={s.kcPill}>
-                <Link2 size={12} aria-hidden="true" />
-                <span>{step.knowledgeCard.title}</span>
-              </div>
-              <div style={s.kcSnippet}>{step.knowledgeCard.snippet}</div>
-            </div>
-          )}
+
+          {/* METRICS — success rate + best practices */}
+          <StepMetricsBlock stepId={step.id} />
+
+          {/* SECONDARY — sub-steps */}
           {step.subSteps.length > 0 && (
             <div style={s.fieldGroup}>
               <label style={s.fieldLabel}>Sub-steps</label>
@@ -326,13 +460,18 @@ function AccordionStep({ step, isEditing, onToggleEdit }) {
                 <div key={ss.id} style={s.subStep}>
                   <span style={s.subStepDot}>↳</span>
                   <span style={s.subStepText}>{ss.label}</span>
-                  <span style={{ ...s.chipSm, ...mandatoryMeta(ss.mandatory) && { background: mandatoryMeta(ss.mandatory).bg, color: mandatoryMeta(ss.mandatory).fg } }}>
+                  <span style={{ ...s.chipSm, background: mandatoryMeta(ss.mandatory).bg, color: mandatoryMeta(ss.mandatory).fg }}>
                     {mandatoryMeta(ss.mandatory).label}
                   </span>
                 </div>
               ))}
             </div>
           )}
+
+          {/* EXPANDABLE — knowledge cards */}
+          <KnowledgeCards knowledgeCard={step.knowledgeCard} />
+
+          {/* GROUNDING */}
           <div style={s.groundingRow}>
             <FileText size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
             <span style={s.groundingText}>{step.grounding}</span>
@@ -345,7 +484,8 @@ function AccordionStep({ step, isEditing, onToggleEdit }) {
 
 // ============================================================
 // VARIANT B — BOARD (Balanced)
-// Kanban lanes per stage, step cards, sidecar drawer
+// 4.5 visible columns with horizontal scroll.
+// Side curtain (fixed overlay) for step editing.
 // ============================================================
 
 function BoardVariant({ workflow, onBack }) {
@@ -356,45 +496,46 @@ function BoardVariant({ workflow, onBack }) {
       <EditorHeader workflow={workflow} onBack={onBack} />
       <MetadataBar workflow={workflow} />
 
-      <div style={s.boardContainer}>
-        <div style={s.boardLanes}>
-          {workflow.stages.map((stage) => {
-            const meta = stageMeta(stage.id);
-            return (
-              <div key={stage.id} style={s.boardLane}>
-                <div style={s.laneHead}>
-                  <span style={{ ...s.stageDot, background: meta.color }} />
-                  <span style={s.laneLabel}>{meta.label}</span>
-                  <span style={s.laneCount}>{stage.steps.length}</span>
-                </div>
-                <div style={s.laneBody}>
-                  {stage.steps.length === 0 && (
-                    <div style={s.laneEmpty}>
-                      <span style={s.laneEmptyText}>No steps</span>
-                    </div>
-                  )}
-                  {stage.steps.map((step) => (
-                    <BoardStepCard
-                      key={step.id}
-                      step={step}
-                      isActive={drawerStep?.id === step.id}
-                      onClick={() => setDrawerStep(drawerStep?.id === step.id ? null : step)}
-                    />
-                  ))}
-                </div>
+      <div style={s.boardScroll}>
+        {workflow.stages.map((stage) => {
+          const meta = stageMeta(stage.id);
+          return (
+            <div key={stage.id} style={s.boardLane}>
+              <div style={s.laneHead}>
+                <span style={{ ...s.stageDot, background: meta.color }} />
+                <span style={s.laneLabel}>{meta.label}</span>
+                <span style={s.laneCount}>{stage.steps.length}</span>
+              </div>
+              <div style={s.laneBody}>
+                {stage.steps.length === 0 && (
+                  <div style={s.laneEmpty}>
+                    <span style={s.laneEmptyText}>No steps</span>
+                  </div>
+                )}
+                {stage.steps.map((step) => (
+                  <BoardStepCard
+                    key={step.id}
+                    step={step}
+                    isActive={drawerStep?.id === step.id}
+                    onClick={() => setDrawerStep(drawerStep?.id === step.id ? null : step)}
+                  />
+                ))}
+              </div>
+              <div style={s.laneFooter}>
                 <button type="button" className="drill-focusable" style={s.laneAdd} onClick={() => {}}>
                   <Plus size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
                   <span style={s.laneAddText}>Add step</span>
                 </button>
+                <SuggestedSteps stageId={stage.id} />
               </div>
-            );
-          })}
-        </div>
-
-        {drawerStep && (
-          <BoardDrawer step={drawerStep} onClose={() => setDrawerStep(null)} />
-        )}
+            </div>
+          );
+        })}
       </div>
+
+      {drawerStep && (
+        <BoardCurtain step={drawerStep} onClose={() => setDrawerStep(null)} />
+      )}
 
       <EditorFooter />
     </div>
@@ -405,6 +546,7 @@ function BoardStepCard({ step, isActive, onClick }) {
   const [hover, setHover] = React.useState(false);
   const tm = typeMeta(step.type);
   const mm = mandatoryMeta(step.mandatory);
+  const metrics = getMetrics(step.id);
   return (
     <button
       type="button"
@@ -422,6 +564,9 @@ function BoardStepCard({ step, isActive, onClick }) {
       <div style={s.boardCardChips}>
         <span style={{ ...s.chipSm, background: tm.bg, color: tm.fg }}>{tm.label}</span>
         <span style={{ ...s.chipSm, background: mm.bg, color: mm.fg }}>{mm.label}</span>
+        <span style={{ ...s.metricsInlineSm, color: rateColor(metrics.successRate) }}>
+          {metrics.successRate}%
+        </span>
       </div>
       {step.subSteps.length > 0 && (
         <span style={s.boardSubCount}>{step.subSteps.length} sub-steps</span>
@@ -430,7 +575,7 @@ function BoardStepCard({ step, isActive, onClick }) {
   );
 }
 
-function BoardDrawer({ step, onClose }) {
+function BoardCurtain({ step, onClose }) {
   const tm = typeMeta(step.type);
   const mm = mandatoryMeta(step.mandatory);
 
@@ -441,72 +586,86 @@ function BoardDrawer({ step, onClose }) {
   }, [onClose]);
 
   return (
-    <div style={s.drawer} role="complementary" aria-label="Step editor">
-      <div style={s.drawerHead}>
-        <span style={s.drawerTitle}>Edit Step</span>
-        <button type="button" className="drill-focusable" onClick={onClose} style={s.drawerClose} aria-label="Close">
-          <X size={18} aria-hidden="true" />
-        </button>
-      </div>
-      <div style={s.drawerBody}>
-        <div style={s.fieldGroup}>
-          <label style={s.fieldLabel}>Step name</label>
-          <div style={s.fieldInput}>{step.label}</div>
+    <>
+      <div style={s.curtainOverlay} onClick={onClose} aria-hidden="true" />
+      <div style={s.curtain} role="complementary" aria-label="Step editor">
+        <div style={s.curtainHead}>
+          <span style={s.curtainTitle}>Edit Step</span>
+          <button type="button" className="drill-focusable" onClick={onClose} style={s.curtainClose} aria-label="Close">
+            <X size={18} aria-hidden="true" />
+          </button>
         </div>
-        <div style={s.fieldGroup}>
-          <label style={s.fieldLabel}>Instruction</label>
-          <div style={s.fieldTextarea}>{step.detail}</div>
-        </div>
-        <div style={s.fieldGroup}>
-          <label style={s.fieldLabel}>Script (suggested phrasing)</label>
-          <div style={s.fieldTextarea}>{step.script || "No script provided"}</div>
-        </div>
-        <div style={s.fieldRow}>
-          <div style={{ ...s.fieldGroup, flex: 1 }}>
-            <label style={s.fieldLabel}>Type</label>
-            <span style={{ ...s.chip, background: tm.bg, color: tm.fg }}>{tm.label}</span>
-          </div>
-          <div style={{ ...s.fieldGroup, flex: 1 }}>
-            <label style={s.fieldLabel}>Priority</label>
-            <span style={{ ...s.chip, background: mm.bg, color: mm.fg }}>{mm.label}</span>
-          </div>
-        </div>
-        {step.knowledgeCard && (
+        <div style={s.curtainBody}>
+          {/* PRIMARY — editable fields */}
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Knowledge Card</label>
-            <Card padX={12} padY={10} tone="muted">
-              <span style={s.kcTitle}>{step.knowledgeCard.title}</span>
-              <span style={s.kcSnippet}>{step.knowledgeCard.snippet}</span>
-            </Card>
+            <label style={s.fieldLabel}>Step name</label>
+            <input type="text" style={s.fieldInput} defaultValue={step.label} />
           </div>
-        )}
-        {step.subSteps.length > 0 && (
           <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>Sub-steps ({step.subSteps.length})</label>
-            {step.subSteps.map((ss) => (
-              <div key={ss.id} style={s.subStep}>
-                <span style={s.subStepDot}>↳</span>
-                <span style={s.subStepText}>{ss.label}</span>
-              </div>
-            ))}
+            <label style={s.fieldLabel}>Instruction</label>
+            <textarea style={s.fieldTextarea} defaultValue={step.detail} rows={3} />
           </div>
-        )}
-        <div style={s.groundingRow}>
-          <FileText size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
-          <span style={s.groundingText}>{step.grounding}</span>
+          <div style={s.fieldGroup}>
+            <label style={s.fieldLabel}>Script (suggested phrasing)</label>
+            <textarea
+              style={{ ...s.fieldTextarea, fontStyle: "italic" }}
+              defaultValue={step.script || ""}
+              placeholder="No script — add suggested phrasing…"
+              rows={3}
+            />
+          </div>
+
+          {/* METRICS */}
+          <StepMetricsBlock stepId={step.id} />
+
+          {/* TYPE + MANDATORY */}
+          <div style={s.fieldRow}>
+            <div style={{ ...s.fieldGroup, flex: 1 }}>
+              <label style={s.fieldLabel}>Type</label>
+              <span style={{ ...s.chip, background: tm.bg, color: tm.fg }}>{tm.label}</span>
+            </div>
+            <div style={{ ...s.fieldGroup, flex: 1 }}>
+              <label style={s.fieldLabel}>Priority</label>
+              <span style={{ ...s.chip, background: mm.bg, color: mm.fg }}>{mm.label}</span>
+            </div>
+          </div>
+
+          {/* SUB-STEPS */}
+          {step.subSteps.length > 0 && (
+            <div style={s.fieldGroup}>
+              <label style={s.fieldLabel}>Sub-steps ({step.subSteps.length})</label>
+              {step.subSteps.map((ss) => (
+                <div key={ss.id} style={s.subStep}>
+                  <span style={s.subStepDot}>↳</span>
+                  <span style={s.subStepText}>{ss.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* EXPANDABLE KC */}
+          <KnowledgeCards knowledgeCard={step.knowledgeCard} />
+
+          {/* GROUNDING */}
+          <div style={s.groundingRow}>
+            <FileText size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
+            <span style={s.groundingText}>{step.grounding}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
 // ============================================================
 // VARIANT C — RECIPE (Ambitious)
-// Editorial recipe-card: hero + ingredients + method sections
+// Editorial recipe-card: hero + ingredients + method sections.
+// All click-throughs wired to state.
 // ============================================================
 
 function RecipeVariant({ workflow, onBack }) {
   const [expandedStep, setExpandedStep] = React.useState(null);
+  const [editingField, setEditingField] = React.useState(null);
   const allKnowledgeCards = workflow.stages
     .flatMap((st) => st.steps)
     .map((step) => step.knowledgeCard)
@@ -591,14 +750,19 @@ function RecipeVariant({ workflow, onBack }) {
                   step={step}
                   index={stepIdx}
                   isExpanded={expandedStep === step.id}
+                  isEditing={editingField === step.id}
                   onToggle={() => setExpandedStep(expandedStep === step.id ? null : step.id)}
+                  onEdit={() => setEditingField(editingField === step.id ? null : step.id)}
                 />
               ))}
 
-              <button type="button" className="drill-focusable" style={s.recipeAddStep} onClick={() => {}}>
-                <Plus size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
-                <span>Add instruction</span>
-              </button>
+              <div style={s.recipeAddWrap}>
+                <button type="button" className="drill-focusable" style={s.recipeAddStep} onClick={() => {}}>
+                  <Plus size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
+                  <span>Add instruction</span>
+                </button>
+                <SuggestedSteps stageId={stage.id} />
+              </div>
             </div>
           );
         })}
@@ -609,14 +773,18 @@ function RecipeVariant({ workflow, onBack }) {
   );
 }
 
-function RecipeStep({ step, index, isExpanded, onToggle }) {
+function RecipeStep({ step, index, isExpanded, isEditing, onToggle, onEdit }) {
   const tm = typeMeta(step.type);
   const mm = mandatoryMeta(step.mandatory);
+  const metrics = getMetrics(step.id);
   return (
     <div style={s.recipeStepWrap}>
       <button type="button" className="drill-focusable" onClick={onToggle} style={s.recipeStepRow}>
         <span style={s.recipeStepBullet}>{index + 1}.</span>
         <span style={s.recipeStepText}>{step.label}</span>
+        <span style={{ ...s.metricsInline, color: rateColor(metrics.successRate) }}>
+          {metrics.successRate}%
+        </span>
         <div style={s.recipeStepChips}>
           <span style={{ ...s.chipSm, background: mm.bg, color: mm.fg }}>{mm.label}</span>
           <span style={{ ...s.chipSm, background: tm.bg, color: tm.fg }}>{tm.label}</span>
@@ -631,25 +799,30 @@ function RecipeStep({ step, index, isExpanded, onToggle }) {
 
       {isExpanded && (
         <div style={s.recipeStepExpand}>
+          {/* PRIMARY — instruction + script */}
           <div style={s.recipeFieldBlock}>
             <span style={s.recipeFieldLabel}>What to do</span>
-            <p style={s.recipeFieldBody}>{step.detail}</p>
+            {isEditing ? (
+              <textarea style={s.fieldTextarea} defaultValue={step.detail} rows={2} />
+            ) : (
+              <p style={s.recipeFieldBody} onClick={onEdit}>{step.detail}</p>
+            )}
           </div>
-          {step.script && (
+          {(step.script || isEditing) && (
             <div style={s.recipeFieldBlock}>
               <span style={s.recipeFieldLabel}>Script</span>
-              <p style={{ ...s.recipeFieldBody, fontStyle: "italic" }}>"{step.script}"</p>
+              {isEditing ? (
+                <textarea style={{ ...s.fieldTextarea, fontStyle: "italic" }} defaultValue={step.script || ""} placeholder="Add script…" rows={2} />
+              ) : (
+                <p style={{ ...s.recipeFieldBody, fontStyle: "italic" }} onClick={onEdit}>"{step.script}"</p>
+              )}
             </div>
           )}
-          {step.knowledgeCard && (
-            <div style={s.recipeFieldBlock}>
-              <span style={s.recipeFieldLabel}>Learn more</span>
-              <Card padX={12} padY={8} tone="muted">
-                <span style={s.kcTitle}>{step.knowledgeCard.title}</span>
-                <span style={s.kcSnippet}>{step.knowledgeCard.snippet}</span>
-              </Card>
-            </div>
-          )}
+
+          {/* METRICS */}
+          <StepMetricsBlock stepId={step.id} />
+
+          {/* CONDITIONAL PATHS */}
           {step.subSteps.length > 0 && (
             <div style={s.recipeFieldBlock}>
               <span style={s.recipeFieldLabel}>Conditional paths</span>
@@ -661,10 +834,20 @@ function RecipeStep({ step, index, isExpanded, onToggle }) {
               ))}
             </div>
           )}
+
+          {/* EXPANDABLE KC */}
+          <KnowledgeCards knowledgeCard={step.knowledgeCard} />
+
+          {/* GROUNDING */}
           <div style={s.groundingRow}>
             <FileText size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
             <span style={s.groundingText}>{step.grounding}</span>
           </div>
+
+          {/* EDIT TOGGLE */}
+          <button type="button" className="drill-focusable" onClick={onEdit} style={s.recipeEditBtn}>
+            {isEditing ? "Done editing" : "Edit fields"}
+          </button>
         </div>
       )}
     </div>
@@ -817,12 +1000,28 @@ const s = {
   fieldGroup: { display: "flex", flexDirection: "column", gap: 4 },
   fieldLabel: { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.5px" },
   fieldValue: { fontSize: 13, color: "var(--color-text-medium)", lineHeight: "20px" },
-  fieldInput: { fontSize: 13, color: "var(--color-text-medium)", padding: "6px 10px", border: "1px solid var(--color-border-card-soft)", borderRadius: 6, background: "var(--surface-dim)" },
-  fieldTextarea: { fontSize: 13, color: "var(--color-text-medium)", padding: "8px 10px", border: "1px solid var(--color-border-card-soft)", borderRadius: 6, background: "var(--surface-dim)", lineHeight: "20px", minHeight: 48 },
+  fieldInput: {
+    fontSize: 13, color: "var(--color-text-medium)", padding: "6px 10px",
+    border: "1px solid var(--color-border-card-soft)", borderRadius: 6,
+    background: "var(--surface-dim)", fontFamily: "inherit", outline: "none",
+  },
+  fieldTextarea: {
+    fontSize: 13, color: "var(--color-text-medium)", padding: "8px 10px",
+    border: "1px solid var(--color-border-card-soft)", borderRadius: 6,
+    background: "var(--surface-dim)", lineHeight: "20px", minHeight: 48,
+    fontFamily: "inherit", resize: "vertical", outline: "none",
+  },
   fieldRow: { display: "flex", gap: 16 },
 
-  // Knowledge card
-  kcPill: { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--color-button-primary-bg)", fontWeight: 500 },
+  // Knowledge card (expandable)
+  kcSection: { display: "flex", flexDirection: "column", gap: 4 },
+  kcSectionLabel: { display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.5px" },
+  kcExpandBtn: {
+    appearance: "none", border: "1px solid var(--color-border-card-soft)", background: "var(--surface-alt)",
+    borderRadius: 6, padding: "8px 10px", cursor: "pointer", fontFamily: "inherit",
+    display: "flex", flexDirection: "column", gap: 4, width: "100%", textAlign: "start",
+  },
+  kcExpandHead: { display: "flex", alignItems: "center", gap: 6 },
   kcTitle: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)" },
   kcSnippet: { fontSize: 12, color: "var(--color-text-tertiary)", lineHeight: "18px", marginTop: 2 },
 
@@ -834,6 +1033,38 @@ const s = {
   // Grounding
   groundingRow: { display: "flex", alignItems: "center", gap: 6, paddingTop: 8, borderTop: "1px solid var(--color-border-card-soft)", marginTop: 4 },
   groundingText: { fontSize: 11, color: "var(--color-text-tertiary)" },
+
+  // Step metrics
+  metricsBlock: { display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", background: "var(--surface-alt)", borderRadius: 6 },
+  metricsHeader: { display: "flex", alignItems: "center", gap: 6 },
+  metricsLabel: { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px" },
+  metricsValue: { fontSize: 13, fontWeight: 700, marginLeft: "auto" },
+  metricsBar: { height: 4, borderRadius: 2, background: "var(--color-border-card-soft)", overflow: "hidden" },
+  metricsBarFill: { height: "100%", borderRadius: 2, transition: "width 300ms ease" },
+  metricsInline: { fontSize: 11, fontWeight: 700, flexShrink: 0 },
+  metricsInlineSm: { fontSize: 10, fontWeight: 700, flexShrink: 0 },
+
+  // Best practices
+  practicesWrap: { display: "flex", flexDirection: "column", gap: 4 },
+  practicesToggle: {
+    appearance: "none", border: "none", background: "none", display: "flex",
+    alignItems: "center", gap: 4, cursor: "pointer", fontFamily: "inherit",
+    fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)", padding: 0,
+  },
+  practicesList: { display: "flex", flexDirection: "column", gap: 8, paddingLeft: 16 },
+  practiceItem: { display: "flex", flexDirection: "column", gap: 2 },
+  practiceAgent: { fontSize: 11, fontWeight: 600, color: "var(--color-text-medium)" },
+  practiceQuote: { fontSize: 12, color: "var(--color-text-tertiary)", lineHeight: "18px", fontStyle: "italic" },
+
+  // Suggested steps
+  suggestWrap: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingTop: 4 },
+  suggestChip: {
+    appearance: "none", border: "1px dashed var(--color-border-card-soft)",
+    background: "var(--surface-white)", borderRadius: 4, padding: "3px 8px",
+    cursor: "pointer", fontFamily: "inherit", fontSize: 11, color: "var(--color-text-tertiary)",
+    display: "inline-flex", alignItems: "center", gap: 3,
+    transition: "border-color 150ms ease, color 150ms ease",
+  },
 
   // ---- Accordion variant ----
   accStageHead: {
@@ -854,25 +1085,28 @@ const s = {
   },
   accStepLabel: { fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)", flex: 1, textAlign: "start" },
   accStepChips: { display: "flex", gap: 6 },
-  accStepExpand: { display: "flex", flexDirection: "column", gap: 12, padding: "0 20px 16px 20px", background: "var(--surface-alt)" },
-  accAddRow: { padding: "8px 12px" },
+  accStepExpand: { display: "flex", flexDirection: "column", gap: 12, padding: "12px 20px 16px 20px", background: "var(--surface-alt)" },
+  accAddRow: { display: "flex", flexDirection: "column", gap: 4, padding: "8px 12px" },
 
   // ---- Board variant ----
-  boardContainer: { display: "flex", gap: 16, alignItems: "flex-start" },
-  boardLanes: { display: "flex", gap: 12, flex: 1, minWidth: 0, overflow: "auto" },
+  boardScroll: {
+    display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8,
+    WebkitOverflowScrolling: "touch",
+  },
   boardLane: {
-    display: "flex", flexDirection: "column", minWidth: 180, flex: 1,
+    display: "flex", flexDirection: "column", width: 220, minWidth: 220, flexShrink: 0,
     background: "var(--surface-alt)", borderRadius: 8, overflow: "hidden",
   },
   laneHead: { display: "flex", alignItems: "center", gap: 6, padding: "12px 12px 8px" },
   laneLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-deep)", flex: 1 },
   laneCount: { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", background: "var(--surface-white)", width: 20, height: 20, borderRadius: 999, display: "inline-grid", placeItems: "center" },
-  laneBody: { display: "flex", flexDirection: "column", gap: 6, padding: "0 8px", minHeight: 40 },
+  laneBody: { display: "flex", flexDirection: "column", gap: 6, padding: "0 8px", minHeight: 40, flex: 1 },
   laneEmpty: { padding: "12px 4px", textAlign: "center" },
   laneEmptyText: { fontSize: 12, color: "var(--color-text-tertiary)" },
+  laneFooter: { display: "flex", flexDirection: "column", gap: 2, padding: "4px 8px 8px" },
   laneAdd: {
     appearance: "none", border: "none", background: "none", display: "flex",
-    alignItems: "center", gap: 4, padding: "8px 12px", cursor: "pointer", fontFamily: "inherit", minHeight: 44,
+    alignItems: "center", gap: 4, padding: "8px 4px", cursor: "pointer", fontFamily: "inherit", minHeight: 44,
   },
   laneAddText: { fontSize: 12, color: "var(--color-text-tertiary)" },
 
@@ -883,19 +1117,33 @@ const s = {
     transition: "box-shadow 150ms ease, border-color 150ms ease",
   },
   boardCardLabel: { fontSize: 12, fontWeight: 500, color: "var(--color-text-medium)", lineHeight: "18px" },
-  boardCardChips: { display: "flex", gap: 4, flexWrap: "wrap" },
+  boardCardChips: { display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" },
   boardSubCount: { fontSize: 11, color: "var(--color-text-tertiary)" },
 
-  // Drawer
-  drawer: {
-    width: 360, flexShrink: 0, background: "var(--surface-white)", borderRadius: 8,
-    boxShadow: "var(--shadow-drawer)", display: "flex", flexDirection: "column",
-    maxHeight: "calc(100vh - 200px)", overflow: "hidden",
+  // Side curtain (fixed overlay)
+  curtainOverlay: {
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 999,
   },
-  drawerHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--color-border-card-soft)" },
-  drawerTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },
-  drawerClose: { appearance: "none", border: "none", background: "none", cursor: "pointer", color: "var(--color-text-tertiary)", padding: 8, minWidth: 44, minHeight: 44, display: "inline-grid", placeItems: "center" },
-  drawerBody: { display: "flex", flexDirection: "column", gap: 16, padding: 20, overflow: "auto", flex: 1 },
+  curtain: {
+    position: "fixed", top: 0, right: 0, bottom: 0, width: 420,
+    background: "var(--surface-white)", boxShadow: "var(--shadow-drawer)",
+    display: "flex", flexDirection: "column", zIndex: 1000,
+    animation: "slideInRight 200ms ease",
+  },
+  curtainHead: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "16px 20px", borderBottom: "1px solid var(--color-border-card-soft)",
+  },
+  curtainTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },
+  curtainClose: {
+    appearance: "none", border: "none", background: "none", cursor: "pointer",
+    color: "var(--color-text-tertiary)", padding: 8, minWidth: 44, minHeight: 44,
+    display: "inline-grid", placeItems: "center",
+  },
+  curtainBody: {
+    display: "flex", flexDirection: "column", gap: 16, padding: 20,
+    overflow: "auto", flex: 1,
+  },
 
   // ---- Recipe variant ----
   recipeHero: { display: "flex", gap: 32, alignItems: "flex-start" },
@@ -935,11 +1183,18 @@ const s = {
   recipeStepExpand: { display: "flex", flexDirection: "column", gap: 12, padding: "0 0 12px 28px" },
   recipeFieldBlock: { display: "flex", flexDirection: "column", gap: 2 },
   recipeFieldLabel: { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px" },
-  recipeFieldBody: { margin: 0, fontSize: 13, color: "var(--color-text-medium)", lineHeight: "20px" },
+  recipeFieldBody: { margin: 0, fontSize: 13, color: "var(--color-text-medium)", lineHeight: "20px", cursor: "pointer" },
 
+  recipeAddWrap: { display: "flex", flexDirection: "column", gap: 4 },
   recipeAddStep: {
     appearance: "none", border: "none", background: "none", display: "flex",
     alignItems: "center", gap: 4, padding: "8px 0", cursor: "pointer",
     fontFamily: "inherit", fontSize: 12, color: "var(--color-text-tertiary)",
+  },
+  recipeEditBtn: {
+    appearance: "none", border: "1px solid var(--color-border-card-soft)",
+    background: "var(--surface-white)", borderRadius: 4, padding: "4px 10px",
+    cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 500,
+    color: "var(--color-button-primary-bg)", alignSelf: "flex-start",
   },
 };

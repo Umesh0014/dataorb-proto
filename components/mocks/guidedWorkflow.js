@@ -281,6 +281,102 @@ export const WORKFLOW_TAB_COUNTS = {
   archived: 0,
 };
 
+// ---- Step-level metrics (success rate + agent best practices) ---------------
+
+export const STEP_METRICS = {
+  "s-1": {
+    successRate: 94,
+    bestPractices: [
+      { agent: "Marcus Bell", verbatim: "Always use the customer's name within the first 10 seconds — it reduces call anxiety by 22%." },
+      { agent: "Sofia Chen", verbatim: "Mirror the customer's tone before introducing yourself. Rushing the brand line when they're upset backfires." },
+    ],
+  },
+  "s-2": {
+    successRate: 88,
+    bestPractices: [
+      { agent: "Sofia Chen", verbatim: "Pause for 2 seconds after the empathy statement. Jumping straight to action makes it sound rehearsed." },
+      { agent: "James Okafor", verbatim: "Reference what the customer said specifically — 'I can see why a £12 jump with no warning is frustrating' beats generic empathy." },
+    ],
+  },
+  "s-3": {
+    successRate: 91,
+    bestPractices: [
+      { agent: "Marcus Bell", verbatim: "Frame verification as helping them, not gatekeeping — 'so I can pull up your account and help straight away'." },
+      { agent: "Priya Sharma", verbatim: "If the customer pushes back on verification, offer the alternative method immediately — don't repeat the same ask." },
+    ],
+  },
+  "s-4": {
+    successRate: 85,
+    bestPractices: [
+      { agent: "James Okafor", verbatim: "Name the exact line item that changed and the exact amount — vague explanations erode trust." },
+      { agent: "Sofia Chen", verbatim: "Share your screen or describe the comparison view step by step so the customer follows along." },
+    ],
+  },
+  "s-5": {
+    successRate: 82,
+    bestPractices: [
+      { agent: "Marcus Bell", verbatim: "Lead with what the adjustment IS, then how it's calculated. Don't start with the formula — that feels evasive." },
+      { agent: "Priya Sharma", verbatim: "Mention that the increase applies industry-wide. Customers feel less targeted when they know it's universal." },
+    ],
+  },
+  "s-6": {
+    successRate: 78,
+    bestPractices: [
+      { agent: "Sofia Chen", verbatim: "Listen for exact phrases: 'I've been looking at…', 'my friend switched to…', 'I might have to…' — these are the real churn signals." },
+      { agent: "James Okafor", verbatim: "Don't ask 'are you thinking of leaving?' directly — it plants the idea. Let the signal emerge naturally." },
+    ],
+  },
+  "s-7": {
+    successRate: 76,
+    bestPractices: [
+      { agent: "Marcus Bell", verbatim: "Lead with what they KEEP, not what the credit IS. '£35 a month, same as you've been paying' beats '£3.50 off'." },
+      { agent: "Priya Sharma", verbatim: "Frame the loyalty credit as recognition of their tenure — 'because you've been with us six years' creates emotional anchor." },
+    ],
+  },
+  "s-8": {
+    successRate: 92,
+    bestPractices: [
+      { agent: "James Okafor", verbatim: "Read back exact numbers and duration — ambiguity here causes callbacks. '£3.50 credit, 12 months, bill stays at £35.'" },
+      { agent: "Sofia Chen", verbatim: "Always confirm by asking the customer to repeat back the key terms — it catches misunderstandings before they become complaints." },
+    ],
+  },
+  "s-9": {
+    successRate: 96,
+    bestPractices: [
+      { agent: "Marcus Bell", verbatim: "Mention when they'll see the change — 'on your next bill' gives them a concrete expectation to check against." },
+      { agent: "Priya Sharma", verbatim: "End on the customer's name. 'Is there anything else I can help with today, Marcus?' personalises the close." },
+    ],
+  },
+};
+
+// ---- Suggested steps per stage (single-click add) ---------------------------
+
+export const SUGGESTED_STEPS = {
+  open: [
+    { id: "sug-o1", label: "Confirm preferred name" },
+    { id: "sug-o2", label: "Set call duration expectation" },
+    { id: "sug-o3", label: "Check for previous interactions" },
+  ],
+  verify: [
+    { id: "sug-v1", label: "Offer alternative verification" },
+    { id: "sug-v2", label: "Log failed verification attempt" },
+  ],
+  discover: [
+    { id: "sug-d1", label: "Check for bundled services" },
+    { id: "sug-d2", label: "Review 12-month account history" },
+    { id: "sug-d3", label: "Identify related open tickets" },
+  ],
+  act: [
+    { id: "sug-a1", label: "Offer plan comparison" },
+    { id: "sug-a2", label: "Schedule follow-up call" },
+    { id: "sug-a3", label: "Apply temporary discount" },
+  ],
+  close: [
+    { id: "sug-c1", label: "Send confirmation SMS" },
+    { id: "sug-c2", label: "Request NPS rating" },
+  ],
+};
+
 // ---- Empty workflow template -----------------------------------------------
 
 export const EMPTY_WORKFLOW = {
