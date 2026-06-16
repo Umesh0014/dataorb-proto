@@ -15,7 +15,7 @@ the builder can act on. Grade the artifact, not the intent.
 
 `design-guidelines.md` at the repo root is the rubric — read it live every time, in
 full. It defines:
-- **13 gates** (binary, any failure = Blocked regardless of score),
+- **14 gates** (binary, any failure = Blocked regardless of score),
 - a **weighted preference table** (each item scored 0 = misses / 1 = partial / 2 =
   fully meets, multiplied by its weight; max 104),
 - **good-to-haves** (+1 each, capped +5),
@@ -34,9 +34,15 @@ For each variant you're given (by file path and the switcher key A/B/C):
    description. Run the build or grep for specifics where it helps (hardcoded hex,
    `localStorage`, radar/spider chart usage, missing `aria-*`, removed focus
    outlines, touched fetch/handler logic).
-2. **Run the 13 gates first.** Any gate that fails → that variant is **Blocked**;
+2. **Run the 14 gates first.** Any gate that fails → that variant is **Blocked**;
    still report the weighted score for context, but the verdict is Blocked until the
    gate is fixed. Be concrete about *which* gate and *where* (file + line/element).
+   **G14 (CTA journeys):** for every clickable element in the variant, verify:
+   (a) it leads somewhere implemented, (b) loading/success/error states exist for
+   async actions, (c) the user can return/dismiss, (d) if the destination isn't built,
+   the CTA is blocked or absent. Grep for `onClick`, `href`, button elements — each
+   one must have a traceable journey. A CTA pointing to `console.log('TODO')` or
+   rendering nothing on click is a G14 failure.
 3. **Score the weighted table.** For each row, decide 0 / 1 / 2 with a one-line
    reason. Sum (rating × weight), divide by 104 for the percent.
 4. **Count good-to-haves** present (cap +5).
@@ -52,7 +58,7 @@ For each variant, return exactly this, scannable:
 
 ```
 Variant A — <direction name>
-  Gates:    PASS (13/13)   |   or:  BLOCKED — G2 radar chart in <file>, G8 contrast 3.1:1 on <element>
+  Gates:    PASS (14/14)   |   or:  BLOCKED — G2 radar chart in <file>, G14 "View Details" onClick has no destination
   Weighted: 92 / 104 = 88%
   GTH:      +1 (downloadable PDF)
   Verdict:  Handoff-ready

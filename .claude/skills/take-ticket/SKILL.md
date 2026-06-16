@@ -20,7 +20,7 @@ merge runs without him.
 - **Stack:** Next.js 16, React 19, **JSX (not TS)**, inline styles + CSS-var
   tokens, `Button`/`Card` primitives, **no new dependencies**.
 - **Design rubric (read live, every run):** `design-guidelines.md` at the repo
-  root. This is the single source of truth for what "good" means — 13 gates, the
+  root. This is the single source of truth for what "good" means — 14 gates, the
   weighted preference table (max 104), good-to-haves, and the verdict thresholds.
   Both the direction-scoring step and the evaluator subagent score against THIS
   file, not against anything summarized here. If Umesh has updated it since last
@@ -184,13 +184,34 @@ Visual/layout requirements (V-items) may differ between variants — that's expe
 and is part of what makes Safe vs. Ambitious distinct — but missing V-items must be
 a conscious choice noted in the directions file, not an oversight.
 
+#### 5b. CTA journey verification during build (G14)
+After building each variant, audit every clickable element:
+
+1. **Grep for all CTAs:** `onClick`, `href`, `<Button`, `<a `, clickable rows,
+   action menu items in the variant's files.
+2. **For each CTA, verify:**
+   - It leads to a real destination (component renders, drawer opens, navigation works)
+   - Async CTAs (generate, send, export) have loading, success, and error states
+   - User can return (close button, back nav, Esc dismissal, breadcrumb)
+   - If destination isn't built, CTA is visibly disabled or absent — not present-but-broken
+3. **Cross-reference against the CTA Journey Map** in `requirements.md`:
+   - Every J-item marked `exists` → verify it actually works in the variant
+   - Every J-item marked `needs build` → verify it's implemented or blocked
+   - Every J-item marked `blocked` → verify the CTA is disabled or removed
+4. **Log results** per variant in `docs/tickets/<slug>/cta-audit.md`:
+   ```
+   ## CTA Audit — Variant [A/B/C]
+   | CTA | Journey complete? | States verified | Return path | Status |
+   ```
+5. Any dead-end CTA → **G14 failure**. Fix before pushing.
+
 ### 6. Verify the build
 Run `npm run build`. It **must pass** before assessment or push. If it fails, stop,
 report, fix, re-run. Never proceed on a red build.
 
 ### 7. Assess + refine (the autonomous loop)
 Hand the 3 built variants to the **`design-evaluator` subagent** (`.claude/agents/
-design-evaluator.md`). It scores each variant against the full rubric — all 13
+design-evaluator.md`). It scores each variant against the full rubric — all 14
 gates, the weighted table, good-to-haves — and returns, per variant: gate pass/fail,
 weighted %, verdict, and the **specific weak weighted items to fix**. Using a fresh
 subagent context here is deliberate: it judges the work without anchoring on the
@@ -206,7 +227,7 @@ Then refine, targeting only the weak items the evaluator named (don't rewrite wh
 already scores 2). Re-run `npm run build`, then **commit + push + run sub-step 8a**
 (this updates the Notion ticket with the latest preview link and posts a progress
 comment with current scores). Re-assess. **Repeat until:**
-- every variant passes all 13 gates AND the top variant's weighted % gained < 5
+- every variant passes all 14 gates AND the top variant's weighted % gained < 5
   points over the previous pass, **or**
 - 3 refine passes are done.
 
@@ -281,8 +302,8 @@ and the **scorecard** in this format:
 
 | Variant | Band | Direction | Gates | Weighted % | Reqs coverage | Verdict |
 |---------|------|-----------|-------|-----------|---------------|---------|
-| A | 🟢 Safe | [1-line concept] | 13/13 | 88% | 12/12 ✅ | Handoff-ready |
-| B | 🟡 Balanced | [1-line concept] | 13/13 | 82% | 12/12 ✅ | Minor revisions |
+| A | 🟢 Safe | [1-line concept] | 14/14 | 88% | 12/12 ✅ | Handoff-ready |
+| B | 🟡 Balanced | [1-line concept] | 14/14 | 82% | 12/12 ✅ | Minor revisions |
 | C | 🔴 Ambitious | [1-line concept] | 12/13 | 76% | 11/12 ⚠️ | Major revisions |
 
 ### Requirements coverage gaps (if any)

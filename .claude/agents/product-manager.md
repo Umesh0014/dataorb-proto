@@ -68,6 +68,36 @@ Source: [Notion ticket reference]
 - The checklist is the **contract**. If it's not on the list, it doesn't get built.
   If it should be built, it must be on the list.
 
+**CTA journey extraction (mandatory):**
+After the requirements checklist, add a **CTA Journey Map** section:
+
+```markdown
+### CTA Journey Map
+Every clickable element on this surface must have its journey documented.
+
+| # | CTA | Element type | Destination | Journey states | Return path | Status |
+|---|-----|-------------|-------------|----------------|-------------|--------|
+| J1 | "View Details" | row click | AgentDetailDrawer | loading → detail → error | close drawer / Esc | exists |
+| J2 | "Start Drill" | button | DrillPage | loading → in-progress → complete / error | back nav / breadcrumb | exists |
+| J3 | "Export PDF" | button | async download | click → generating → download / error | stays on page | needs build |
+| J4 | "Archive" | menu item | — | — | — | blocked (V1) |
+...
+```
+
+**Rules for CTA journey extraction:**
+- Read the current implementation. List every `onClick`, `href`, clickable row, and
+  action button on the surface.
+- For each, trace: where does the user end up? What states do they pass through?
+  How do they get back?
+- If a CTA exists in the current implementation but leads nowhere (console.log,
+  alert, no-op), mark `Status: dead end — must fix or remove`.
+- If a CTA is in the ticket spec but the destination isn't built, mark
+  `Status: blocked — needs [destination component]`.
+- If the ticket introduces new CTAs, document their full journey even if the
+  destination doesn't exist yet — this surfaces build scope early.
+- This map feeds directly into G14 (gate: every CTA has a journey). A variant
+  that ships CTAs without journeys fails the gate.
+
 ### Deliverable 2: 9 Design Directions
 
 Write to `docs/tickets/<slug>/directions-raw.md`:
