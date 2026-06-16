@@ -277,6 +277,18 @@ body {
   to   { transform: rotate(360deg); }
 }
 
+/* Honor prefers-reduced-motion globally (WCAG 2.3.3 / MOT-4): neutralize
+   transitions and animations for users who request reduced motion. Essential
+   spinners keep a minimal duration rather than vanishing. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* GuideSessionPage — orb pulse + sources-panel slide-in. The orb's two
    blurred rings breathe at offset durations so the motion never repeats
    in lockstep. Sources panel pushes in from the right edge of the card. */
@@ -365,6 +377,12 @@ body {
 .cc-focusable:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
+}
+
+/* Command Center agent table — row highlight on hover / keyboard focus. */
+.cc-agent-row:hover,
+.cc-agent-row:focus-within {
+  background: var(--table-row-hover);
 }
 
 /* Missions kanban lanes — scrollbar hidden at rest, fades in on lane hover

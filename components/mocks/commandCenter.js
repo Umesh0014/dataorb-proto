@@ -29,7 +29,7 @@
 // ordering is transparent and tunable — mirrors the audit-rubric
 // transparency principle the ticket calls for.
 export const RANK_WEIGHTS = {
-  severity: { high: 3, medium: 2, low: 1 },
+  severity: { critical: 4, high: 3, medium: 2, low: 1 },
   wSeverity: 10,
   wCentrality: 4,
   wReach: 3,
@@ -72,9 +72,10 @@ export function rankItems(items) {
 // Severity always pairs colour with a text label + icon downstream so
 // meaning is never carried by colour alone (WCAG-2).
 export const SEVERITY_META = {
-  high:   { label: "High",   tone: "danger",   order: 0 },
-  medium: { label: "Medium", tone: "warning",  order: 1 },
-  low:    { label: "Low",    tone: "info",      order: 2 },
+  critical: { label: "Critical", tone: "danger",   order: 0 },
+  high:     { label: "High",     tone: "warning",  order: 1 },
+  medium:   { label: "Medium",   tone: "info",     order: 2 },
+  low:      { label: "Low",      tone: "tertiary", order: 3 },
 };
 
 // Signal source → human label + lucide icon name (resolved in the card).
@@ -87,13 +88,17 @@ export const SIGNAL_META = {
   regression:  { label: "Regression",       icon: "Activity" },
 };
 
-// Recommended-intervention kind → verb + lucide icon name.
+// Recommended-intervention kind → verb + lucide icon name + short task type.
+// `type` is the action-type label surfaced on the task cards (Guided drill /
+// Replay / Probe / …).
 export const INTERVENTION_META = {
-  replay:          { label: "Assign replay clip",       icon: "Repeat" },
-  guide:           { label: "Assign guide",             icon: "GraduationCap" },
-  mission:         { label: "Create 2-roleplay mission", icon: "Target" },
-  "add-to-mission": { label: "Add to mission",          icon: "Plus" },
-  "one-on-one":    { label: "Log a 1:1",                icon: "MessageSquare" },
+  drill:            { label: "Guided drill",       icon: "Target",        type: "Guided drill" },
+  replay:           { label: "Replay review",      icon: "Repeat",        type: "Replay" },
+  probe:            { label: "Probe interview",    icon: "Search",        type: "Probe" },
+  guide:            { label: "Assign guide",       icon: "GraduationCap", type: "Guide" },
+  mission:          { label: "2-roleplay mission", icon: "Flag",          type: "Mission" },
+  "add-to-mission": { label: "Add to mission",     icon: "Plus",          type: "Mission" },
+  "one-on-one":     { label: "Log a 1:1",          icon: "MessageSquare", type: "1:1" },
 };
 
 // toneInk — accessible *text* colour for a tone label rendered on a white
@@ -109,6 +114,22 @@ export function toneInk(tone) {
     success: "var(--color-success-text)",
     tertiary: "var(--color-text-tertiary)",
   }[tone] || "var(--color-text-medium)";
+}
+
+// taskTitle — the action-first heading for a task card: what to do, for whom.
+// Cohort items (reach > 1) read as a cohort rather than a person.
+export function taskTitle(item) {
+  const who = item.reach > 1 ? item.agent.name : item.agent.name;
+  switch (item.intervention.kind) {
+    case "drill": return `Assign guided drill to ${who}`;
+    case "replay": return `Assign replay review to ${who}`;
+    case "probe": return `Run a probe interview with ${who}`;
+    case "guide": return `Assign a guide to ${who}`;
+    case "mission": return `Create a mission for ${who}`;
+    case "add-to-mission": return `Add ${who} to a mission`;
+    case "one-on-one": return `Log a 1:1 with ${who}`;
+    default: return `Support ${who}`;
+  }
 }
 
 // Loop status → label + tone. open = no badge. Pairs colour with text.
@@ -131,13 +152,13 @@ export const ATTENTION_ITEMS = [
     signal: "performance",
     evidence: "CSAT fell 11pp to 54% over 3 weeks — bottom of the team on billing calls.",
     metric: { points: [72, 70, 66, 61, 54], unit: pct, current: 54, labels: ["5w", "4w", "3w", "2w", "now"] },
-    severity: "high",
+    severity: "critical",
     centrality: 3,
     reach: 1,
     recencyDays: 2,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "replay", asset: "De-escalation: angry billing dispute", duration: "12 min" },
+    intervention: { kind: "drill", asset: "De-escalation: angry billing dispute", duration: "12 min" },
     sampleNote: "Based on 41 scored calls this window.",
   },
   {
@@ -148,13 +169,13 @@ export const ATTENTION_ITEMS = [
     signal: "qa",
     evidence: "QA scored 38% — 4 interactions breached the resolution-clarity threshold.",
     metric: { points: [55, 50, 46, 42, 38], unit: pct, current: 38, labels: ["5w", "4w", "3w", "2w", "now"] },
-    severity: "high",
+    severity: "critical",
     centrality: 2,
     reach: 1,
     recencyDays: 1,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "guide", asset: "Setting Clear Resolutions", duration: "15 min" },
+    intervention: { kind: "drill", asset: "Setting Clear Resolutions", duration: "15 min" },
     sampleNote: "Based on 4 of 36 calls flagged.",
   },
   {
@@ -193,13 +214,13 @@ export const ATTENTION_ITEMS = [
   },
   {
     id: "ai-cohort-empathy",
-    agent: { id: "cohort-empathy", name: "3 agents · Empathy", initials: "3" },
+    agent: { id: "cohort-empathy", name: "Empathy cohort", initials: "3" },
     competency: "Empathy & Acknowledgment",
     driver: null,
     signal: "coverage",
     evidence: "High-volume empathy moments, no practice coverage for Tod, Hiroshi & Noah.",
     metric: null,
-    severity: "medium",
+    severity: "high",
     centrality: 3,
     reach: 3,
     recencyDays: 4,
@@ -239,7 +260,7 @@ export const ATTENTION_ITEMS = [
     recencyDays: 3,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "replay", asset: "Advanced Conversation Pacing", duration: "10 min" },
+    intervention: { kind: "probe", asset: "Probe interview — pacing regression", duration: "15 min" },
     sampleNote: null,
   },
   {
@@ -256,7 +277,7 @@ export const ATTENTION_ITEMS = [
     recencyDays: 5,
     overdueDays: null,
     deadline: null,
-    intervention: { kind: "guide", asset: "Efficient Resolution Paths", duration: "12 min" },
+    intervention: { kind: "replay", asset: "Efficient Resolution Paths", duration: "12 min" },
     sampleNote: null,
   },
   {
@@ -336,25 +357,66 @@ export const TEAM_CONTEXT = {
   size: 11,
 };
 
+// scoreTrend — deterministic ~8-point series ending near `base`, gently
+// rising. Stable across reloads (no Math.random); oldest value first. Used
+// for the score trendlines beside every CSAT / composite number.
+export function scoreTrend(base, seed = 0) {
+  const n = 8;
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    const drift = (n - 1 - i) * 1.4; // older points sit a little lower
+    const noise = Math.sin((i + seed) * 1.1) * 1.4;
+    out.push(Math.max(0, Math.round(base - drift + noise)));
+  }
+  return out;
+}
+
+// ---- Team-level scores (top scoreboard) ---------------------------------
+// The composite (ring) and CSAT each carry a trendline + target + delta,
+// mirroring the Performance-score hero. Every number has a label + unit.
+export const TEAM_SCORE = {
+  composite: {
+    value: 62, outOf: 100, target: 75,
+    delta: "4 pts this week", dir: "up",
+    trend: scoreTrend(62, 1),
+  },
+  csat: {
+    value: 71, unit: "%", target: 80,
+    delta: "2 pts this week", dir: "up",
+    trend: scoreTrend(71, 4),
+  },
+};
+
 // ---- Agent roster -------------------------------------------------------
-// Every agent on the team with their CSAT + composite score, the target to
-// lift them to, and Learning Hub engagement. Action items per agent are the
-// ATTENTION_ITEMS keyed by agent id (agentActionItems). composite/target are
-// read-only scores (0–100); the goal framing is "improve the score", never
-// an employment judgement (gate G4).
-export const TEAM_ROSTER = [
-  { id: "215566", name: "Ravi Patel",       initials: "RP", csat: 61, composite: 38, target: 70, engagement: "none" },
-  { id: "203891", name: "Mukesh Patil",     initials: "MP", csat: 66, composite: 34, target: 65, engagement: "none" },
-  { id: "217430", name: "Priya Nair",       initials: "PN", csat: 67, composite: 40, target: 70, engagement: "active" },
-  { id: "184775", name: "Hiroshi Tanaka",   initials: "HT", csat: 70, composite: 45, target: 70, engagement: "active" },
-  { id: "198320", name: "Willis Jast",      initials: "WJ", csat: 54, composite: 61, target: 75, engagement: "stalled" },
-  { id: "201357", name: "Liam Donovan",     initials: "LD", csat: 56, composite: 52, target: 70, engagement: "stalled" },
-  { id: "213846", name: "Sofia Russo",      initials: "SR", csat: 62, composite: 62, target: 70, engagement: "none" },
-  { id: "188214", name: "Devon Hartmann",   initials: "DH", csat: 84, composite: 81, target: 75, engagement: "active" },
-  { id: "209188", name: "Elena Vasquez",    initials: "EV", csat: 89, composite: 88, target: 80, engagement: "active" },
-  { id: "222019", name: "Grace Okafor",     initials: "GO", csat: 88, composite: 91, target: 80, engagement: "active" },
-  { id: "193845", name: "Aaliyah Tillman",  initials: "AT", csat: 90, composite: 92, target: 85, engagement: "active" },
+// Every agent on the team with their CSAT + composite score, the targets to
+// lift them to, Learning Hub engagement, and a trend series for each score.
+// composite/csat are read-only scores; the goal framing is "improve the
+// score", never an employment judgement (gate G4).
+const ROSTER_BASE = [
+  { id: "215566", name: "Ravi Patel",       initials: "RP", qa: 48, csat: 61, composite: 38, target: 70, engagement: "none" },
+  { id: "203891", name: "Mukesh Patil",     initials: "MP", qa: 46, csat: 66, composite: 34, target: 65, engagement: "none" },
+  { id: "217430", name: "Priya Nair",       initials: "PN", qa: 58, csat: 67, composite: 40, target: 70, engagement: "active" },
+  { id: "184775", name: "Hiroshi Tanaka",   initials: "HT", qa: 60, csat: 70, composite: 45, target: 70, engagement: "active" },
+  { id: "198320", name: "Willis Jast",      initials: "WJ", qa: 66, csat: 54, composite: 61, target: 75, engagement: "stalled" },
+  { id: "201357", name: "Liam Donovan",     initials: "LD", qa: 64, csat: 56, composite: 52, target: 70, engagement: "stalled" },
+  { id: "213846", name: "Sofia Russo",      initials: "SR", qa: 70, csat: 62, composite: 62, target: 70, engagement: "none" },
+  { id: "188214", name: "Devon Hartmann",   initials: "DH", qa: 88, csat: 84, composite: 81, target: 75, engagement: "active" },
+  { id: "209188", name: "Elena Vasquez",    initials: "EV", qa: 92, csat: 89, composite: 88, target: 80, engagement: "active" },
+  { id: "222019", name: "Grace Okafor",     initials: "GO", qa: 94, csat: 88, composite: 91, target: 80, engagement: "active" },
+  { id: "193845", name: "Aaliyah Tillman",  initials: "AT", qa: 95, csat: 90, composite: 92, target: 85, engagement: "active" },
 ];
+
+// Each agent carries QA / CSAT targets (team standards) plus a trend series for
+// QA, CSAT, and composite, so every score renders as number + trendline +
+// dotted target line.
+export const TEAM_ROSTER = ROSTER_BASE.map((a, i) => ({
+  ...a,
+  qaTarget: 85,
+  csatTarget: 80,
+  qaTrend: scoreTrend(a.qa, i + 5),
+  csatTrend: scoreTrend(a.csat, i + 1),
+  compositeTrend: scoreTrend(a.composite, i + 9),
+}));
 
 // Learning Hub engagement → label + tone. "none"/"stalled" both read as a
 // distinct state with a paired label (never colour alone).

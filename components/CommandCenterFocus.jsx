@@ -6,24 +6,20 @@ import Card from "./Card";
 import Button from "./Button";
 import Banner from "./Banner";
 import InlineStatusAffordance from "./InlineStatusAffordance";
-import AttentionItemCard from "./AttentionItemCard";
-import AgentScoreRow, { ScoreBar } from "./AgentScoreRow";
-import CommandCenterTeamStrip from "./CommandCenterTeamStrip";
-import {
-  TEAM_ROSTER, ENGAGEMENT_META, rosterStatus, rankItems, toneInk,
-} from "./mocks/commandCenter";
+import ScoreTrend from "./ScoreTrend";
+import AgentScoreRow from "./AgentScoreRow";
+import CommandCenterScoreboard from "./CommandCenterScoreboard";
+import CommandCenterTasks from "./CommandCenterTasks";
+import { TEAM_ROSTER, ENGAGEMENT_META, rosterStatus, toneInk } from "./mocks/commandCenter";
 
-// CommandCenterFocus (Variant C) — the same agent dashboard read top-down for
-// a 5-minute Monday triage. Team metrics, then the one agent who needs the
-// most help featured with their scores + action plan, then the rest of the
-// at-risk roster, then a "this worked last week" recap (downloadable). Same
-// data as the Roster variant, prioritised and editorial.
-
+// CommandCenterFocus (Variant C) — the dashboard read top-down for a 5-minute
+// Monday triage: the scoreboard, the agent who needs the most help featured
+// with their scores + a jump to their detail page, the critical Tasks, the
+// rest of the at-risk roster, then a downloadable "this worked" recap.
 export default function CommandCenterFocus({
   items,
   resolved,
   onLaunch,
-  onOpenDetail,
   onOpenAgent,
   onSnooze,
   onDismiss,
@@ -35,23 +31,14 @@ export default function CommandCenterFocus({
   );
   const [hero, ...rest] = needsHelp;
   const improved = resolved.filter((r) => r.status === "improved");
-  const [openIds, setOpenIds] = React.useState(() => new Set());
-  const toggle = (id) =>
-    setOpenIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  const itemsFor = (agentId) => rankItems(items.filter((it) => it.agent.id === agentId));
-
-  const handlers = { onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
+  const taskProps = { items, onLaunch, onOpenAgent, onSnooze, onDismiss, onMarkHandled };
 
   return (
     <div style={fStyles.column}>
-      <CommandCenterTeamStrip subtitle="Your 5-minute Monday read — who needs you most, and how to lift their score" />
+      <CommandCenterScoreboard subtitle="Your 5-minute Monday read — who needs you most, and how to lift their score" />
 
       {hero ? (
-        <FocusAgentHero agent={hero} items={itemsFor(hero.id)} {...handlers} />
+        <FocusAgentHero agent={hero} onOpenAgent={onOpenAgent} />
       ) : (
         <Banner
           tone="success"
@@ -61,19 +48,14 @@ export default function CommandCenterFocus({
         />
       )}
 
+      <CommandCenterTasks {...taskProps} />
+
       {rest.length > 0 && (
         <section style={fStyles.section}>
-          <h2 style={fStyles.sectionTitle}>Also needs you</h2>
+          <h2 style={fStyles.sectionTitle}>Rest of the at-risk roster</h2>
           <div style={fStyles.list}>
             {rest.map((agent) => (
-              <AgentScoreRow
-                key={agent.id}
-                agent={agent}
-                items={itemsFor(agent.id)}
-                expanded={openIds.has(agent.id)}
-                onToggle={() => toggle(agent.id)}
-                {...handlers}
-              />
+              <AgentScoreRow key={agent.id} agent={agent} onOpenAgent={onOpenAgent} />
             ))}
           </div>
         </section>
@@ -83,12 +65,7 @@ export default function CommandCenterFocus({
         <section style={fStyles.section}>
           <div style={fStyles.recapHeader}>
             <h2 style={fStyles.sectionTitle}>This worked last week</h2>
-            <Button
-              variant="text"
-              uppercase={false}
-              trailingIcon={<Download size={15} aria-hidden="true" />}
-              onClick={() => downloadRecap(improved)}
-            >
+            <Button variant="text" uppercase={false} trailingIcon={<Download size={15} aria-hidden="true" />} onClick={() => downloadRecap(improved)}>
               Download
             </Button>
           </div>
@@ -117,9 +94,9 @@ export default function CommandCenterFocus({
   );
 }
 
-// FocusAgentHero — the single agent to start with, given editorial weight:
-// large scores, the goal, and their action plan inline.
-function FocusAgentHero({ agent, items, onLaunch, onOpenDetail, onOpenAgent, onSnooze, onDismiss, onMarkHandled }) {
+// FocusAgentHero — the single agent to start with: scores with trendlines and
+// a jump straight into their detail page. Coaching actions live in Tasks.
+function FocusAgentHero({ agent, onOpenAgent }) {
   const eng = ENGAGEMENT_META[agent.engagement];
   const gap = agent.target - agent.composite;
   return (
@@ -131,7 +108,7 @@ function FocusAgentHero({ agent, items, onLaunch, onOpenDetail, onOpenAgent, onS
           className="cc-focusable"
           onClick={() => onOpenAgent?.(agent.id)}
           style={fStyles.heroAvatar}
-          aria-label={`Open ${agent.name}'s profile`}
+          aria-label={`Open ${agent.name}'s detail page`}
         >
           {agent.initials}
         </button>
@@ -144,44 +121,16 @@ function FocusAgentHero({ agent, items, onLaunch, onOpenDetail, onOpenAgent, onS
       </div>
 
       <div style={fStyles.heroScores}>
-        <div style={fStyles.heroCsat}>
-          <span style={fStyles.metricLabel}>CSAT</span>
-          <span style={fStyles.heroBig}>{agent.csat}%</span>
-        </div>
-        <div style={fStyles.heroComposite}>
-          <div style={fStyles.scoreTop}>
-            <span style={fStyles.metricLabel}>Composite</span>
-            <span style={fStyles.heroBig}>{agent.composite} <span style={fStyles.scoreMax}>/ 100</span></span>
-          </div>
-          <ScoreBar composite={agent.composite} target={agent.target} onTrack={false} />
-        </div>
+        <ScoreTrend label="CSAT" value={`${agent.csat}%`} unit="%" points={agent.csatTrend} target={agent.csatTarget} width={150} size="lg" />
+        <ScoreTrend label="Composite" value={`${agent.composite}`} points={agent.compositeTrend} target={agent.target} width={150} size="lg" />
       </div>
 
-      <p style={fStyles.goal}>Goal — lift composite {agent.composite} → {agent.target} (+{gap} pts)</p>
-
-      <div style={fStyles.heroItems}>
-        {items.map((item) => (
-          <AttentionItemCard
-            key={item.id}
-            item={item}
-            status={item.status}
-            hideAgent
-            onLaunch={() => onLaunch(item.id)}
-            onOpenDetail={() => onOpenDetail(item.id)}
-            onOpenAgent={onOpenAgent}
-            onSnooze={() => onSnooze(item.id)}
-            onDismiss={() => onDismiss(item.id)}
-            onMarkHandled={() => onMarkHandled(item.id)}
-          />
-        ))}
-      </div>
+      <p style={fStyles.goal}>Goal — lift composite {agent.composite} → {agent.target} (+{gap} pts). Their tasks are below.</p>
+      <Button variant="primary" onClick={() => onOpenAgent?.(agent.id)} style={{ alignSelf: "flex-start" }}>Open detail page</Button>
     </Card>
   );
 }
 
-// downloadRecap — exports the "this worked" outcomes as a plain-text file the
-// lead can drop into a 1:1 or up-report. Real client-side download (Blob +
-// anchor), no new deps.
 function downloadRecap(improved) {
   const lines = ["This worked last week — coaching that moved a score", ""];
   improved.forEach((r) => {
@@ -208,7 +157,7 @@ function Dot({ tone }) {
 }
 
 const fStyles = {
-  column: { maxWidth: 820, marginInline: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 28 },
+  column: { maxWidth: 960, marginInline: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 28 },
   section: { display: "flex", flexDirection: "column", gap: 12 },
   recapHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   sectionTitle: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)" },
@@ -216,10 +165,7 @@ const fStyles = {
   list: { display: "flex", flexDirection: "column", gap: 12 },
 
   hero: { display: "flex", flexDirection: "column", gap: 16, borderRadius: 16 },
-  startHere: {
-    fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
-    textTransform: "uppercase", color: "var(--color-button-primary-bg)",
-  },
+  startHere: { fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-button-primary-bg)" },
   heroIdentity: { display: "flex", alignItems: "center", gap: 14 },
   heroAvatar: {
     flexShrink: 0, width: 48, height: 48, borderRadius: "50%", border: "none",
@@ -228,23 +174,10 @@ const fStyles = {
     display: "inline-flex", alignItems: "center", justifyContent: "center",
   },
   heroName: { margin: "0 0 4px", fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1.2 },
-  heroScores: { display: "flex", gap: 24, alignItems: "flex-end" },
-  heroCsat: { display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 },
-  heroComposite: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6, maxWidth: 360 },
-  scoreTop: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 },
-  metricLabel: {
-    fontFamily: "var(--font-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
-    textTransform: "uppercase", color: "var(--color-text-tertiary)",
-  },
-  heroBig: { fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1 },
-  scoreMax: { fontSize: 14, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  heroScores: { display: "flex", gap: 36, flexWrap: "wrap" },
   goal: { margin: 0, fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
-  heroItems: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14, alignItems: "start" },
 
-  recapRow: {
-    display: "flex", alignItems: "center", gap: 12, width: "100%",
-    background: "transparent", border: "none", cursor: "pointer", textAlign: "left", padding: "12px 0",
-  },
+  recapRow: { display: "flex", alignItems: "center", gap: 12, width: "100%", background: "transparent", border: "none", cursor: "pointer", textAlign: "left", padding: "12px 0" },
   recapAvatar: {
     flexShrink: 0, width: 32, height: 32, borderRadius: "50%",
     background: "var(--grey-100)", color: "var(--color-text-medium)",

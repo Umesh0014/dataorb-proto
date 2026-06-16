@@ -113,6 +113,39 @@ export function getAgentImpact(agent) {
   return { firstName, qaEnd, csatEnd, series, activities, tenure };
 }
 
+// getTeamImpact — team-level "Learning Hub impact": the team's average QA score
+// and CSAT over ~24 months, with every Learning Hub intervention the team ran
+// marked along the axis. Lets a team lead see practice translate into lift
+// across the whole team. Same record shape as getAgentImpact.
+export function getTeamImpact({ qaEnd = 81, csatEnd = 71, compositeEnd = 62, tenure = 24 } = {}) {
+  const nowTime = new Date("2026-06-14").getTime();
+  const joinTime = nowTime - tenure * MONTH_MS;
+  const qaStart = clamp(qaEnd - 16, 30, qaEnd - 4);
+  const csatStart = clamp(csatEnd - 13, 40, csatEnd - 3);
+  const compositeStart = clamp(compositeEnd - 18, 20, compositeEnd - 4);
+
+  const K = Math.round(tenure * 5) + 1;
+  const series = [];
+  for (let i = 0; i < K; i += 1) {
+    const t = i / (K - 1);
+    const date = new Date(joinTime + t * tenure * MONTH_MS);
+    series.push({
+      x: t * tenure,
+      qa: valAt(t, qaStart, qaEnd, 2.2, 2),
+      csat: valAt(t, csatStart, csatEnd, 1.9, 5),
+      composite: valAt(t, compositeStart, compositeEnd, 1.8, 7),
+      date: fullLabel(date),
+    });
+  }
+
+  const activities = ACTIVITY_PLAN.filter((a) => a.at <= tenure).map((a) => {
+    const date = new Date(joinTime + a.at * MONTH_MS);
+    return { kind: a.kind, x: a.at, date: fullLabel(date), title: a.title };
+  });
+
+  return { firstName: "Your team", qaEnd, csatEnd, compositeEnd, series, activities, tenure };
+}
+
 // windowImpact — slice the trailing range for the timeline switcher.
 export function windowImpact(data, rangeId) {
   const range = RANGES.find((r) => r.id === rangeId) || RANGES[3];
@@ -125,6 +158,7 @@ export function windowImpact(data, rangeId) {
     firstName: data.firstName,
     qaEnd: data.qaEnd,
     csatEnd: data.csatEnd,
+    compositeEnd: data.compositeEnd,
     series,
     activities,
     xMin,

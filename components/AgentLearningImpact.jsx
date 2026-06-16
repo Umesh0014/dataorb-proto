@@ -6,19 +6,21 @@ import ExportButton from "./ExportButton";
 import AgentImpactChart from "./AgentImpactChart";
 import { getAgentImpact, windowImpact, RANGES } from "./mocks/agentLearningImpact";
 
-// AgentLearningImpact — "Learning Hub impact" section on the Agent detail page.
-// One chart, two trend lines (QA score + CSAT, both %), with every Learning Hub
-// activity the agent did marked along the time axis since they joined. The
-// point: you can see practice — drills, guides, replays, probes, missions —
-// translate into rising performance. A timeline switcher (1M…All) scopes the
-// window. Read-only (G4).
-
-export default function AgentLearningImpact({ agent }) {
+// AgentLearningImpact — "Learning Hub impact" section. One chart, two trend
+// lines (QA score + CSAT, both %), with every Learning Hub activity marked
+// along the time axis. The point: you can see practice — drills, guides,
+// replays, probes, missions — translate into rising performance. A timeline
+// switcher (1M…All) scopes the window. Read-only (G4).
+//
+// Per-agent on the Agent detail page (pass `agent`); for the whole team in the
+// Command Center (pass a precomputed `fullImpact` from getTeamImpact plus a
+// `title` / `subtitle`).
+export default function AgentLearningImpact({ agent, fullImpact, title = "Learning Hub impact", subtitle }) {
   const [range, setRange] = React.useState("1Y");
   // The point under the scrubber; null = not scrubbing, so the headline shows
   // the latest (current) value. Set live from the chart as the cursor moves.
   const [scrub, setScrub] = React.useState(null);
-  const full = React.useMemo(() => getAgentImpact(agent), [agent]);
+  const full = React.useMemo(() => fullImpact || getAgentImpact(agent), [fullImpact, agent]);
   const view = React.useMemo(() => windowImpact(full, range), [full, range]);
 
   const changeRange = (next) => {
@@ -27,15 +29,23 @@ export default function AgentLearningImpact({ agent }) {
   };
   const qaValue = scrub ? `${Math.round(scrub.qa)}%` : `${full.qaEnd}%`;
   const csatValue = scrub ? `${Math.round(scrub.csat)}%` : `${full.csatEnd}%`;
+  const hasComposite = full.compositeEnd != null;
+  const compositeValue = scrub && scrub.composite != null
+    ? `${Math.round(scrub.composite)}`
+    : `${full.compositeEnd}`;
 
   return (
     <Card padX={24} padY={24}>
       <div style={aliStyles.header}>
         <div>
-          <div style={aliStyles.title}>Learning Hub impact</div>
+          <div style={aliStyles.title}>{title}</div>
           <div style={aliStyles.subtitle}>
-            {full.firstName}&rsquo;s QA and CSAT scores since joining, with each Learning Hub
-            activity marked — so you can see practice lift performance.
+            {subtitle || (
+              <>
+                {full.firstName}&rsquo;s QA and CSAT scores since joining, with each Learning Hub
+                activity marked — so you can see practice lift performance.
+              </>
+            )}
           </div>
         </div>
         <div style={aliStyles.headerRight}>
@@ -45,6 +55,7 @@ export default function AgentLearningImpact({ agent }) {
       </div>
 
       <div style={aliStyles.legendRow}>
+        {hasComposite && <LineKey color="var(--chart-lavender)" label="Composite" value={compositeValue} />}
         <LineKey color="var(--chart-green)" label="QA score" value={qaValue} />
         <LineKey color="var(--chart-blue)" label="CSAT" value={csatValue} />
       </div>

@@ -91,7 +91,7 @@ const INSIGHTS_PAGES = {
 };
 
 const LEARNING_PAGES = {
-  "command-center": { Component: CommandCenterShell, pageName: "Command Center" },
+  "dashboard":    { Component: CommandCenterShell, pageName: "Dashboard" },
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
@@ -142,7 +142,7 @@ function resolveAppSwitcherLabel(pathname) {
 const DEFAULT_NAV = {
   currentPage: "insights",
   insightsNav: "contact-center",
-  learningNav: "drill",
+  learningNav: "dashboard",
   miraNav: "chat",
   missionDetailId: null,
   settingsSubpage: null,
@@ -193,7 +193,7 @@ function deriveNav(pathname) {
 // Path builders — used wherever the app used to call setCurrentPage /
 // setXxxNav. The strings match the `route` fields in the per-module configs.
 function pathForCurrentPage(currentPage) {
-  if (currentPage === "learning") return "/learning/drill";
+  if (currentPage === "learning") return "/learning/dashboard";
   if (currentPage === "mira") return "/mira/chat";
   return "/insights/contact-center";
 }
@@ -241,7 +241,7 @@ export default function Page() {
   // module's default sub-section so the address bar always shows a
   // canonical leaf path. router.replace keeps the redirect out of history.
   React.useEffect(() => {
-    if (pathname === "/learning") router.replace(pathForLearning("drill"));
+    if (pathname === "/learning") router.replace(pathForLearning("dashboard"));
     else if (pathname === "/insights") router.replace(pathForInsights("contact-center"));
     else if (pathname === "/mira") router.replace(pathForMira("chat"));
   }, [pathname, router]);
@@ -652,10 +652,21 @@ export default function Page() {
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
     const onGuide = learningNav === "guide";
+    const onDashboard = learningNav === "dashboard";
     const missionsPopulated = onMissions && !missionWizardStep;
 
     let drillContent;
-    if (onGuide && guideWizardStep) {
+    if (onDashboard && agentProfileId) {
+      // Clicking an agent on the Dashboard opens their detail page in place
+      // (no Agents landing); Back returns to the Dashboard.
+      drillContent = (
+        <AgentProfile
+          agentId={agentProfileId}
+          onBack={() => setAgentProfileId(null)}
+          onViewMission={openMission}
+        />
+      );
+    } else if (onGuide && guideWizardStep) {
       drillContent = (
         <CreateGuideWizardPage
           step={guideWizardStep}
@@ -741,9 +752,9 @@ export default function Page() {
           onOpenGuide={openGuideSession}
           onOpenAgent={(id) => {
             setAgentProfileId(id);
-            // From the Command Center the agent profile lives on the Agents
-            // route — navigate there; on Agents we're already home.
-            if (learningNav !== "agents") router.push(pathForLearning("agents"));
+            // On the Dashboard the agent detail opens in place (handled above);
+            // elsewhere route to the agent profile.
+            if (!onDashboard && learningNav !== "agents") router.push(pathForLearning("agents"));
           }}
           locale={locale}
           onLocaleChange={setLocale}

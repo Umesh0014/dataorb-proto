@@ -135,6 +135,7 @@ export default [
     files: [
       "components/AttentionItemCard.jsx",
       "components/AgentScoreRow.jsx",
+      "components/AgentRosterTable.jsx",
       "components/CommandCenterRoster.jsx",
       "components/CommandCenterScorecards.jsx",
       "components/CommandCenterFocus.jsx",
@@ -163,6 +164,23 @@ export default [
           selector: "JSXOpeningElement[name.name='button']",
           message:
             "Toast action/close controls — raw <button> kept until a toast-action primitive lands.",
+        },
+      ],
+    },
+  },
+  // Learning Hub impact chart — the segmented timeline switcher and the
+  // focusable chart pins/scrub layer are raw <button>s; Button.jsx has no
+  // segmented or chart-pin variant and there is no shared SegmentedControl
+  // primitive yet. Promote when a 2nd callsite needs it.
+  {
+    files: ["components/AgentLearningImpact.jsx", "components/AgentImpactChart.jsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or a shared SegmentedControl) when this component is next touched.",
         },
       ],
     },
