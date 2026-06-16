@@ -377,25 +377,146 @@ export const SUGGESTED_STEPS = {
   ],
 };
 
-// ---- Empty workflow template -----------------------------------------------
+// ---- AI-populated new workflow template ------------------------------------
+// When a TL creates a new guided workflow, AI pre-populates stages with
+// common conversation steps. These serve as starting scaffolding the TL
+// edits, removes, or extends — never blank.
 
 export const EMPTY_WORKFLOW = {
   id: null,
-  title: "",
-  description: "",
+  title: "New Guided Workflow",
+  description: "AI-generated conversation scaffold — edit each step to match your use case.",
   contactReason: "",
   jobToBeDone: "",
   scenario: "",
   triggers: [],
   successMetrics: [],
-  language: "",
+  language: "English (UK)",
   domain: "",
   state: "draft",
-  author: { name: "", initial: "", bg: "var(--avatar-neutral-bg)", fg: "var(--avatar-neutral-fg)" },
-  createdAt: null,
-  updatedAt: null,
+  author: { name: "AI Generated", initial: "AI", bg: "var(--avatar-violet-bg)", fg: "var(--avatar-violet-fg)" },
+  createdAt: "2026-06-16",
+  updatedAt: "2026-06-16",
   attachedPersonas: [],
   attemptsAllowed: 3,
   safetyWheelOn: true,
-  stages: STAGES.map((s) => ({ id: s.id, steps: [] })),
+  stages: [
+    {
+      id: "open",
+      steps: [
+        {
+          id: "new-s1",
+          label: "Greet and identify the caller",
+          detail: "Open with your name, brand, and confirm the reason for the call.",
+          script: "Hello, you're through to [Brand], my name is [Name]. How can I help you today?",
+          knowledgeCard: null,
+          type: "compliance",
+          mandatory: "required",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [],
+        },
+        {
+          id: "new-s2",
+          label: "Acknowledge and empathise",
+          detail: "Show the customer you understand their situation before moving forward.",
+          script: "I completely understand — let me look into this for you right away.",
+          knowledgeCard: null,
+          type: "action",
+          mandatory: "recommended",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [],
+        },
+      ],
+    },
+    {
+      id: "verify",
+      steps: [
+        {
+          id: "new-s3",
+          label: "Verify caller identity",
+          detail: "Confirm at least two data points before accessing account details.",
+          script: "For security, could I confirm your date of birth and the postcode on the account?",
+          knowledgeCard: null,
+          type: "compliance",
+          mandatory: "required",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [
+            { id: "new-ss1", label: "If verification fails → offer alternative method", mandatory: "conditional" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "discover",
+      steps: [
+        {
+          id: "new-s4",
+          label: "Investigate the root cause",
+          detail: "Use probing questions to understand the customer's actual need.",
+          script: "Let me take a closer look at your account so we can understand exactly what's happened.",
+          knowledgeCard: null,
+          type: "action",
+          mandatory: "required",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [],
+        },
+        {
+          id: "new-s5",
+          label: "Summarise findings to the customer",
+          detail: "Play back what you've found in plain language to confirm alignment.",
+          script: "So what I can see is [finding] — does that match what you're experiencing?",
+          knowledgeCard: null,
+          type: "action",
+          mandatory: "required",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [],
+        },
+      ],
+    },
+    {
+      id: "act",
+      steps: [
+        {
+          id: "new-s6",
+          label: "Present the resolution",
+          detail: "Offer the best available solution, leading with value to the customer.",
+          script: "Based on what we've found, here's what I can do for you — [resolution].",
+          knowledgeCard: null,
+          type: "action",
+          mandatory: "required",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [
+            { id: "new-ss2", label: "If customer declines → offer alternative", mandatory: "conditional" },
+          ],
+        },
+        {
+          id: "new-s7",
+          label: "Confirm agreement and apply",
+          detail: "Read back the agreed terms and apply the change on the account.",
+          script: "Just to confirm — I've applied [action]. You'll see this reflected [when].",
+          knowledgeCard: null,
+          type: "compliance",
+          mandatory: "required",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [],
+        },
+      ],
+    },
+    {
+      id: "close",
+      steps: [
+        {
+          id: "new-s8",
+          label: "Recap and close",
+          detail: "Summarise what was done and check if anything else is needed.",
+          script: "We've taken care of [summary]. Is there anything else I can help with today?",
+          knowledgeCard: null,
+          type: "action",
+          mandatory: "required",
+          grounding: "AI-generated — edit grounding references",
+          subSteps: [],
+        },
+      ],
+    },
+  ],
 };

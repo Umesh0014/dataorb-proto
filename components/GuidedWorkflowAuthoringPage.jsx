@@ -83,21 +83,93 @@ function rateColor(rate) {
 }
 
 export default function GuidedWorkflowAuthoringPage({ onBack, workflowId }) {
-  const [workflow] = React.useState(workflowId === "new" ? EMPTY_WORKFLOW : SAMPLE_WORKFLOW);
+  const [workflow, setWorkflow] = React.useState(
+    workflowId === "new" ? structuredClone(EMPTY_WORKFLOW) : structuredClone(SAMPLE_WORKFLOW),
+  );
   const [variant, setVariant] = React.useState("accordion");
+  const [saveStatus, setSaveStatus] = React.useState(null); // "saved" | "published" | null
 
   const goBack = onBack || (() => {});
 
+  // -- Mutation helpers (immutable updates on workflow.stages) --
+
+  let nextId = React.useRef(1000);
+  const uid = () => `step-${nextId.current++}`;
+
+  /** Add a blank step to a stage */
+  const addStep = React.useCallback((stageId) => {
+    setWorkflow((prev) => ({
+      ...prev,
+      stages: prev.stages.map((st) =>
+        st.id !== stageId ? st : {
+          ...st,
+          steps: [...st.steps, {
+            id: uid(),
+            label: "New step",
+            detail: "Describe what the agent should do in this step.",
+            script: "",
+            knowledgeCard: null,
+            type: "action",
+            mandatory: "recommended",
+            grounding: "",
+            subSteps: [],
+          }],
+        },
+      ),
+    }));
+  }, []);
+
+  /** Add a suggested step (pre-labelled) to a stage */
+  const addSuggested = React.useCallback((stageId, suggestion) => {
+    setWorkflow((prev) => ({
+      ...prev,
+      stages: prev.stages.map((st) =>
+        st.id !== stageId ? st : {
+          ...st,
+          steps: [...st.steps, {
+            id: uid(),
+            label: suggestion.label,
+            detail: "",
+            script: "",
+            knowledgeCard: null,
+            type: "action",
+            mandatory: "recommended",
+            grounding: "",
+            subSteps: [],
+          }],
+        },
+      ),
+    }));
+  }, []);
+
+  /** Footer: save draft */
+  const saveDraft = React.useCallback(() => {
+    setWorkflow((prev) => ({ ...prev, state: "draft" }));
+    setSaveStatus("saved");
+    setTimeout(() => setSaveStatus(null), 2000);
+  }, []);
+
+  /** Footer: publish */
+  const publish = React.useCallback(() => {
+    setWorkflow((prev) => ({ ...prev, state: "active" }));
+    setSaveStatus("published");
+    setTimeout(() => setSaveStatus(null), 2000);
+  }, []);
+
+  const variantProps = { workflow, onBack: goBack, onAddStep: addStep, onAddSuggested: addSuggested };
+
   return (
     <div style={s.root}>
-      {variant === "accordion" && (
-        <AccordionVariant workflow={workflow} onBack={goBack} />
-      )}
-      {variant === "board" && (
-        <BoardVariant workflow={workflow} onBack={goBack} />
-      )}
-      {variant === "recipe" && (
-        <RecipeVariant workflow={workflow} onBack={goBack} />
+      {variant === "accordion" && <AccordionVariant {...variantProps} />}
+      {variant === "board" && <BoardVariant {...variantProps} />}
+      {variant === "recipe" && <RecipeVariant {...variantProps} />}
+
+      <EditorFooter onCancel={goBack} onSaveDraft={saveDraft} onPublish={publish} />
+
+      {saveStatus && (
+        <div style={s.toast}>
+          {saveStatus === "saved" ? "✓ Draft saved" : "✓ Published"}
+        </div>
       )}
 
       <VersionBar
@@ -306,7 +378,7 @@ function KnowledgeCards({ knowledgeCard }) {
 // SHARED: Suggested Steps
 // ============================================================
 
-function SuggestedSteps({ stageId }) {
+function SuggestedSteps({ stageId, onAdd }) {
   const suggestions = SUGGESTED_STEPS[stageId] || [];
   if (suggestions.length === 0) return null;
 
@@ -314,7 +386,7 @@ function SuggestedSteps({ stageId }) {
     <div style={s.suggestWrap}>
       <Lightbulb size={12} color="var(--color-text-tertiary)" aria-hidden="true" />
       {suggestions.map((sug) => (
-        <button key={sug.id} type="button" className="drill-focusable" style={s.suggestChip} onClick={() => {}}>
+        <button key={sug.id} type="button" className="drill-focusable" style={s.suggestChip} onClick={() => onAdd?.(stageId, sug)}>
           <Plus size={10} aria-hidden="true" />
           <span>{sug.label}</span>
         </button>
@@ -329,7 +401,7 @@ function SuggestedSteps({ stageId }) {
 // Inline text-field editing. Step metrics + expandable KC.
 // ============================================================
 
-function AccordionVariant({ workflow, onBack }) {
+function AccordionVariant({ workflow, onBack, onAddStep, onAddSuggested }) {
   const [openStage, setOpenStage] = React.useState(null);
   const [editingStep, setEditingStep] = React.useState(null);
 
@@ -380,18 +452,16 @@ function AccordionVariant({ workflow, onBack }) {
                 ))}
 
                 <div style={s.accAddRow}>
-                  <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => {}}>
+                  <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => onAddStep(stage.id)}>
                     Add step
                   </Button>
-                  <SuggestedSteps stageId={stage.id} />
+                  <SuggestedSteps stageId={stage.id} onAdd={onAddSuggested} />
                 </div>
               </div>
             )}
           </Card>
         );
       })}
-
-      <EditorFooter />
     </div>
   );
 }
@@ -480,7 +550,7 @@ function AccordionStep({ step, isEditing, onToggleEdit }) {
 // Side curtain (fixed overlay) for step editing.
 // ============================================================
 
-function BoardVariant({ workflow, onBack }) {
+function BoardVariant({ workflow, onBack, onAddStep, onAddSuggested }) {
   const [drawerStep, setDrawerStep] = React.useState(null);
 
   return (
@@ -514,10 +584,10 @@ function BoardVariant({ workflow, onBack }) {
                 ))}
               </div>
               <div style={s.laneFooter}>
-                <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => {}}>
+                <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => onAddStep(stage.id)}>
                   Add step
                 </Button>
-                <SuggestedSteps stageId={stage.id} />
+                <SuggestedSteps stageId={stage.id} onAdd={onAddSuggested} />
               </div>
             </div>
           );
@@ -527,8 +597,6 @@ function BoardVariant({ workflow, onBack }) {
       {drawerStep && (
         <BoardCurtain step={drawerStep} onClose={() => setDrawerStep(null)} />
       )}
-
-      <EditorFooter />
     </div>
   );
 }
@@ -654,7 +722,7 @@ function BoardCurtain({ step, onClose }) {
 // All click-throughs wired to state.
 // ============================================================
 
-function RecipeVariant({ workflow, onBack }) {
+function RecipeVariant({ workflow, onBack, onAddStep, onAddSuggested }) {
   const [expandedStep, setExpandedStep] = React.useState(null);
   const [editingField, setEditingField] = React.useState(null);
   const allKnowledgeCards = workflow.stages
@@ -748,17 +816,15 @@ function RecipeVariant({ workflow, onBack }) {
               ))}
 
               <div style={s.recipeAddWrap}>
-                <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => {}}>
+                <Button variant="text" leadingIcon={<Plus size={14} />} onClick={() => onAddStep(stage.id)}>
                   Add instruction
                 </Button>
-                <SuggestedSteps stageId={stage.id} />
+                <SuggestedSteps stageId={stage.id} onAdd={onAddSuggested} />
               </div>
             </div>
           );
         })}
       </Card>
-
-      <EditorFooter />
     </div>
   );
 }
@@ -916,13 +982,13 @@ function MetaField({ label, value }) {
   );
 }
 
-function EditorFooter() {
+function EditorFooter({ onCancel, onSaveDraft, onPublish }) {
   return (
     <div style={s.footer}>
-      <Button variant="text" onClick={() => {}}>Cancel</Button>
+      <Button variant="text" onClick={onCancel}>Cancel</Button>
       <div style={s.footerRight}>
-        <Button variant="text" onClick={() => {}}>Save draft</Button>
-        <Button onClick={() => {}}>Publish</Button>
+        <Button variant="text" onClick={onSaveDraft}>Save draft</Button>
+        <Button onClick={onPublish}>Publish</Button>
       </div>
     </div>
   );
@@ -981,8 +1047,17 @@ const s = {
   metaFieldValue: { fontSize: 13, color: "var(--color-text-medium)", lineHeight: "20px" },
 
   // Footer
-  footer: { display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--color-border-card-soft)" },
+  footer: { display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--color-border-card-soft)", width: "100%", maxWidth: 1068, marginInline: "auto" },
   footerRight: { display: "flex", gap: 8 },
+
+  // Save toast
+  toast: {
+    position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
+    background: "var(--color-text-deep)", color: "var(--surface-white)",
+    fontSize: 13, fontWeight: 600, padding: "8px 20px", borderRadius: 8,
+    boxShadow: "var(--shadow-drawer)", zIndex: 1001, fontFamily: "var(--font-sans)",
+    animation: "fadeIn 200ms ease",
+  },
 
   // Shared chips
   chip: { display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 4, whiteSpace: "nowrap" },
