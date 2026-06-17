@@ -8,11 +8,10 @@ import {
   X,
   Sparkles,
   CheckCircle2,
-  Check,
-  AlertTriangle,
   Circle,
   ChevronDown,
-  ShieldCheck,
+  ArrowRight,
+  BookOpen,
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
@@ -21,99 +20,78 @@ import VersionBar from "./VersionBar";
 import {
   GUIDED_DRILL_META,
   GUIDED_DRILL_STEPS,
-  GUIDED_DRILL_HINTS,
-  GUIDED_DRILL_TURNS,
+  GUIDED_DRILL_STAGES,
+  STEP_TYPE_LABEL,
   GUIDED_DRILL_EVAL,
-  GUIDED_DRILL_PHASES,
-  GUIDED_DRILL_ACTIVE_DOS,
-  GUIDED_DRILL_BRANCHES,
   formatDrillTimer,
 } from "./mocks/guidedDrill";
 
-// DrillGuidedSessionPage — the assisted "safety wheel" Drill experience.
-// The agent practises a role play against a simulated customer while a
-// second AI checks off the steps of the attached Guided Workflow in real
-// time and flags skipped mandatory steps. After the call the eval is shown
-// but a banner makes explicit that the score is NOT counted toward the
-// readiness profile (safety-on = new "assisted mode" exclusion).
+// DrillGuidedSessionPage — the agent-side in-drill Guided Workflow view
+// (progressive-disclosure direction, locked Jun 16). Role play on the left;
+// a guided card on the right that shows only PREVIOUS / CURRENT / NEXT step
+// — no transcript (deliberately, per Neil). A second AI checks the
+// configured steps off (order-agnostic) and projects the likely next step.
+// Viewing all/completed steps is a deliberate action, never forced. After
+// the call the eval is shown behind a banner: the score is NOT counted
+// toward the readiness profile (safety-on = assisted-mode exclusion).
 //
-// Three design directions ride behind one switcher (ticket audit:
+// Three directions ride behind one switcher (audit:
 // docs/tickets/drill-guided-workflow/directions.md) — they differ only in
-// how the live guidance is surfaced; the conversation, controls, skip
-// flag, Suggest-phrasing and the post-session eval are constant:
-//   "Sidecar" — persistent right-rail checklist (D1)
-//   "Coach"   — single current-step coach card, peek-next (D5)
-//   "Spine"   — top progress stepper, expand for detail (D3)
+// how the three-position card is laid out:
+//   "Triptych"  — vertical prev/current/next stack (D1)
+//   "Focus"     — current only, prev/next peek chips (D2)
+//   "Filmstrip" — horizontal prev·current·next strip (D3)
 //
-// Layout note (mirrors GuideSessionPage spec §3): full-bleed session
-// surface rendered outside PageLayout — 32px gutter between the 64px nav
-// rail and the white card; the 1068 content max-width does not apply.
+// Layout note (mirrors GuideSessionPage spec §3): full-bleed session surface
+// rendered outside PageLayout — 32px gutter from the 64px nav rail.
 
-// The three design directions, mapped onto VersionBar (the house floating
-// switcher): the active direction shows in the baseline block — its
-// dropdown lists all three — and the other two appear as quick chips.
 const DIRECTIONS = [
-  { id: "inline", label: "Inline" },
-  { id: "assisted", label: "Assisted" },
+  { id: "triptych", label: "Triptych", iterations: [] },
+  { id: "focus", label: "Focus", iterations: [] },
+  { id: "filmstrip", label: "Filmstrip", iterations: [] },
 ];
-const DIRECTION_VERSIONS = DIRECTIONS.map((d) => ({ ...d, iterations: [] }));
 
-// Per-state visual meta. Color is always paired with an icon + a text
-// label so meaning never rides on color alone (G9). iconColor and
-// labelColor are split: the icon (a non-text UI component, ≥3:1) keeps the
-// semantic tint, while the text label uses a ≥4.5:1 token so meaningful
-// status text clears the contrast floor (G8).
-function stepStateMeta(state) {
-  switch (state) {
-    case "done":
-      return {
-        Icon: CheckCircle2,
-        iconColor: "var(--color-success)",
-        labelColor: "var(--color-success-text)",
-        label: "Done",
-      };
-    case "active":
-      return {
-        Icon: null, // rendered as a pulsing dot + "Now" label
-        iconColor: "var(--color-button-primary-bg)",
-        labelColor: "var(--color-button-primary-bg)",
-        label: "Now",
-      };
-    case "skipped":
-      return {
-        Icon: AlertTriangle,
-        // warning-dark (not warning) so the icon clears ≥3:1 even on the
-        // tinted warning-bg skipped row, not just on white (G8).
-        iconColor: "var(--color-warning-dark)",
-        labelColor: "var(--color-warning-text)",
-        label: "Skipped — no evidence",
-      };
-    default:
-      return {
-        Icon: Circle,
-        iconColor: "var(--color-text-tertiary)",
-        labelColor: "var(--color-text-tertiary)",
-        label: "Pending",
-      };
-  }
+// Step-type tag palette — every pairing is a ≥4.5:1 text token on its tint,
+// and the meaning is always carried by the text label (never colour alone).
+const TYPE_TONE = {
+  compliance: { bg: "var(--color-info-bg)", fg: "var(--color-info-text)" },
+  action:     { bg: "var(--color-icon-tertiary-bg)", fg: "var(--color-icon-tertiary-fg)" },
+  decision:   { bg: "var(--color-warning-bg)", fg: "var(--color-warning-text)" },
+};
+
+// Derive each stage's state from the steps it contains.
+function stageStateOf(stageId, steps) {
+  const inStage = steps.filter((s) => s.stage === stageId);
+  if (inStage.length === 0) return "pending";
+  if (inStage.some((s) => s.state === "active")) return "current";
+  if (inStage.every((s) => s.state === "done")) return "done";
+  return "pending";
 }
 
 export default function DrillGuidedSessionPage({ onEnd }) {
   const meta = GUIDED_DRILL_META;
 
-  const [variant, setVariant] = React.useState("inline");
+  const [variant, setVariant] = React.useState("triptych");
   const [steps, setSteps] = React.useState(GUIDED_DRILL_STEPS);
   const [muted, setMuted] = React.useState(false);
   const [secondsLeft, setSecondsLeft] = React.useState(meta.totalSeconds);
-  const [hintOpen, setHintOpen] = React.useState(false);
-  // Inline variant: the step-by-step guide is hidden until the CTA is clicked.
-  const [guideOpen, setGuideOpen] = React.useState(false);
+  const [scriptOpen, setScriptOpen] = React.useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = React.useState(false);
+  const [showAll, setShowAll] = React.useState(false); // deliberate "show all steps"
   const [ended, setEnded] = React.useState(false);
 
-  const activeStep = steps.find((s) => s.state === "active") || null;
-  const skippedSteps = steps.filter((s) => s.state === "skipped" && s.mandatory);
+  const currentIdx = steps.findIndex((s) => s.state === "active");
+  const currentStep = currentIdx >= 0 ? steps[currentIdx] : null;
+  const prevStep =
+    currentIdx >= 0
+      ? steps.slice(0, currentIdx).filter((s) => s.state === "done").pop() || null
+      : null;
+  const nextStep =
+    currentIdx >= 0
+      ? steps.slice(currentIdx + 1).find((s) => s.state === "pending") || null
+      : null;
   const doneCount = steps.filter((s) => s.state === "done").length;
-  const activeHint = activeStep ? GUIDED_DRILL_HINTS[activeStep.id] : null;
+  const stages = GUIDED_DRILL_STAGES.map((st) => ({ ...st, state: stageStateOf(st.id, steps) }));
 
   // Call timer. At 0:00 the call hard-ends into the eval (no real audio).
   React.useEffect(() => {
@@ -126,82 +104,67 @@ export default function DrillGuidedSessionPage({ onEnd }) {
     return () => window.clearTimeout(id);
   }, [secondsLeft, ended]);
 
-  // One safe live-detection demo step: the active "diagnose" step checks
-  // off and "explain-ipc" becomes active, exercising the real-time
-  // check-off without mutating layout height (MOT-9 — same row count).
+  // One safe live-detection demo: the active "locate" step checks off and
+  // "ipc" becomes the current step, exercising the moving three-position
+  // view + auto check-off.
   React.useEffect(() => {
     const id = window.setTimeout(() => {
       setSteps((prev) =>
         prev.map((s) => {
-          if (s.id === "diagnose") return { ...s, state: "done", at: "0:58" };
-          if (s.id === "explain-ipc") return { ...s, state: "active" };
+          if (s.id === "locate") return { ...s, state: "done", at: "1:12" };
+          if (s.id === "ipc") return { ...s, state: "active" };
           return s;
         }),
       );
-      setHintOpen(false);
+      setScriptOpen(false);
+      setKnowledgeOpen(false);
     }, 7000);
     return () => window.clearTimeout(id);
   }, []);
 
   const endCall = () => setEnded(true);
+  const guideProps = {
+    prevStep,
+    currentStep,
+    nextStep,
+    steps,
+    stages,
+    doneCount,
+    scriptOpen,
+    onToggleScript: () => setScriptOpen((o) => !o),
+    knowledgeOpen,
+    onToggleKnowledge: () => setKnowledgeOpen((o) => !o),
+    showAll,
+    onToggleShowAll: () => setShowAll((o) => !o),
+  };
 
   return (
     <div style={styles.outer}>
       <div style={styles.card}>
         <SessionHeader meta={meta} doneCount={doneCount} total={steps.length} onClose={onEnd} />
 
-        {/* Live region — announces real-time check-off + skipped-mandatory
-            flags so a screen-reader user gets the same signal the visual
-            check-marks carry (WCAG-10). */}
+        {/* Live region — announces the moving three-position view so a
+            screen-reader user gets the same signal the visual card carries. */}
         <div role="status" aria-live="polite" style={styles.srOnly}>
-          {!ended && activeStep && `Current step: ${activeStep.label}. ${doneCount} of ${steps.length} steps done.`}
-          {!ended && skippedSteps.length > 0 &&
-            ` ${skippedSteps.length} mandatory step skipped: ${skippedSteps.map((s) => s.label).join(", ")}.`}
+          {!ended && currentStep &&
+            `Now: ${currentStep.label}. ${doneCount} of ${steps.length} steps done.` +
+            (nextStep ? ` Next: ${nextStep.label}.` : "")}
         </div>
 
         {ended ? (
           <EvalResult onBackToDrill={onEnd} onUnassisted={onEnd} />
-        ) : variant === "assisted" ? (
-          <div style={styles.assistedBody}>
-            <PersonaScenarioColumn
-              meta={meta}
-              muted={muted}
-              onToggleMute={() => setMuted((m) => !m)}
-              onEnd={endCall}
-            />
-            <AssistedGuide
-              steps={steps}
-              doneCount={doneCount}
-              activeStep={activeStep}
-              skippedSteps={skippedSteps}
-              activeHint={activeHint}
-              hintOpen={hintOpen}
-              onToggleHint={() => setHintOpen((o) => !o)}
-            />
-          </div>
         ) : (
           <div style={styles.body}>
-            <ControlsColumn
+            <RolePlayColumn
               meta={meta}
               muted={muted}
               secondsLeft={secondsLeft}
               onToggleMute={() => setMuted((m) => !m)}
               onEnd={endCall}
-              half
             />
-            <Transcript turns={GUIDED_DRILL_TURNS} steps={steps}>
-              <InlineGuidance
-                activeStep={activeStep}
-                steps={steps}
-                skippedSteps={skippedSteps}
-                doneCount={doneCount}
-                activeHint={activeHint}
-                hintOpen={hintOpen}
-                onToggleHint={() => setHintOpen((o) => !o)}
-                guideOpen={guideOpen}
-                onToggleGuide={() => setGuideOpen((o) => !o)}
-              />
-            </Transcript>
+            {variant === "triptych" && <TriptychGuide {...guideProps} />}
+            {variant === "focus" && <FocusGuide {...guideProps} />}
+            {variant === "filmstrip" && <FilmstripGuide {...guideProps} />}
           </div>
         )}
       </div>
@@ -209,7 +172,7 @@ export default function DrillGuidedSessionPage({ onEnd }) {
       {!ended && (
         <VersionBar
           tabsMode
-          versions={DIRECTION_VERSIONS}
+          versions={DIRECTIONS}
           baselineOptions={[]}
           value={{ versionId: variant, iterationId: null }}
           onChange={({ versionId }) => setVariant(versionId)}
@@ -232,9 +195,9 @@ function SessionHeader({ meta, doneCount, total, onClose }) {
         <span style={styles.interactionId}>Interaction ID – {meta.interactionId}</span>
       </div>
       <div style={styles.headerRight}>
-        <span style={styles.safetyPill}>
-          <ShieldCheck size={14} color="var(--color-info-text)" aria-hidden="true" />
-          <span style={styles.safetyPillLabel}>Safety wheel on</span>
+        <span style={styles.aiPill}>
+          <Sparkles size={13} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
+          <span style={styles.aiPillLabel}>AI-assisted mode</span>
         </span>
         <span style={styles.sessionsCount}>
           Session {meta.sessionsUsed} of {meta.sessionsAllowed}
@@ -257,23 +220,21 @@ function SessionHeader({ meta, doneCount, total, onClose }) {
   );
 }
 
-// ---- Left controls column (persona orb + mic/end) ----------------------
+// ---- Left: the role play (persona orb + mic/end) -----------------------
 
-function ControlsColumn({ meta, muted, secondsLeft, onToggleMute, onEnd, half }) {
-  // `half` splits the surface 50/50 with the transcript (Inline variant,
-  // which has no third panel). Otherwise the call column is fixed-width.
-  const width = half ? "50%" : 380;
+function RolePlayColumn({ meta, muted, secondsLeft, onToggleMute, onEnd }) {
   return (
-    <aside style={{ ...styles.controlsCol, width, flexShrink: half ? 1 : 0 }}>
+    <aside style={styles.rolePlayCol}>
       <div style={styles.orbStack}>
         <Orb initials={meta.initials} muted={muted} />
         <div style={styles.statusBlock}>
-          <span style={styles.statusHead}>{meta.scenarioTitle.split(" — ")[0]}</span>
+          <span style={styles.statusHead}>{meta.customerName}</span>
           <span style={styles.statusSub}>
             {muted ? "Mic muted — tap to resume" : "Simulated customer • live"}
           </span>
         </div>
         <TimerPill secondsLeft={secondsLeft} />
+        <p style={styles.scenarioBody}>{meta.scenarioBody}</p>
       </div>
 
       <div style={styles.controlsRow}>
@@ -309,9 +270,9 @@ function ControlsColumn({ meta, muted, secondsLeft, onToggleMute, onEnd, half })
 }
 
 function Orb({ initials, muted }) {
-  // Orb gradient + pulse rings reuse GuideSessionPage's established
-  // session visual verbatim (sibling live-session surface) rather than
-  // inventing new pink tokens — the keyframes already live in globals.css.
+  // Orb gradient + pulse rings reuse GuideSessionPage's established session
+  // visual verbatim (sibling live-session surface); the keyframes live in
+  // globals.css and are reduced-motion guarded there.
   return (
     <div style={styles.orbWrap}>
       <span
@@ -340,65 +301,67 @@ function TimerPill({ secondsLeft }) {
   );
 }
 
-// ---- Transcript --------------------------------------------------------
+// ---- Shared guide pieces ------------------------------------------------
 
-function Transcript({ turns, steps, children }) {
-  const transcriptRef = React.useRef(null);
-  React.useEffect(() => {
-    const el = transcriptRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [turns, children]);
-
-  const labelForStep = (id) => steps.find((s) => s.id === id)?.label;
-
+function GuidePanelHeader({ doneCount, total }) {
   return (
-    <section style={styles.convCol}>
-      <div ref={transcriptRef} style={styles.transcript}>
-        {turns.map((turn) => (
-          <ConversationTurn key={turn.id} turn={turn} stepLabel={labelForStep(turn.stepRef)} />
-        ))}
-        {children}
-      </div>
-    </section>
-  );
-}
-
-// Claude-like light chat: the agent (you) is the "user" — a right-aligned
-// rectangular pill on a light background; the simulated customer is the
-// "assistant" — plain left-aligned text. The pill-vs-plain-text + left/
-// right alignment carry who's speaking, so no speaker label is shown; a
-// quiet timestamp is kept for transcript reference.
-function ConversationTurn({ turn, stepLabel }) {
-  const isAgent = turn.speaker === "AGENT";
-  return (
-    <div style={isAgent ? styles.turnAgent : styles.turnCustomer}>
-      <span style={styles.turnTimestamp}>{turn.timestamp}</span>
-      {isAgent ? (
-        <div style={styles.agentBubble}>
-          <p style={styles.agentBody}>{turn.body}</p>
-        </div>
-      ) : (
-        <p style={styles.customerBody}>{turn.body}</p>
-      )}
-      {stepLabel && (
-        <span style={styles.turnStepTag}>
-          <CheckCircle2 size={13} color="var(--color-success)" aria-hidden="true" />
-          <span style={styles.turnStepTagLabel}>Checked off — {stepLabel}</span>
-        </span>
-      )}
+    <div style={styles.guideHead}>
+      <span style={styles.guideTitle}>Guided workflow</span>
+      <span style={styles.listenPill}>
+        <span style={styles.listenDot} aria-hidden="true" />
+        AI listening
+      </span>
+      <div style={{ flex: 1 }} />
+      <span style={styles.guideProg}>
+        <b style={styles.guideProgNum}>{doneCount}</b>/{total} steps
+      </span>
     </div>
   );
 }
 
-// ---- Shared step pieces ------------------------------------------------
+function StageStrip({ stages }) {
+  const labelColor = (state) =>
+    state === "pending" ? "var(--color-text-tertiary)" : "var(--color-icon-tertiary-fg)";
+  const barColor = (state) =>
+    state === "current"
+      ? "var(--color-icon-tertiary-fg)"
+      : state === "done"
+      ? "var(--color-border-tab)"
+      : "var(--color-divider-card)";
+  return (
+    <ol style={styles.stageStrip} role="list" aria-label="Conversation stages">
+      {stages.map((st) => (
+        <li
+          key={st.id}
+          role="listitem"
+          aria-current={st.state === "current" ? "step" : undefined}
+          style={styles.stageItem}
+        >
+          <span style={{ ...styles.stageLabel, color: labelColor(st.state) }}>{st.label}</span>
+          <span style={{ ...styles.stageBar, background: barColor(st.state) }} aria-hidden="true" />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function TypeTag({ type }) {
+  const tone = TYPE_TONE[type] || TYPE_TONE.action;
+  return (
+    <span style={{ ...styles.metaTag, background: tone.bg, color: tone.fg }}>
+      {STEP_TYPE_LABEL[type] || type}
+    </span>
+  );
+}
 
 function MandatoryTag({ mandatory }) {
   return (
     <span
       style={{
         ...styles.metaTag,
-        color: mandatory ? "var(--color-text-medium)" : "var(--color-text-placeholder)",
+        color: mandatory ? "var(--color-text-medium)" : "var(--color-text-tertiary)",
         background: mandatory ? "var(--color-chip-bg)" : "transparent",
+        border: mandatory ? "none" : "1px solid var(--color-divider-card)",
       }}
     >
       {mandatory ? "Mandatory" : "Optional"}
@@ -406,364 +369,273 @@ function MandatoryTag({ mandatory }) {
   );
 }
 
-function StepStatus({ state }) {
-  const meta = stepStateMeta(state);
-  if (state === "active") {
+// PositionLabel — "Previous" / "Now · AI listening" / "Next".
+function PositionLabel({ position }) {
+  if (position === "current") {
     return (
-      <span style={styles.statusInline}>
+      <span style={styles.posNow}>
         <span style={styles.activeDot} aria-hidden="true" />
-        <span style={{ ...styles.statusLabel, color: meta.labelColor }}>{meta.label}</span>
+        Now · AI listening here
       </span>
     );
   }
-  const Icon = meta.Icon;
-  return (
-    <span style={styles.statusInline}>
-      <Icon size={15} color={meta.iconColor} aria-hidden="true" />
-      <span style={{ ...styles.statusLabel, color: meta.labelColor }}>{meta.label}</span>
-    </span>
-  );
+  return <span style={styles.posMuted}>{position === "previous" ? "Previous step" : "Next step"}</span>;
 }
 
-function SuggestPhrasing({ hint, open, onToggle }) {
-  if (!hint) return null;
+// The full current-step card: Step + type/mandatory + instruction + the two
+// reveal-able assets (Script, Knowledge card) + "learn more".
+function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge }) {
+  if (!step) {
+    return (
+      <Card tone="outline" padX={20} padY={20} style={styles.stepCardCurrent}>
+        <span style={styles.posMuted}>Listening…</span>
+        <span style={styles.stepLabelLg}>Keep the conversation going</span>
+        <span style={styles.stepInstruction}>
+          Nothing to action right now — the AI will surface the next step when it hears it.
+        </span>
+      </Card>
+    );
+  }
   return (
-    <div style={styles.hintWrap}>
-      <Button
-        variant="ai"
-        onClick={onToggle}
-        uppercase={false}
-        className="drill-focusable"
-        aria-expanded={open}
-      >
-        {open ? "Hide phrasing" : "Suggest phrasing"}
-      </Button>
-      {open && (
-        <p style={styles.hintBody}>{hint}</p>
+    <Card tone="outline" padX={20} padY={20} style={styles.stepCardCurrent} aria-current="step">
+      <PositionLabel position="current" />
+      <div style={styles.tagRow}>
+        <TypeTag type={step.type} />
+        <MandatoryTag mandatory={step.mandatory} />
+      </div>
+      <span style={styles.stepLabelLg}>{step.label}</span>
+      <span style={styles.stepInstruction}>{step.instruction}</span>
+
+      <div style={styles.assetRow}>
+        <Button variant="ai" uppercase={false} onClick={onToggleScript} className="drill-focusable" aria-expanded={scriptOpen}>
+          {scriptOpen ? "Hide script" : "Show script"}
+        </Button>
+        {step.knowledge && (
+          <button
+            type="button"
+            onClick={onToggleKnowledge}
+            aria-expanded={knowledgeOpen}
+            className="drill-focusable"
+            style={styles.knowledgeBtn}
+          >
+            <BookOpen size={14} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
+            Knowledge · {step.knowledge.title}
+          </button>
+        )}
+      </div>
+
+      {scriptOpen && (
+        <div style={styles.scriptBox}>
+          <span style={styles.scriptKicker}>Suggested phrasing</span>
+          <p style={styles.scriptText}>{step.script}</p>
+        </div>
       )}
-    </div>
-  );
-}
-
-function SkipAlert({ steps }) {
-  if (steps.length === 0) return null;
-  const labels = steps.map((s) => s.label).join(", ");
-  return (
-    <Banner
-      tone="warning"
-      heading={`${steps.length} mandatory step skipped`}
-      body={`No evidence found for: ${labels}. You can still cover it before the call ends.`}
-    />
-  );
-}
-
-// ---- Inline (D2) -------------------------------------------------------
-// Guidance lives inside the chat — no side panel. A coach note threads into
-// the conversation flow with the current step + Suggest-phrasing, and a CTA
-// reveals the full step-by-step guide inline on demand.
-
-function InlineGuidance({
-  activeStep,
-  steps,
-  skippedSteps,
-  doneCount,
-  activeHint,
-  hintOpen,
-  onToggleHint,
-  guideOpen,
-  onToggleGuide,
-}) {
-  return (
-    <div style={styles.inlineWrap} aria-label="In-chat guidance">
-      {skippedSteps.length > 0 && <SkipAlert steps={skippedSteps} />}
-
-      <div style={styles.inlineCard}>
-        <div style={styles.inlineHead}>
-          <span style={styles.inlineKicker}>
-            <Sparkles size={13} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
-            Guided workflow
-          </span>
-          <span style={styles.inlineProgress}>{doneCount}/{steps.length} steps</span>
+      {step.knowledge && knowledgeOpen && (
+        <div style={styles.knowledgeCard}>
+          <span style={styles.knowledgeTitle}>{step.knowledge.title}</span>
+          <p style={styles.knowledgeText}>{step.knowledge.body}</p>
         </div>
+      )}
 
-        {activeStep && (
-          <>
-            <span style={styles.coachNowLabel}>
-              <span style={styles.activeDot} aria-hidden="true" />
-              Now
-            </span>
-            <span style={styles.inlineStepLabel}>{activeStep.label}</span>
-            <span style={styles.coachStepDetail}>{activeStep.detail}</span>
-            <SuggestPhrasing hint={activeHint} open={hintOpen} onToggle={onToggleHint} />
-          </>
-        )}
-
-        <button
-          type="button"
-          onClick={onToggleGuide}
-          aria-expanded={guideOpen}
-          className="drill-focusable"
-          style={styles.inlineCta}
-        >
-          {guideOpen ? "Hide step-by-step guide" : "Show step-by-step guide"}
-          <ChevronDown
-            size={16}
-            color="var(--color-button-primary-bg)"
-            style={{ transform: guideOpen ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }}
-          />
-        </button>
-
-        {guideOpen && (
-          <ol style={styles.inlineList} role="list">
-            {steps.map((step, i) => (
-              <li key={step.id} role="listitem" style={styles.inlineRow}>
-                <span style={styles.inlineRowIndex}>{i + 1}</span>
-                <div style={styles.inlineRowMain}>
-                  <div style={styles.inlineRowTop}>
-                    <StepStatus state={step.state} />
-                    <MandatoryTag mandatory={step.mandatory} />
-                  </div>
-                  <span style={styles.inlineRowLabel}>{step.label}</span>
-                  <span style={styles.inlineRowDetail}>{step.detail}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
-    </div>
+      <button
+        type="button"
+        onClick={() => { /* out of scope — deep-link to the step's knowledge */ }}
+        className="drill-focusable"
+        style={styles.learnMore}
+      >
+        Learn more about this step
+      </button>
+    </Card>
   );
 }
 
-// ---- Assisted (HTML reference) -----------------------------------------
-// Two-column persona-call + Guided Workflow with a phase strip, auto-
-// detected step tags, a current-step sub-checklist, peek-phrasing, and the
-// branch paths the listener is waiting on. Mirrors the supplied HTML
-// reference, rebuilt on DataOrb tokens (no raw hex / Poppins).
-
-function EqBars({ tone = "var(--color-icon-tertiary-fg)" }) {
-  const heights = [6, 13, 9, 12];
+// A one-line collapsed peek for the previous / next step.
+function PeekCard({ step, position }) {
   return (
-    <span style={styles.eqBars} aria-hidden="true">
-      {heights.map((h, i) => (
-        <span
-          key={i}
-          style={{
-            ...styles.eqBar,
-            height: h,
-            background: tone,
-            animation: "drillEq 1s ease-in-out infinite",
-            animationDelay: `${i * 0.15}s`,
-          }}
-        />
-      ))}
+    <Card tone="muted" padX={16} padY={12} style={styles.peekCard}>
+      <PositionLabel position={position} />
+      <span style={styles.peekRow}>
+        {position === "previous" ? (
+          <CheckCircle2 size={15} color="var(--color-success)" aria-hidden="true" />
+        ) : (
+          <Circle size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
+        )}
+        <span style={styles.peekLabel}>{step ? step.label : position === "previous" ? "Start of call" : "End of call"}</span>
+        {step?.at && <span style={styles.peekAt}>{step.at}</span>}
+      </span>
+    </Card>
+  );
+}
+
+// A thin inline peek line (Focus variant): "‹ previous   next ›".
+function PeekLine({ step, position }) {
+  return (
+    <span style={styles.peekLine}>
+      {position === "previous" && step && (
+        <CheckCircle2 size={13} color="var(--color-success)" aria-hidden="true" />
+      )}
+      <span style={styles.peekLineLabel}>
+        {position === "previous" ? "Prev: " : "Next: "}
+        {step ? step.label : position === "previous" ? "—" : "Close & wrap up"}
+      </span>
+      {position === "next" && step && (
+        <ArrowRight size={13} color="var(--color-text-tertiary)" aria-hidden="true" />
+      )}
     </span>
   );
 }
 
-function PersonaScenarioColumn({ meta, muted, onToggleMute, onEnd }) {
+// The deliberate "show all steps" list — never forced; opened from a button.
+function AllStepsList({ steps }) {
   return (
-    <section style={styles.persona}>
-      <div style={styles.personaStack}>
-        <div style={styles.haloWrap}>
-          <span className="drillRipple" style={styles.haloRing} aria-hidden="true" />
-          <span style={styles.halo} aria-hidden="true">
-            <span style={styles.haloInitials}>{meta.initials}</span>
-          </span>
-        </div>
-        <div style={styles.speakingRow}>
-          <span style={styles.speakingLabel}>
-            {muted ? "Mic muted" : `${meta.customerName} is speaking`}
-          </span>
-          {!muted && <EqBars />}
-        </div>
-        <div style={styles.scenarioBlock}>
-          <span style={styles.scenarioHeading}>{meta.workflowTitle}</span>
-          <p style={styles.scenarioBody}>{meta.scenarioBody}</p>
-        </div>
-      </div>
-
-      <div style={styles.callBar}>
-        <div style={styles.callBarSide}>
-          <span style={styles.connPill}>
-            <span style={styles.connDot} aria-hidden="true" />
-            Connected
-          </span>
-        </div>
-        <div style={styles.callCtl}>
-          <button
-            type="button"
-            onClick={onToggleMute}
-            aria-label={muted ? "Unmute microphone" : "Mute microphone"}
-            aria-pressed={muted}
-            className="drill-focusable"
-            style={styles.mutePill}
-          >
-            {muted
-              ? <MicOff size={20} color="var(--color-text-deep)" />
-              : <Mic size={20} color="var(--color-text-deep)" />}
-          </button>
-          <button
-            type="button"
-            onClick={onEnd}
-            aria-label="End call and see result"
-            className="drill-focusable"
-            style={styles.endPill}
-          >
-            <PhoneOff size={20} color="var(--surface-white)" />
-          </button>
-        </div>
-        <div style={styles.callBarSide} />
-      </div>
-    </section>
-  );
-}
-
-function PhaseStrip({ phases }) {
-  const labelColor = (state) =>
-    state === "pending" ? "var(--color-text-tertiary)" : "var(--color-icon-tertiary-fg)";
-  const underline = (state) =>
-    state === "current"
-      ? "var(--color-icon-tertiary-fg)"
-      : state === "done"
-      ? "var(--color-border-tab)"
-      : "var(--color-divider-card)";
-  return (
-    <ol style={styles.phaseStrip} role="list">
-      {phases.map((p) => (
-        <li key={p.id} role="listitem" style={styles.phaseItem} aria-current={p.state === "current" ? "step" : undefined}>
-          <span style={{ ...styles.phaseLabel, color: labelColor(p.state) }}>{p.label}</span>
-          <span style={{ ...styles.phaseUnderline, background: underline(p.state) }} aria-hidden="true" />
-        </li>
-      ))}
+    <ol style={styles.allList} role="list">
+      {steps.map((s, i) => {
+        const done = s.state === "done";
+        const active = s.state === "active";
+        return (
+          <li key={s.id} role="listitem" style={styles.allRow} aria-current={active ? "step" : undefined}>
+            <span style={styles.allIcon} aria-hidden="true">
+              {done
+                ? <CheckCircle2 size={15} color="var(--color-success)" />
+                : active
+                ? <span style={styles.activeDot} />
+                : <Circle size={14} color="var(--color-text-tertiary)" />}
+            </span>
+            <span style={styles.allIndex}>{i + 1}</span>
+            <span style={{ ...styles.allLabel, color: done || active ? "var(--color-text-deep)" : "var(--color-text-tertiary)" }}>
+              {s.label}
+            </span>
+            <TypeTag type={s.type} />
+          </li>
+        );
+      })}
     </ol>
   );
 }
 
-function AssistedGuide({ steps, doneCount, activeStep, activeHint, hintOpen, onToggleHint }) {
+function ShowAllToggle({ showAll, onToggle, doneCount, total }) {
   return (
-    <aside style={styles.guide} aria-label="Guided workflow">
-      <div style={styles.guideHead}>
-        <span style={styles.guideTitle}>Guided workflow</span>
-        <span style={styles.listenPill}>
-          <EqBars tone="var(--color-icon-tertiary-fg)" />
-          Listening
-        </span>
-        <div style={{ flex: 1 }} />
-        <span style={styles.gprog}>
-          <b style={styles.gprogNum}>{doneCount}</b> of {steps.length} steps
-        </span>
-      </div>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={showAll}
+      className="drill-focusable"
+      style={styles.showAllBtn}
+    >
+      <span>{showAll ? "Hide all steps" : `Show all steps (${doneCount}/${total} done)`}</span>
+      <ChevronDown
+        size={16}
+        color="var(--color-text-tertiary)"
+        style={{ transform: showAll ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }}
+      />
+    </button>
+  );
+}
 
-      <PhaseStrip phases={GUIDED_DRILL_PHASES} />
+// ---- Variant A — Triptych ----------------------------------------------
 
-      <div style={styles.assistedSteps}>
-        {steps.map((step) => {
-          if (step.state === "done") return <AssistedDoneRow key={step.id} step={step} />;
-          if (step.state === "skipped") return <AssistedSkippedRow key={step.id} step={step} />;
-          if (step.state === "active") {
-            return (
-              <AssistedCurrentCard
-                key={step.id}
-                step={step}
-                activeHint={activeHint}
-                hintOpen={hintOpen}
-                onToggleHint={onToggleHint}
-              />
-            );
-          }
-          return null;
-        })}
-
-        <span style={styles.nextLbl}>Listening for the path…</span>
-        {GUIDED_DRILL_BRANCHES.map((b) => (
-          <div key={b.id} style={styles.branchRow}>
-            <span style={styles.branchNode} aria-hidden="true" />
-            <span style={styles.branchLabel}>{b.label}</span>
-          </div>
-        ))}
+function TriptychGuide({
+  prevStep, currentStep, nextStep, steps, stages, doneCount,
+  scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge, showAll, onToggleShowAll,
+}) {
+  return (
+    <aside style={styles.guidePanel} aria-label="Guided workflow">
+      <GuidePanelHeader doneCount={doneCount} total={steps.length} />
+      <StageStrip stages={stages} />
+      <div style={styles.guideScroll}>
+        <PeekCard step={prevStep} position="previous" />
+        <CurrentStepCard
+          step={currentStep}
+          scriptOpen={scriptOpen}
+          onToggleScript={onToggleScript}
+          knowledgeOpen={knowledgeOpen}
+          onToggleKnowledge={onToggleKnowledge}
+        />
+        <PeekCard step={nextStep} position="next" />
+        {showAll && <AllStepsList steps={steps} />}
+        <ShowAllToggle showAll={showAll} onToggle={onToggleShowAll} doneCount={doneCount} total={steps.length} />
       </div>
     </aside>
   );
 }
 
-function AssistedDoneRow({ step }) {
-  return (
-    <div style={styles.aStep}>
-      <span style={styles.aCheckDone} aria-hidden="true">
-        <Check size={13} color="var(--surface-white)" />
-      </span>
-      <div style={styles.aStepBody}>
-        <span style={styles.aStepLabel}>{step.label}</span>
-        <span style={styles.aWhen}>
-          <span style={styles.tagAi}>Auto-detected</span>
-          {step.at && <span style={styles.aWhenTime}>{step.at}</span>}
-        </span>
-      </div>
-    </div>
-  );
-}
+// ---- Variant B — Focus -------------------------------------------------
 
-function AssistedSkippedRow({ step }) {
+function FocusGuide({
+  prevStep, currentStep, nextStep, steps, stages, doneCount,
+  scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge, showAll, onToggleShowAll,
+}) {
   return (
-    <div style={{ ...styles.aStep, background: "var(--color-warning-bg)" }}>
-      <span style={styles.aCheckSkip} aria-hidden="true">
-        <AlertTriangle size={13} color="var(--color-warning-dark)" />
-      </span>
-      <div style={styles.aStepBody}>
-        <span style={styles.aStepLabel}>{step.label}</span>
-        <span style={styles.aFlag}>
-          Skipped — no evidence found. You can still cover it before the call ends.
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function AssistedCurrentCard({ step, activeHint, hintOpen, onToggleHint }) {
-  const showDos = step.id === "diagnose";
-  return (
-    <div style={styles.aCurrentCard} aria-current="step">
-      <div style={styles.aCurrentHead}>
-        <span style={styles.aCurrentDot} aria-hidden="true">
-          <span style={styles.activeDot} />
-        </span>
-        <div style={styles.aStepBody}>
-          <span style={styles.aCurrentTag}>Current step</span>
-          <span style={styles.aCurrentLabel}>{step.label}</span>
+    <aside style={styles.guidePanel} aria-label="Guided workflow">
+      <GuidePanelHeader doneCount={doneCount} total={steps.length} />
+      <StageStrip stages={stages} />
+      <div style={styles.focusScroll}>
+        <div style={styles.peekLineRow}>
+          <PeekLine step={prevStep} position="previous" />
         </div>
-      </div>
-      {showDos && (
-        <div style={styles.dos}>
-          {GUIDED_DRILL_ACTIVE_DOS.map((d) => (
-            <div key={d.id} style={styles.doi}>
-              <span style={d.hit ? styles.doBoxHit : styles.doBox} aria-hidden="true">
-                {d.hit && <Check size={11} color="var(--surface-white)" />}
-              </span>
-              <span style={{ ...styles.doLabel, color: d.hit ? "var(--color-text-deep)" : "var(--color-text-tertiary)" }}>
-                {d.label}
-              </span>
-            </div>
-          ))}
+        <div style={styles.focusCardWrap}>
+          <CurrentStepCard
+            step={currentStep}
+            scriptOpen={scriptOpen}
+            onToggleScript={onToggleScript}
+            knowledgeOpen={knowledgeOpen}
+            onToggleKnowledge={onToggleKnowledge}
+          />
         </div>
-      )}
-      <div style={styles.aPeek}>
-        <SuggestPhrasing hint={activeHint} open={hintOpen} onToggle={onToggleHint} />
-        <span style={styles.aPeekNote}>Viewed hints are logged</span>
+        <div style={styles.peekLineRow}>
+          <PeekLine step={nextStep} position="next" />
+        </div>
+        {showAll && <AllStepsList steps={steps} />}
+        <ShowAllToggle showAll={showAll} onToggle={onToggleShowAll} doneCount={doneCount} total={steps.length} />
       </div>
-    </div>
+    </aside>
   );
 }
 
-// ---- Post-session eval (shared) ---------------------------------------
+// ---- Variant C — Filmstrip ---------------------------------------------
+
+function FilmstripGuide({
+  prevStep, currentStep, nextStep, steps, stages, doneCount,
+  scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge, showAll, onToggleShowAll,
+}) {
+  return (
+    <aside style={styles.guidePanel} aria-label="Guided workflow">
+      <GuidePanelHeader doneCount={doneCount} total={steps.length} />
+      <StageStrip stages={stages} />
+      <div style={styles.filmScroll}>
+        <div style={styles.filmstrip}>
+          <div style={styles.filmSide}>
+            <PeekCard step={prevStep} position="previous" />
+          </div>
+          <div style={styles.filmCenter}>
+            <CurrentStepCard
+              step={currentStep}
+              scriptOpen={scriptOpen}
+              onToggleScript={onToggleScript}
+              knowledgeOpen={knowledgeOpen}
+              onToggleKnowledge={onToggleKnowledge}
+            />
+          </div>
+          <div style={styles.filmSide}>
+            <PeekCard step={nextStep} position="next" />
+          </div>
+        </div>
+        {showAll && <AllStepsList steps={steps} />}
+        <ShowAllToggle showAll={showAll} onToggle={onToggleShowAll} doneCount={doneCount} total={steps.length} />
+      </div>
+    </aside>
+  );
+}
+
+// ---- Post-session eval (shared) ----------------------------------------
 
 function EvalResult({ onBackToDrill, onUnassisted }) {
   const e = GUIDED_DRILL_EVAL;
   const tiles = [
     { label: "Overall score (excluded)", value: `${e.overallScore}%` },
     { label: "Steps completed", value: `${e.stepsDone} of ${e.stepsTotal}` },
-    { label: "Mandatory steps skipped", value: String(e.mandatorySkipped) },
-    { label: "Phrasing hints reviewed", value: String(e.hintsReviewed) },
+    { label: "Mandatory steps missed", value: String(e.mandatoryMissed) },
+    { label: "Scripts viewed", value: String(e.scriptsViewed) },
   ];
   return (
     <div style={styles.evalScroll}>
@@ -785,8 +657,8 @@ function EvalResult({ onBackToDrill, onUnassisted }) {
             ))}
           </div>
           <div style={styles.evalBranchRow}>
-            <span style={styles.evalTileLabel}>Branch executed</span>
-            <span style={styles.evalBranchValue}>{e.branchExecuted}</span>
+            <span style={styles.evalTileLabel}>Stages reached</span>
+            <span style={styles.evalBranchValue}>{e.stagesReached}</span>
           </div>
         </Card>
 
@@ -800,12 +672,7 @@ function EvalResult({ onBackToDrill, onUnassisted }) {
             <Button variant="primary" onClick={onUnassisted} className="drill-focusable">
               Practice without the wheel
             </Button>
-            <Button
-              variant="text"
-              uppercase={false}
-              onClick={onBackToDrill}
-              className="drill-focusable"
-            >
+            <Button variant="text" uppercase={false} onClick={onBackToDrill} className="drill-focusable">
               Back to Drill library
             </Button>
           </div>
@@ -840,89 +707,50 @@ const styles = {
 
   // Header
   header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
     padding: "14px 20px 14px 24px",
-    borderBottom: "2px solid var(--color-border-card-soft)",
-    flexShrink: 0,
+    borderBottom: "2px solid var(--color-border-card-soft)", flexShrink: 0,
   },
-  headerLeft: {
-    display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0, flexWrap: "wrap",
-  },
-  workflowTitle: {
-    fontSize: 16, fontWeight: 700, lineHeight: 1.3,
-    color: "var(--color-text-deep)",
-  },
-  scenarioTitle: {
-    fontSize: 14, fontWeight: 500, lineHeight: 1.3,
-    color: "var(--color-text-medium)",
-  },
-  headerDot: {
-    width: 3, height: 3, borderRadius: 999,
-    background: "var(--color-text-tertiary)", flexShrink: 0,
-  },
+  headerLeft: { display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0, flexWrap: "wrap" },
+  workflowTitle: { fontSize: 16, fontWeight: 700, lineHeight: 1.3, color: "var(--color-text-deep)" },
+  scenarioTitle: { fontSize: 14, fontWeight: 500, lineHeight: 1.3, color: "var(--color-text-medium)" },
+  headerDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)", flexShrink: 0 },
   interactionId: {
     fontSize: 13, fontWeight: 400, letterSpacing: "0.25px",
-    color: "var(--color-text-tertiary)",
-    fontFamily: "var(--font-mono)",
+    color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)",
   },
-  headerRight: {
-    display: "inline-flex", alignItems: "center", gap: 12, flexShrink: 0,
+  headerRight: { display: "inline-flex", alignItems: "center", gap: 12, flexShrink: 0 },
+  aiPill: {
+    display: "inline-flex", alignItems: "center", gap: 6, height: 26, padding: "0 10px",
+    background: "var(--color-icon-tertiary-bg)", borderRadius: 999,
   },
-  safetyPill: {
-    display: "inline-flex", alignItems: "center", gap: 6,
-    height: 26, padding: "0 10px",
-    background: "var(--color-info-bg)", borderRadius: 999,
-  },
-  safetyPillLabel: {
-    fontSize: 12, fontWeight: 700, letterSpacing: "0.2px",
-    color: "var(--color-info-text)",
-  },
-  sessionsCount: {
-    fontSize: 12, fontWeight: 500,
-    color: "var(--color-text-tertiary)",
-    fontFamily: "var(--font-mono)",
-  },
-  progressCount: {
-    fontSize: 13, fontWeight: 700,
-    color: "var(--color-text-deep)",
-    fontFamily: "var(--font-mono)",
-  },
+  aiPillLabel: { fontSize: 12, fontWeight: 700, letterSpacing: "0.2px", color: "var(--color-icon-tertiary-fg)" },
+  sessionsCount: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)" },
+  progressCount: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)", fontFamily: "var(--font-mono)" },
 
-  // Body containers
-  body: {
-    flex: 1, display: "flex", alignItems: "stretch", minHeight: 0,
-  },
+  // Body
+  body: { flex: 1, display: "flex", alignItems: "stretch", minHeight: 0 },
 
-  // Left controls column
-  controlsCol: {
-    display: "flex", flexDirection: "column",
-    background: "var(--surface-white)",
-    borderRight: "2px solid var(--color-border-card-soft)",
+  // Left role-play column (50/50 with the guide panel)
+  rolePlayCol: {
+    width: "50%", flexShrink: 1, display: "flex", flexDirection: "column",
+    background: "var(--surface-white)", borderRight: "2px solid var(--color-border-card-soft)",
     padding: "24px 24px 0",
-    flexShrink: 0,
   },
   orbStack: {
-    flex: 1, display: "flex", flexDirection: "column",
-    alignItems: "center", justifyContent: "center", gap: 20,
+    flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18,
+    minHeight: 0,
   },
-  orbWrap: {
-    position: "relative", width: 168, height: 168,
-    display: "inline-grid", placeItems: "center",
-  },
+  orbWrap: { position: "relative", width: 168, height: 168, display: "inline-grid", placeItems: "center" },
   orbRingOuter: {
     position: "absolute", inset: 0, borderRadius: "50%",
     background: "radial-gradient(circle at 30% 30%, rgba(247, 217, 235, 0.7), rgba(195, 199, 242, 0.5) 60%, transparent 80%)",
-    filter: "blur(8px)",
-    animation: "orbPulseOuter 4s ease-in-out infinite",
+    filter: "blur(8px)", animation: "orbPulseOuter 4s ease-in-out infinite",
   },
   orbRingMid: {
     position: "absolute", inset: 22, borderRadius: "50%",
     background: "radial-gradient(circle at 35% 35%, rgba(247, 217, 235, 0.9), rgba(220, 195, 240, 0.7) 65%)",
-    filter: "blur(4px)",
-    animation: "orbPulseMid 3s ease-in-out infinite",
+    filter: "blur(4px)", animation: "orbPulseMid 3s ease-in-out infinite",
   },
   orb: {
     position: "relative", width: 120, height: 120, borderRadius: "50%",
@@ -930,344 +758,193 @@ const styles = {
     boxShadow: "inset 0 -10px 20px rgba(102, 80, 165, 0.18), 0 8px 24px rgba(102, 80, 165, 0.15)",
     display: "inline-grid", placeItems: "center",
   },
-  orbInitials: {
-    fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 700, letterSpacing: "0.5px",
-    color: "#6650A5",
-  },
-  statusBlock: {
-    display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textAlign: "center",
-  },
-  statusHead: {
-    fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)",
-  },
-  statusSub: {
-    fontSize: 12, fontWeight: 400, letterSpacing: "0.2px",
-    color: "var(--color-text-placeholder)",
-  },
+  orbInitials: { fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 700, letterSpacing: "0.5px", color: "#6650A5" },
+  statusBlock: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textAlign: "center" },
+  statusHead: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
+  statusSub: { fontSize: 12, fontWeight: 400, letterSpacing: "0.2px", color: "var(--color-text-placeholder)" },
   timerPill: {
-    display: "inline-flex", alignItems: "center", gap: 8,
-    padding: "5px 12px", background: "var(--color-chip-bg)", borderRadius: 4,
+    display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px",
+    background: "var(--color-chip-bg)", borderRadius: 4,
   },
-  timerDot: {
-    width: 6, height: 6, borderRadius: 999, background: "var(--color-success)",
-  },
+  timerDot: { width: 6, height: 6, borderRadius: 999, background: "var(--color-success)" },
   timerLabel: {
     fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500, letterSpacing: "0.1px",
     color: "var(--color-text-medium)",
   },
+  scenarioBody: {
+    margin: 0, maxWidth: 360, textAlign: "center",
+    fontSize: 13, fontWeight: 400, lineHeight: 1.6, color: "var(--color-text-tertiary)",
+  },
   controlsRow: {
-    display: "flex", alignItems: "center", justifyContent: "center", gap: 16,
-    padding: "24px 0", flexShrink: 0,
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "24px 0", flexShrink: 0,
   },
   mutePill: {
     width: 72, height: 44, background: "var(--surface-white)",
     border: "1px solid var(--color-divider-card)", borderRadius: 8,
-    cursor: "pointer", display: "inline-grid", placeItems: "center", padding: 0,
-    transition: "background 150ms ease",
+    cursor: "pointer", display: "inline-grid", placeItems: "center", padding: 0, transition: "background 150ms ease",
   },
   endPill: {
-    width: 66, height: 44, background: "var(--color-error-dark)", border: "none",
-    borderRadius: 8, cursor: "pointer", display: "inline-grid", placeItems: "center", padding: 0,
-    transition: "background 150ms ease",
+    width: 66, height: 44, background: "var(--color-error-dark)", border: "none", borderRadius: 8,
+    cursor: "pointer", display: "inline-grid", placeItems: "center", padding: 0, transition: "background 150ms ease",
   },
   disclaimer: {
-    margin: 0, padding: "16px 8px",
-    borderTop: "1px solid var(--color-border-card-soft)",
-    fontSize: 12, fontWeight: 400, lineHeight: 1.5,
-    color: "var(--color-text-placeholder)", textAlign: "center",
+    margin: 0, padding: "16px 8px", borderTop: "1px solid var(--color-border-card-soft)",
+    fontSize: 12, fontWeight: 400, lineHeight: 1.5, color: "var(--color-text-placeholder)", textAlign: "center",
   },
 
-  // Conversation column
-  convCol: {
+  // Guide panel (right)
+  guidePanel: {
     flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
-    background: "var(--surface-white)", padding: "16px 24px",
+    background: "var(--surface-white)", minHeight: 0,
   },
-  transcript: {
-    flex: 1, minHeight: 0, overflowY: "auto",
-    display: "flex", flexDirection: "column", paddingBottom: 16,
+  guideHead: {
+    display: "flex", alignItems: "center", gap: 12,
+    padding: "16px 22px 12px", flexShrink: 0,
   },
-  turnAgent: {
-    display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, padding: "10px 4px",
+  guideTitle: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
+  listenPill: {
+    display: "inline-flex", alignItems: "center", gap: 7,
+    fontSize: 12, fontWeight: 600, color: "var(--color-icon-tertiary-fg)",
+    background: "var(--color-icon-tertiary-bg)", borderRadius: 999, padding: "4px 11px",
   },
-  turnCustomer: {
-    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "10px 4px",
+  listenDot: {
+    width: 7, height: 7, borderRadius: 999, background: "var(--color-icon-tertiary-fg)",
+    boxShadow: "0 0 0 3px var(--color-primary-alpha-08)",
   },
-  turnTimestamp: {
-    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 400, letterSpacing: "0.4px",
+  guideProg: { fontSize: 12, color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)" },
+  guideProgNum: { color: "var(--color-text-deep)", fontWeight: 700 },
+
+  // Stage strip
+  stageStrip: { listStyle: "none", margin: 0, padding: "0 22px 8px", display: "flex", gap: 5 },
+  stageItem: { flex: 1, textAlign: "center", display: "flex", flexDirection: "column", gap: 7, paddingBottom: 6 },
+  stageLabel: { fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" },
+  stageBar: { height: 3, borderRadius: 2 },
+
+  // Scroll bodies
+  guideScroll: {
+    flex: 1, minHeight: 0, overflowY: "auto", padding: "10px 22px 22px",
+    display: "flex", flexDirection: "column", gap: 12,
+  },
+  focusScroll: {
+    flex: 1, minHeight: 0, overflowY: "auto", padding: "12px 22px 22px",
+    display: "flex", flexDirection: "column", gap: 14,
+  },
+  filmScroll: {
+    flex: 1, minHeight: 0, overflowY: "auto", padding: "10px 18px 22px",
+    display: "flex", flexDirection: "column", gap: 14,
+  },
+
+  // Current step card
+  stepCardCurrent: {
+    display: "flex", flexDirection: "column", gap: 8,
+    borderColor: "var(--color-icon-tertiary-fg)", boxShadow: "var(--shadow-card)",
+    animation: "drillStepIn 150ms ease",
+  },
+  tagRow: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  posNow: {
+    display: "inline-flex", alignItems: "center", gap: 8,
+    fontSize: 12, fontWeight: 700, letterSpacing: "0.2px", color: "var(--color-button-primary-bg)",
+  },
+  posMuted: {
+    fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
     color: "var(--color-text-tertiary)",
   },
-  // Agent = "user" message: rectangular pill, light background, right-aligned.
-  agentBubble: {
-    maxWidth: "82%",
-    background: "var(--color-chip-bg)",
-    borderRadius: 12,
-    padding: "12px 16px",
+  activeDot: {
+    width: 9, height: 9, borderRadius: 999, background: "var(--color-button-primary-bg)",
+    boxShadow: "0 0 0 3px var(--color-primary-alpha-12)", display: "inline-block",
   },
-  agentBody: {
-    margin: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.55, letterSpacing: "0.1px",
-    color: "var(--color-text-deep)", whiteSpace: "pre-wrap",
-  },
-  // Customer = "assistant" message: plain left-aligned text, no pill.
-  customerBody: {
-    margin: 0, maxWidth: "88%", fontSize: 14, fontWeight: 400, lineHeight: 1.6, letterSpacing: "0.1px",
-    color: "var(--color-text-medium)", whiteSpace: "pre-wrap",
-  },
-  turnStepTag: {
-    display: "inline-flex", alignItems: "center", gap: 6, marginTop: 2,
-  },
-  turnStepTagLabel: {
-    fontSize: 12, fontWeight: 600, color: "var(--color-success)",
-  },
-
-  // Shared step meta
+  stepLabelLg: { fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.35 },
+  stepInstruction: { fontSize: 13, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.55 },
   metaTag: {
     display: "inline-flex", alignItems: "center", height: 20, padding: "0 8px",
     borderRadius: 4, fontSize: 11, fontWeight: 700, letterSpacing: "0.3px",
   },
-  statusInline: { display: "inline-flex", alignItems: "center", gap: 6 },
-  statusLabel: { fontSize: 12, fontWeight: 700, letterSpacing: "0.2px" },
-  activeDot: {
-    width: 9, height: 9, borderRadius: 999,
-    background: "var(--color-button-primary-bg)",
-    boxShadow: "0 0 0 3px var(--color-primary-alpha-12)",
-  },
-
-  // Suggest phrasing
-  hintWrap: { display: "flex", flexDirection: "column", gap: 6, marginTop: 4 },
-  hintBody: {
-    margin: 0, padding: "10px 12px", borderRadius: 8,
-    background: "var(--color-icon-tertiary-bg)", color: "var(--color-text-medium)",
-    fontSize: 13, fontWeight: 500, lineHeight: 1.5, animation: "drillStepIn 150ms ease",
-  },
-
-  // Current-step labels (shared by the Inline guidance note)
-  coachNowLabel: {
-    display: "inline-flex", alignItems: "center", gap: 8,
-    fontSize: 12, fontWeight: 700, letterSpacing: "0.3px",
-    color: "var(--color-button-primary-bg)",
-  },
-  coachStepDetail: { fontSize: 13, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.55 },
-
-  // Inline guidance (in-chat coach note)
-  inlineWrap: {
-    display: "flex", flexDirection: "column", gap: 12,
-    maxWidth: "88%", margin: "8px 0 4px", animation: "drillStepIn 150ms ease",
-  },
-  inlineCard: {
-    display: "flex", flexDirection: "column", gap: 8,
-    padding: "16px 18px", borderRadius: 12,
-    background: "var(--color-icon-tertiary-bg)",
-    border: "1px solid var(--color-border-tab)",
-  },
-  inlineHead: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-  },
-  inlineKicker: {
+  assetRow: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 2 },
+  knowledgeBtn: {
     display: "inline-flex", alignItems: "center", gap: 6,
-    fontSize: 12, fontWeight: 700, letterSpacing: "0.2px",
+    background: "transparent", border: "none", cursor: "pointer", padding: 0,
+    fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-icon-tertiary-fg)",
+  },
+  scriptBox: {
+    display: "flex", flexDirection: "column", gap: 4, padding: "10px 12px", borderRadius: 8,
+    background: "var(--color-icon-tertiary-bg)", animation: "drillStepIn 150ms ease",
+  },
+  scriptKicker: {
+    fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
     color: "var(--color-icon-tertiary-fg)",
   },
-  inlineProgress: {
-    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
-    color: "var(--color-text-medium)",
+  scriptText: { margin: 0, fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: "var(--color-text-medium)" },
+  knowledgeCard: {
+    display: "flex", flexDirection: "column", gap: 4, padding: "12px 14px", borderRadius: 8,
+    background: "var(--surface-dim)", border: "1px solid var(--color-divider-card)",
+    animation: "drillStepIn 150ms ease",
   },
-  inlineStepLabel: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.35 },
-  inlineCta: {
-    display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start",
-    background: "transparent", border: "none", cursor: "pointer", padding: "6px 0", marginTop: 2,
-    fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-button-primary-bg)",
+  knowledgeTitle: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
+  knowledgeText: { margin: 0, fontSize: 12, fontWeight: 400, lineHeight: 1.55, color: "var(--color-text-tertiary)" },
+  learnMore: {
+    alignSelf: "flex-start", background: "transparent", border: "none", cursor: "pointer", padding: "2px 0",
+    fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "var(--color-button-primary-bg)",
+    textDecoration: "underline",
   },
-  inlineList: {
-    listStyle: "none", margin: "4px 0 0", padding: "12px 0 0",
-    borderTop: "1px solid var(--color-border-tab)",
-    display: "flex", flexDirection: "column", gap: 12,
-  },
-  inlineRow: { display: "flex", gap: 12 },
-  inlineRowIndex: {
-    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
-    color: "var(--color-text-tertiary)", paddingTop: 2, width: 16, flexShrink: 0,
-  },
-  inlineRowMain: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0 },
-  inlineRowTop: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  inlineRowLabel: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
-  inlineRowDetail: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.5 },
 
-  // Eval
-  evalScroll: { flex: 1, minHeight: 0, overflowY: "auto", background: "var(--surface-dim)" },
-  evalInner: {
-    maxWidth: 720, margin: "0 auto", padding: "32px 24px 40px",
-    display: "flex", flexDirection: "column", gap: 20,
-  },
-  evalCard: { display: "flex", flexDirection: "column", gap: 16 },
-  evalCardTitle: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
-  evalTiles: {
-    display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12,
-  },
-  evalTile: {
-    display: "flex", flexDirection: "column", gap: 4,
-    padding: "14px 16px", borderRadius: 8, background: "var(--surface-dim)",
-  },
-  evalTileValue: { fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)" },
-  evalTileLabel: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
-  evalBranchRow: {
-    display: "flex", flexDirection: "column", gap: 4,
-    paddingTop: 16, borderTop: "1px solid var(--color-divider-card)",
-  },
-  evalBranchValue: { fontSize: 14, fontWeight: 600, color: "var(--color-text-medium)" },
-  evalReadyCard: { display: "flex", flexDirection: "column", gap: 8 },
-  evalReadyTitle: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
-  evalReadyBody: { fontSize: 13, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.55 },
-  evalActions: { display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" },
+  // Peek cards
+  peekCard: { display: "flex", flexDirection: "column", gap: 6 },
+  peekRow: { display: "inline-flex", alignItems: "center", gap: 8 },
+  peekLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)", lineHeight: 1.4 },
+  peekAt: { marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-tertiary)" },
 
-  // Generic icon button — 40px clears the 44px effective target with its
-  // padding (WCAG-6, per the guideline's 40px-icon-button note).
+  // Peek line (Focus)
+  peekLineRow: { display: "flex", justifyContent: "center" },
+  peekLine: { display: "inline-flex", alignItems: "center", gap: 6 },
+  peekLineLabel: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  focusCardWrap: { display: "flex", justifyContent: "center" },
+
+  // Filmstrip
+  filmstrip: { display: "flex", alignItems: "flex-start", gap: 12 },
+  filmSide: { flex: "1 1 0", minWidth: 0 },
+  filmCenter: { flex: "1.6 1 0", minWidth: 0 },
+
+  // Show-all list
+  showAllBtn: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+    background: "transparent", border: "none", cursor: "pointer", padding: "8px 2px", marginTop: 2,
+    fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-text-medium)",
+  },
+  allList: {
+    listStyle: "none", margin: 0, padding: "12px 0 0", borderTop: "1px solid var(--color-border-card-soft)",
+    display: "flex", flexDirection: "column", gap: 10, animation: "drillStepIn 150ms ease",
+  },
+  allRow: { display: "flex", alignItems: "center", gap: 10 },
+  allIcon: { width: 16, display: "inline-grid", placeItems: "center", flexShrink: 0 },
+  allIndex: { fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--color-text-tertiary)", width: 14, flexShrink: 0 },
+  allLabel: { flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.4, minWidth: 0 },
+
+  // Generic icon button (40px clears 44px effective target — WCAG-6)
   iconBtn: {
     width: 40, height: 40, borderRadius: 8, border: "none", background: "transparent",
     cursor: "pointer", padding: 0, display: "inline-grid", placeItems: "center", flexShrink: 0,
   },
-
-  // Visually-hidden live region (announced, not shown).
   srOnly: {
     position: "absolute", width: 1, height: 1, padding: 0, margin: -1,
     overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0,
   },
 
-  // Assisted variant (two-column persona-call + guided workflow)
-  assistedBody: {
-    flex: 1, minHeight: 0, display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+  // Eval
+  evalScroll: { flex: 1, minHeight: 0, overflowY: "auto", background: "var(--surface-dim)" },
+  evalInner: { maxWidth: 720, margin: "0 auto", padding: "32px 24px 40px", display: "flex", flexDirection: "column", gap: 20 },
+  evalCard: { display: "flex", flexDirection: "column", gap: 16 },
+  evalCardTitle: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
+  evalTiles: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 },
+  evalTile: {
+    display: "flex", flexDirection: "column", gap: 4, padding: "14px 16px", borderRadius: 8,
+    background: "var(--surface-dim)",
   },
-  persona: {
-    display: "flex", flexDirection: "column", minHeight: 0,
-    background: "var(--surface-white)",
-    borderRight: "2px solid var(--color-border-card-soft)",
-    padding: "28px 28px 18px",
-  },
-  personaStack: {
-    flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-    justifyContent: "center", gap: 8, textAlign: "center", minHeight: 0,
-  },
-  haloWrap: { position: "relative", width: 168, height: 168, display: "inline-grid", placeItems: "center" },
-  haloRing: {
-    position: "absolute", inset: -10, borderRadius: "50%",
-    border: "2px solid var(--color-icon-tertiary-fg)",
-    animation: "drillRipple 2.2s ease-out infinite",
-  },
-  halo: {
-    width: 104, height: 104, borderRadius: "50%",
-    background: "var(--color-icon-tertiary-bg)", display: "inline-grid", placeItems: "center",
-  },
-  haloInitials: { fontSize: 30, fontWeight: 600, color: "var(--color-icon-tertiary-fg)" },
-  speakingRow: { marginTop: 16, display: "inline-flex", alignItems: "center", gap: 10 },
-  speakingLabel: { fontSize: 15, fontWeight: 500, color: "var(--color-text-tertiary)" },
-  eqBars: { display: "inline-flex", alignItems: "flex-end", gap: 3, height: 14 },
-  eqBar: { width: 3, borderRadius: 2, transformOrigin: "bottom", display: "block" },
-  scenarioBlock: { marginTop: 28, maxWidth: 480, display: "flex", flexDirection: "column", gap: 8 },
-  scenarioHeading: { fontSize: 18, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.35 },
-  scenarioBody: { margin: 0, fontSize: 13.5, fontWeight: 400, lineHeight: 1.65, color: "var(--color-text-tertiary)" },
-  callBar: {
-    display: "flex", alignItems: "center", marginTop: 24, paddingTop: 16,
-    borderTop: "1px solid var(--color-border-card-soft)",
-  },
-  connPill: {
-    display: "inline-flex", alignItems: "center", gap: 7,
-    background: "var(--color-success-bg)", color: "var(--color-success-text)",
-    fontSize: 13, fontWeight: 600, borderRadius: 999, padding: "6px 14px",
-  },
-  connDot: { width: 8, height: 8, borderRadius: 999, background: "var(--color-success)" },
-  // Equal side gutters so mic/end sit dead-centre in the call column.
-  callBarSide: { flex: 1, minWidth: 0, display: "flex", alignItems: "center" },
-  callCtl: { display: "flex", gap: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-
-  // Guide panel
-  guide: {
-    display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden",
-    background: "var(--surface-white)",
-  },
-  guideHead: {
-    display: "flex", alignItems: "center", gap: 12,
-    padding: "18px 22px 14px", borderBottom: "1px solid var(--color-border-card-soft)", flexShrink: 0,
-  },
-  guideTitle: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
-  listenPill: {
-    display: "inline-flex", alignItems: "center", gap: 8,
-    fontSize: 12, fontWeight: 600, color: "var(--color-icon-tertiary-fg)",
-    background: "var(--color-icon-tertiary-bg)", borderRadius: 999, padding: "4px 11px",
-  },
-  gprog: { fontSize: 12, color: "var(--color-text-tertiary)" },
-  gprogNum: { color: "var(--color-text-deep)", fontWeight: 700 },
-  phaseStrip: { listStyle: "none", margin: 0, padding: "12px 22px 4px", display: "flex", gap: 4 },
-  phaseItem: {
-    flex: 1, textAlign: "center", display: "flex", flexDirection: "column", gap: 8, paddingBottom: 8,
-  },
-  phaseLabel: { fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" },
-  phaseUnderline: { height: 3, borderRadius: 2 },
-  assistedSteps: {
-    flex: 1, overflowY: "auto", padding: "14px 22px 20px",
-    display: "flex", flexDirection: "column", gap: 10, minHeight: 0,
-  },
-  aStep: {
-    border: "1px solid var(--color-border-card-soft)", borderRadius: 14, padding: "13px 15px",
-    display: "flex", gap: 12, alignItems: "flex-start", background: "var(--surface-dim)",
-  },
-  aCheckDone: {
-    width: 22, height: 22, borderRadius: 999, flexShrink: 0, marginTop: 1,
-    background: "var(--color-success)", display: "grid", placeItems: "center",
-  },
-  aCheckSkip: {
-    width: 22, height: 22, borderRadius: 999, flexShrink: 0, marginTop: 1,
-    background: "var(--surface-white)", border: "1px solid var(--color-warning-dark)",
-    display: "grid", placeItems: "center",
-  },
-  aStepBody: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 },
-  aStepLabel: { fontSize: 13.5, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
-  aWhen: { display: "inline-flex", alignItems: "center", gap: 6 },
-  aWhenTime: { fontSize: 11, color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)" },
-  tagAi: {
-    background: "var(--color-icon-tertiary-bg)", color: "var(--color-icon-tertiary-fg)",
-    borderRadius: 5, padding: "1px 6px", fontWeight: 700, fontSize: 10,
-  },
-  aFlag: { display: "flex", gap: 7, alignItems: "center", fontSize: 11.5, color: "var(--color-warning-text)", marginTop: 4 },
-  aCurrentCard: {
-    border: "1.5px solid var(--color-icon-tertiary-fg)", borderRadius: 14, padding: "14px 16px",
-    background: "var(--surface-white)", boxShadow: "var(--shadow-card)",
-    display: "flex", flexDirection: "column",
-  },
-  aCurrentHead: { display: "flex", gap: 12, alignItems: "flex-start" },
-  aCurrentDot: {
-    width: 22, height: 22, borderRadius: 999, border: "2px solid var(--color-icon-tertiary-fg)",
-    background: "var(--surface-white)", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1,
-  },
-  aCurrentTag: {
-    fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-    color: "var(--color-icon-tertiary-fg)",
-  },
-  aCurrentLabel: { fontSize: 14.5, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.4 },
-  dos: { margin: "12px 0 0 34px", display: "flex", flexDirection: "column", gap: 8 },
-  doi: { display: "flex", gap: 10, alignItems: "flex-start" },
-  doBox: {
-    width: 16, height: 16, borderRadius: 5, border: "1.5px solid var(--color-divider-card)",
-    flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
-  },
-  doBoxHit: {
-    width: 16, height: 16, borderRadius: 5, flexShrink: 0, marginTop: 1,
-    background: "var(--color-success)", border: "1.5px solid var(--color-success)",
-    display: "grid", placeItems: "center",
-  },
-  doLabel: { fontSize: 12.5, lineHeight: 1.45 },
-  aPeek: { margin: "12px 0 0 34px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  aPeekNote: { fontSize: 10.5, color: "var(--color-text-tertiary)" },
-  nextLbl: {
-    fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-    color: "var(--color-text-tertiary)", margin: "4px 0 -2px 2px",
-  },
-  branchRow: {
-    display: "flex", gap: 12, alignItems: "center", borderRadius: 14, padding: "13px 15px",
-    border: "1px dashed var(--color-divider-card)", background: "var(--surface-white)",
-  },
-  branchNode: {
-    width: 10, height: 10, borderRadius: 999, flexShrink: 0,
-    border: "1.5px dashed var(--color-text-tertiary)",
-  },
-  branchLabel: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)", lineHeight: 1.4 },
+  evalTileValue: { fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)" },
+  evalTileLabel: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  evalBranchRow: { display: "flex", flexDirection: "column", gap: 4, paddingTop: 16, borderTop: "1px solid var(--color-divider-card)" },
+  evalBranchValue: { fontSize: 14, fontWeight: 600, color: "var(--color-text-medium)" },
+  evalReadyCard: { display: "flex", flexDirection: "column", gap: 8 },
+  evalReadyTitle: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
+  evalReadyBody: { fontSize: 13, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: 1.55 },
+  evalActions: { display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" },
 };

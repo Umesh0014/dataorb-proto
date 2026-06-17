@@ -1,14 +1,16 @@
-// guidedDrill — mock data for the assisted "safety wheel" Drill session
-// (DrillGuidedSessionPage). The agent practices a retention/billing call
-// against a simulated customer while a second AI checks off the steps of
-// the attached Guided Workflow in real time and flags skipped mandatory
-// steps. Real STT/TTS + live step-detection is out of scope; the page
-// drives the same shapes off a short demo timer.
+// guidedDrill — mock data for the agent-side in-drill Guided Workflow view
+// (progressive-disclosure direction locked Jun 16). The agent practises a
+// role play against a simulated customer; a second AI listens and checks off
+// the configured workflow steps (order-agnostic) and projects the likely
+// next step. NO transcript is shown — the guided card surfaces only the
+// previous / current / next step. Real STT + live step-detection is out of
+// scope; the page drives the same shapes off a short demo timer.
 //
-// The workflow models the brief's branching call path:
-//   who's on the line → validation → bill-higher-than-expected →
-//   IPC annual tariff → churn signal? → best-practice offer →
-//   agreement recorded → close.
+// Schema (per the locked spec): five universal stages
+//   Open → Verify → Discover → Act → Close
+// each step carries an instruction, a Script (phrasing), an optional
+// Knowledge card (a specific linked card, complex steps only), a type
+// (compliance / action / decision), and mandatory vs optional.
 
 export const GUIDED_DRILL_META = {
   workflowTitle: "Bill-shock retention — IPC tariff",
@@ -20,181 +22,158 @@ export const GUIDED_DRILL_META = {
   initials: "MB",
   language: "English (UK)",
   totalSeconds: 372, // 06:12
-  // Team-lead config (settings in the brief): safety-on sessions allowed
-  // per agent per role play, and how many have been used.
   sessionsAllowed: 3,
   sessionsUsed: 1,
 };
 
-// Coarse phase strip above the step list (Assisted-mode variant). State:
-// "done" | "current" | "pending".
-export const GUIDED_DRILL_PHASES = [
-  { id: "open", label: "Open", state: "done" },
-  { id: "verify", label: "Verify", state: "done" },
-  { id: "diagnose", label: "Diagnose", state: "current" },
-  { id: "resolve", label: "Resolve", state: "pending" },
-  { id: "close", label: "Close", state: "pending" },
+// The five universal conversation stages.
+export const GUIDED_DRILL_STAGES = [
+  { id: "open",     label: "Open" },
+  { id: "verify",   label: "Verify" },
+  { id: "discover", label: "Discover" },
+  { id: "act",      label: "Act" },
+  { id: "close",    label: "Close" },
 ];
 
-// Sub-checks ("dos") the listener ticks off within the active step, plus
-// the branch paths it's listening for next. Used by the Assisted variant.
-export const GUIDED_DRILL_ACTIVE_DOS = [
-  { id: "do-1", label: "Pull up this month's charges and read the delta back", hit: true },
-  { id: "do-2", label: "Compare line by line against last month", hit: true },
-  { id: "do-3", label: "Name the exact line that changed", hit: false },
-];
+// Step types — drives the small type tag on each step.
+export const STEP_TYPE_LABEL = {
+  compliance: "Compliance",
+  action: "Action",
+  decision: "Decision",
+};
 
-export const GUIDED_DRILL_BRANCHES = [
-  { id: "br-1", label: "Charge is the IPC tariff → explain the adjustment & amount" },
-  { id: "br-2", label: "An add-on slipped in → itemise it and offer to remove" },
-];
-
-// Each step of the guided workflow.
-//   id          unique
-//   label       short imperative — what the agent should do
-//   detail      the evidence the listener looks for
-//   mandatory   true = required step; a skipped mandatory step is flagged
-//   branch      optional label when the step belongs to a branch the call took
-//   state       "done" | "active" | "pending" | "skipped"
-//   at          transcript timestamp the step was satisfied (done only)
+// The configured workflow steps (the AI only monitors these). state:
+//   "done" | "active" | "pending". The page derives previous/current/next
+// from this list. `script` = suggested phrasing; `knowledge` = a specific
+// linked card (complex steps only); `type` = compliance/action/decision.
 export const GUIDED_DRILL_STEPS = [
   {
     id: "greet",
-    label: "Greeting & brand identification",
-    detail: "Agent opens with name + brand and a reason-for-call check.",
+    stage: "open",
+    label: "Greeting & self-identification",
+    type: "compliance",
     mandatory: true,
     state: "done",
     at: "0:04",
+    instruction: "Open with your name + brand and confirm the reason for the call.",
+    script: "Hi, you're through to Acme — my name's Sam. I can see you're calling about your latest bill; happy to help.",
+    knowledge: null,
+  },
+  {
+    id: "disclosure",
+    stage: "open",
+    label: "Recording disclosure",
+    type: "compliance",
+    mandatory: true,
+    state: "done",
+    at: "0:09",
+    instruction: "State that the call is recorded for quality and training.",
+    script: "Just so you know, this call is recorded for quality and training purposes.",
+    knowledge: null,
   },
   {
     id: "verify",
+    stage: "verify",
     label: "Verify identity (two data points)",
-    detail: "Confirm two account identifiers before discussing the bill.",
+    type: "compliance",
     mandatory: true,
-    state: "skipped",
-    at: null,
-  },
-  {
-    id: "acknowledge",
-    label: "Acknowledge the concern",
-    detail: "A one-line empathy beat before moving to diagnosis.",
-    mandatory: false,
     state: "done",
-    at: "0:22",
+    at: "0:48",
+    instruction: "Confirm two account identifiers before discussing the bill.",
+    script: "Before we look at the account, can you confirm your full name and the first line of your address?",
+    knowledge: null,
   },
   {
-    id: "diagnose",
-    label: "Diagnose the charge",
-    detail: "Locate the line-item delta on this month's bill.",
+    id: "locate",
+    stage: "discover",
+    label: "Locate the disputed charge",
+    type: "action",
     mandatory: true,
     state: "active",
     at: null,
+    instruction: "Find the line-item that changed on this month's bill and read it back.",
+    script: "I can see exactly what changed this month — let me walk you through the two lines so it's clear where the difference is coming from.",
+    knowledge: null,
   },
   {
-    id: "explain-ipc",
+    id: "ipc",
+    stage: "discover",
     label: "Explain the IPC annual tariff change",
-    detail: "Name the adjustment and the amount in plain language.",
+    type: "action",
     mandatory: true,
-    branch: "Bill higher than expected",
     state: "pending",
     at: null,
+    instruction: "Name the adjustment and the amount in plain language.",
+    script: "This is the annual IPC adjustment that applies to every plan each April — on your tariff that's an extra £2.10 a month, and I can show you how it's worked out.",
+    knowledge: {
+      title: "IPC annual tariff",
+      body: "Govt-linked CPI/IPC uplift applied to all plans each April. 2026 = +£2.10 on the £29.90 tariff. Flagged in the March statement.",
+    },
   },
   {
-    id: "churn-signal",
-    label: "Check for a churn signal",
-    detail: "Listen for competitor mention or switch intent.",
+    id: "churn",
+    stage: "discover",
+    label: "Check for a churn / competitor signal",
+    type: "decision",
     mandatory: false,
-    branch: "Bill higher than expected",
     state: "pending",
     at: null,
+    instruction: "Listen for switch intent or a competitor mention.",
+    script: "How are you finding the service overall — is anything making you reconsider your plan?",
+    knowledge: null,
   },
   {
     id: "offer",
+    stage: "act",
     label: "Present the best-practice retention offer",
-    detail: "Offer from the approved matrix; lead with value, not price.",
+    type: "action",
     mandatory: true,
     state: "pending",
     at: null,
+    instruction: "Offer from the approved matrix; lead with value, not price.",
+    script: "Because you've been with us six years, I can hold your effective rate with a loyalty credit — that keeps you below the price you mentioned without changing your plan.",
+    knowledge: {
+      title: "Retention offer matrix",
+      body: "6-yr tenure → loyalty credit up to £4/mo for 12 months, no supervisor approval. Lead with value (roaming, family discount) before price.",
+    },
   },
   {
-    id: "agreement",
+    id: "record",
+    stage: "act",
     label: "Confirm agreement & record it",
-    detail: "Read back the agreed terms and log them on the account.",
+    type: "compliance",
     mandatory: true,
     state: "pending",
     at: null,
+    instruction: "Read back the agreed terms and log them on the account.",
+    script: "So that's the loyalty credit applied from your next bill — I'll note it on your account and you'll get an email confirmation.",
+    knowledge: null,
   },
   {
     id: "close",
+    stage: "close",
     label: "Recap & close",
-    detail: "Summarise next steps and confirm nothing else is outstanding.",
+    type: "action",
     mandatory: true,
     state: "pending",
     at: null,
+    instruction: "Summarise next steps and confirm nothing else is outstanding.",
+    script: "To recap: your bill returns to around £29.90 from next month, confirmed by email. Is there anything else I can help with?",
+    knowledge: null,
   },
 ];
 
-// Suggested phrasing the agent can pull for the active step. Keyed by
-// step id so each step can carry its own hint; the active step's hint is
-// what "Suggest phrasing" reveals.
-export const GUIDED_DRILL_HINTS = {
-  diagnose:
-    "Try: “I can see exactly what changed this month — let me walk you through the two lines on your bill so it's clear where the difference is coming from.”",
-  "explain-ipc":
-    "Try: “This is the annual IPC adjustment that applies across all plans each April — on your tariff that's an extra £2.10 a month, and I can show you how it's calculated.”",
-  offer:
-    "Try: “Because you've been with us six years, I can hold your effective rate with a loyalty credit — that keeps you below the price you mentioned without changing your plan.”",
-};
-
-// Live conversation. speaker "CUSTOMER" (the simulated persona) | "AGENT"
-// (the human practising). stepRef links an agent turn to the workflow step
-// it satisfied, so the guidance surfaces can highlight the moment.
-export const GUIDED_DRILL_TURNS = [
-  {
-    id: "d-1",
-    speaker: "AGENT",
-    timestamp: "0:04",
-    body: "Hi, you're through to Acme, my name's Sam. I can see you're calling about your latest bill — happy to help with that.",
-    stepRef: "greet",
-  },
-  {
-    id: "d-2",
-    speaker: "CUSTOMER",
-    timestamp: "0:11",
-    body: "Yes — my bill's gone up and nobody told me. It was £29.90 and now it's £38.50. I didn't change anything.",
-  },
-  {
-    id: "d-3",
-    speaker: "AGENT",
-    timestamp: "0:22",
-    body: "I completely understand the frustration of seeing a higher number you weren't expecting — let's get to the bottom of it together.",
-    stepRef: "acknowledge",
-  },
-  {
-    id: "d-4",
-    speaker: "CUSTOMER",
-    timestamp: "0:31",
-    body: "Please do. I've been with you six years and this is the kind of thing that makes me look at other providers.",
-  },
-  {
-    id: "d-5",
-    speaker: "AGENT",
-    timestamp: "0:41",
-    body: "Let me pull up this month's charges and compare them line by line with last month so we can see precisely what moved.",
-    stepRef: "diagnose",
-  },
-];
-
-// Post-session eval. Produced for visibility but EXCLUDED from the
-// readiness profile because the safety wheel was on (new "assisted mode"
-// exclusion, mirroring calibration mode). Every figure carries a label.
+// Post-session eval. Produced for visibility but EXCLUDED from the readiness
+// profile (safety-on = assisted-mode exclusion, mirroring calibration mode).
+// Flat-checklist model: the eval penalizes only missed MANDATORY steps;
+// optional misses are coaching, outcome-without-process is "great job".
 export const GUIDED_DRILL_EVAL = {
   overallScore: 81, // percent — shown but excluded
   stepsDone: 6,
   stepsTotal: 9,
-  mandatorySkipped: 1,
-  hintsReviewed: 2,
-  branchExecuted: "Bill higher than expected → IPC tariff → retention offer",
+  mandatoryMissed: 0,
+  scriptsViewed: 2,
+  stagesReached: "Open → Verify → Discover",
   excludedFrom: "Readiness profile",
   exclusionReason: "Assisted mode (safety wheel on)",
 };
