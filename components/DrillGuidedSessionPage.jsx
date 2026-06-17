@@ -397,7 +397,8 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
     );
   }
   return (
-    <Card tone="outline" padX={20} padY={20} style={styles.stepCardCurrent} aria-current="step">
+    <div aria-current="step" style={styles.currentCardWrap}>
+    <Card tone="outline" padX={20} padY={20} style={styles.stepCardCurrent}>
       <PositionLabel position="current" />
       <div style={styles.tagRow}>
         <TypeTag type={step.type} />
@@ -407,7 +408,7 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
       <span style={styles.stepInstruction}>{step.instruction}</span>
 
       <div style={styles.assetRow}>
-        <Button variant="ai" uppercase={false} onClick={onToggleScript} className="drill-focusable" aria-expanded={scriptOpen}>
+        <Button variant="ai" uppercase={false} onClick={onToggleScript} className="drill-focusable" aria-expanded={scriptOpen} style={{ minHeight: 44, paddingBlock: 6 }}>
           {scriptOpen ? "Hide script" : "Show script"}
         </Button>
         {step.knowledge && (
@@ -446,6 +447,7 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
         Learn more about this step
       </button>
     </Card>
+    </div>
   );
 }
 
@@ -761,7 +763,7 @@ const styles = {
   orbInitials: { fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 700, letterSpacing: "0.5px", color: "#6650A5" },
   statusBlock: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textAlign: "center" },
   statusHead: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
-  statusSub: { fontSize: 12, fontWeight: 400, letterSpacing: "0.2px", color: "var(--color-text-placeholder)" },
+  statusSub: { fontSize: 12, fontWeight: 400, letterSpacing: "0.2px", color: "var(--color-text-tertiary)" },
   timerPill: {
     display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px",
     background: "var(--color-chip-bg)", borderRadius: 4,
@@ -789,7 +791,7 @@ const styles = {
   },
   disclaimer: {
     margin: 0, padding: "16px 8px", borderTop: "1px solid var(--color-border-card-soft)",
-    fontSize: 12, fontWeight: 400, lineHeight: 1.5, color: "var(--color-text-placeholder)", textAlign: "center",
+    fontSize: 12, fontWeight: 400, lineHeight: 1.5, color: "var(--color-text-tertiary)", textAlign: "center",
   },
 
   // Guide panel (right)
@@ -861,10 +863,11 @@ const styles = {
   },
   assetRow: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 2 },
   knowledgeBtn: {
-    display: "inline-flex", alignItems: "center", gap: 6,
-    background: "transparent", border: "none", cursor: "pointer", padding: 0,
+    display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+    background: "transparent", border: "none", cursor: "pointer", padding: "6px 0",
     fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-icon-tertiary-fg)",
   },
+  currentCardWrap: { minWidth: 0 },
   scriptBox: {
     display: "flex", flexDirection: "column", gap: 4, padding: "10px 12px", borderRadius: 8,
     background: "var(--color-icon-tertiary-bg)", animation: "drillStepIn 150ms ease",
@@ -882,7 +885,8 @@ const styles = {
   knowledgeTitle: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
   knowledgeText: { margin: 0, fontSize: 12, fontWeight: 400, lineHeight: 1.55, color: "var(--color-text-tertiary)" },
   learnMore: {
-    alignSelf: "flex-start", background: "transparent", border: "none", cursor: "pointer", padding: "2px 0",
+    alignSelf: "flex-start", background: "transparent", border: "none", cursor: "pointer",
+    padding: "10px 0", minHeight: 44,
     fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "var(--color-button-primary-bg)",
     textDecoration: "underline",
   },
@@ -893,21 +897,32 @@ const styles = {
   peekLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)", lineHeight: 1.4 },
   peekAt: { marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-tertiary)" },
 
-  // Peek line (Focus)
+  // Peek line (Focus) — a defined chip, not a faint caption, so prev/next
+  // read as part of the guidance (raises affordance — INT-1).
   peekLineRow: { display: "flex", justifyContent: "center" },
-  peekLine: { display: "inline-flex", alignItems: "center", gap: 6 },
-  peekLineLabel: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  peekLine: {
+    display: "inline-flex", alignItems: "center", gap: 6,
+    padding: "6px 12px", borderRadius: 999,
+    background: "var(--color-chip-bg)", border: "1px solid var(--color-divider-card)",
+    maxWidth: "100%",
+  },
+  peekLineLabel: {
+    fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)",
+    minWidth: 0, overflowWrap: "anywhere",
+  },
   focusCardWrap: { display: "flex", justifyContent: "center" },
 
-  // Filmstrip
-  filmstrip: { display: "flex", alignItems: "flex-start", gap: 12 },
-  filmSide: { flex: "1 1 0", minWidth: 0 },
-  filmCenter: { flex: "1.6 1 0", minWidth: 0 },
+  // Filmstrip — side cards keep a min-width and the strip scrolls rather
+  // than clipping when ES/FR/NL step labels run long (UI-8 expansion
+  // tolerance instead of truncation).
+  filmstrip: { display: "flex", alignItems: "flex-start", gap: 12, overflowX: "auto" },
+  filmSide: { flex: "1 1 132px", minWidth: 132 },
+  filmCenter: { flex: "1.6 1 220px", minWidth: 220 },
 
   // Show-all list
   showAllBtn: {
-    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-    background: "transparent", border: "none", cursor: "pointer", padding: "8px 2px", marginTop: 2,
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 44,
+    background: "transparent", border: "none", cursor: "pointer", padding: "12px 2px", marginTop: 2,
     fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-text-medium)",
   },
   allList: {
