@@ -63,6 +63,7 @@ const DRILL_PERSONA_BASELINE = [
 export default function LearningHubPage({
   onOpenDrill,
   onCreateRoleplay,
+  onOpenGuidedWorkflows,
   locale = "en",
   onLocaleChange,
   isAgent = false,
@@ -98,7 +99,19 @@ export default function LearningHubPage({
   const drillTabs = [
     { id: "active", label: t("tabActive") },
     { id: "library", label: t("tabLibrary") },
+    // Guided Workflows authoring lives as a Drill tab (Team Leader only);
+    // selecting it routes to the dedicated authoring surface rather than
+    // swapping in-page content.
+    { id: "guided-workflows", label: "Guided Workflows" },
   ];
+
+  const handleTabClick = (id) => {
+    if (id === "guided-workflows") {
+      onOpenGuidedWorkflows?.();
+      return;
+    }
+    setActiveTab(id);
+  };
 
   // Language as an inline header dropdown pill — native name + locale list,
   // lifting the new selection to the app root.
@@ -150,7 +163,7 @@ export default function LearningHubPage({
 
         {/* Agent sees only active drills — drop the tab row entirely. */}
         {!isAgent && (
-          <TabsRow tabs={drillTabs} activeTab={activeTab} onTabClick={setActiveTab} />
+          <TabsRow tabs={drillTabs} activeTab={activeTab} onTabClick={handleTabClick} />
         )}
 
         {showLibrary ? (
