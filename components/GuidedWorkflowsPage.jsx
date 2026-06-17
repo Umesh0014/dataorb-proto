@@ -10,7 +10,7 @@ import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
 import GuidedWorkflowStudioEditor from "./GuidedWorkflowStudioEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
-import StepDrawer from "./GuidedWorkflowStepDrawer";
+import { StepModal } from "./GuidedWorkflowStepDetail";
 import { AiMark } from "./GuidedWorkflowBits";
 import {
   GUIDED_WORKFLOWS,
@@ -136,6 +136,7 @@ export default function GuidedWorkflowsPage({ onBack }) {
     onCycleRequirement: cycleRequirement,
     onCycleType: cycleType,
     onUpdateInstruction: updateInstruction,
+    onRemove: removeStep,
     onOpenStep: setOpenStepId,
     onAddBlank: addBlankStep,
     onReorder: reorderStep,
@@ -190,10 +191,10 @@ export default function GuidedWorkflowsPage({ onBack }) {
           onClose={() => setAttachOpen(false)}
         />
       )}
-      {/* Side-curtain step editor — Checklist + Board open a step here;
-          Studio edits in its right pane and never opens the drawer. */}
-      {variant !== "ambitious" && openStep && (
-        <StepDrawer
+      {/* Board edits a step in a centered modal; Checklist expands the card
+          inline and Studio edits in its right pane, so neither uses this. */}
+      {variant === "balanced" && openStep && (
+        <StepModal
           step={openStep}
           onClose={() => setOpenStepId(null)}
           onUpdateInstruction={updateInstruction}

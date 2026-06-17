@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Link2, PenLine, TrendingUp, Quote, Plus } from "lucide-react";
+import { Sparkles, Link2, PenLine, TrendingUp, Quote, Plus, ChevronDown } from "lucide-react";
 import Button from "./Button";
-import { gwTypeMeta, gwRequirementMeta } from "./mocks/guidedWorkflows";
+import { gwTypeMeta, gwRequirementMeta, GW_SOURCE_INTERACTIONS } from "./mocks/guidedWorkflows";
 
 // GuidedWorkflowBits — the small presentational atoms shared by all three
 // authoring editors (Checklist / Board / Studio). They encode the step
@@ -105,6 +105,7 @@ export function SuccessChip({ evidence }) {
 // agents used in those calls (real examples to lift into the script). This
 // is the "why the AI proposed this" made auditable.
 export function EvidenceCard({ evidence }) {
+  const [callsOpen, setCallsOpen] = React.useState(false);
   if (!evidence) {
     return (
       <div style={bitStyles.evidenceEmpty}>
@@ -112,15 +113,34 @@ export function EvidenceCard({ evidence }) {
       </div>
     );
   }
+  // The drill: a sample of the calls behind the number, so "150 calls" is
+  // auditable rather than a bare stat.
+  const sample = GW_SOURCE_INTERACTIONS.slice(0, 5);
   return (
     <div style={bitStyles.evidence}>
       <div style={bitStyles.evidenceStatRow}>
         <span style={bitStyles.evidenceStat}>{evidence.successRate}%</span>
         <span style={bitStyles.evidenceStatText}>
           of calls that followed this step ended in {evidence.outcome}
-          <span style={bitStyles.evidenceVolume}>across {evidence.callCount} interactions</span>
+          <button type="button" onClick={() => setCallsOpen((o) => !o)} style={bitStyles.callsToggle} className="gw-focusable" aria-expanded={callsOpen}>
+            across {evidence.callCount} interactions
+            <ChevronDown size={13} color="var(--color-button-primary-bg)" style={{ transform: callsOpen ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }} />
+          </button>
         </span>
       </div>
+
+      {callsOpen && (
+        <div style={bitStyles.callsList}>
+          {sample.map((c) => (
+            <div key={c.id} style={bitStyles.callRow}>
+              <span style={bitStyles.callCustomer}>{c.customer}</span>
+              <span style={bitStyles.callMeta}>{c.id} · {c.duration} · {c.outcome}</span>
+            </div>
+          ))}
+          <span style={bitStyles.callsMore}>Showing {sample.length} of {evidence.callCount} contributing calls</span>
+        </div>
+      )}
+
       <div style={bitStyles.exampleHead}>
         <Quote size={12} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
         What top agents said here
@@ -261,7 +281,18 @@ const bitStyles = {
   evidenceStatRow: { display: "flex", alignItems: "baseline", gap: 10 },
   evidenceStat: { fontSize: 24, fontWeight: 700, color: "var(--color-success-text)", lineHeight: 1, flexShrink: 0 },
   evidenceStatText: { display: "flex", flexDirection: "column", gap: 2, fontSize: 12.5, color: "var(--color-text-medium)", lineHeight: 1.45 },
-  evidenceVolume: { fontSize: 11.5, color: "var(--color-text-tertiary)" },
+  callsToggle: {
+    display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", border: "none", padding: 0,
+    cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--color-button-primary-bg)", alignSelf: "flex-start",
+  },
+  callsList: {
+    display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: 8,
+    background: "var(--surface-white)", border: "1px solid var(--color-divider-card)",
+  },
+  callRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  callCustomer: { fontSize: 12.5, fontWeight: 600, color: "var(--color-text-deep)" },
+  callMeta: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)" },
+  callsMore: { fontSize: 11, fontStyle: "italic", color: "var(--color-text-tertiary)", paddingTop: 2 },
   exampleHead: {
     display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
     letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--color-icon-tertiary-fg)",
