@@ -3,6 +3,7 @@
 import React from "react";
 import { Plus, X } from "lucide-react";
 import Button from "./Button";
+import StyledSelect from "./Select";
 import { RULE_FIELDS, ASSIGNMENT_RULES_SAMPLE } from "./mocks/creditsUsage";
 
 // AssignByRuleBuilder — assignment approach A. A conditional-field builder
@@ -74,15 +75,16 @@ function Condition({ rule, keyName, valKey, onChange, id }) {
   );
 }
 
+// Thin adapter onto the shared Select so this builder's {id,label} option
+// shape keeps working while the chrome stays consistent app-wide.
 function Select({ value, onChange, options, ariaLabel }) {
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={ariaLabel} style={styles.select}>
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <StyledSelect
+      value={value}
+      onChange={onChange}
+      ariaLabel={ariaLabel}
+      options={options.map((o) => ({ value: o.id, label: o.label }))}
+    />
   );
 }
 
@@ -93,17 +95,4 @@ const styles = {
   join: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)" },
   is: { fontSize: 12, color: "var(--color-text-tertiary)" },
   arrow: { fontSize: 14, fontWeight: 700, color: "var(--color-icon-tertiary-fg)" },
-  select: {
-    height: 34,
-    padding: "0 10px",
-    borderRadius: 8,
-    border: "1px solid var(--color-border-card-soft)",
-    background: "#FFFFFF",
-    fontFamily: "inherit",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-medium)",
-    cursor: "pointer",
-    appearance: "auto",
-  },
 };

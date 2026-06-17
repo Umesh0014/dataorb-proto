@@ -25,11 +25,21 @@ export const WEEKLY_QUOTA = {
 // `note` flags the tenant default bucket (ECI). agentCount is the tenant-
 // wide membership (the agent table below is a sample slice, not the total).
 export const QUOTA_BUCKETS = [
-  { id: "maintenance", name: "Maintenance", capMin: 10, agentCount: 38 },
-  { id: "standard", name: "Standard", capMin: 15, agentCount: 512 },
-  { id: "onboarding", name: "Onboarding", capMin: 30, agentCount: 206, note: "ECI default" },
-  { id: "rampup", name: "Ramp-up", capMin: 45, agentCount: 74 },
-  { id: "intensive", name: "Intensive", capMin: 60, agentCount: 41 },
+  { id: "maintenance", name: "Warm-up", capMin: 10, agentCount: 38 },
+  { id: "standard", name: "Stride", capMin: 15, agentCount: 512 },
+  { id: "onboarding", name: "Kickstart", capMin: 30, agentCount: 206, note: "ECI default" },
+  { id: "rampup", name: "Momentum", capMin: 45, agentCount: 74 },
+  { id: "intensive", name: "Sprint", capMin: 60, agentCount: 41 },
+];
+
+// Four-tier variant (approach C4) — a simpler ladder that folds Stride into
+// Kickstart. Separate dataset with its own roster; the page swaps to it only
+// in C4 (and remounts so state never mixes with the five-tier world).
+export const QUOTA_BUCKETS_4 = [
+  { id: "warmup4", name: "Warm-up", capMin: 10, agentCount: 130 },
+  { id: "kickstart4", name: "Kickstart", capMin: 25, agentCount: 430, note: "ECI default" },
+  { id: "momentum4", name: "Momentum", capMin: 45, agentCount: 240 },
+  { id: "sprint4", name: "Sprint", capMin: 60, agentCount: 100 },
 ];
 
 // Tenure tag presentation. Tags are surfaced now; filtering by tag is a
@@ -60,8 +70,8 @@ const LAST_NAMES = [
 const TENURE_TAGS = ["new", "onboarding", "tenured"];
 const LAST_ACTIVE = ["just now", "2h ago", "5h ago", "1d ago", "2d ago", "3d ago", "1w ago"];
 
-function buildRoster() {
-  const plan = QUOTA_BUCKETS.map((b) => [b.id, b.agentCount, b.capMin]);
+function buildRoster(bucketList) {
+  const plan = bucketList.map((b) => [b.id, b.agentCount, b.capMin]);
   plan.push([null, 12, 0]); // unassigned / active pool
   const out = [];
   let id = 1;
@@ -89,22 +99,42 @@ function buildRoster() {
   return out;
 }
 
-export const AGENT_BUCKET_SAMPLE = buildRoster();
+export const AGENT_BUCKET_SAMPLE = buildRoster(QUOTA_BUCKETS);
+export const AGENT_BUCKET_SAMPLE_4 = buildRoster(QUOTA_BUCKETS_4);
 
-// The single "what happens when an agent reaches their weekly cap" control.
-// `allow_additional` is last and reveals the additional-minutes input.
+// "What happens when an agent reaches their weekly cap." The legacy set
+// (A/B/C1/C2/C3) is the original minute-based model; `allow_additional`
+// reveals the additional-minutes input.
 export const LIMIT_RULES = [
   { id: "hard_stop", label: "Hard stop", description: "No more practice until the weekly cap resets." },
   { id: "manual", label: "Manual override per agent", description: "You decide, per agent, who can practise past the cap." },
   { id: "allow_additional", label: "Allow additional", description: "Practice continues past the cap, up to an additional cap you set." },
 ];
 
-// Decision-to-confirm defaults + the global rule state.
+// Bucket-model set (C4 only): three postures — stop, gate behind approval,
+// or auto-promote up the tier ladder. `auto_bump` is last so its revealed
+// scope selector sits directly beneath the option.
+export const LIMIT_RULES_BUCKET = [
+  { id: "hard_stop", label: "Hard stop", description: "Practice pauses until the weekly cap resets." },
+  { id: "require_approval", label: "Require approval", description: "The agent is paused and can request more; you approve case by case." },
+  { id: "auto_bump", label: "Auto-bump to the next bucket", description: "Move the agent up one tier for more cap. Caps out at the top tier." },
+];
+
+// Scope of an auto-bump: just this cycle, or a permanent tier move.
+export const BUMP_SCOPES = [
+  { id: "week", label: "This week only" },
+  { id: "permanent", label: "Move permanently" },
+];
+
+// Decision-to-confirm defaults + the global rule state. `bumpScope` only
+// applies to the C4 bucket set; the page seeds limitBehavior per approach.
 export const RULE_DEFAULTS = {
-  limitBehavior: "hard_stop", // "hard_stop" | "manual" | "allow_additional"
+  limitBehavior: "hard_stop", // legacy: hard_stop | manual | allow_additional
   additionalCapMin: 1000,
-  conflictRule: "higher_cap", // "higher_cap" | "manual_wins" | "last_assigned"
-  bucketValuesLocked: true,
+  bumpScope: "week", // "week" | "permanent" (C4 auto_bump only)
+  conflictRule: "higher_cap", // legacy only: higher_cap | manual_wins | last_assigned
+  bucketValuesLocked: true, // legacy only (toggle)
+  tierEditing: "locked", // C4 only: "locked" | "edit_caps" | "add_tiers"
   unassignedDefault: "none", // "none" | "lowest" | "blocked"
 };
 

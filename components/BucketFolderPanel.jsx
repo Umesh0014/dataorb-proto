@@ -5,8 +5,9 @@ import { Search, Plus } from "lucide-react";
 import { Section } from "./CreditsUsageParts";
 import Button from "./Button";
 import Toggle from "./Toggle";
-import BucketFacepile from "./BucketFacepile";
 import AgentBucketTable from "./AgentBucketTable";
+import BulkMoveBar from "./BulkMoveBar";
+import { TAG_META } from "./mocks/creditsUsage";
 
 // BucketFolderPanel — approach C1 (bucket-as-folder, inline). The quota-
 // buckets card and this assignment card stay separate; pick a bucket above
@@ -14,9 +15,19 @@ import AgentBucketTable from "./AgentBucketTable";
 // fully in-page (no dialog): search + an active/all toggle + a checklist
 // sit beneath the list. "Active" agents are the unassigned pool; toggling
 // widens the pool to agents already folded into another bucket.
-export default function BucketFolderPanel({ bucket, agents, buckets, onAssign, onAdjust }) {
+export default function BucketFolderPanel({
+  bucket,
+  agents,
+  buckets,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+  onBulkMove,
+  onAssign,
+  onAdjust,
+}) {
   const [query, setQuery] = React.useState("");
-  const [showAll, setShowAll] = React.useState(false);
+  const [unassignedOnly, setUnassignedOnly] = React.useState(true);
   const [picked, setPicked] = React.useState([]);
 
   // Reset the picker when the open bucket changes.
@@ -24,7 +35,7 @@ export default function BucketFolderPanel({ bucket, agents, buckets, onAssign, o
   if ((bucket?.id ?? null) !== prevId) {
     setPrevId(bucket?.id ?? null);
     setQuery("");
-    setShowAll(false);
+    setUnassignedOnly(true);
     setPicked([]);
   }
 
@@ -37,10 +48,9 @@ export default function BucketFolderPanel({ bucket, agents, buckets, onAssign, o
   }
 
   const members = agents.filter((a) => a.bucketId === bucket.id);
-  const bucketName = (id) => buckets.find((b) => b.id === id)?.name;
   const candidates = agents
     .filter((a) => a.bucketId !== bucket.id)
-    .filter((a) => (showAll ? true : !a.bucketId))
+    .filter((a) => (unassignedOnly ? !a.bucketId : true))
     .filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   const toggle = (id) =>
@@ -53,17 +63,24 @@ export default function BucketFolderPanel({ bucket, agents, buckets, onAssign, o
   return (
     <Section title="Assignment" description="Open a bucket and fold agents into it. Members are listed below.">
       <div style={styles.body}>
-        <div style={styles.head}>
-          <span style={styles.title}>{bucket.name} · {bucket.capMin} min / week</span>
-          <BucketFacepile members={members} />
-        </div>
-
+        {selectedIds.length > 0 && (
+          <BulkMoveBar
+            count={selectedIds.length}
+            buckets={buckets}
+            excludeBucketId={bucket.id}
+            onApply={onBulkMove}
+          />
+        )}
         <AgentBucketTable
           agents={members}
           buckets={buckets}
           onAdjust={onAdjust}
           paginate
           bare
+          selectable
+          selectedIds={selectedIds}
+          onToggleSelect={onToggleSelect}
+          onToggleSelectAll={onToggleSelectAll}
           emptyLabel={`No agents in ${bucket.name} yet — add some below.`}
         />
 
@@ -71,8 +88,8 @@ export default function BucketFolderPanel({ bucket, agents, buckets, onAssign, o
           <div style={styles.addHead}>
             <span style={styles.addTitle}>Add agents to {bucket.name}</span>
             <div style={styles.toggleWrap}>
-              <Toggle enabled={showAll} onChange={setShowAll} ariaLabel="Show all agents" />
-              <span style={styles.toggleLabel}>{showAll ? "All agents" : "Active agents"}</span>
+              <Toggle enabled={unassignedOnly} onChange={setUnassignedOnly} ariaLabel="Unassigned agents only" />
+              <span style={styles.toggleLabel}>Unassigned only</span>
             </div>
           </div>
 
@@ -91,21 +108,26 @@ export default function BucketFolderPanel({ bucket, agents, buckets, onAssign, o
           <div style={styles.list}>
             {candidates.length === 0 && (
               <span style={styles.hint}>
-                {showAll ? "No agents match your search." : "No active agents to add — toggle to all agents."}
+                {unassignedOnly
+                  ? "No unassigned agents to add — turn off Unassigned only to move agents from other buckets."
+                  : "No agents match your search."}
               </span>
             )}
-            {candidates.slice(0, 8).map((a) => (
-              <label key={a.id} style={styles.row}>
-                <input
-                  type="checkbox"
-                  checked={picked.includes(a.id)}
-                  onChange={() => toggle(a.id)}
-                  style={styles.checkbox}
-                />
-                <span style={styles.name}>{a.name}</span>
-                <span style={styles.meta}>{a.bucketId ? bucketName(a.bucketId) : "Unassigned"}</span>
-              </label>
-            ))}
+            {candidates.slice(0, 8).map((a) => {
+              const tag = TAG_META[a.tag] || TAG_META.new;
+              return (
+                <label key={a.id} style={styles.row}>
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(a.id)}
+                    onChange={() => toggle(a.id)}
+                    style={styles.checkbox}
+                  />
+                  <span style={styles.name}>{a.name}</span>
+                  <span style={{ ...styles.tag, background: tag.bg, color: tag.fg }}>{tag.label}</span>
+                </label>
+              );
+            })}
             {candidates.length > 8 && (
               <span style={styles.more}>+{candidates.length - 8} more — refine with search</span>
             )}
@@ -166,6 +188,6 @@ const styles = {
   row: { display: "flex", alignItems: "center", gap: 10, padding: "8px 4px", cursor: "pointer" },
   checkbox: { width: 16, height: 16, accentColor: "var(--do-brand-blue)", cursor: "pointer", flexShrink: 0 },
   name: { flex: 1, fontSize: 13, fontWeight: 500, color: "var(--color-text-deep)" },
-  meta: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  tag: { padding: "1px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.2px", whiteSpace: "nowrap" },
   more: { padding: "6px 4px", fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
 };

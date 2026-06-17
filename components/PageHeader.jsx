@@ -168,18 +168,21 @@ function Identifier({ icon, label, withDropdown = false, onClick, iconBg, iconCo
   return <div style={phStyles.identifierBox}>{inner}</div>;
 }
 
-function PrimaryAction({ label, icon, onClick, variant = "primary", disabled = false }) {
+function PrimaryAction({ label, icon, onClick, variant = "primary", disabled = false, size }) {
   // Map API variant onto existing Button primitive variants. The Button
   // primitive does not ship a "secondary" variant — fall back to "text"
   // for that case (closest neutral-foreground button in the system).
+  // Without `size`, keep the compact 32px header button so existing pages
+  // are unchanged; pass a size to opt into the Button primitive's scale.
   const buttonVariant = variant === "secondary" ? "text" : "primary";
   return (
     <Button
       variant={buttonVariant}
+      size={size}
       leadingIcon={icon}
       onClick={onClick}
       disabled={disabled}
-      style={{ height: 32, minWidth: 0, paddingInline: 16 }}
+      style={size ? undefined : { height: 32, minWidth: 0, paddingInline: 16 }}
     >
       {label}
     </Button>

@@ -36,6 +36,10 @@ const CLOSE_SIZE = 52;
 
 export default function VersionBar({
   versions = DEFAULT_VERSIONS,
+  // discarded: retired versions parked behind a "Discarded" dropdown — still
+  // selectable for comparison, just out of the main chip row. Each is
+  // { id, label }; selecting one fires onChange like any other version.
+  discarded = [],
   baselineOptions = BASELINE_OPTIONS,
   staticBaseline = false,
   defaultActiveId = "current",
@@ -88,6 +92,7 @@ export default function VersionBar({
   })();
   const baselineId = controlledBaselineId ?? internalBaselineId;
   const [baselineMenuOpen, setBaselineMenuOpen] = React.useState(false);
+  const [discardedMenuOpen, setDiscardedMenuOpen] = React.useState(false);
   const [barWidth, setBarWidth] = React.useState(COLLAPSED_SIZE);
 
   const dockRef = React.useRef(null);
@@ -96,6 +101,8 @@ export default function VersionBar({
   const helpBtnRef = React.useRef(null);
   const helpRef = React.useRef(null);
   const baselineMenuRef = React.useRef(null);
+  const discardedBtnRef = React.useRef(null);
+  const discardedMenuRef = React.useRef(null);
 
   const fire = (versionId, iterationId) => {
     onChange?.({ versionId, iterationId });
@@ -138,9 +145,11 @@ export default function VersionBar({
       if (dockRef.current?.contains(t)) return;
       if (helpRef.current?.contains(t)) return;
       if (baselineMenuRef.current?.contains(t)) return;
+      if (discardedMenuRef.current?.contains(t)) return;
       setExpandedId(null);
       setHelpOpen(false);
       setBaselineMenuOpen(false);
+      setDiscardedMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -153,10 +162,11 @@ export default function VersionBar({
       if (helpOpen) setHelpOpen(false);
       if (expandedId) setExpandedId(null);
       if (baselineMenuOpen) setBaselineMenuOpen(false);
+      if (discardedMenuOpen) setDiscardedMenuOpen(false);
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [helpOpen, expandedId, baselineMenuOpen]);
+  }, [helpOpen, expandedId, baselineMenuOpen, discardedMenuOpen]);
 
   // ←/→ step iterations when a version is expanded.
   React.useEffect(() => {
@@ -183,6 +193,7 @@ export default function VersionBar({
   // Popover anchor rects — refresh on open + scroll + resize so they
   // stay glued to their trigger as the bar morphs.
   const baselineRect = useAnchorRect(baselineBtnRef, baselineMenuOpen, barWidth, open);
+  const discardedRect = useAnchorRect(discardedBtnRef, discardedMenuOpen, barWidth, open);
   const helpRect = useAnchorRect(helpBtnRef, helpOpen, barWidth, open);
 
   const expand = () => setOpen(true);
@@ -191,6 +202,7 @@ export default function VersionBar({
     setExpandedId(null);
     setHelpOpen(false);
     setBaselineMenuOpen(false);
+    setDiscardedMenuOpen(false);
   };
   // The Figma button is disabled until the consumer wires it — either
   // a custom onOpenFigma handler or a figmaHref URL. No fallback to
@@ -231,6 +243,14 @@ export default function VersionBar({
     setActiveId(id);
     fire(id, null);
   };
+
+  const selectDiscarded = (id) => {
+    setDiscardedMenuOpen(false);
+    setExpandedId(null);
+    setActiveId(id);
+    fire(id, null);
+  };
+  const activeDiscarded = discarded.find((d) => d.id === activeId);
 
   const baselineSelected =
     baselineOptions.find((o) => o.id === baselineId) || baselineOptions[0];
@@ -300,6 +320,32 @@ export default function VersionBar({
                   />
                 ),
               )}
+              {discarded.length > 0 && (
+                <button
+                  ref={discardedBtnRef}
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={discardedMenuOpen}
+                  className="vb-focusable"
+                  onClick={() => setDiscardedMenuOpen((v) => !v)}
+                  style={{
+                    ...vbStyles.chip,
+                    background: activeDiscarded ? "var(--vb-accent)" : "var(--vb-pill)",
+                    color: activeDiscarded ? "var(--vb-accent-ink)" : "var(--vb-txt)",
+                    fontWeight: activeDiscarded ? 700 : 500,
+                  }}
+                >
+                  <span>{activeDiscarded ? `Discarded · ${activeDiscarded.label}` : "Discarded"}</span>
+                  <span
+                    style={{
+                      ...vbStyles.baselineChev,
+                      transform: discardedMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                  >
+                    <ChevronDownGlyph />
+                  </span>
+                </button>
+              )}
               <span className="vb-divider" aria-hidden="true" />
               <CircleBtn
                 btnRef={helpBtnRef}
@@ -323,7 +369,7 @@ export default function VersionBar({
             </div>
           </div>
           <span className="vb-badge" aria-hidden="true">
-            {(tabsMode || staticBaseline ? 0 : baselineOptions.length) + chips.length}
+            {(tabsMode || staticBaseline ? 0 : baselineOptions.length) + chips.length + discarded.length}
           </span>
         </div>
         <button
@@ -353,6 +399,42 @@ export default function VersionBar({
           }}
         >
           {help}
+        </div>
+      )}
+
+      {discardedMenuOpen && discardedRect && (
+        <div
+          ref={discardedMenuRef}
+          role="menu"
+          aria-label="Discarded iterations"
+          style={{
+            ...vbStyles.baselineMenu,
+            top: discardedRect.top - 8,
+            left: discardedRect.left,
+            transform: "translateY(-100%)",
+          }}
+        >
+          {discarded.map((o) => {
+            const on = o.id === activeId;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={on}
+                className="vb-focusable"
+                onClick={() => selectDiscarded(o.id)}
+                style={{
+                  ...vbStyles.baselineMenuItem,
+                  color: on ? "var(--vb-accent)" : "var(--vb-txt)",
+                  fontWeight: on ? 700 : 500,
+                }}
+              >
+                {o.label}
+                {on && <span aria-hidden="true">✓</span>}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -477,6 +559,7 @@ function VChip({ version, active, onClick }) {
       type="button"
       className="vb-focusable"
       onClick={onClick}
+      title={version.preferred ? "Preferred direction" : undefined}
       style={{
         ...vbStyles.chip,
         background: active ? "var(--vb-accent)" : "var(--vb-pill)",
@@ -484,6 +567,11 @@ function VChip({ version, active, onClick }) {
         fontWeight: active ? 700 : 500,
       }}
     >
+      {version.preferred && (
+        <span aria-label="Preferred" style={{ color: active ? "var(--vb-accent-ink)" : "var(--vb-accent)", fontSize: 12 }}>
+          ★
+        </span>
+      )}
       <span>{version.label}</span>
       {hasIter && <HChevron />}
     </button>

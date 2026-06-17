@@ -4,17 +4,17 @@ import React from "react";
 import { Search } from "lucide-react";
 import Modal from "./Modal";
 import Toggle from "./Toggle";
-import { QUOTA_BUCKETS } from "./mocks/creditsUsage";
+import { TAG_META } from "./mocks/creditsUsage";
 
 // AddAgentsDialog — approach C "Add agents" flow. Opens from the bucket
-// folder and assigns agents into the open bucket. By default it lists only
-// active (unassigned) agents; the toggle beside the search widens it to all
-// agents, including those already folded into another bucket (assigning one
-// moves them). Search filters the list by name. Local picker state resets
-// each time the dialog opens. Reuses the shared Modal primitive.
+// folder and assigns agents into the open bucket. The "Unassigned only"
+// toggle (on by default) limits the list to agents not yet in any bucket;
+// turning it off also surfaces agents already folded into another bucket
+// (assigning one moves them). Each row shows the agent's tenure tag. Search
+// filters by name. Local picker state resets each time the dialog opens.
 export default function AddAgentsDialog({ open, bucket, agents, onClose, onAdd }) {
   const [query, setQuery] = React.useState("");
-  const [showAll, setShowAll] = React.useState(false);
+  const [unassignedOnly, setUnassignedOnly] = React.useState(true);
   const [picked, setPicked] = React.useState([]);
 
   // Reset the picker whenever the dialog transitions closed → open.
@@ -23,17 +23,16 @@ export default function AddAgentsDialog({ open, bucket, agents, onClose, onAdd }
     setPrevOpen(open);
     if (open) {
       setQuery("");
-      setShowAll(false);
+      setUnassignedOnly(true);
       setPicked([]);
     }
   }
 
   if (!open || !bucket) return null;
 
-  const bucketName = (id) => QUOTA_BUCKETS.find((b) => b.id === id)?.name;
   const candidates = agents
     .filter((a) => a.bucketId !== bucket.id)
-    .filter((a) => (showAll ? true : !a.bucketId))
+    .filter((a) => (unassignedOnly ? !a.bucketId : true))
     .filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   const toggle = (id) =>
@@ -59,29 +58,34 @@ export default function AddAgentsDialog({ open, bucket, agents, onClose, onAdd }
           />
         </label>
         <div style={styles.toggleWrap}>
-          <Toggle enabled={showAll} onChange={setShowAll} ariaLabel="Show all agents" />
-          <span style={styles.toggleLabel}>{showAll ? "All agents" : "Active agents"}</span>
+          <Toggle enabled={unassignedOnly} onChange={setUnassignedOnly} ariaLabel="Unassigned agents only" />
+          <span style={styles.toggleLabel}>Unassigned only</span>
         </div>
       </div>
 
       <div style={styles.list}>
         {candidates.length === 0 && (
           <span style={styles.hint}>
-            {showAll ? "No agents match your search." : "No active agents to add — toggle to all agents."}
+            {unassignedOnly
+              ? "No unassigned agents to add — turn off Unassigned only to move agents from other buckets."
+              : "No agents match your search."}
           </span>
         )}
-        {candidates.map((a) => (
-          <label key={a.id} style={styles.row}>
-            <input
-              type="checkbox"
-              checked={picked.includes(a.id)}
-              onChange={() => toggle(a.id)}
-              style={styles.checkbox}
-            />
-            <span style={styles.name}>{a.name}</span>
-            <span style={styles.meta}>{a.bucketId ? bucketName(a.bucketId) : "Unassigned"}</span>
-          </label>
-        ))}
+        {candidates.map((a) => {
+          const tag = TAG_META[a.tag] || TAG_META.new;
+          return (
+            <label key={a.id} style={styles.row}>
+              <input
+                type="checkbox"
+                checked={picked.includes(a.id)}
+                onChange={() => toggle(a.id)}
+                style={styles.checkbox}
+              />
+              <span style={styles.name}>{a.name}</span>
+              <span style={{ ...styles.tag, background: tag.bg, color: tag.fg }}>{tag.label}</span>
+            </label>
+          );
+        })}
       </div>
     </div>
   );
@@ -129,5 +133,5 @@ const styles = {
   row: { display: "flex", alignItems: "center", gap: 10, padding: "8px 4px", cursor: "pointer" },
   checkbox: { width: 16, height: 16, accentColor: "var(--do-brand-blue)", cursor: "pointer", flexShrink: 0 },
   name: { flex: 1, fontSize: 13, fontWeight: 500, color: "var(--color-text-deep)" },
-  meta: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  tag: { padding: "1px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.2px", whiteSpace: "nowrap" },
 };

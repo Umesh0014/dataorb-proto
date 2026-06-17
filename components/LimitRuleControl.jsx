@@ -2,17 +2,27 @@
 
 import React from "react";
 import { Field, FieldNote, RingInput } from "./CreditsUsageParts";
-import { LIMIT_RULES } from "./mocks/creditsUsage";
+import Select from "./Select";
+import { LIMIT_RULES, LIMIT_RULES_BUCKET, BUMP_SCOPES } from "./mocks/creditsUsage";
 
 // LimitRuleControl — the single "what happens when an agent reaches their
-// weekly cap" decision. One rule for the whole tenant; "Allow additional"
-// is last and reveals the additional-minutes input. No "overage" wording —
-// it is framed as additional minutes that are themselves capped.
-export default function LimitRuleControl({ value, onChange, additionalCapMin, onAdditionalCapMin }) {
+// weekly cap" decision. Two variants: "legacy" (A/B/C1/C2/C3, the original
+// minute model where "Allow additional" reveals a minutes input) and
+// "bucket" (C4, where "Auto-bump" reveals a tier-move scope selector).
+export default function LimitRuleControl({
+  variant = "legacy",
+  value,
+  onChange,
+  additionalCapMin,
+  onAdditionalCapMin,
+  bumpScope,
+  onBumpScope,
+}) {
+  const options = variant === "bucket" ? LIMIT_RULES_BUCKET : LIMIT_RULES;
   return (
     <Field label="When an agent reaches their weekly cap">
       <div style={styles.group} role="radiogroup" aria-label="When an agent reaches their weekly cap">
-        {LIMIT_RULES.map((rule) => {
+        {options.map((rule) => {
           const selected = value === rule.id;
           return (
             <button
@@ -35,7 +45,7 @@ export default function LimitRuleControl({ value, onChange, additionalCapMin, on
             </button>
           );
         })}
-        {value === "allow_additional" && (
+        {variant !== "bucket" && value === "allow_additional" && (
           <div style={styles.additionalRow}>
             <Field label="Additional minutes allowed per agent">
               <RingInput
@@ -47,6 +57,23 @@ export default function LimitRuleControl({ value, onChange, additionalCapMin, on
               />
             </Field>
             <FieldNote>Billed at your additional-usage rate. Practice is not interrupted.</FieldNote>
+          </div>
+        )}
+        {variant === "bucket" && value === "auto_bump" && (
+          <div style={styles.additionalRow}>
+            <Field label="Apply the bump">
+              <Select
+                value={bumpScope}
+                onChange={onBumpScope}
+                ariaLabel="Apply the bump"
+                options={BUMP_SCOPES.map((s) => ({ value: s.id, label: s.label }))}
+              />
+            </Field>
+            <FieldNote>
+              {bumpScope === "permanent"
+                ? "The agent stays in the higher bucket going forward."
+                : "The agent returns to their original bucket at the weekly reset."}
+            </FieldNote>
           </div>
         )}
       </div>

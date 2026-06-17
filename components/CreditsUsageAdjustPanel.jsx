@@ -3,6 +3,7 @@
 import React from "react";
 import { X } from "lucide-react";
 import Button from "./Button";
+import Select from "./Select";
 import { Field, FieldNote, RingInput } from "./CreditsUsageParts";
 
 // CreditsUsageAdjustPanel — per-agent limit editor, mounted as PageLayout's
@@ -37,22 +38,16 @@ export default function CreditsUsageAdjustPanel({ agent, buckets, onClose, onSav
 
       <div style={styles.body}>
         <Field label="Move to bucket">
-          <select
+          <Select
             value={bucketId}
-            onChange={(e) => {
-              const next = e.target.value;
+            onChange={(next) => {
               setBucketId(next);
               setManualCap(buckets.find((b) => b.id === next)?.capMin ?? 0);
             }}
-            aria-label="Move to bucket"
-            style={styles.select}
-          >
-            {buckets.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.capMin} min)
-              </option>
-            ))}
-          </select>
+            ariaLabel="Move to bucket"
+            fullWidth
+            options={buckets.map((b) => ({ value: b.id, label: `${b.name} (${b.capMin} min)` }))}
+          />
         </Field>
 
         <Field label="Manual cap (min)">
@@ -90,19 +85,5 @@ const styles = {
   },
   title: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
   body: { display: "flex", flexDirection: "column", gap: 20, padding: 20, flex: 1, minHeight: 0 },
-  select: {
-    height: 38,
-    width: "100%",
-    padding: "0 12px",
-    borderRadius: 8,
-    border: "1px solid var(--color-border-card-soft)",
-    background: "#FFFFFF",
-    fontFamily: "inherit",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--color-text-medium)",
-    cursor: "pointer",
-    appearance: "auto",
-  },
   footer: { padding: "16px 20px", borderTop: "1px solid var(--color-divider-card)" },
 };

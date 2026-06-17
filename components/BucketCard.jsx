@@ -3,8 +3,9 @@
 import React from "react";
 import Card from "./Card";
 
-// BucketCard — one fixed quota bucket: name, weekly cap, member count, and
-// an optional footer note (e.g. the tenant default). Buckets never change
+// BucketCard — one fixed quota bucket: name, member count as the primary
+// figure, weekly cap as the secondary line, and an optional footer note
+// (e.g. the tenant default). Buckets never change
 // value, so there is no inline editing here — agents move between buckets.
 // When `interactive` (assignment approach C, bucket-as-folder), the whole
 // card is a button that opens the bucket; `selected` lifts the border.
@@ -16,10 +17,10 @@ export default function BucketCard({ bucket, interactive = false, selected = fal
         {bucket.note && <span style={styles.note}>{bucket.note}</span>}
       </div>
       <div style={styles.cap}>
-        {bucket.capMin}
-        <span style={styles.capUnit}>min / week</span>
+        {bucket.agentCount.toLocaleString()}
+        <span style={styles.capUnit}>agents</span>
       </div>
-      <span style={styles.count}>{bucket.agentCount.toLocaleString()} agents</span>
+      <span style={styles.count}>{bucket.capMin} min / week</span>
     </>
   );
 

@@ -17,31 +17,48 @@ import VersionBar from "./VersionBar";
 //   C3 — Bucket as folder, merged with the bucket cards stacked
 //        horizontally on top of the list (dialog kept)
 //
-// A is the default. These are intentional variants held for comparison on
-// the deployed URL — not a merged design. Variant state is in-memory and
-// resets to A when the session ends.
+// C1 is the default current direction. A and B are kept but parked in the
+// Discarded dropdown — still selectable for comparison, just out of the main
+// row. Variant state is in-memory and resets when the session ends.
 const CU_VERSIONS = [
-  { id: "a", label: "A", iterations: [] },
-  { id: "b", label: "B", iterations: [] },
-  { id: "c1", label: "C1", iterations: [] },
   { id: "c2", label: "C2", iterations: [] },
-  { id: "c3", label: "C3", iterations: [] },
+  { id: "c3", label: "C3", iterations: [], preferred: true },
+  { id: "c4", label: "C4", iterations: [] },
+  // Bulk action exp — a comparison of where the bulk "move selected agents"
+  // action sits. i1 floating bar · i2 inline in the toolbar · i3 footer.
+  { id: "c5", label: "Bulk action exp", iterations: ["i1", "i2", "i3"] },
+];
+const CU_DISCARDED = [
+  { id: "a", label: "A" },
+  { id: "b", label: "B" },
+  { id: "c1", label: "C1" },
 ];
 const CU_BASELINE = [{ id: "cu", label: "Credit & Usage" }];
+const C5_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
 
 export default function CreditsUsageShell({ onBack }) {
-  const [variant, setVariant] = React.useState("A");
+  const [sel, setSel] = React.useState({ versionId: "c2", iterationId: null });
+  const variant = sel.versionId.toUpperCase();
+  const c5Placement = sel.versionId === "c5" ? C5_PLACEMENTS[sel.iterationId || "i1"] : null;
 
   return (
     <>
-      <CreditsUsagePage onBack={onBack} assignmentMode={variant} />
+      {/* Re-key across the C4 boundary so the page remounts with the four-
+          tier dataset; the five-tier variants share one mounted instance. */}
+      <CreditsUsagePage
+        key={variant === "C4" ? "c4" : "main"}
+        onBack={onBack}
+        assignmentMode={variant}
+        c5Placement={c5Placement}
+      />
 
       <VersionBar
         versions={CU_VERSIONS}
+        discarded={CU_DISCARDED}
         baselineOptions={CU_BASELINE}
         staticBaseline
-        value={{ versionId: variant.toLowerCase(), iterationId: null }}
-        onChange={({ versionId }) => setVariant(versionId.toUpperCase())}
+        value={sel}
+        onChange={setSel}
       />
     </>
   );

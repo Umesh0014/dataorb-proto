@@ -91,14 +91,18 @@ function buildStyle({ variant, size, fullWidth, bordered, disabled, upper }) {
   };
 
   if (variant === "primary") {
+    // size scales the pill: sm 32 / md 40 (default) / lg 46.
+    const height = size === "sm" ? 32 : size === "lg" ? 46 : 40;
+    const paddingInline = size === "sm" ? 16 : size === "lg" ? 28 : 24;
+    const fontSize = size === "lg" ? 14 : size === "sm" ? 12 : 13;
     return {
       ...common,
       width: fullWidth ? "100%" : undefined,
-      height: 40,
-      minWidth: 120,
-      paddingInline: 24,
+      height,
+      minWidth: size === "sm" ? 0 : 120,
+      paddingInline,
       borderRadius: 999,
-      fontSize: 13,
+      fontSize,
       fontWeight: 700,
       background: disabled
         ? "var(--color-divider-card)"

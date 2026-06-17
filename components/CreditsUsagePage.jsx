@@ -4,13 +4,14 @@ import React from "react";
 import { Gauge } from "lucide-react";
 import PageHeader from "./PageHeader";
 import PageLayout from "./PageLayout";
-import StatCard from "./StatCard";
-import { Section, CapacityBar, CapAlertBanner } from "./CreditsUsageParts";
+import { Section } from "./CreditsUsageParts";
+import CreditUtilisationCard from "./CreditUtilisationCard";
 import BucketCard from "./BucketCard";
 import EstimatedImpactBanner from "./EstimatedImpactBanner";
 import BucketAssignmentRegion from "./BucketAssignmentRegion";
 import BucketFolderPanel from "./BucketFolderPanel";
 import BucketFolderMerged from "./BucketFolderMerged";
+import BulkMoveBar from "./BulkMoveBar";
 import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import LimitRuleControl from "./LimitRuleControl";
 import BucketDecisionControls from "./BucketDecisionControls";
@@ -18,7 +19,9 @@ import CreditsUsageAdjustPanel from "./CreditsUsageAdjustPanel";
 import {
   WEEKLY_QUOTA,
   QUOTA_BUCKETS,
+  QUOTA_BUCKETS_4,
   AGENT_BUCKET_SAMPLE,
+  AGENT_BUCKET_SAMPLE_4,
   RULE_DEFAULTS,
   estimateMonthlyDelta,
 } from "./mocks/creditsUsage";
@@ -29,12 +32,21 @@ import {
 // panel; the VersionBar (in CreditsUsageShell) swaps only the Assignment
 // region between approaches A/B/C — table, buckets, utilisation and rules
 // stay mounted. All data is mock.
-export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
-  const [agents, setAgents] = React.useState(AGENT_BUCKET_SAMPLE);
-  const [buckets, setBuckets] = React.useState(QUOTA_BUCKETS);
-  const [rules, setRules] = React.useState(RULE_DEFAULTS);
+export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Placement = null }) {
+  // C4 explores a four-tier ladder; the page is remounted across that
+  // boundary (see CreditsUsageShell) so the seed data is chosen once here.
+  const isC4 = assignmentMode === "C4";
+  const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : QUOTA_BUCKETS;
+  const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : AGENT_BUCKET_SAMPLE;
+  // C4 uses the bucket-model cap rule (auto-bump default); the others keep
+  // the legacy minute-based rule (hard-stop default).
+  const seedRules = isC4 ? { ...RULE_DEFAULTS, limitBehavior: "auto_bump" } : RULE_DEFAULTS;
+
+  const [agents, setAgents] = React.useState(seedAgents);
+  const [buckets, setBuckets] = React.useState(seedBuckets);
+  const [rules, setRules] = React.useState(seedRules);
   const [selectedIds, setSelectedIds] = React.useState([]);
-  const [selectedBucketId, setSelectedBucketId] = React.useState(QUOTA_BUCKETS[0].id);
+  const [selectedBucketId, setSelectedBucketId] = React.useState(seedBuckets[0].id);
   const [adjustAgent, setAdjustAgent] = React.useState(null);
   const [pendingChange, setPendingChange] = React.useState(null);
 
@@ -45,6 +57,14 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
   const [prevMode, setPrevMode] = React.useState(assignmentMode);
   if (assignmentMode !== prevMode) {
     setPrevMode(assignmentMode);
+    setSelectedIds([]);
+  }
+
+  // Switching the open bucket (folder views) clears any in-flight selection
+  // so checked agents never leak across buckets.
+  const [prevBucket, setPrevBucket] = React.useState(selectedBucketId);
+  if (selectedBucketId !== prevBucket) {
+    setPrevBucket(selectedBucketId);
     setSelectedIds([]);
   }
 
@@ -100,13 +120,18 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
 
   const toggleSelect = (id) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-  const toggleSelectAll = () =>
-    setSelectedIds((prev) => (prev.length === agents.length ? [] : agents.map((a) => a.id)));
+  // Select-all toggles every id in the table that called it (the full
+  // roster for A/B, the open bucket's members for the folder views).
+  const toggleSelectAll = (ids) =>
+    setSelectedIds((prev) => (prev.length === ids.length ? [] : ids));
 
-  // Over-cap consequence only applies when the rule actually pauses practice.
+  // Over-cap consequence only applies when the rule actually pauses practice
+  // — i.e. not when it lets the agent continue automatically (legacy
+  // "allow_additional" or C4 "auto_bump").
+  const capContinues = rules.limitBehavior === "allow_additional" || rules.limitBehavior === "auto_bump";
   const overCapCount = agents.filter((a) => a.usedMin >= appliedCap(a, buckets)).length;
   const overCap =
-    rules.limitBehavior !== "allow_additional" && overCapCount > 0
+    !capContinues && overCapCount > 0
       ? { count: overCapCount, resetDay: WEEKLY_QUOTA.resetDay }
       : null;
 
@@ -133,38 +158,23 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
             iconColor: "var(--color-icon-tertiary-fg)",
           }}
           subtitle="Set weekly practice limits and track how your tenant's quota is used."
-          primaryAction={{ label: "Save changes", onClick: () => console.log("save credits & usage") }}
+          primaryAction={{ label: "Save changes", size: "lg", onClick: () => console.log("save credits & usage") }}
         />
 
         {/* Tenant utilisation — shared header across approaches A/B/C */}
-        <Section
-          title="Credit utilisation"
-          description={`${WEEKLY_QUOTA.consumedMin.toLocaleString()} of ${WEEKLY_QUOTA.totalMin.toLocaleString()} committed min used · ${WEEKLY_QUOTA.periodLabel}`}
-        >
-          <div style={styles.consumedLine}>
-            <span style={styles.consumedPct}>{consumedPct}%</span>
-            <span style={styles.consumedCaption}>of committed capacity consumed</span>
-          </div>
-          <CapacityBar used={WEEKLY_QUOTA.consumedMin} total={WEEKLY_QUOTA.totalMin} height={10} />
-          <div style={styles.statRow}>
-            <StatCard size="md" labelStyle="uppercase" label="Total pool" value={`${WEEKLY_QUOTA.totalMin.toLocaleString()} min`} sublabel={WEEKLY_QUOTA.totalSub} />
-            <StatCard size="md" labelStyle="uppercase" label="Consumed" value={`${WEEKLY_QUOTA.consumedMin.toLocaleString()} min`} sublabel={WEEKLY_QUOTA.consumedSub} />
-            <StatCard size="md" labelStyle="uppercase" label="Remaining" value={`${WEEKLY_QUOTA.remainingMin.toLocaleString()} min`} sublabel={WEEKLY_QUOTA.remainingSub} />
-          </div>
-          {overCap && (
-            <CapAlertBanner
-              count={overCap.count}
-              resetDay={overCap.resetDay}
-              onViewAgents={scrollToAgents}
-            />
-          )}
-        </Section>
+        <CreditUtilisationCard
+          quota={WEEKLY_QUOTA}
+          consumedPct={consumedPct}
+          overCap={overCap}
+          onViewAgents={scrollToAgents}
+        />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />
 
-        {/* Fixed quota buckets — C2 / C3 fold these into their merged card,
-            so the standalone section is shown for every other approach. */}
-        {assignmentMode !== "C2" && assignmentMode !== "C3" && (
+        {/* Fixed quota buckets — the merged approaches (C2 / C3 / C4) fold
+            these into their card, so the standalone section is shown for the
+            other approaches only. */}
+        {assignmentMode !== "C2" && assignmentMode !== "C3" && assignmentMode !== "C4" && assignmentMode !== "C5" && (
           <Section
             title="Quota buckets"
             description="Each agent gets a weekly cap from one bucket. Buckets are fixed — move agents between them; the values don't change."
@@ -190,40 +200,45 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
             bucket={buckets.find((b) => b.id === selectedBucketId) || null}
             agents={agents}
             buckets={buckets}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+            onBulkMove={handleBulkMove}
             onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
             onAdjust={setAdjustAgent}
           />
         )}
-        {(assignmentMode === "C2" || assignmentMode === "C3") && (
+        {(assignmentMode === "C2" || assignmentMode === "C3" || assignmentMode === "C4" || assignmentMode === "C5") && (
           <BucketFolderMerged
-            layout={assignmentMode === "C3" ? "top" : "rail"}
+            layout={assignmentMode === "C2" ? "rail" : assignmentMode === "C4" ? "attached" : "top"}
+            bulkPlacement={assignmentMode === "C5" ? (c5Placement || "floating") : "top"}
             buckets={buckets}
             agents={agents}
             selectedBucketId={selectedBucketId}
             onSelectBucket={setSelectedBucketId}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+            onBulkMove={handleBulkMove}
             onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
-            onAdjust={setAdjustAgent}
           />
         )}
         {(assignmentMode === "A" || assignmentMode === "B") && (
           <>
-            <BucketAssignmentRegion
-              mode={assignmentMode}
-              buckets={buckets}
-              agents={agents}
-              selectedIds={selectedIds}
-              onBulkMove={handleBulkMove}
-            />
+            <BucketAssignmentRegion mode={assignmentMode} buckets={buckets} />
 
             <div ref={agentsRef} style={styles.tableHead}>
               <span style={styles.tableTitle}>Agent usage</span>
               <span style={styles.count}>{agents.length} shown</span>
             </div>
+            {selectedIds.length > 0 && (
+              <BulkMoveBar count={selectedIds.length} buckets={buckets} onApply={handleBulkMove} />
+            )}
             <AgentBucketTable
               agents={agents}
               buckets={buckets}
               paginate
-              selectable={assignmentMode === "B"}
+              selectable
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onToggleSelectAll={toggleSelectAll}
@@ -237,14 +252,17 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
           <div style={styles.rulesGrid}>
             <div style={styles.rulesPanel}>
               <LimitRuleControl
+                variant={isC4 ? "bucket" : "legacy"}
                 value={rules.limitBehavior}
                 onChange={(v) => setRule("limitBehavior", v)}
                 additionalCapMin={rules.additionalCapMin}
                 onAdditionalCapMin={(v) => setRule("additionalCapMin", v)}
+                bumpScope={rules.bumpScope}
+                onBumpScope={(v) => setRule("bumpScope", v)}
               />
             </div>
             <div style={styles.rulesPanel}>
-              <BucketDecisionControls rules={rules} onRuleChange={setRule} />
+              <BucketDecisionControls variant={isC4 ? "bucket" : "legacy"} rules={rules} onRuleChange={setRule} />
             </div>
           </div>
         </Section>
@@ -255,17 +273,6 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
 
 const styles = {
   column: { display: "flex", flexDirection: "column", gap: 16, width: "100%", fontFamily: "var(--font-sans)" },
-  consumedLine: { display: "flex", alignItems: "baseline", gap: 8 },
-  consumedPct: {
-    fontFamily: '"Mulish", sans-serif',
-    fontSize: 28,
-    fontWeight: 700,
-    lineHeight: 1,
-    color: "var(--color-text-deep)",
-    fontVariantNumeric: "tabular-nums",
-  },
-  consumedCaption: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
-  statRow: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 },
   bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
   tableHead: { display: "flex", alignItems: "center", gap: 12, marginTop: 8 },
   tableTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },

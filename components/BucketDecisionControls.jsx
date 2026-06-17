@@ -20,32 +20,56 @@ const UNASSIGNED_OPTIONS = [
   { id: "blocked", label: "Blocked from practice" },
 ];
 
-export default function BucketDecisionControls({ rules, onRuleChange }) {
+const TIER_EDITING_OPTIONS = [
+  { id: "locked", label: "Locked" },
+  { id: "edit_caps", label: "Admins edit caps" },
+  { id: "add_tiers", label: "Admins add tiers" },
+];
+
+// On the C4 bucket model an agent lives in exactly one bucket, so the
+// "matches two buckets" conflict is dropped, and bucket-value control
+// becomes a three-state permission instead of a lock toggle.
+export default function BucketDecisionControls({ variant = "legacy", rules, onRuleChange }) {
+  const bucket = variant === "bucket";
   return (
     <div style={styles.wrap}>
-      <DecisionRow label="If an agent matches two buckets">
-        <Segmented
-          options={CONFLICT_OPTIONS}
-          value={rules.conflictRule}
-          onChange={(v) => onRuleChange("conflictRule", v)}
-          ariaLabel="If an agent matches two buckets"
-        />
-      </DecisionRow>
+      {!bucket && (
+        <>
+          <DecisionRow label="If an agent matches two buckets">
+            <Segmented
+              options={CONFLICT_OPTIONS}
+              value={rules.conflictRule}
+              onChange={(v) => onRuleChange("conflictRule", v)}
+              ariaLabel="If an agent matches two buckets"
+            />
+          </DecisionRow>
+          <div style={styles.partition} />
+        </>
+      )}
 
-      <div style={styles.partition} />
-
-      <DecisionRow label="Bucket values are DataOrb-managed (locked)" inline>
-        <div style={styles.toggleRow}>
-          {!rules.bucketValuesLocked && (
-            <span style={styles.helper}>Admins can edit bucket values.</span>
-          )}
-          <Toggle
-            enabled={rules.bucketValuesLocked}
-            onChange={(v) => onRuleChange("bucketValuesLocked", v)}
-            ariaLabel="Bucket values are DataOrb-managed (locked)"
+      {bucket ? (
+        <DecisionRow label="Who can change bucket caps">
+          <Segmented
+            options={TIER_EDITING_OPTIONS}
+            value={rules.tierEditing}
+            onChange={(v) => onRuleChange("tierEditing", v)}
+            ariaLabel="Who can change bucket caps"
           />
-        </div>
-      </DecisionRow>
+        </DecisionRow>
+      ) : (
+        <DecisionRow label="Bucket values are DataOrb-managed (locked)" inline>
+          <div style={styles.toggleRow}>
+            {!rules.bucketValuesLocked && (
+              <span style={styles.helper}>Admins can edit bucket values.</span>
+            )}
+            <Toggle
+              enabled={rules.bucketValuesLocked}
+              onChange={(v) => onRuleChange("bucketValuesLocked", v)}
+              ariaLabel="Bucket values are DataOrb-managed (locked)"
+            />
+          </div>
+        </DecisionRow>
+      )}
 
       <div style={styles.partition} />
 
