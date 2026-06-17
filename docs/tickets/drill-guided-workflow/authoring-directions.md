@@ -74,11 +74,26 @@ Two passes. Pass 1 found a blocking **G14** (Publish/Save draft were present-but
 **G12** (inert `role="tab"` spans); pass 2 (after fixes) **converged — all 14 gates pass on all
 three variants.** A third polish pass adopted the DataOrb spec focus ring (`.gw-focusable`).
 
+Scores below are the **final state after the Gate-2 interaction rebuild + a11y pass**
+(initial cut was A 88 / C 87 / B 85; an interaction rework briefly regressed A/B on
+keyboard reorder, since fixed):
+
 | Variant | Band | Gates | Weighted | Verdict |
 |---|---|:--:|:--:|---|
-| A · Checklist | 🟢 Safe | 14/14 | 88% | Handoff-ready (strongest — top reuse + inline edit/delete) |
-| C · Studio | 🔴 Ambitious | 14/14 | 87% | Handoff-ready (most differentiated — evidence-beside-checklist) |
-| B · Board | 🟡 Balanced | 14/14 | 85% | Handoff-ready (best call-shape read; fixed-width lanes are the i18n cost) |
+| A · Checklist | 🟢 Safe | 14/14 | 90% | Handoff-ready (inline expand-edit, drag + keyboard reorder, 3-up suggestion grid) |
+| B · Board | 🟡 Balanced | 14/14 | 90% | Handoff-ready (swim-lanes, drag + keyboard reorder, modal edit w/ focus trap) |
+| C · Studio | 🔴 Ambitious | 14/14 | 88% | Handoff-ready (stage outline + per-step evidence workspace, pencil title-edit) |
+
+### Gate-2 stakeholder feedback folded in (Umesh)
+AI-populated base + per-step success rate & quoted-evidence on every step; evidence
+drills into the contributing calls; script is read-only quoted evidence (not free text);
+Checklist edits inline + drag/keyboard reorder + 3-up suggestion cards + tinted Add-step
+CTA; Board edits in a centered modal; Studio flips to a left stage-outline + right
+evidence workspace with a pencil (title-only) edit. Keyboard reorder, modal focus
+management, and save/publish aria-live announce added to clear the G11/G12/WCAG-10 items.
+
+Standing item routed to **Akash**: the author-monogram palette uses raw hex (app-wide
+convention across `guides.js`/`replays.js`) — promote to `--color-avatar-*` tokens.
 
 Gate fixes shipped: real Publish (confirm → Active + "live to N personas") + Save-draft feedback
 (G14/INT-8); breadcrumb `<nav>` not fake tabs (G12); script edits lifted to host state + persisted +
