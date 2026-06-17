@@ -10,6 +10,7 @@ import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
 import GuidedWorkflowStudioEditor from "./GuidedWorkflowStudioEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
+import StepDrawer from "./GuidedWorkflowStepDrawer";
 import { AiMark } from "./GuidedWorkflowBits";
 import {
   GUIDED_WORKFLOWS,
@@ -23,14 +24,11 @@ import {
 
 // GuidedWorkflowsPage — the TEAM-LEADER authoring experience for Drill
 // guided workflows (create / manage / view), reached from a "Guided
-// Workflows" tab in the Drill page. Three directions ride one VersionBar:
-//   A · Checklist — linear list grouped by stage (Asana-simple, top reuse)
-//   B · Board     — five stage swim-lanes + an outcome lane
-//   C · Studio    — flat checklist beside the evidence it was mined from
-// Library + create entry + editor chrome are shared; only the editor body
-// differs. The whole flow honours the locked decisions: edit-mode = create-
-// mode (nothing starts blank), flat checklist (no branching), unlimited
-// guided attempts in V1, and audit/attachment as first-class data.
+// Workflows" tab in Drill. Three directions ride one VersionBar — A·Checklist
+// (list grouped by stage), B·Board (stage swim-lanes), C·Studio (outline +
+// evidence). Library + create + chrome are shared; only the editor body
+// differs. Honours the locked decisions: edit-mode = create-mode (nothing
+// blank), flat checklist (no branching), unlimited attempts, audit first.
 
 const DIRECTIONS = [
   { id: "safe", label: "A · Checklist", iterations: [] },
@@ -39,6 +37,7 @@ const DIRECTIONS = [
 ];
 
 const REQUIREMENT_CYCLE = ["required", "conditional", "recommended"];
+const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
 export default function GuidedWorkflowsPage({ onBack }) {
@@ -56,14 +55,12 @@ export default function GuidedWorkflowsPage({ onBack }) {
   const [workflowState, setWorkflowState] = React.useState("active");
   const [confirmPublish, setConfirmPublish] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  // The step shown in the side-curtain drawer (Checklist + Board). Studio
+  // edits in-pane, so it ignores this.
+  const [openStepId, setOpenStepId] = React.useState(null);
 
   const stagesWithSteps = gwStepsByStage(steps);
-
-  // Edits to a step's script are lifted here so they persist across a
-  // collapse or a variant switch and are attributed (INT-7: the AI draft is
-  // a starting point; the lead's edit is owned and kept).
-  const updateScript = (stepId, value) =>
-    setSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, script: value, editedByLead: true } : s)));
+  const openStep = steps.find((s) => s.id === openStepId) || null;
 
   const saveDraft = () => {
     setSaved(true);
@@ -85,35 +82,46 @@ export default function GuidedWorkflowsPage({ onBack }) {
     setSuggestions((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const cycleRequirement = (stepId) =>
+  const cycleField = (stepId, field, cycle) =>
     setSteps((prev) =>
       prev.map((s) =>
-        s.id === stepId
-          ? { ...s, requirement: REQUIREMENT_CYCLE[(REQUIREMENT_CYCLE.indexOf(s.requirement) + 1) % REQUIREMENT_CYCLE.length] }
-          : s,
+        s.id === stepId ? { ...s, [field]: cycle[(cycle.indexOf(s[field]) + 1) % cycle.length] } : s,
       ),
     );
+  const cycleRequirement = (stepId) => cycleField(stepId, "requirement", REQUIREMENT_CYCLE);
+  const cycleType = (stepId) => cycleField(stepId, "type", TYPE_CYCLE);
+  const updateInstruction = (stepId, value) =>
+    setSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, instruction: value, editedByLead: true } : s)));
 
-  const addStep = (stageHint) => {
+  // Add a blank step to a stage and open it in the drawer so it's editable
+  // from the moment it appears.
+  const addBlankStep = (stageHint) => {
     const stage = VALID_STAGES.has(stageHint) ? stageHint : "discover";
+    const id = `new-${Date.now()}`;
     setSteps((prev) => [
       ...prev,
-      {
-        id: `new-${Date.now()}`,
-        stage,
-        instruction: "New step",
-        detail: "Describe what the agent should do here.",
-        type: "action",
-        requirement: "recommended",
-        script: null,
-        knowledge: null,
-        grounding: null,
-        subSteps: [],
-      },
+      { id, stage, instruction: "", detail: "Describe what the agent should do here.", type: "action", requirement: "recommended", script: null, knowledge: null, grounding: null, subSteps: [] },
     ]);
+    setOpenStepId(id);
   };
 
   const removeStep = (stepId) => setSteps((prev) => prev.filter((s) => s.id !== stepId));
+
+  // Drag-and-drop reorder (Checklist). Dropping onto a target moves the
+  // dragged step before it and adopts the target's stage (cross-stage move).
+  const reorderStep = (draggedId, targetId) => {
+    if (draggedId === targetId) return;
+    setSteps((prev) => {
+      const arr = [...prev];
+      const from = arr.findIndex((s) => s.id === draggedId);
+      const target = arr.find((s) => s.id === targetId);
+      if (from < 0 || !target) return prev;
+      const [moved] = arr.splice(from, 1);
+      moved.stage = target.stage;
+      arr.splice(arr.findIndex((s) => s.id === targetId), 0, moved);
+      return arr;
+    });
+  };
 
   const openExisting = () => { setIsNew(false); setWorkflowState("active"); setSteps(GW_STEPS); setView("editor"); };
   const startCreate = () => setCreateOpen(true);
@@ -126,9 +134,11 @@ export default function GuidedWorkflowsPage({ onBack }) {
     suggestions,
     onAcceptSuggestion: acceptSuggestion,
     onCycleRequirement: cycleRequirement,
-    onUpdateScript: updateScript,
-    onAddStep: addStep,
-    onRemoveStep: removeStep,
+    onCycleType: cycleType,
+    onUpdateInstruction: updateInstruction,
+    onOpenStep: setOpenStepId,
+    onAddBlank: addBlankStep,
+    onReorder: reorderStep,
   };
 
   return (
@@ -178,6 +188,18 @@ export default function GuidedWorkflowsPage({ onBack }) {
           attached={attached}
           onToggle={(id) => setAttached((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))}
           onClose={() => setAttachOpen(false)}
+        />
+      )}
+      {/* Side-curtain step editor — Checklist + Board open a step here;
+          Studio edits in its right pane and never opens the drawer. */}
+      {variant !== "ambitious" && openStep && (
+        <StepDrawer
+          step={openStep}
+          onClose={() => setOpenStepId(null)}
+          onUpdateInstruction={updateInstruction}
+          onCycleType={cycleType}
+          onCycleRequirement={cycleRequirement}
+          onRemove={removeStep}
         />
       )}
 

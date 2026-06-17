@@ -64,6 +64,19 @@ export function GroundingChip({ grounding, onClick }) {
   );
 }
 
+// ScriptQuote — the step's script as read-only quoted evidence (the actual
+// phrasing pulled from a real call), attributed to its source interaction.
+// Not a free-text field: the script IS evidence, so it reads as a quote.
+export function ScriptQuote({ script, grounding }) {
+  if (!script) return null;
+  return (
+    <figure style={bitStyles.scriptQuote}>
+      <blockquote style={bitStyles.scriptText}>“{script}”</blockquote>
+      {grounding && <figcaption style={bitStyles.scriptCite}>— from interaction {grounding.interactionId}</figcaption>}
+    </figure>
+  );
+}
+
 // AI sparkle marker — the consistent "AI generated this" signal across the
 // create entry and the editor.
 export function AiMark({ label = "AI-generated" }) {
@@ -207,6 +220,12 @@ const bitStyles = {
     color: "var(--color-button-primary-bg)",
     whiteSpace: "nowrap",
   },
+  scriptQuote: {
+    margin: 0, padding: "10px 14px", borderRadius: 8, background: "var(--color-icon-tertiary-bg)",
+    borderLeft: "3px solid var(--color-icon-tertiary-fg)", display: "flex", flexDirection: "column", gap: 4,
+  },
+  scriptText: { margin: 0, fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)", lineHeight: 1.55 },
+  scriptCite: { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)" },
   successChip: {
     display: "inline-flex",
     alignItems: "center",

@@ -334,6 +334,13 @@ export const GW_STEP_EVIDENCE = {
       { interactionId: "20102", quote: "You're through to Acme, my name's Priya — I can see your account here." },
     ],
   },
+  acknowledge: {
+    successRate: 84, callCount: 150, outcome: "the customer staying open to a fix",
+    examples: [
+      { interactionId: "20471", quote: "I completely understand why that's frustrating — let's sort it out together." },
+      { interactionId: "20402", quote: "That's a fair concern, and I'm glad you called so we can look at it." },
+    ],
+  },
   verify: {
     successRate: 88, callCount: 240, outcome: "compliant handling",
     examples: [
@@ -374,6 +381,13 @@ export const GW_STEP_EVIDENCE = {
     examples: [
       { interactionId: "20102", quote: "So that's confirmed and noted on your account — you'll see it next month." },
       { interactionId: "20188", quote: "I'll read that back: current plan, loyalty credit from next cycle. All good?" },
+    ],
+  },
+  close: {
+    successRate: 93, callCount: 200, outcome: "no repeat call within 30 days",
+    examples: [
+      { interactionId: "20102", quote: "You'll see the credit on next month's bill. Anything else before we wrap up?" },
+      { interactionId: "20402", quote: "Glad we got that sorted — have a good rest of your day." },
     ],
   },
 };

@@ -389,6 +389,16 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* Guided Workflow step drawer — slides in from the right edge (side curtain). */
+@keyframes gwSlideIn {
+  from { transform: translateX(28px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.gw-curtain { animation: gwSlideIn 0.2s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .gw-curtain { animation: none; }
+}
+
 /* Command Center agent table — row highlight on hover / keyboard focus. */
 .cc-agent-row:hover,
 .cc-agent-row:focus-within {
