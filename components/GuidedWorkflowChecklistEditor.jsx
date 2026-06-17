@@ -24,6 +24,7 @@ export default function GuidedWorkflowChecklistEditor({
   onRemove,
   onAddBlank,
   onReorder,
+  onMove,
 }) {
   const [collapsed, setCollapsed] = React.useState({});
   const [openId, setOpenId] = React.useState(null);
@@ -60,6 +61,7 @@ export default function GuidedWorkflowChecklistEditor({
                     onDragStart={() => setDragId(step.id)}
                     onDragEnd={() => setDragId(null)}
                     onDragEnter={() => { if (dragId && dragId !== step.id) onReorder(dragId, step.id); }}
+                    onMove={onMove}
                     handlers={{ onCycleRequirement, onCycleType, onUpdateInstruction, onRemove }}
                   />
                 ))}
@@ -87,8 +89,12 @@ export default function GuidedWorkflowChecklistEditor({
   );
 }
 
-function StepRow({ step, open, onToggle, onDragStart, onDragEnd, onDragEnter, handlers }) {
+function StepRow({ step, open, onToggle, onDragStart, onDragEnd, onDragEnter, onMove, handlers }) {
   const evidence = step.evidence ?? gwEvidence(step.id);
+  const onGripKey = (e) => {
+    if (e.key === "ArrowUp") { e.preventDefault(); onMove(step.id, "up"); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); onMove(step.id, "down"); }
+  };
   return (
     <div
       draggable={!open}
@@ -99,9 +105,9 @@ function StepRow({ step, open, onToggle, onDragStart, onDragEnd, onDragEnter, ha
       style={{ ...styles.row, ...(open ? styles.rowOpen : null) }}
     >
       <div style={styles.rowSummary}>
-        <span style={styles.grip} aria-hidden="true" title="Drag to reorder">
+        <button type="button" className="gw-focusable" style={styles.grip} onKeyDown={onGripKey} aria-label={`Reorder ${step.instruction || "step"} — press up or down arrow to move`}>
           <GripVertical size={16} color="var(--color-text-placeholder)" />
-        </span>
+        </button>
         <button type="button" onClick={onToggle} className="gw-focusable" style={styles.rowBtn} aria-expanded={open} aria-label={`${open ? "Close" : "Edit"} ${step.instruction || "new step"}`}>
           <span style={styles.rowMain}>
             <span style={styles.instruction}>{step.instruction || "Untitled step"}</span>
@@ -137,7 +143,7 @@ const styles = {
   row: { background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 10 },
   rowOpen: { borderColor: "var(--color-icon-tertiary-fg)", boxShadow: "var(--shadow-card)" },
   rowSummary: { display: "flex", gap: 10, alignItems: "stretch" },
-  grip: { display: "inline-flex", alignItems: "center", paddingLeft: 10, cursor: "grab", flexShrink: 0 },
+  grip: { display: "inline-flex", alignItems: "center", padding: "0 6px 0 10px", cursor: "grab", flexShrink: 0, background: "transparent", border: "none", borderRadius: 8 },
   rowBtn: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, background: "transparent", border: "none", cursor: "pointer", padding: "12px 14px 12px 0", fontFamily: "inherit", textAlign: "left" },
   rowMain: { display: "flex", flexDirection: "column", gap: 7, minWidth: 0, flex: 1 },
   instruction: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },

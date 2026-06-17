@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Link2, Sparkles, Target, Check } from "lucide-react";
-import Button from "./Button";
-import StatusBadge from "./StatusBadge";
+import { Sparkles } from "lucide-react";
 import VersionBar from "./VersionBar";
 import GuidedWorkflowLibrary from "./GuidedWorkflowLibrary";
 import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
@@ -11,7 +9,7 @@ import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
 import GuidedWorkflowStudioEditor from "./GuidedWorkflowStudioEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
-import { AiMark } from "./GuidedWorkflowBits";
+import { TabContext, EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
 import {
   GUIDED_WORKFLOWS,
   GW_STEPS,
@@ -55,6 +53,7 @@ export default function GuidedWorkflowsPage({ onBack }) {
   const [workflowState, setWorkflowState] = React.useState("active");
   const [confirmPublish, setConfirmPublish] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [justPublished, setJustPublished] = React.useState(false);
   // The step shown in the side-curtain drawer (Checklist + Board). Studio
   // edits in-pane, so it ignores this.
   const [openStepId, setOpenStepId] = React.useState(null);
@@ -69,6 +68,8 @@ export default function GuidedWorkflowsPage({ onBack }) {
   const doPublish = () => {
     setConfirmPublish(false);
     setWorkflowState("active");
+    setJustPublished(true);
+    window.setTimeout(() => setJustPublished(false), 2600);
   };
 
   // Accept an AI suggestion → it folds into the checklist as a normal step
@@ -123,6 +124,23 @@ export default function GuidedWorkflowsPage({ onBack }) {
     });
   };
 
+  // Keyboard-operable reorder (G11): move a step up/down in the visual order
+  // (stage order, then within-stage order). Crossing a stage boundary makes
+  // the step adopt the neighbouring stage — the keyboard equivalent of the
+  // drag-across move.
+  const moveStep = (stepId, dir) =>
+    setSteps((prev) => {
+      const order = [];
+      GW_STAGES.forEach((st) => prev.forEach((s) => { if (s.stage === st.id) order.push(s); }));
+      const i = order.findIndex((s) => s.id === stepId);
+      const j = dir === "up" ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= order.length) return prev;
+      const next = order.slice();
+      next[i] = next[j];
+      next[j] = { ...order[i], stage: order[j].stage };
+      return next;
+    });
+
   const openExisting = () => { setIsNew(false); setWorkflowState("active"); setSteps(GW_STEPS); setView("editor"); };
   const startCreate = () => setCreateOpen(true);
   const confirmCreate = () => { setCreateOpen(false); setIsNew(true); setWorkflowState("draft"); setSteps(GW_STEPS); setView("editor"); };
@@ -140,6 +158,7 @@ export default function GuidedWorkflowsPage({ onBack }) {
     onOpenStep: setOpenStepId,
     onAddBlank: addBlankStep,
     onReorder: reorderStep,
+    onMove: moveStep,
   };
 
   return (
@@ -155,6 +174,7 @@ export default function GuidedWorkflowsPage({ onBack }) {
               isNew={isNew}
               state={workflowState}
               saved={saved}
+              justPublished={justPublished}
               attachedCount={attached.length}
               onBack={() => setView("library")}
               onAttach={() => setAttachOpen(true)}
@@ -216,135 +236,12 @@ export default function GuidedWorkflowsPage({ onBack }) {
   );
 }
 
-// ---- Drill-tab context + editor chrome ---------------------------------
-
-// Real breadcrumb navigation, not simulated tabs (G12): the sibling Drill
-// sections are buttons that route back to Drill; the current page is marked
-// aria-current. No inert role="tab" spans.
-function TabContext({ onBack }) {
-  return (
-    <nav style={styles.tabContext} aria-label="Drill sections">
-      <button type="button" onClick={onBack} style={styles.backLink} className="gw-focusable">
-        <ArrowLeft size={15} color="var(--color-text-medium)" />
-        Drill
-      </button>
-      <span style={styles.crumbDot} aria-hidden="true" />
-      <div style={styles.miniTabs}>
-        <button type="button" onClick={onBack} style={styles.miniTab} className="gw-focusable">Active drills</button>
-        <button type="button" onClick={onBack} style={styles.miniTab} className="gw-focusable">Library</button>
-        <span style={{ ...styles.miniTab, ...styles.miniTabActive }} aria-current="page">Guided workflows</span>
-      </div>
-    </nav>
-  );
-}
-
-function EditorChrome({ isNew, state, saved, attachedCount, onBack, onAttach, onSave, onPublish }) {
-  const meta = GW_FLAGSHIP_META;
-  const isDraft = state === "draft";
-  return (
-    <div style={styles.chrome}>
-      <div style={styles.chromeTop}>
-        <button type="button" onClick={onBack} style={styles.backLink} className="gw-focusable">
-          <ArrowLeft size={15} color="var(--color-text-medium)" />
-          Guided workflows
-        </button>
-        <div style={styles.chromeActions}>
-          <Button variant="text" uppercase={false} leadingIcon={<Link2 size={15} />} onClick={onAttach} className="gw-focusable">
-            {attachedCount > 0 ? `Attached to ${attachedCount}` : "Attach to persona"}
-          </Button>
-          <Button variant="text" uppercase={false} onClick={onSave} leadingIcon={saved ? <Check size={15} /> : undefined} className="gw-focusable">
-            {saved ? "Saved" : "Save draft"}
-          </Button>
-          <Button variant="primary" onClick={onPublish} className="gw-focusable">{isDraft ? "Publish" : "Update & republish"}</Button>
-        </div>
-      </div>
-
-      <div style={styles.chromeTitleRow}>
-        <h2 style={styles.chromeTitle}>{isNew ? "Untitled guided workflow" : meta.title}</h2>
-        <StatusBadge tone={isDraft ? "info" : "success"}>{isDraft ? "Draft" : "Active"}</StatusBadge>
-        {!isDraft && (
-          <span style={styles.liveNote}>
-            <Check size={13} color="var(--color-success-text)" aria-hidden="true" />
-            Live to {attachedCount} persona{attachedCount === 1 ? "" : "s"}
-          </span>
-        )}
-      </div>
-
-      <div style={styles.chromeMeta}>
-        <span style={styles.chromeMetaItem}><Target size={13} color="var(--color-text-tertiary)" />{meta.jobToBeDone}</span>
-      </div>
-
-      <div style={styles.auditStrip}>
-        <AiMark label={isNew ? "Drafted from 3 interactions" : "AI-generated · last edited by María Ruiz today"} />
-        <span style={styles.auditDot} aria-hidden="true" />
-        <span style={styles.auditText}>Unlimited guided attempts per agent</span>
-        <span style={styles.auditDot} aria-hidden="true" />
-        <span style={styles.auditText}>Flat checklist · no branching</span>
-      </div>
-    </div>
-  );
-}
-
-// ---- VersionBar "?" reasoning chain ------------------------------------
-
-function DirectionsHelp() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Three ways to author</span>
-      <p style={vbHelp.text}>
-        <b>A · Checklist</b> — one flat list grouped by stage. Asana-simple, highest reuse. Safest.
-      </p>
-      <p style={vbHelp.text}>
-        <b>B · Board</b> — five stage swim-lanes + an outcome lane; read the shape of the call at a glance.
-      </p>
-      <p style={vbHelp.text}>
-        <b>C · Studio</b> — checklist beside the evidence it was mined from; click a step to see its proof.
-      </p>
-      <p style={vbHelp.hint}>
-        Research: Scribe/Tango show nobody writes SOPs from scratch → generate-first. Process Street →
-        the requirement/type tags are the eval contract. All three: flat checklist, no branching.
-      </p>
-    </div>
-  );
-}
-
 const styles = {
   column: { display: "flex", flexDirection: "column", gap: 24, width: "100%", flex: 1, minHeight: 0 },
-
-  tabContext: { display: "flex", alignItems: "center", gap: 12 },
-  backLink: {
-    display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none",
-    cursor: "pointer", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)",
-  },
-  crumbDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)" },
-  miniTabs: { display: "inline-flex", alignItems: "center", gap: 4 },
-  miniTab: {
-    fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)", padding: "4px 10px", borderRadius: 999,
-    background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit",
-  },
-  miniTabActive: { color: "var(--color-button-primary-bg)", background: "var(--color-primary-alpha-12)", fontWeight: 700, cursor: "default" },
-  liveNote: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--color-success-text)" },
-
   editorWrap: { display: "flex", flexDirection: "column", gap: 20 },
   baseBanner: {
     display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", borderRadius: 10,
     background: "var(--color-primary-alpha-12)", border: "1px solid var(--color-button-primary-bg)",
   },
   baseBannerText: { fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.55 },
-  chrome: { display: "flex", flexDirection: "column", gap: 12, paddingBottom: 16, borderBottom: "1px solid var(--color-divider-card)" },
-  chromeTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 },
-  chromeActions: { display: "inline-flex", alignItems: "center", gap: 16 },
-  chromeTitleRow: { display: "flex", alignItems: "center", gap: 12 },
-  chromeTitle: { margin: 0, fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)" },
-  chromeMeta: { display: "flex", flexWrap: "wrap", gap: 16 },
-  chromeMetaItem: { display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.5 },
-  auditStrip: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  auditDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)" },
-  auditText: { fontSize: 12, color: "var(--color-text-tertiary)" },
-};
-
-const vbHelp = {
-  title: { fontSize: 13, fontWeight: 700, color: "var(--vb-txt)" },
-  text: { margin: 0, fontSize: 12, lineHeight: 1.5, color: "var(--vb-txt)" },
-  hint: { margin: "4px 0 0", fontSize: 11, lineHeight: 1.5, color: "var(--vb-muted)" },
 };

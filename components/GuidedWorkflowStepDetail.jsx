@@ -104,16 +104,37 @@ export function StepDetailBody({ step, onUpdateInstruction, onCycleType, onCycle
 
 // StepModal — centered modal wrapper around StepDetailBody (Board editing).
 export function StepModal({ step, onClose, onUpdateInstruction, onCycleType, onCycleRequirement, onRemove }) {
+  const modalRef = React.useRef(null);
+
+  // Esc to close, focus trap, initial focus into the dialog, and focus
+  // restore to the trigger on close (G11/G12 modal semantics).
   React.useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prevFocus = document.activeElement;
+    const node = modalRef.current;
+    const focusables = () => Array.from(node?.querySelectorAll('button, input, textarea, [tabindex]:not([tabindex="-1"])') || []);
+    (focusables()[0] || node)?.focus();
+
+    const onKey = (e) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      const list = focusables();
+      if (!list.length) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      if (prevFocus && prevFocus.focus) prevFocus.focus();
+    };
   }, [onClose]);
 
   if (!step) return null;
   return (
     <div style={styles.scrim} role="dialog" aria-modal="true" aria-label="Edit step" onMouseDown={onClose}>
-      <div style={styles.modal} onMouseDown={(e) => e.stopPropagation()}>
+      <div ref={modalRef} tabIndex={-1} style={styles.modal} onMouseDown={(e) => e.stopPropagation()}>
         <header style={styles.modalHead}>
           <span style={styles.stageChip}>{STAGE_LABEL[step.stage]}</span>
           <div style={{ flex: 1 }} />

@@ -19,6 +19,7 @@ export default function GuidedWorkflowBoardEditor({
   onOpenStep,
   onAddBlank,
   onReorder,
+  onMove,
 }) {
   const [expandedSuggest, setExpandedSuggest] = React.useState(null);
   const [dragId, setDragId] = React.useState(null);
@@ -48,6 +49,7 @@ export default function GuidedWorkflowBoardEditor({
                   onDragStart={() => setDragId(step.id)}
                   onDragEnd={() => setDragId(null)}
                   onDragEnter={() => { if (dragId && dragId !== step.id) onReorder(dragId, step.id); }}
+                  onMove={onMove}
                 />
               ))}
               <SuggestionGrid
@@ -94,8 +96,12 @@ function OutcomeLane({ meta }) {
   );
 }
 
-function StepCard({ step, onOpen, onDragStart, onDragEnd, onDragEnter }) {
+function StepCard({ step, onOpen, onDragStart, onDragEnd, onDragEnter, onMove }) {
   const evidence = step.evidence ?? gwEvidence(step.id);
+  const onGripKey = (e) => {
+    if (e.key === "ArrowUp") { e.preventDefault(); onMove(step.id, "up"); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); onMove(step.id, "down"); }
+  };
   return (
     <div
       draggable
@@ -106,9 +112,9 @@ function StepCard({ step, onOpen, onDragStart, onDragEnd, onDragEnter }) {
       style={styles.card}
     >
       <div style={styles.cardTop}>
-        <span style={styles.grip} aria-hidden="true" title="Drag to reorder">
+        <button type="button" className="gw-focusable" style={styles.grip} onKeyDown={onGripKey} aria-label={`Reorder ${step.instruction || "step"} — press up or down arrow to move`}>
           <GripVertical size={14} color="var(--color-text-placeholder)" />
-        </span>
+        </button>
         <span style={styles.cardInstruction}>{step.instruction || "Untitled step"}</span>
         <button type="button" onClick={onOpen} className="gw-focusable" style={styles.editBtn} aria-label={`Edit ${step.instruction || "new step"}`}>
           <Pencil size={13} color="var(--color-text-tertiary)" />
@@ -153,7 +159,7 @@ const styles = {
 
   card: { display: "flex", flexDirection: "column", gap: 8, padding: "11px 12px", borderRadius: 10, background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", boxShadow: "var(--shadow-card)", cursor: "grab" },
   cardTop: { display: "flex", gap: 7, alignItems: "flex-start" },
-  grip: { display: "inline-flex", paddingTop: 1, flexShrink: 0 },
+  grip: { display: "inline-flex", alignItems: "flex-start", paddingTop: 1, flexShrink: 0, background: "transparent", border: "none", borderRadius: 6, cursor: "grab" },
   cardInstruction: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4, flex: 1, minWidth: 0 },
   editBtn: { background: "transparent", border: "none", cursor: "pointer", padding: 4, margin: -4, display: "inline-flex", borderRadius: 6, flexShrink: 0 },
   cardTags: { display: "flex", flexWrap: "wrap", gap: 6 },
