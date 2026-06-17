@@ -61,7 +61,7 @@ export default function GuidedWorkflowBoardEditor({
                   onUpdateScript={onUpdateScript}
                 />
               ))}
-              <button type="button" style={styles.addCard} onClick={() => onAddStep(stage.id)}>
+              <button type="button" style={styles.addCard} className="gw-focusable" onClick={() => onAddStep(stage.id)}>
                 <Plus size={14} color="var(--color-button-primary-bg)" />
                 Add step
               </button>
@@ -124,7 +124,7 @@ function StepCard({ step, expanded, onToggle, onCycleRequirement, onUpdateScript
       </div>
       <div style={styles.cardTags}>
         <TypeTag type={step.type} />
-        <button type="button" onClick={onCycleRequirement} style={styles.reqBtn} aria-label={`Requirement: ${step.requirement}. Tap to change.`}>
+        <button type="button" onClick={onCycleRequirement} className="gw-focusable" style={styles.reqBtn} aria-label={`Requirement: ${step.requirement}. Tap to change.`}>
           <RequirementTag requirement={step.requirement} />
         </button>
       </div>
@@ -135,7 +135,7 @@ function StepCard({ step, expanded, onToggle, onCycleRequirement, onUpdateScript
         <GroundingChip grounding={step.grounding} />
         {step.script && <MessageSquareQuote size={13} color="var(--color-button-primary-bg)" aria-label="Has a script" />}
       </div>
-      <button type="button" onClick={onToggle} style={styles.evidenceToggle} aria-expanded={expanded}>
+      <button type="button" onClick={onToggle} className="gw-focusable" style={styles.evidenceToggle} aria-expanded={expanded}>
         {evidence ? <SuccessChip evidence={evidence} /> : <span style={styles.noEvidence}>No evidence yet</span>}
         <span style={styles.evidenceCue}>{expanded ? "Hide" : "Why?"}</span>
       </button>

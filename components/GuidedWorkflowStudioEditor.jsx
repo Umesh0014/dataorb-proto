@@ -61,7 +61,7 @@ export default function GuidedWorkflowStudioEditor({
                   {turn.speaker === "agent" ? "Agent" : "Customer"}
                 </span>
                 <p style={styles.turnText}>{turn.text}</p>
-                <button type="button" style={styles.mintBtn} onClick={() => onAddStep(turn.stepId)}>
+                <button type="button" style={styles.mintBtn} className="gw-focusable" onClick={() => onAddStep(turn.stepId)}>
                   <Plus size={12} color="var(--color-button-primary-bg)" />
                   Make a step
                 </button>
@@ -93,6 +93,7 @@ export default function GuidedWorkflowStudioEditor({
                 key={step.id}
                 type="button"
                 onClick={() => setSelectedStep(step.id)}
+                className="gw-focusable"
                 style={{ ...styles.stepItem, ...(isSel ? styles.stepItemSel : null) }}
                 aria-pressed={isSel}
               >
@@ -142,7 +143,7 @@ export default function GuidedWorkflowStudioEditor({
                 : "No source turns highlighted — added by hand"}
             </span>
             <div style={styles.inspectorActions}>
-              <button type="button" onClick={() => onCycleRequirement(selected.id)} style={styles.reqBtn} aria-label="Change requirement">
+              <button type="button" onClick={() => onCycleRequirement(selected.id)} className="gw-focusable" style={styles.reqBtn} aria-label="Change requirement">
                 <RequirementTag requirement={selected.requirement} />
               </button>
             </div>

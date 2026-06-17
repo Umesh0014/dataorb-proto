@@ -45,7 +45,7 @@ export function CreateOverlay({ variant, onClose, onConfirm }) {
           {GW_SOURCE_INTERACTIONS.map((i) => {
             const on = picked.includes(i.id);
             return (
-              <button key={i.id} type="button" onClick={() => toggle(i.id)} style={{ ...styles.intRow, ...(on ? styles.intRowOn : null) }} aria-pressed={on}>
+              <button key={i.id} type="button" onClick={() => toggle(i.id)} className="gw-focusable" style={{ ...styles.intRow, ...(on ? styles.intRowOn : null) }} aria-pressed={on}>
                 <span style={{ ...styles.check, ...(on ? styles.checkOn : null) }}>{on && <Check size={12} color="var(--surface-white)" />}</span>
                 <span style={styles.intMain}>
                   <span style={styles.intCustomer}>{i.customer}</span>
@@ -66,8 +66,8 @@ export function CreateOverlay({ variant, onClose, onConfirm }) {
       )}
 
       <div style={styles.ovFoot}>
-        <Button variant="text" uppercase={false} onClick={onClose}>Cancel</Button>
-        <Button variant="primary" leadingIcon={<Sparkles size={16} />} onClick={onConfirm}>{cta}</Button>
+        <Button variant="text" uppercase={false} onClick={onClose} className="gw-focusable">Cancel</Button>
+        <Button variant="primary" leadingIcon={<Sparkles size={16} />} onClick={onConfirm} className="gw-focusable">{cta}</Button>
       </div>
     </Overlay>
   );
@@ -84,7 +84,7 @@ export function AttachOverlay({ attached, onToggle, onClose }) {
         {GW_PERSONAS.map((p) => {
           const on = attached.includes(p.id);
           return (
-            <button key={p.id} type="button" onClick={() => onToggle(p.id)} style={{ ...styles.intRow, ...(on ? styles.intRowOn : null) }} aria-pressed={on}>
+            <button key={p.id} type="button" onClick={() => onToggle(p.id)} className="gw-focusable" style={{ ...styles.intRow, ...(on ? styles.intRowOn : null) }} aria-pressed={on}>
               <span style={{ ...styles.check, ...(on ? styles.checkOn : null) }}>{on && <Check size={12} color="var(--surface-white)" />}</span>
               <span style={styles.intMain}>
                 <span style={styles.intCustomer}>{p.customer}</span>
@@ -96,7 +96,7 @@ export function AttachOverlay({ attached, onToggle, onClose }) {
         })}
       </div>
       <div style={styles.ovFoot}>
-        <Button variant="primary" onClick={onClose}>Done</Button>
+        <Button variant="primary" onClick={onClose} className="gw-focusable">Done</Button>
       </div>
     </Overlay>
   );
@@ -118,8 +118,8 @@ export function PublishOverlay({ attachedCount, onClose, onConfirm }) {
         Your edits are versioned — you can update and republish any time.
       </div>
       <div style={styles.ovFoot}>
-        <Button variant="text" uppercase={false} onClick={onClose}>Cancel</Button>
-        <Button variant="primary" leadingIcon={<Rocket size={16} />} onClick={onConfirm}>Publish workflow</Button>
+        <Button variant="text" uppercase={false} onClick={onClose} className="gw-focusable">Cancel</Button>
+        <Button variant="primary" leadingIcon={<Rocket size={16} />} onClick={onConfirm} className="gw-focusable">Publish workflow</Button>
       </div>
     </Overlay>
   );
@@ -138,7 +138,7 @@ function Overlay({ title, labelledBy, onClose, children }) {
       <div style={styles.dialog} onMouseDown={(e) => e.stopPropagation()}>
         <div style={styles.dialogHead}>
           <span id={labelledBy} style={styles.dialogTitle}>{title}</span>
-          <button type="button" onClick={onClose} style={styles.closeBtn} aria-label="Close">
+          <button type="button" onClick={onClose} style={styles.closeBtn} className="gw-focusable" aria-label="Close">
             <X size={18} color="var(--color-text-tertiary)" />
           </button>
         </div>
@@ -153,6 +153,7 @@ function ModeChip({ active, primary, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
+      className="gw-focusable"
       style={{
         ...styles.modeChip,
         borderColor: active ? "var(--color-button-primary-bg)" : "var(--color-divider-card)",

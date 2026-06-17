@@ -201,14 +201,14 @@ export default function GuidedWorkflowsPage({ onBack }) {
 function TabContext({ onBack }) {
   return (
     <nav style={styles.tabContext} aria-label="Drill sections">
-      <button type="button" onClick={onBack} style={styles.backLink}>
+      <button type="button" onClick={onBack} style={styles.backLink} className="gw-focusable">
         <ArrowLeft size={15} color="var(--color-text-medium)" />
         Drill
       </button>
       <span style={styles.crumbDot} aria-hidden="true" />
       <div style={styles.miniTabs}>
-        <button type="button" onClick={onBack} style={styles.miniTab}>Active drills</button>
-        <button type="button" onClick={onBack} style={styles.miniTab}>Library</button>
+        <button type="button" onClick={onBack} style={styles.miniTab} className="gw-focusable">Active drills</button>
+        <button type="button" onClick={onBack} style={styles.miniTab} className="gw-focusable">Library</button>
         <span style={{ ...styles.miniTab, ...styles.miniTabActive }} aria-current="page">Guided workflows</span>
       </div>
     </nav>
@@ -221,18 +221,18 @@ function EditorChrome({ isNew, state, saved, attachedCount, onBack, onAttach, on
   return (
     <div style={styles.chrome}>
       <div style={styles.chromeTop}>
-        <button type="button" onClick={onBack} style={styles.backLink}>
+        <button type="button" onClick={onBack} style={styles.backLink} className="gw-focusable">
           <ArrowLeft size={15} color="var(--color-text-medium)" />
           Guided workflows
         </button>
         <div style={styles.chromeActions}>
-          <Button variant="text" uppercase={false} leadingIcon={<Link2 size={15} />} onClick={onAttach}>
+          <Button variant="text" uppercase={false} leadingIcon={<Link2 size={15} />} onClick={onAttach} className="gw-focusable">
             {attachedCount > 0 ? `Attached to ${attachedCount}` : "Attach to persona"}
           </Button>
-          <Button variant="text" uppercase={false} onClick={onSave} leadingIcon={saved ? <Check size={15} /> : undefined}>
+          <Button variant="text" uppercase={false} onClick={onSave} leadingIcon={saved ? <Check size={15} /> : undefined} className="gw-focusable">
             {saved ? "Saved" : "Save draft"}
           </Button>
-          <Button variant="primary" onClick={onPublish}>{isDraft ? "Publish" : "Update & republish"}</Button>
+          <Button variant="primary" onClick={onPublish} className="gw-focusable">{isDraft ? "Publish" : "Update & republish"}</Button>
         </div>
       </div>
 

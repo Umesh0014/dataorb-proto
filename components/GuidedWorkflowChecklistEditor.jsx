@@ -50,6 +50,7 @@ export default function GuidedWorkflowChecklistEditor({
               <button
                 type="button"
                 onClick={() => toggleStage(stage.id)}
+                className="gw-focusable"
                 style={styles.stageToggle}
                 aria-expanded={!isCollapsed}
               >
@@ -80,7 +81,7 @@ export default function GuidedWorkflowChecklistEditor({
                     onRemove={() => onRemoveStep(step.id)}
                   />
                 ))}
-                <button type="button" style={styles.addRow} onClick={() => onAddStep(stage.id)}>
+                <button type="button" style={styles.addRow} className="gw-focusable" onClick={() => onAddStep(stage.id)}>
                   <Plus size={15} color="var(--color-button-primary-bg)" />
                   Add a step to {stage.label}
                 </button>
@@ -123,6 +124,7 @@ function StepRow({ step, scriptOpen, evidenceOpen, onToggleScript, onToggleEvide
             <button
               type="button"
               onClick={onCycleRequirement}
+              className="gw-focusable"
               style={styles.reqBtn}
               title="Cycle requirement"
               aria-label={`Requirement: ${step.requirement}. Tap to change.`}
@@ -148,13 +150,13 @@ function StepRow({ step, scriptOpen, evidenceOpen, onToggleScript, onToggleEvide
           <GroundingChip grounding={step.grounding} />
           <SuccessChip evidence={evidence} />
           {step.script && (
-            <button type="button" onClick={onToggleScript} style={styles.linkBtn} aria-expanded={scriptOpen}>
+            <button type="button" onClick={onToggleScript} className="gw-focusable" style={styles.linkBtn} aria-expanded={scriptOpen}>
               <MessageSquareQuote size={13} color="var(--color-button-primary-bg)" />
               {scriptOpen ? "Hide script" : "Script"}
             </button>
           )}
           {evidence && (
-            <button type="button" onClick={onToggleEvidence} style={styles.linkBtn} aria-expanded={evidenceOpen}>
+            <button type="button" onClick={onToggleEvidence} className="gw-focusable" style={styles.linkBtn} aria-expanded={evidenceOpen}>
               <BarChart3 size={13} color="var(--color-button-primary-bg)" />
               {evidenceOpen ? "Hide evidence" : "Evidence"}
             </button>
@@ -169,11 +171,11 @@ function StepRow({ step, scriptOpen, evidenceOpen, onToggleScript, onToggleEvide
           {confirming ? (
             <span style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Remove?</span>
-              <button type="button" onClick={onRemove} style={styles.confirmYes}>Remove</button>
-              <button type="button" onClick={() => setConfirming(false)} style={styles.confirmNo}>Keep</button>
+              <button type="button" onClick={onRemove} className="gw-focusable" style={styles.confirmYes}>Remove</button>
+              <button type="button" onClick={() => setConfirming(false)} className="gw-focusable" style={styles.confirmNo}>Keep</button>
             </span>
           ) : (
-            <button type="button" onClick={() => setConfirming(true)} style={styles.iconGhost} aria-label="Remove step">
+            <button type="button" onClick={() => setConfirming(true)} className="gw-focusable" style={styles.iconGhost} aria-label="Remove step">
               <Trash2 size={14} color="var(--color-text-tertiary)" />
             </button>
           )}

@@ -61,7 +61,7 @@ function WorkflowRow({ w, onOpen }) {
   const badge = gwStateTone(w.state);
   return (
     <Card shadow padX={20} padY={18} style={styles.row}>
-      <button type="button" onClick={onOpen} style={styles.rowBtn} aria-label={`Open ${w.title}`}>
+      <button type="button" onClick={onOpen} style={styles.rowBtn} className="gw-focusable" aria-label={`Open ${w.title}`}>
         <span style={styles.rowMain}>
           <span style={styles.rowTitleLine}>
             <span style={styles.rowTitle}>{w.title}</span>

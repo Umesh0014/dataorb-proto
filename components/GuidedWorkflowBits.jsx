@@ -54,6 +54,7 @@ export function GroundingChip({ grounding, onClick }) {
     <Wrapper
       type={onClick ? "button" : undefined}
       onClick={onClick}
+      className={onClick ? "gw-focusable" : undefined}
       style={{ ...bitStyles.grounding, cursor: onClick ? "pointer" : "default" }}
       aria-label={`Grounded in interaction ${grounding.interactionId}`}
     >
@@ -143,11 +144,11 @@ export function SuggestedStepCard({ step, onAdd, expanded, onToggle, dense = fal
       </div>
       {expanded && <EvidenceCard evidence={step.evidence} />}
       <div style={bitStyles.suggestFoot}>
-        <Button variant="ai" uppercase={false} onClick={onAdd}>
+        <Button variant="ai" uppercase={false} onClick={onAdd} className="gw-focusable">
           <span style={bitStyles.addInline}><Plus size={14} /> Add to workflow</span>
         </Button>
         {onToggle && (
-          <button type="button" onClick={onToggle} style={bitStyles.whyBtn} aria-expanded={!!expanded}>
+          <button type="button" onClick={onToggle} style={bitStyles.whyBtn} className="gw-focusable" aria-expanded={!!expanded}>
             {expanded ? "Hide evidence" : "Why this?"}
           </button>
         )}

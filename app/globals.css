@@ -379,6 +379,16 @@ body {
   box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
 }
 
+/* Guided Workflow authoring — same spec focus ring (white halo + brand-blue)
+   opted into by the custom (non-Button) interactive surfaces across the
+   library, editors, and dialogs. Inline styles can't reach :focus-visible;
+   this replaces the default outline rather than removing it (WCAG-3). */
+.gw-focusable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
+  border-radius: var(--radius-sm);
+}
+
 /* Command Center agent table — row highlight on hover / keyboard focus. */
 .cc-agent-row:hover,
 .cc-agent-row:focus-within {
