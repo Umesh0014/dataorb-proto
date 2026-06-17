@@ -388,7 +388,7 @@ function GuideShell({
           </div>
         )}
         {blind && (
-          <div style={styles.blindNote}>
+          <div style={styles.blindNote} role="status">
             <EyeOff size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
             <span style={styles.blindText}>
               The AI is listening but this isn't one of the configured steps — nothing to log. Keep going.
@@ -506,7 +506,8 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
         <span style={styles.posMuted}>Listening…</span>
         <span style={styles.stepLabelLg}>Keep the conversation going</span>
         <span style={styles.stepInstruction}>
-          Nothing to action right now — the AI will surface the next step when it hears it.
+          Nothing to action right now — the AI will surface the next step when it hears it. When
+          you're ready, recap and close, or use <b>Show all steps</b> below for the full list.
         </span>
       </Card>
     );
@@ -1103,7 +1104,10 @@ const styles = {
   scenarioBtns: { display: "flex", gap: 6, flexWrap: "wrap" },
   scenarioBtn: {
     minHeight: 32, padding: "6px 12px", borderRadius: 999, cursor: "pointer",
-    border: "1px solid var(--color-divider-card)", background: "var(--surface-white)",
+    // text-tertiary border clears the 3:1 non-text control-boundary floor on
+    // the tinted bar (WCAG-1), so the pill reads as a control independent of
+    // its label.
+    border: "1px solid var(--color-text-tertiary)", background: "var(--surface-white)",
     fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)",
     transition: "background 150ms ease, color 150ms ease, border-color 150ms ease",
   },
