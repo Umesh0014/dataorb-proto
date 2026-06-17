@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import {
   TypeTag,
   RequirementTag,
@@ -10,6 +10,7 @@ import {
   EvidenceCard,
   SuggestedStepCard,
 } from "./GuidedWorkflowBits";
+import { Overlay } from "./GuidedWorkflowDialogs";
 import { gwEvidence, GW_STAGES } from "./mocks/guidedWorkflows";
 
 const STAGE_LABEL = Object.fromEntries(GW_STAGES.map((s) => [s.id, s.label]));
@@ -102,57 +103,21 @@ export function StepDetailBody({ step, onUpdateInstruction, onCycleType, onCycle
   );
 }
 
-// StepModal — centered modal wrapper around StepDetailBody (Board editing).
+// StepModal — Board step editing. Reuses the shared Overlay shell (scrim,
+// titled header + close, Esc / scrim-click, focus trap + restore) rather
+// than a second bespoke modal; only the body differs.
 export function StepModal({ step, onClose, onUpdateInstruction, onCycleType, onCycleRequirement, onRemove }) {
-  const modalRef = React.useRef(null);
-
-  // Esc to close, focus trap, initial focus into the dialog, and focus
-  // restore to the trigger on close (G11/G12 modal semantics).
-  React.useEffect(() => {
-    const prevFocus = document.activeElement;
-    const node = modalRef.current;
-    const focusables = () => Array.from(node?.querySelectorAll('button, input, textarea, [tabindex]:not([tabindex="-1"])') || []);
-    (focusables()[0] || node)?.focus();
-
-    const onKey = (e) => {
-      if (e.key === "Escape") { onClose(); return; }
-      if (e.key !== "Tab") return;
-      const list = focusables();
-      if (!list.length) return;
-      const first = list[0];
-      const last = list[list.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      if (prevFocus && prevFocus.focus) prevFocus.focus();
-    };
-  }, [onClose]);
-
   if (!step) return null;
   return (
-    <div style={styles.scrim} role="dialog" aria-modal="true" aria-label="Edit step" onMouseDown={onClose}>
-      <div ref={modalRef} tabIndex={-1} style={styles.modal} onMouseDown={(e) => e.stopPropagation()}>
-        <header style={styles.modalHead}>
-          <span style={styles.stageChip}>{STAGE_LABEL[step.stage]}</span>
-          <div style={{ flex: 1 }} />
-          <button type="button" onClick={onClose} style={styles.iconBtn} className="gw-focusable" aria-label="Close">
-            <X size={18} color="var(--color-text-tertiary)" />
-          </button>
-        </header>
-        <div style={styles.modalBody}>
-          <StepDetailBody
-            step={step}
-            onUpdateInstruction={onUpdateInstruction}
-            onCycleType={onCycleType}
-            onCycleRequirement={onCycleRequirement}
-            onRemove={(id) => { onRemove?.(id); onClose(); }}
-          />
-        </div>
-      </div>
-    </div>
+    <Overlay onClose={onClose} labelledBy="gw-step-title" title={`Edit step · ${STAGE_LABEL[step.stage]}`}>
+      <StepDetailBody
+        step={step}
+        onUpdateInstruction={onUpdateInstruction}
+        onCycleType={onCycleType}
+        onCycleRequirement={onCycleRequirement}
+        onRemove={(id) => { onRemove?.(id); onClose(); }}
+      />
+    </Overlay>
   );
 }
 
@@ -213,13 +178,6 @@ const styles = {
   confirmLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)" },
   confirmYes: { background: "transparent", border: "none", cursor: "pointer", padding: "4px 6px", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-error-text)" },
   confirmNo: { background: "transparent", border: "none", cursor: "pointer", padding: "4px 6px", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-text-medium)" },
-
-  scrim: { position: "fixed", inset: 0, zIndex: 80, background: "color-mix(in srgb, var(--color-text-deep) 28%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 },
-  modal: { width: "min(560px, 100%)", maxHeight: "86vh", display: "flex", flexDirection: "column", background: "var(--surface-white)", borderRadius: 14, boxShadow: "var(--shadow-drawer)", overflow: "hidden" },
-  modalHead: { display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: "1px solid var(--color-divider-card)" },
-  modalBody: { padding: "18px 20px", overflowY: "auto" },
-  stageChip: { fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--color-icon-tertiary-fg)", background: "var(--color-icon-tertiary-bg)", borderRadius: 4, padding: "3px 9px" },
-  iconBtn: { background: "transparent", border: "none", cursor: "pointer", padding: 8, display: "inline-flex", borderRadius: 8 },
 
   grid: (columns) => ({ display: "grid", gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: 10 }),
   cta: {

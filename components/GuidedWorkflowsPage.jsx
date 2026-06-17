@@ -3,6 +3,7 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
 import VersionBar from "./VersionBar";
+import Banner from "./Banner";
 import GuidedWorkflowLibrary from "./GuidedWorkflowLibrary";
 import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
@@ -181,14 +182,12 @@ export default function GuidedWorkflowsPage({ onBack }) {
               onSave={saveDraft}
               onPublish={() => setConfirmPublish(true)}
             />
-            <div style={styles.baseBanner}>
-              <Sparkles size={16} color="var(--color-button-primary-bg)" aria-hidden="true" />
-              <span style={styles.baseBannerText}>
-                <b>AI drafted this base workflow</b> from {isNew ? 3 : 12} interactions, grounded in real
-                calls. Edit any step, change what's required, or accept a suggested step below — each
-                one carries the success rate and the phrasing agents used.
-              </span>
-            </div>
+            <Banner
+              tone="info"
+              leading={<Sparkles size={20} color="var(--color-button-primary-bg)" style={{ flexShrink: 0 }} aria-hidden="true" />}
+              heading="AI drafted this base workflow"
+              body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
+            />
             {variant === "safe" ? (
               <GuidedWorkflowChecklistEditor {...editorProps} />
             ) : variant === "balanced" ? (
@@ -239,9 +238,4 @@ export default function GuidedWorkflowsPage({ onBack }) {
 const styles = {
   column: { display: "flex", flexDirection: "column", gap: 24, width: "100%", flex: 1, minHeight: 0 },
   editorWrap: { display: "flex", flexDirection: "column", gap: 20 },
-  baseBanner: {
-    display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", borderRadius: 10,
-    background: "var(--color-primary-alpha-12)", border: "1px solid var(--color-button-primary-bg)",
-  },
-  baseBannerText: { fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.55 },
 };

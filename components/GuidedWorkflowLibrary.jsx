@@ -119,5 +119,5 @@ const styles = {
   rowSide: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 },
   audit: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-tertiary)", fontFamily: "var(--font-mono)" },
   author: { display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--color-text-medium)" },
-  monogram: { width: 22, height: 22, borderRadius: 6, display: "inline-grid", placeItems: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 },
+  monogram: { width: 22, height: 22, borderRadius: 999, display: "inline-grid", placeItems: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 },
 };
