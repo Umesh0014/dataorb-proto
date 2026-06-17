@@ -28,6 +28,7 @@ export default function GuidedWorkflowStudioEditor({
   suggestions = [],
   onAcceptSuggestion,
   onCycleRequirement,
+  onUpdateScript,
   onAddStep,
 }) {
   const [selectedStep, setSelectedStep] = React.useState(steps[0]?.id ?? null);
@@ -76,6 +77,14 @@ export default function GuidedWorkflowStudioEditor({
           <span style={styles.paneTitle}>Workflow steps</span>
           <AiMark label="AI-drafted from evidence" />
         </header>
+        <span style={styles.selectCue}>Select a step to highlight the calls it was mined from →</span>
+
+        {/* Selection feedback for screen readers (WCAG-10): the lit-turn
+            count updates here as the lead moves between steps. */}
+        <div role="status" aria-live="polite" style={styles.srOnly}>
+          {selected && `Selected: ${selected.instruction}. ${litTurns.size > 0 ? `Grounded in ${litTurns.size} source turns.` : "No source turns — added by hand."}`}
+        </div>
+
         <div style={styles.stepList}>
           {steps.map((step, i) => {
             const isSel = step.id === selectedStep;
@@ -136,13 +145,22 @@ export default function GuidedWorkflowStudioEditor({
               <button type="button" onClick={() => onCycleRequirement(selected.id)} style={styles.reqBtn} aria-label="Change requirement">
                 <RequirementTag requirement={selected.requirement} />
               </button>
-              {selected.script && (
-                <span style={styles.scriptPeek}>
-                  <MessageSquareQuote size={13} color="var(--color-button-primary-bg)" />
-                  “{selected.script.slice(0, 64)}…”
-                </span>
-              )}
             </div>
+            {selected.script != null && (
+              <label style={styles.scriptField}>
+                <span style={styles.scriptLabel}>
+                  <MessageSquareQuote size={13} color="var(--color-button-primary-bg)" aria-hidden="true" />
+                  Script {selected.editedByLead && <span style={styles.editedNote}>· edited by you</span>}
+                </span>
+                <textarea
+                  value={selected.script}
+                  onChange={(e) => onUpdateScript?.(selected.id, e.target.value)}
+                  style={styles.scriptArea}
+                  rows={2}
+                  aria-label="Step script"
+                />
+              </label>
+            )}
             <EvidenceCard evidence={selectedEvidence} />
           </div>
         )}
@@ -209,5 +227,14 @@ const styles = {
   inspectorHead: { display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--color-text-medium)" },
   inspectorActions: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" },
   reqBtn: { background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "inline-flex" },
-  scriptPeek: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontStyle: "italic", color: "var(--color-text-tertiary)", minWidth: 0 },
+  scriptField: { display: "flex", flexDirection: "column", gap: 5 },
+  scriptLabel: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--color-text-medium)" },
+  editedNote: { fontSize: 11, fontWeight: 600, fontStyle: "italic", color: "var(--color-icon-tertiary-fg)" },
+  scriptArea: {
+    width: "100%", boxSizing: "border-box", resize: "vertical", padding: "9px 11px", borderRadius: 8,
+    border: "1px solid var(--color-divider-card)", background: "var(--surface-white)", fontFamily: "var(--font-sans)",
+    fontSize: 12.5, color: "var(--color-text-medium)", lineHeight: 1.5,
+  },
+  selectCue: { fontSize: 12, color: "var(--color-text-tertiary)" },
+  srOnly: { position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 },
 };

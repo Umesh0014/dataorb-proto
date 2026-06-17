@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Link2, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, Link2, Sparkles, Target, Check } from "lucide-react";
 import Button from "./Button";
 import StatusBadge from "./StatusBadge";
 import VersionBar from "./VersionBar";
@@ -9,7 +9,7 @@ import GuidedWorkflowLibrary from "./GuidedWorkflowLibrary";
 import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
 import GuidedWorkflowStudioEditor from "./GuidedWorkflowStudioEditor";
-import { CreateOverlay, AttachOverlay } from "./GuidedWorkflowDialogs";
+import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { AiMark } from "./GuidedWorkflowBits";
 import {
   GUIDED_WORKFLOWS,
@@ -50,8 +50,29 @@ export default function GuidedWorkflowsPage({ onBack }) {
   const [steps, setSteps] = React.useState(GW_STEPS);
   const [suggestions, setSuggestions] = React.useState(GW_SUGGESTED_STEPS);
   const [attached, setAttached] = React.useState(GW_PERSONAS.filter((p) => p.attached).map((p) => p.id));
+  // Publish / save journeys (G14, INT-8): a workflow is draft or active;
+  // Publish is confirmed before it goes live; Save draft gives transient
+  // feedback. State seeds from whether this is a new or existing workflow.
+  const [workflowState, setWorkflowState] = React.useState("active");
+  const [confirmPublish, setConfirmPublish] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
 
   const stagesWithSteps = gwStepsByStage(steps);
+
+  // Edits to a step's script are lifted here so they persist across a
+  // collapse or a variant switch and are attributed (INT-7: the AI draft is
+  // a starting point; the lead's edit is owned and kept).
+  const updateScript = (stepId, value) =>
+    setSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, script: value, editedByLead: true } : s)));
+
+  const saveDraft = () => {
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2200);
+  };
+  const doPublish = () => {
+    setConfirmPublish(false);
+    setWorkflowState("active");
+  };
 
   // Accept an AI suggestion → it folds into the checklist as a normal step
   // (keeping its grounding) and leaves the suggestions tray.
@@ -94,9 +115,9 @@ export default function GuidedWorkflowsPage({ onBack }) {
 
   const removeStep = (stepId) => setSteps((prev) => prev.filter((s) => s.id !== stepId));
 
-  const openExisting = () => { setIsNew(false); setSteps(GW_STEPS); setView("editor"); };
+  const openExisting = () => { setIsNew(false); setWorkflowState("active"); setSteps(GW_STEPS); setView("editor"); };
   const startCreate = () => setCreateOpen(true);
-  const confirmCreate = () => { setCreateOpen(false); setIsNew(true); setSteps(GW_STEPS); setView("editor"); };
+  const confirmCreate = () => { setCreateOpen(false); setIsNew(true); setWorkflowState("draft"); setSteps(GW_STEPS); setView("editor"); };
 
   const editorProps = {
     meta: GW_FLAGSHIP_META,
@@ -105,6 +126,7 @@ export default function GuidedWorkflowsPage({ onBack }) {
     suggestions,
     onAcceptSuggestion: acceptSuggestion,
     onCycleRequirement: cycleRequirement,
+    onUpdateScript: updateScript,
     onAddStep: addStep,
     onRemoveStep: removeStep,
   };
@@ -120,9 +142,13 @@ export default function GuidedWorkflowsPage({ onBack }) {
           <div style={styles.editorWrap}>
             <EditorChrome
               isNew={isNew}
+              state={workflowState}
+              saved={saved}
               attachedCount={attached.length}
               onBack={() => setView("library")}
               onAttach={() => setAttachOpen(true)}
+              onSave={saveDraft}
+              onPublish={() => setConfirmPublish(true)}
             />
             <div style={styles.baseBanner}>
               <Sparkles size={16} color="var(--color-button-primary-bg)" aria-hidden="true" />
@@ -144,6 +170,9 @@ export default function GuidedWorkflowsPage({ onBack }) {
       </div>
 
       {createOpen && <CreateOverlay variant={variant} onClose={() => setCreateOpen(false)} onConfirm={confirmCreate} />}
+      {confirmPublish && (
+        <PublishOverlay attachedCount={attached.length} onClose={() => setConfirmPublish(false)} onConfirm={doPublish} />
+      )}
       {attachOpen && (
         <AttachOverlay
           attached={attached}
@@ -166,36 +195,29 @@ export default function GuidedWorkflowsPage({ onBack }) {
 
 // ---- Drill-tab context + editor chrome ---------------------------------
 
+// Real breadcrumb navigation, not simulated tabs (G12): the sibling Drill
+// sections are buttons that route back to Drill; the current page is marked
+// aria-current. No inert role="tab" spans.
 function TabContext({ onBack }) {
-  const tabs = ["Active drills", "Library", "Guided workflows"];
   return (
-    <div style={styles.tabContext}>
+    <nav style={styles.tabContext} aria-label="Drill sections">
       <button type="button" onClick={onBack} style={styles.backLink}>
         <ArrowLeft size={15} color="var(--color-text-medium)" />
         Drill
       </button>
       <span style={styles.crumbDot} aria-hidden="true" />
-      <div style={styles.miniTabs} role="tablist" aria-label="Drill sections">
-        {tabs.map((t) => {
-          const active = t === "Guided workflows";
-          return (
-            <span
-              key={t}
-              role="tab"
-              aria-selected={active}
-              style={{ ...styles.miniTab, ...(active ? styles.miniTabActive : null) }}
-            >
-              {t}
-            </span>
-          );
-        })}
+      <div style={styles.miniTabs}>
+        <button type="button" onClick={onBack} style={styles.miniTab}>Active drills</button>
+        <button type="button" onClick={onBack} style={styles.miniTab}>Library</button>
+        <span style={{ ...styles.miniTab, ...styles.miniTabActive }} aria-current="page">Guided workflows</span>
       </div>
-    </div>
+    </nav>
   );
 }
 
-function EditorChrome({ isNew, attachedCount, onBack, onAttach }) {
+function EditorChrome({ isNew, state, saved, attachedCount, onBack, onAttach, onSave, onPublish }) {
   const meta = GW_FLAGSHIP_META;
+  const isDraft = state === "draft";
   return (
     <div style={styles.chrome}>
       <div style={styles.chromeTop}>
@@ -207,14 +229,22 @@ function EditorChrome({ isNew, attachedCount, onBack, onAttach }) {
           <Button variant="text" uppercase={false} leadingIcon={<Link2 size={15} />} onClick={onAttach}>
             {attachedCount > 0 ? `Attached to ${attachedCount}` : "Attach to persona"}
           </Button>
-          <Button variant="text" uppercase={false}>Save draft</Button>
-          <Button variant="primary">Publish</Button>
+          <Button variant="text" uppercase={false} onClick={onSave} leadingIcon={saved ? <Check size={15} /> : undefined}>
+            {saved ? "Saved" : "Save draft"}
+          </Button>
+          <Button variant="primary" onClick={onPublish}>{isDraft ? "Publish" : "Update & republish"}</Button>
         </div>
       </div>
 
       <div style={styles.chromeTitleRow}>
         <h2 style={styles.chromeTitle}>{isNew ? "Untitled guided workflow" : meta.title}</h2>
-        <StatusBadge tone={isNew ? "info" : "success"}>{isNew ? "Draft" : "Active"}</StatusBadge>
+        <StatusBadge tone={isDraft ? "info" : "success"}>{isDraft ? "Draft" : "Active"}</StatusBadge>
+        {!isDraft && (
+          <span style={styles.liveNote}>
+            <Check size={13} color="var(--color-success-text)" aria-hidden="true" />
+            Live to {attachedCount} persona{attachedCount === 1 ? "" : "s"}
+          </span>
+        )}
       </div>
 
       <div style={styles.chromeMeta}>
@@ -265,8 +295,12 @@ const styles = {
   },
   crumbDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)" },
   miniTabs: { display: "inline-flex", alignItems: "center", gap: 4 },
-  miniTab: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)", padding: "4px 10px", borderRadius: 999 },
-  miniTabActive: { color: "var(--color-button-primary-bg)", background: "var(--color-primary-alpha-12)", fontWeight: 700 },
+  miniTab: {
+    fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)", padding: "4px 10px", borderRadius: 999,
+    background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit",
+  },
+  miniTabActive: { color: "var(--color-button-primary-bg)", background: "var(--color-primary-alpha-12)", fontWeight: 700, cursor: "default" },
+  liveNote: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--color-success-text)" },
 
   editorWrap: { display: "flex", flexDirection: "column", gap: 20 },
   baseBanner: {

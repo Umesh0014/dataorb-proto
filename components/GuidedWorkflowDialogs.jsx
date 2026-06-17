@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Check, X, FileText } from "lucide-react";
+import { Sparkles, Check, X, FileText, Rocket } from "lucide-react";
 import Button from "./Button";
 import { GW_SOURCE_INTERACTIONS, GW_PERSONAS } from "./mocks/guidedWorkflows";
 
@@ -102,6 +102,29 @@ export function AttachOverlay({ attached, onToggle, onClose }) {
   );
 }
 
+// Publish is the workflow's headline, outward-facing action — confirm it
+// before it goes live (G14 journey + INT-8 confirm-irreversible).
+export function PublishOverlay({ attachedCount, onClose, onConfirm }) {
+  return (
+    <Overlay onClose={onClose} title="Publish this guided workflow?" labelledBy="gw-publish-title">
+      <p style={styles.ovLead}>
+        Publishing makes this the live version. {attachedCount > 0
+          ? `Agents on the ${attachedCount} attached persona${attachedCount === 1 ? "" : "s"} will practise against it`
+          : "It isn't attached to a persona yet, so no agent will see it until you attach one"} — with
+        the safety wheel on, so guided scores stay out of the readiness profile.
+      </p>
+      <div style={styles.publishNote}>
+        <Rocket size={15} color="var(--color-button-primary-bg)" aria-hidden="true" />
+        Your edits are versioned — you can update and republish any time.
+      </div>
+      <div style={styles.ovFoot}>
+        <Button variant="text" uppercase={false} onClick={onClose}>Cancel</Button>
+        <Button variant="primary" leadingIcon={<Rocket size={16} />} onClick={onConfirm}>Publish workflow</Button>
+      </div>
+    </Overlay>
+  );
+}
+
 // Shared modal shell — scrim + dialog, Esc to close, click-outside to close.
 function Overlay({ title, labelledBy, onClose, children }) {
   React.useEffect(() => {
@@ -186,4 +209,8 @@ const styles = {
     fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.55,
   },
   ovFoot: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 },
+  publishNote: {
+    display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderRadius: 10,
+    background: "var(--color-primary-alpha-12)", fontSize: 12.5, color: "var(--color-text-medium)", lineHeight: 1.5,
+  },
 };

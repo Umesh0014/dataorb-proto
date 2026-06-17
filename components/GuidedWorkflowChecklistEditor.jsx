@@ -27,6 +27,7 @@ export default function GuidedWorkflowChecklistEditor({
   suggestions = [],
   onAcceptSuggestion,
   onCycleRequirement,
+  onUpdateScript,
   onAddStep,
   onRemoveStep,
 }) {
@@ -75,6 +76,7 @@ export default function GuidedWorkflowChecklistEditor({
                     onToggleScript={() => toggleScript(step.id)}
                     onToggleEvidence={() => toggleEvidence(step.id)}
                     onCycleRequirement={() => onCycleRequirement(step.id)}
+                    onUpdateScript={onUpdateScript}
                     onRemove={() => onRemoveStep(step.id)}
                   />
                 ))}
@@ -103,8 +105,9 @@ export default function GuidedWorkflowChecklistEditor({
   );
 }
 
-function StepRow({ step, scriptOpen, evidenceOpen, onToggleScript, onToggleEvidence, onCycleRequirement, onRemove }) {
+function StepRow({ step, scriptOpen, evidenceOpen, onToggleScript, onToggleEvidence, onCycleRequirement, onUpdateScript, onRemove }) {
   const evidence = step.evidence ?? gwEvidence(step.id);
+  const [confirming, setConfirming] = React.useState(false);
   return (
     <div style={styles.row}>
       <span style={styles.grip} aria-hidden="true">
@@ -163,13 +166,30 @@ function StepRow({ step, scriptOpen, evidenceOpen, onToggleScript, onToggleEvide
             </span>
           )}
           <div style={{ flex: 1 }} />
-          <button type="button" onClick={onRemove} style={styles.iconGhost} aria-label="Remove step">
-            <Trash2 size={14} color="var(--color-text-tertiary)" />
-          </button>
+          {confirming ? (
+            <span style={styles.confirmRow}>
+              <span style={styles.confirmLabel}>Remove?</span>
+              <button type="button" onClick={onRemove} style={styles.confirmYes}>Remove</button>
+              <button type="button" onClick={() => setConfirming(false)} style={styles.confirmNo}>Keep</button>
+            </span>
+          ) : (
+            <button type="button" onClick={() => setConfirming(true)} style={styles.iconGhost} aria-label="Remove step">
+              <Trash2 size={14} color="var(--color-text-tertiary)" />
+            </button>
+          )}
         </div>
 
-        {scriptOpen && step.script && (
-          <textarea defaultValue={step.script} style={styles.scriptArea} aria-label="Step script" rows={2} />
+        {scriptOpen && step.script != null && (
+          <>
+            <textarea
+              value={step.script}
+              onChange={(e) => onUpdateScript?.(step.id, e.target.value)}
+              style={styles.scriptArea}
+              aria-label="Step script"
+              rows={2}
+            />
+            {step.editedByLead && <span style={styles.editedNote}>Edited by you · overrides the AI draft</span>}
+          </>
         )}
         {evidenceOpen && <EvidenceCard evidence={evidence} />}
       </div>
@@ -217,7 +237,18 @@ const styles = {
     display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600,
     color: "var(--color-icon-tertiary-fg)",
   },
-  iconGhost: { background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "inline-flex", borderRadius: 6 },
+  iconGhost: { background: "transparent", border: "none", cursor: "pointer", padding: 10, margin: -6, display: "inline-flex", borderRadius: 8 },
+  confirmRow: { display: "inline-flex", alignItems: "center", gap: 8 },
+  confirmLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)" },
+  confirmYes: {
+    background: "transparent", border: "none", cursor: "pointer", padding: "4px 6px", fontFamily: "inherit",
+    fontSize: 12.5, fontWeight: 700, color: "var(--color-error-text)",
+  },
+  confirmNo: {
+    background: "transparent", border: "none", cursor: "pointer", padding: "4px 6px", fontFamily: "inherit",
+    fontSize: 12.5, fontWeight: 700, color: "var(--color-text-medium)",
+  },
+  editedNote: { fontSize: 11, fontWeight: 600, color: "var(--color-icon-tertiary-fg)" },
   scriptArea: {
     marginTop: 4, width: "100%", boxSizing: "border-box", resize: "vertical",
     padding: "10px 12px", borderRadius: 8, border: "1px solid var(--color-divider-card)",

@@ -28,6 +28,7 @@ export default function GuidedWorkflowBoardEditor({
   suggestions = [],
   onAcceptSuggestion,
   onCycleRequirement,
+  onUpdateScript,
   onAddStep,
 }) {
   const [expanded, setExpanded] = React.useState(null);
@@ -47,6 +48,9 @@ export default function GuidedWorkflowBoardEditor({
             </header>
             <p style={styles.lanePurpose}>{stage.purpose}</p>
             <div style={styles.laneBody}>
+              {stage.steps.length === 0 && (
+                <p style={styles.laneEmpty}>No steps here yet — add one, or accept a suggestion below.</p>
+              )}
               {stage.steps.map((step) => (
                 <StepCard
                   key={step.id}
@@ -54,6 +58,7 @@ export default function GuidedWorkflowBoardEditor({
                   expanded={expanded === step.id}
                   onToggle={() => toggle(step.id)}
                   onCycleRequirement={() => onCycleRequirement(step.id)}
+                  onUpdateScript={onUpdateScript}
                 />
               ))}
               <button type="button" style={styles.addCard} onClick={() => onAddStep(stage.id)}>
@@ -107,7 +112,7 @@ function OutcomeLane({ meta }) {
   );
 }
 
-function StepCard({ step, expanded, onToggle, onCycleRequirement }) {
+function StepCard({ step, expanded, onToggle, onCycleRequirement, onUpdateScript }) {
   const evidence = step.evidence ?? gwEvidence(step.id);
   return (
     <article style={styles.card}>
@@ -134,7 +139,23 @@ function StepCard({ step, expanded, onToggle, onCycleRequirement }) {
         {evidence ? <SuccessChip evidence={evidence} /> : <span style={styles.noEvidence}>No evidence yet</span>}
         <span style={styles.evidenceCue}>{expanded ? "Hide" : "Why?"}</span>
       </button>
-      {expanded && <EvidenceCard evidence={evidence} />}
+      {expanded && (
+        <>
+          <EvidenceCard evidence={evidence} />
+          {step.script != null && (
+            <label style={styles.scriptField}>
+              <span style={styles.scriptLabel}>Script {step.editedByLead && <span style={styles.editedNote}>· edited by you</span>}</span>
+              <textarea
+                value={step.script}
+                onChange={(e) => onUpdateScript?.(step.id, e.target.value)}
+                style={styles.scriptArea}
+                rows={2}
+                aria-label="Step script"
+              />
+            </label>
+          )}
+        </>
+      )}
     </article>
   );
 }
@@ -196,6 +217,15 @@ const styles = {
   },
   noEvidence: { fontSize: 11, fontStyle: "italic", color: "var(--color-text-tertiary)" },
   evidenceCue: { fontSize: 11.5, fontWeight: 700, color: "var(--color-button-primary-bg)" },
+  laneEmpty: { margin: 0, padding: "8px 4px", fontSize: 11.5, fontStyle: "italic", color: "var(--color-text-tertiary)", lineHeight: 1.45 },
+  scriptField: { display: "flex", flexDirection: "column", gap: 5 },
+  scriptLabel: { fontSize: 11.5, fontWeight: 700, color: "var(--color-text-medium)" },
+  editedNote: { fontWeight: 600, fontStyle: "italic", color: "var(--color-icon-tertiary-fg)" },
+  scriptArea: {
+    width: "100%", boxSizing: "border-box", resize: "vertical", padding: "8px 10px", borderRadius: 8,
+    border: "1px solid var(--color-divider-card)", background: "var(--surface-dim)", fontFamily: "var(--font-sans)",
+    fontSize: 12, color: "var(--color-text-medium)", lineHeight: 1.5,
+  },
   addCard: {
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     background: "transparent", border: "1px dashed var(--color-divider-card)", borderRadius: 10,
