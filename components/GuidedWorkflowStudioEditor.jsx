@@ -1,9 +1,17 @@
 "use client";
 
 import React from "react";
-import { Plus, MessageSquareQuote, FileText, CornerDownRight } from "lucide-react";
-import { TypeTag, RequirementTag, GroundingChip, AiMark } from "./GuidedWorkflowBits";
-import { GW_TRANSCRIPT, GW_STAGES } from "./mocks/guidedWorkflows";
+import { Plus, MessageSquareQuote, FileText, CornerDownRight, Sparkles } from "lucide-react";
+import {
+  TypeTag,
+  RequirementTag,
+  GroundingChip,
+  AiMark,
+  SuccessChip,
+  EvidenceCard,
+  SuggestedStepCard,
+} from "./GuidedWorkflowBits";
+import { GW_TRANSCRIPT, GW_STAGES, gwEvidence } from "./mocks/guidedWorkflows";
 
 // C · Ambitious — Evidence studio. The flat checklist (right) sits beside
 // the production evidence it was mined from (left). Grounding becomes
@@ -17,12 +25,16 @@ const STAGE_LABEL = Object.fromEntries(GW_STAGES.map((s) => [s.id, s.label]));
 
 export default function GuidedWorkflowStudioEditor({
   steps,
+  suggestions = [],
+  onAcceptSuggestion,
   onCycleRequirement,
   onAddStep,
 }) {
   const [selectedStep, setSelectedStep] = React.useState(steps[0]?.id ?? null);
+  const [openSuggest, setOpenSuggest] = React.useState(null);
 
   const selected = steps.find((s) => s.id === selectedStep) || null;
+  const selectedEvidence = selected ? selected.evidence ?? gwEvidence(selected.id) : null;
   // Turns that ground the selected step (matched by stepId on the transcript).
   const litTurns = new Set(
     selected ? GW_TRANSCRIPT.filter((t) => t.stepId === selected.id).map((t) => t.id) : [],
@@ -85,6 +97,7 @@ export default function GuidedWorkflowStudioEditor({
                   <span style={styles.stepInstruction}>{step.instruction}</span>
                   <span style={styles.stepFoot}>
                     <GroundingChip grounding={step.grounding} />
+                    <SuccessChip evidence={step.evidence ?? gwEvidence(step.id)} />
                     {step.script && <MessageSquareQuote size={12} color="var(--color-button-primary-bg)" aria-label="Has a script" />}
                   </span>
                 </span>
@@ -93,13 +106,31 @@ export default function GuidedWorkflowStudioEditor({
           })}
         </div>
 
+        {suggestions.length > 0 && (
+          <div style={styles.suggestTray}>
+            <span style={styles.trayHead}>
+              <Sparkles size={13} color="var(--color-button-primary-bg)" aria-hidden="true" />
+              Suggested from the evidence
+            </span>
+            {suggestions.map((s) => (
+              <SuggestedStepCard
+                key={s.id}
+                step={s}
+                expanded={openSuggest === s.id}
+                onToggle={() => setOpenSuggest((cur) => (cur === s.id ? null : s.id))}
+                onAdd={() => onAcceptSuggestion(s.id)}
+              />
+            ))}
+          </div>
+        )}
+
         {selected && (
           <div style={styles.inspector}>
             <span style={styles.inspectorHead}>
               <CornerDownRight size={13} color="var(--color-text-tertiary)" aria-hidden="true" />
               {litTurns.size > 0
                 ? `Grounded in ${litTurns.size} highlighted turn${litTurns.size > 1 ? "s" : ""} on the left`
-                : "No evidence yet — this step was added by hand"}
+                : "No source turns highlighted — added by hand"}
             </span>
             <div style={styles.inspectorActions}>
               <button type="button" onClick={() => onCycleRequirement(selected.id)} style={styles.reqBtn} aria-label="Change requirement">
@@ -112,6 +143,7 @@ export default function GuidedWorkflowStudioEditor({
                 </span>
               )}
             </div>
+            <EvidenceCard evidence={selectedEvidence} />
           </div>
         )}
       </section>
@@ -165,6 +197,11 @@ const styles = {
   stepInstruction: { fontSize: 13.5, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
   stepFoot: { display: "inline-flex", alignItems: "center", gap: 10 },
 
+  suggestTray: { display: "flex", flexDirection: "column", gap: 10, marginTop: 4 },
+  trayHead: {
+    display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700,
+    letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--color-button-primary-bg)",
+  },
   inspector: {
     display: "flex", flexDirection: "column", gap: 10, padding: "12px 14px", borderRadius: 10,
     background: "var(--surface-dim)", border: "1px solid var(--color-border-card-soft)",

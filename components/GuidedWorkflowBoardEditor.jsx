@@ -2,7 +2,15 @@
 
 import React from "react";
 import { Plus, GripVertical, MessageSquareQuote, Target } from "lucide-react";
-import { TypeTag, RequirementTag, GroundingChip } from "./GuidedWorkflowBits";
+import {
+  TypeTag,
+  RequirementTag,
+  GroundingChip,
+  SuccessChip,
+  EvidenceCard,
+  SuggestedStepCard,
+} from "./GuidedWorkflowBits";
+import { gwEvidence } from "./mocks/guidedWorkflows";
 
 // B · Balanced — Stage board. The five universal stages become horizontal
 // swim-lanes (Neil's swim-lane lean), so the lead reads the *shape* of the
@@ -17,9 +25,15 @@ import { TypeTag, RequirementTag, GroundingChip } from "./GuidedWorkflowBits";
 export default function GuidedWorkflowBoardEditor({
   meta,
   stagesWithSteps,
+  suggestions = [],
+  onAcceptSuggestion,
   onCycleRequirement,
   onAddStep,
 }) {
+  const [expanded, setExpanded] = React.useState(null);
+  const [openSuggest, setOpenSuggest] = React.useState(null);
+  const toggle = (id) => setExpanded((cur) => (cur === id ? null : id));
+
   return (
     <div style={styles.scroller}>
       <div style={styles.board}>
@@ -37,6 +51,8 @@ export default function GuidedWorkflowBoardEditor({
                 <StepCard
                   key={step.id}
                   step={step}
+                  expanded={expanded === step.id}
+                  onToggle={() => toggle(step.id)}
                   onCycleRequirement={() => onCycleRequirement(step.id)}
                 />
               ))}
@@ -44,6 +60,18 @@ export default function GuidedWorkflowBoardEditor({
                 <Plus size={14} color="var(--color-button-primary-bg)" />
                 Add step
               </button>
+              {suggestions
+                .filter((s) => s.stage === stage.id)
+                .map((s) => (
+                  <SuggestedStepCard
+                    key={s.id}
+                    step={s}
+                    dense
+                    expanded={openSuggest === s.id}
+                    onToggle={() => setOpenSuggest((cur) => (cur === s.id ? null : s.id))}
+                    onAdd={() => onAcceptSuggestion(s.id)}
+                  />
+                ))}
             </div>
           </section>
         ))}
@@ -79,7 +107,8 @@ function OutcomeLane({ meta }) {
   );
 }
 
-function StepCard({ step, onCycleRequirement }) {
+function StepCard({ step, expanded, onToggle, onCycleRequirement }) {
+  const evidence = step.evidence ?? gwEvidence(step.id);
   return (
     <article style={styles.card}>
       <div style={styles.cardTop}>
@@ -101,6 +130,11 @@ function StepCard({ step, onCycleRequirement }) {
         <GroundingChip grounding={step.grounding} />
         {step.script && <MessageSquareQuote size={13} color="var(--color-button-primary-bg)" aria-label="Has a script" />}
       </div>
+      <button type="button" onClick={onToggle} style={styles.evidenceToggle} aria-expanded={expanded}>
+        {evidence ? <SuccessChip evidence={evidence} /> : <span style={styles.noEvidence}>No evidence yet</span>}
+        <span style={styles.evidenceCue}>{expanded ? "Hide" : "Why?"}</span>
+      </button>
+      {expanded && <EvidenceCard evidence={evidence} />}
     </article>
   );
 }
@@ -155,6 +189,13 @@ const styles = {
   reqBtn: { background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "inline-flex" },
   subCount: { fontSize: 11, fontWeight: 600, color: "var(--color-icon-tertiary-fg)" },
   cardFoot: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  evidenceToggle: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 2,
+    background: "transparent", border: "none", borderTop: "1px solid var(--color-border-card-soft)",
+    paddingTop: 8, cursor: "pointer", fontFamily: "inherit", width: "100%",
+  },
+  noEvidence: { fontSize: 11, fontStyle: "italic", color: "var(--color-text-tertiary)" },
+  evidenceCue: { fontSize: 11.5, fontWeight: 700, color: "var(--color-button-primary-bg)" },
   addCard: {
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     background: "transparent", border: "1px dashed var(--color-divider-card)", borderRadius: 10,

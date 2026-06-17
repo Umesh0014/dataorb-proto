@@ -1,9 +1,16 @@
 "use client";
 
 import React from "react";
-import { ChevronDown, GripVertical, Plus, MessageSquareQuote, BookOpen, Trash2 } from "lucide-react";
-import Button from "./Button";
-import { TypeTag, RequirementTag, GroundingChip } from "./GuidedWorkflowBits";
+import { ChevronDown, GripVertical, Plus, MessageSquareQuote, BookOpen, Trash2, BarChart3 } from "lucide-react";
+import {
+  TypeTag,
+  RequirementTag,
+  GroundingChip,
+  SuccessChip,
+  EvidenceCard,
+  SuggestedStepCard,
+} from "./GuidedWorkflowBits";
+import { gwEvidence } from "./mocks/guidedWorkflows";
 
 // A · Safe — Checklist editor. The most literal reading of "as easy as a
 // checklist in Asana": one flat vertical list, grouped by the five stages
@@ -17,15 +24,20 @@ import { TypeTag, RequirementTag, GroundingChip } from "./GuidedWorkflowBits";
 
 export default function GuidedWorkflowChecklistEditor({
   stagesWithSteps,
+  suggestions = [],
+  onAcceptSuggestion,
   onCycleRequirement,
   onAddStep,
   onRemoveStep,
 }) {
   const [collapsed, setCollapsed] = React.useState({});
   const [openScript, setOpenScript] = React.useState(null);
+  const [openEvidence, setOpenEvidence] = React.useState(null);
+  const [openSuggest, setOpenSuggest] = React.useState(null);
 
   const toggleStage = (id) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
   const toggleScript = (id) => setOpenScript((cur) => (cur === id ? null : id));
+  const toggleEvidence = (id) => setOpenEvidence((cur) => (cur === id ? null : id));
 
   return (
     <div style={styles.wrap}>
@@ -59,7 +71,9 @@ export default function GuidedWorkflowChecklistEditor({
                     key={step.id}
                     step={step}
                     scriptOpen={openScript === step.id}
+                    evidenceOpen={openEvidence === step.id}
                     onToggleScript={() => toggleScript(step.id)}
+                    onToggleEvidence={() => toggleEvidence(step.id)}
                     onCycleRequirement={() => onCycleRequirement(step.id)}
                     onRemove={() => onRemoveStep(step.id)}
                   />
@@ -68,6 +82,18 @@ export default function GuidedWorkflowChecklistEditor({
                   <Plus size={15} color="var(--color-button-primary-bg)" />
                   Add a step to {stage.label}
                 </button>
+
+                {suggestions
+                  .filter((s) => s.stage === stage.id)
+                  .map((s) => (
+                    <SuggestedStepCard
+                      key={s.id}
+                      step={s}
+                      expanded={openSuggest === s.id}
+                      onToggle={() => setOpenSuggest((cur) => (cur === s.id ? null : s.id))}
+                      onAdd={() => onAcceptSuggestion(s.id)}
+                    />
+                  ))}
               </div>
             )}
           </section>
@@ -77,7 +103,8 @@ export default function GuidedWorkflowChecklistEditor({
   );
 }
 
-function StepRow({ step, scriptOpen, onToggleScript, onCycleRequirement, onRemove }) {
+function StepRow({ step, scriptOpen, evidenceOpen, onToggleScript, onToggleEvidence, onCycleRequirement, onRemove }) {
+  const evidence = step.evidence ?? gwEvidence(step.id);
   return (
     <div style={styles.row}>
       <span style={styles.grip} aria-hidden="true">
@@ -116,10 +143,17 @@ function StepRow({ step, scriptOpen, onToggleScript, onCycleRequirement, onRemov
 
         <div style={styles.rowFoot}>
           <GroundingChip grounding={step.grounding} />
+          <SuccessChip evidence={evidence} />
           {step.script && (
             <button type="button" onClick={onToggleScript} style={styles.linkBtn} aria-expanded={scriptOpen}>
               <MessageSquareQuote size={13} color="var(--color-button-primary-bg)" />
               {scriptOpen ? "Hide script" : "Script"}
+            </button>
+          )}
+          {evidence && (
+            <button type="button" onClick={onToggleEvidence} style={styles.linkBtn} aria-expanded={evidenceOpen}>
+              <BarChart3 size={13} color="var(--color-button-primary-bg)" />
+              {evidenceOpen ? "Hide evidence" : "Evidence"}
             </button>
           )}
           {step.knowledge && (
@@ -137,6 +171,7 @@ function StepRow({ step, scriptOpen, onToggleScript, onCycleRequirement, onRemov
         {scriptOpen && step.script && (
           <textarea defaultValue={step.script} style={styles.scriptArea} aria-label="Step script" rows={2} />
         )}
+        {evidenceOpen && <EvidenceCard evidence={evidence} />}
       </div>
     </div>
   );

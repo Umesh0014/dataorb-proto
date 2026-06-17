@@ -321,6 +321,127 @@ export const GW_TRANSCRIPT = [
   { id: "t10", speaker: "agent", text: "So that's confirmed and noted on your account — you'll see it next month.", stepId: "agreement" },
 ];
 
+// Per-step EVIDENCE — why the AI proposed this step, made auditable. Mined
+// from the grounded interactions: how often following the step correlated
+// with the outcome, across how many calls, and the actual phrasing top
+// agents used (real examples the lead can lift into the script). Steps the
+// lead added by hand have no evidence (returns null) — visibly unproven.
+export const GW_STEP_EVIDENCE = {
+  greet: {
+    successRate: 96, callCount: 240, outcome: "a smooth open",
+    examples: [
+      { interactionId: "20471", quote: "Thanks for calling Acme, this is Sam — happy to help with your bill today." },
+      { interactionId: "20102", quote: "You're through to Acme, my name's Priya — I can see your account here." },
+    ],
+  },
+  verify: {
+    successRate: 88, callCount: 240, outcome: "compliant handling",
+    examples: [
+      { interactionId: "20471", quote: "Before I pull up the account, can I confirm your date of birth and postcode?" },
+      { interactionId: "19980", quote: "Just two quick security details and I'll have you verified." },
+    ],
+  },
+  diagnose: {
+    successRate: 79, callCount: 180, outcome: "the customer feeling heard",
+    examples: [
+      { interactionId: "19980", quote: "Let me read the two lines back so it's clear where the £8.60 came from." },
+      { interactionId: "20188", quote: "I can see exactly what changed — it's these two charges here." },
+    ],
+  },
+  "explain-ipc": {
+    successRate: 74, callCount: 160, outcome: "fewer escalations",
+    examples: [
+      { interactionId: "19980", quote: "This is the annual April adjustment — on your tariff that's £2.10 a month." },
+      { interactionId: "20311", quote: "It applies across every plan; I can show you exactly how it's worked out." },
+    ],
+  },
+  "churn-signal": {
+    successRate: 68, callCount: 90, outcome: "a save opportunity caught early",
+    examples: [
+      { interactionId: "20240", quote: "It sounds like you've been looking at other options — can I see what I can do first?" },
+      { interactionId: "20356", quote: "Before you decide, let me check what's available on your account." },
+    ],
+  },
+  offer: {
+    successRate: 82, callCount: 120, outcome: "the customer retained",
+    examples: [
+      { interactionId: "20102", quote: "Because you've been with us six years, I can apply a loyalty credit that holds your rate." },
+      { interactionId: "20402", quote: "I can bring that back below what you're paying now without changing your plan." },
+    ],
+  },
+  agreement: {
+    successRate: 91, callCount: 110, outcome: "no repeat call within 30 days",
+    examples: [
+      { interactionId: "20102", quote: "So that's confirmed and noted on your account — you'll see it next month." },
+      { interactionId: "20188", quote: "I'll read that back: current plan, loyalty credit from next cycle. All good?" },
+    ],
+  },
+};
+
+export function gwEvidence(stepId) {
+  return GW_STEP_EVIDENCE[stepId] || null;
+}
+
+// AI-SUGGESTED steps not yet in the workflow. The lead reviews them with the
+// same evidence the base steps carry and accepts the ones worth keeping —
+// the "self-improving knowledge" loop surfaced as an editable suggestion.
+export const GW_SUGGESTED_STEPS = [
+  {
+    id: "sg-quantify",
+    stage: "discover",
+    instruction: "Quantify the impact on their plan",
+    detail: "Put the change in their terms — annual cost, or cost per the thing they care about.",
+    type: "action",
+    requirement: "recommended",
+    script: "Over a year that works out to about £25 — let me show you how that compares to the value you're getting.",
+    knowledge: null,
+    grounding: { interactionId: "20356", quote: "“Over the year that's about £25…”" },
+    subSteps: [],
+    evidence: {
+      successRate: 71, callCount: 64, outcome: "the customer accepting the change",
+      examples: [
+        { interactionId: "20356", quote: "Over twelve months that's roughly £25 — here's what that's covering." },
+      ],
+    },
+  },
+  {
+    id: "sg-summary",
+    stage: "act",
+    instruction: "Offer a written summary by email",
+    detail: "Confirm the agreed terms in writing so there's no ambiguity later.",
+    type: "action",
+    requirement: "recommended",
+    script: "I'll send you a quick email confirming the credit and your new monthly amount, so you've got it in writing.",
+    knowledge: null,
+    grounding: { interactionId: "20402", quote: "“I'll email you a summary so you have it…”" },
+    subSteps: [],
+    evidence: {
+      successRate: 77, callCount: 88, outcome: "no repeat call within 30 days",
+      examples: [
+        { interactionId: "20402", quote: "I'll drop you an email with the new amount and the credit applied." },
+      ],
+    },
+  },
+  {
+    id: "sg-followup",
+    stage: "close",
+    instruction: "Set a proactive follow-up checkpoint",
+    detail: "Tell them when they'll hear from you next, so retention sticks.",
+    type: "action",
+    requirement: "recommended",
+    script: "I'll have someone check in with you after your next bill to make sure everything looks right.",
+    knowledge: null,
+    grounding: null,
+    subSteps: [],
+    evidence: {
+      successRate: 69, callCount: 52, outcome: "longer tenure after the save",
+      examples: [
+        { interactionId: "20102", quote: "We'll check in after your next bill to make sure it's all correct." },
+      ],
+    },
+  },
+];
+
 // ---- meta helpers -------------------------------------------------------
 
 // Step type — color is always paired with the text label (never color alone).
