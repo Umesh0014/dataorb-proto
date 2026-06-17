@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ArrowRight,
   BookOpen,
+  EyeOff,
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
@@ -22,6 +23,7 @@ import {
   GUIDED_DRILL_STEPS,
   GUIDED_DRILL_STAGES,
   STEP_TYPE_LABEL,
+  GUIDED_DRILL_SCENARIOS,
   GUIDED_DRILL_EVAL,
   formatDrillTimer,
 } from "./mocks/guidedDrill";
@@ -79,6 +81,10 @@ export default function DrillGuidedSessionPage({ onEnd }) {
   const [knowledgeOpen, setKnowledgeOpen] = React.useState(false);
   const [showAll, setShowAll] = React.useState(false); // deliberate "show all steps"
   const [ended, setEnded] = React.useState(false);
+  // AI-behaviour demo: which scenario is being shown.
+  const [scenario, setScenario] = React.useState("listen");
+  const [blind, setBlind] = React.useState(false); // S2: talk not matched to a configured step
+  const [correction, setCorrection] = React.useState(null); // S4: review-AI corrected step label
 
   const currentIdx = steps.findIndex((s) => s.state === "active");
   const currentStep = currentIdx >= 0 ? steps[currentIdx] : null;
@@ -123,6 +129,31 @@ export default function DrillGuidedSessionPage({ onEnd }) {
   }, []);
 
   const endCall = () => setEnded(true);
+
+  // The four AI-behaviour scenarios, triggered from the demo control.
+  const runScenario = (id) => {
+    setScenario(id);
+    if (id === "blind") {
+      setBlind(true);
+      setCorrection(null);
+    } else if (id === "remaining") {
+      setBlind(false);
+      setCorrection(null);
+      setShowAll(true);
+    } else if (id === "correct") {
+      setBlind(false);
+      // The agent covered "churn" but the live AI didn't log it — a second
+      // (review) AI checks it off in the background. The agent never corrects.
+      setSteps((prev) =>
+        prev.map((s) => (s.id === "churn" ? { ...s, state: "done", at: "2:30", corrected: true } : s)),
+      );
+      setCorrection("Check for a churn / competitor signal");
+    } else {
+      setBlind(false);
+      setCorrection(null);
+    }
+  };
+
   const guideProps = {
     prevStep,
     currentStep,
@@ -136,6 +167,11 @@ export default function DrillGuidedSessionPage({ onEnd }) {
     onToggleKnowledge: () => setKnowledgeOpen((o) => !o),
     showAll,
     onToggleShowAll: () => setShowAll((o) => !o),
+    scenario,
+    onScenario: runScenario,
+    blind,
+    correction,
+    onDismissCorrection: () => setCorrection(null),
   };
 
   return (
@@ -303,18 +339,97 @@ function TimerPill({ secondsLeft }) {
 
 // ---- Shared guide pieces ------------------------------------------------
 
-function GuidePanelHeader({ doneCount, total }) {
+function GuidePanelHeader({ doneCount, total, blind }) {
   return (
     <div style={styles.guideHead}>
       <span style={styles.guideTitle}>Guided workflow</span>
-      <span style={styles.listenPill}>
-        <span style={styles.listenDot} aria-hidden="true" />
-        AI listening
+      <span style={{ ...styles.listenPill, ...(blind ? styles.listenPillBlind : null) }}>
+        {blind
+          ? <EyeOff size={13} color="var(--color-text-tertiary)" aria-hidden="true" />
+          : <span style={styles.listenDot} aria-hidden="true" />}
+        {blind ? "Listening — not a tracked step" : "AI listening"}
       </span>
       <div style={{ flex: 1 }} />
       <span style={styles.guideProg}>
         <b style={styles.guideProgNum}>{doneCount}</b>/{total} steps
       </span>
+    </div>
+  );
+}
+
+// The shared guide-panel shell: header + stage strip + (correction banner /
+// blind note) + the variant's three-position body + deliberate show-all +
+// the AI-behaviour demo control. The three variants only supply the body.
+function GuideShell({
+  doneCount, steps, stages, blind, correction, onDismissCorrection,
+  showAll, onToggleShowAll, scenario, onScenario, scrollStyle, children,
+}) {
+  const total = steps.length;
+  return (
+    <aside style={styles.guidePanel} aria-label="Guided workflow">
+      <GuidePanelHeader doneCount={doneCount} total={total} blind={blind} />
+      <StageStrip stages={stages} />
+      <div style={scrollStyle}>
+        {correction && (
+          <div style={styles.correctionBanner} role="status">
+            <CheckCircle2 size={16} color="var(--color-success)" aria-hidden="true" />
+            <span style={styles.correctionText}>
+              Logged by the review AI: <b>{correction}</b> — heard on the recording, no action needed.
+            </span>
+            <button
+              type="button"
+              onClick={onDismissCorrection}
+              aria-label="Dismiss"
+              className="drill-focusable"
+              style={styles.correctionDismiss}
+            >
+              <X size={14} color="var(--color-text-tertiary)" />
+            </button>
+          </div>
+        )}
+        {blind && (
+          <div style={styles.blindNote}>
+            <EyeOff size={14} color="var(--color-text-tertiary)" aria-hidden="true" />
+            <span style={styles.blindText}>
+              The AI is listening but this isn't one of the configured steps — nothing to log. Keep going.
+            </span>
+          </div>
+        )}
+        {children}
+        {showAll && <AllStepsList steps={steps} />}
+        <ShowAllToggle showAll={showAll} onToggle={onToggleShowAll} doneCount={doneCount} total={total} />
+      </div>
+      <ScenarioBar scenario={scenario} onScenario={onScenario} />
+    </aside>
+  );
+}
+
+// AI-behaviour demo control — lets a reviewer trigger each of the four
+// scenarios. Demo/meta tooling (like the variant switcher), not product
+// chrome the agent would normally touch.
+function ScenarioBar({ scenario, onScenario }) {
+  const active = GUIDED_DRILL_SCENARIOS.find((s) => s.id === scenario) || GUIDED_DRILL_SCENARIOS[0];
+  return (
+    <div style={styles.scenarioBar}>
+      <span style={styles.scenarioKicker}>AI behaviour · demo</span>
+      <div style={styles.scenarioBtns} role="group" aria-label="AI behaviour scenarios">
+        {GUIDED_DRILL_SCENARIOS.map((s) => {
+          const on = s.id === scenario;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onScenario(s.id)}
+              className="drill-focusable"
+              style={{ ...styles.scenarioBtn, ...(on ? styles.scenarioBtnOn : null) }}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+      <span style={styles.scenarioNote}>{active.note}</span>
     </div>
   );
 }
@@ -409,9 +524,9 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
 
       <div style={styles.assetRow}>
         <Button variant="ai" uppercase={false} onClick={onToggleScript} className="drill-focusable" aria-expanded={scriptOpen} style={{ minHeight: 44, paddingBlock: 6 }}>
-          {scriptOpen ? "Hide script" : "Show script"}
+          {scriptOpen ? "Hide script support" : "Show script support"}
         </Button>
-        {step.knowledge && (
+        {step.knowledgeCards && step.knowledgeCards.length > 0 && (
           <button
             type="button"
             onClick={onToggleKnowledge}
@@ -420,7 +535,7 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
             style={styles.knowledgeBtn}
           >
             <BookOpen size={14} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
-            Knowledge · {step.knowledge.title}
+            Knowledge ({step.knowledgeCards.length})
           </button>
         )}
       </div>
@@ -428,13 +543,28 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
       {scriptOpen && (
         <div style={styles.scriptBox}>
           <span style={styles.scriptKicker}>Suggested phrasing</span>
-          <p style={styles.scriptText}>{step.script}</p>
+          {step.scriptBeats ? (
+            <ul style={styles.beatList}>
+              {step.scriptBeats.map((b) => (
+                <li key={b.label} style={styles.beatItem}>
+                  <span style={styles.beatLabel}>{b.label}</span>
+                  <span style={styles.beatText}>“{b.text}”</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={styles.scriptText}>{step.script}</p>
+          )}
         </div>
       )}
-      {step.knowledge && knowledgeOpen && (
-        <div style={styles.knowledgeCard}>
-          <span style={styles.knowledgeTitle}>{step.knowledge.title}</span>
-          <p style={styles.knowledgeText}>{step.knowledge.body}</p>
+      {step.knowledgeCards && step.knowledgeCards.length > 0 && knowledgeOpen && (
+        <div style={styles.knowledgeStack}>
+          {step.knowledgeCards.map((k) => (
+            <div key={k.title} style={styles.knowledgeCard}>
+              <span style={styles.knowledgeTitle}>{k.title}</span>
+              <p style={styles.knowledgeText}>{k.body}</p>
+            </div>
+          ))}
         </div>
       )}
 
@@ -507,6 +637,7 @@ function AllStepsList({ steps }) {
             <span style={{ ...styles.allLabel, color: done || active ? "var(--color-text-deep)" : "var(--color-text-tertiary)" }}>
               {s.label}
             </span>
+            {s.corrected && <span style={styles.reviewTag}>Review AI</span>}
             <TypeTag type={s.type} />
           </li>
         );
@@ -536,16 +667,33 @@ function ShowAllToggle({ showAll, onToggle, doneCount, total }) {
 
 // ---- Variant A — Triptych ----------------------------------------------
 
-function TriptychGuide({
-  prevStep, currentStep, nextStep, steps, stages, doneCount,
-  scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge, showAll, onToggleShowAll,
-}) {
+function TriptychGuide(props) {
+  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge } = props;
   return (
-    <aside style={styles.guidePanel} aria-label="Guided workflow">
-      <GuidePanelHeader doneCount={doneCount} total={steps.length} />
-      <StageStrip stages={stages} />
-      <div style={styles.guideScroll}>
-        <PeekCard step={prevStep} position="previous" />
+    <GuideShell {...props} scrollStyle={styles.guideScroll}>
+      <PeekCard step={prevStep} position="previous" />
+      <CurrentStepCard
+        step={currentStep}
+        scriptOpen={scriptOpen}
+        onToggleScript={onToggleScript}
+        knowledgeOpen={knowledgeOpen}
+        onToggleKnowledge={onToggleKnowledge}
+      />
+      <PeekCard step={nextStep} position="next" />
+    </GuideShell>
+  );
+}
+
+// ---- Variant B — Focus -------------------------------------------------
+
+function FocusGuide(props) {
+  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge } = props;
+  return (
+    <GuideShell {...props} scrollStyle={styles.focusScroll}>
+      <div style={styles.peekLineRow}>
+        <PeekLine step={prevStep} position="previous" />
+      </div>
+      <div style={styles.focusCardWrap}>
         <CurrentStepCard
           step={currentStep}
           scriptOpen={scriptOpen}
@@ -553,29 +701,25 @@ function TriptychGuide({
           knowledgeOpen={knowledgeOpen}
           onToggleKnowledge={onToggleKnowledge}
         />
-        <PeekCard step={nextStep} position="next" />
-        {showAll && <AllStepsList steps={steps} />}
-        <ShowAllToggle showAll={showAll} onToggle={onToggleShowAll} doneCount={doneCount} total={steps.length} />
       </div>
-    </aside>
+      <div style={styles.peekLineRow}>
+        <PeekLine step={nextStep} position="next" />
+      </div>
+    </GuideShell>
   );
 }
 
-// ---- Variant B — Focus -------------------------------------------------
+// ---- Variant C — Filmstrip ---------------------------------------------
 
-function FocusGuide({
-  prevStep, currentStep, nextStep, steps, stages, doneCount,
-  scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge, showAll, onToggleShowAll,
-}) {
+function FilmstripGuide(props) {
+  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge } = props;
   return (
-    <aside style={styles.guidePanel} aria-label="Guided workflow">
-      <GuidePanelHeader doneCount={doneCount} total={steps.length} />
-      <StageStrip stages={stages} />
-      <div style={styles.focusScroll}>
-        <div style={styles.peekLineRow}>
-          <PeekLine step={prevStep} position="previous" />
+    <GuideShell {...props} scrollStyle={styles.filmScroll}>
+      <div style={styles.filmstrip}>
+        <div style={styles.filmSide}>
+          <PeekCard step={prevStep} position="previous" />
         </div>
-        <div style={styles.focusCardWrap}>
+        <div style={styles.filmCenter}>
           <CurrentStepCard
             step={currentStep}
             scriptOpen={scriptOpen}
@@ -584,48 +728,11 @@ function FocusGuide({
             onToggleKnowledge={onToggleKnowledge}
           />
         </div>
-        <div style={styles.peekLineRow}>
-          <PeekLine step={nextStep} position="next" />
+        <div style={styles.filmSide}>
+          <PeekCard step={nextStep} position="next" />
         </div>
-        {showAll && <AllStepsList steps={steps} />}
-        <ShowAllToggle showAll={showAll} onToggle={onToggleShowAll} doneCount={doneCount} total={steps.length} />
       </div>
-    </aside>
-  );
-}
-
-// ---- Variant C — Filmstrip ---------------------------------------------
-
-function FilmstripGuide({
-  prevStep, currentStep, nextStep, steps, stages, doneCount,
-  scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge, showAll, onToggleShowAll,
-}) {
-  return (
-    <aside style={styles.guidePanel} aria-label="Guided workflow">
-      <GuidePanelHeader doneCount={doneCount} total={steps.length} />
-      <StageStrip stages={stages} />
-      <div style={styles.filmScroll}>
-        <div style={styles.filmstrip}>
-          <div style={styles.filmSide}>
-            <PeekCard step={prevStep} position="previous" />
-          </div>
-          <div style={styles.filmCenter}>
-            <CurrentStepCard
-              step={currentStep}
-              scriptOpen={scriptOpen}
-              onToggleScript={onToggleScript}
-              knowledgeOpen={knowledgeOpen}
-              onToggleKnowledge={onToggleKnowledge}
-            />
-          </div>
-          <div style={styles.filmSide}>
-            <PeekCard step={nextStep} position="next" />
-          </div>
-        </div>
-        {showAll && <AllStepsList steps={steps} />}
-        <ShowAllToggle showAll={showAll} onToggle={onToggleShowAll} doneCount={doneCount} total={steps.length} />
-      </div>
-    </aside>
+    </GuideShell>
   );
 }
 
@@ -943,6 +1050,68 @@ const styles = {
     position: "absolute", width: 1, height: 1, padding: 0, margin: -1,
     overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0,
   },
+
+  // Listening pill — "not tracked" (blind) state
+  listenPillBlind: { background: "var(--color-chip-bg)", color: "var(--color-text-tertiary)" },
+
+  // Correction banner (S4 — review AI logged a step)
+  correctionBanner: {
+    display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderRadius: 8,
+    background: "var(--color-success-bg)", border: "1px solid var(--color-success)",
+    animation: "drillStepIn 150ms ease",
+  },
+  correctionText: { flex: 1, fontSize: 12.5, fontWeight: 500, lineHeight: 1.5, color: "var(--color-success-text)" },
+  correctionDismiss: {
+    width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent",
+    cursor: "pointer", padding: 0, display: "inline-grid", placeItems: "center", flexShrink: 0,
+  },
+
+  // Blind note (S2 — talk not matched to a configured step)
+  blindNote: {
+    display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderRadius: 8,
+    background: "var(--surface-dim)", border: "1px solid var(--color-divider-card)",
+  },
+  blindText: { flex: 1, fontSize: 12.5, fontWeight: 400, lineHeight: 1.5, color: "var(--color-text-tertiary)" },
+
+  // Script support beats
+  beatList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 },
+  beatItem: { display: "flex", flexDirection: "column", gap: 1 },
+  beatLabel: {
+    fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  beatText: { fontSize: 13, fontWeight: 500, lineHeight: 1.45, color: "var(--color-text-medium)" },
+
+  // Knowledge cards (multiple)
+  knowledgeStack: { display: "flex", flexDirection: "column", gap: 8 },
+  reviewTag: {
+    display: "inline-flex", alignItems: "center", height: 20, padding: "0 8px", borderRadius: 4,
+    fontSize: 11, fontWeight: 700, letterSpacing: "0.2px",
+    background: "var(--color-success-bg)", color: "var(--color-success-text)",
+  },
+
+  // AI-behaviour demo control
+  scenarioBar: {
+    flexShrink: 0, display: "flex", flexDirection: "column", gap: 6,
+    padding: "12px 22px 16px", borderTop: "1px solid var(--color-border-card-soft)",
+    background: "var(--color-surface-header-tinted)",
+  },
+  scenarioKicker: {
+    fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.4px",
+    textTransform: "uppercase", color: "var(--color-text-tertiary)",
+  },
+  scenarioBtns: { display: "flex", gap: 6, flexWrap: "wrap" },
+  scenarioBtn: {
+    minHeight: 32, padding: "6px 12px", borderRadius: 999, cursor: "pointer",
+    border: "1px solid var(--color-divider-card)", background: "var(--surface-white)",
+    fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)",
+    transition: "background 150ms ease, color 150ms ease, border-color 150ms ease",
+  },
+  scenarioBtnOn: {
+    background: "var(--color-icon-tertiary-bg)", borderColor: "var(--color-icon-tertiary-fg)",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  scenarioNote: { fontSize: 12, fontWeight: 400, lineHeight: 1.45, color: "var(--color-text-tertiary)" },
 
   // Eval
   evalScroll: { flex: 1, minHeight: 0, overflowY: "auto", background: "var(--surface-dim)" },

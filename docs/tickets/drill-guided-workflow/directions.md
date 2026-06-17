@@ -65,3 +65,25 @@ D8 (forces all steps), D9 (playful motion), D10 (ring ≈ chart).
 | **Triptych** | A / D1 | Vertical prev/current/next stack, current prominent |
 | **Focus** | B / D2 | Current step only, prev/next as peek chips — least overload |
 | **Filmstrip** | C / D3 | Horizontal prev·current·next, slides as steps check off |
+
+## Follow-up pass — assets + the four AI-behaviour scenarios
+
+Layout unchanged (3 variants above); the shared guide gained the content the
+overall experience must cover:
+
+**Per-step assets (shown on the current step):**
+- **Step** — primary (the largest element; type tag + mandatory).
+- **Script support** — the greet step breaks the script into labelled beats:
+  *Greet · Self-identify · Warm greeting · Acknowledge*.
+- **Knowledge cards** — a *stack* of specific linked cards (e.g. "IPC tariff
+  policy" / "Past cases (3)"), opened on demand; "learn more about this step".
+
+**Four AI-behaviour scenarios — made demonstrable via an "AI behaviour · demo"
+control** in the guide panel (meta tooling, like the variant switcher):
+1. **Active listening** — AI hears a configured step, checks it off, projects next.
+2. **Not tracked (blind)** — talk that isn't a configured step → the listening
+   pill flips to "not a tracked step" and a note says nothing is logged.
+3. **Show remaining** — opens the deliberate full-step list (never forced).
+4. **Review AI corrects** — a step the live AI missed is logged in the background
+   by a second AI (success banner + a "Review AI" tag on the step); the agent
+   never corrects it manually.

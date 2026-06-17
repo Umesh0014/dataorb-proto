@@ -42,6 +42,31 @@ export const STEP_TYPE_LABEL = {
   decision: "Decision",
 };
 
+// The four AI-behaviour scenarios the guided view must make legible —
+// surfaced as a small demo control so a reviewer can trigger each.
+export const GUIDED_DRILL_SCENARIOS = [
+  {
+    id: "listen",
+    label: "Active listening",
+    note: "AI hears a configured step, checks it off, and projects the next.",
+  },
+  {
+    id: "blind",
+    label: "Not tracked",
+    note: "Talk that isn't a configured step — the AI logs nothing and stays quiet.",
+  },
+  {
+    id: "remaining",
+    label: "Show remaining",
+    note: "Agent asks to see what's left — the full list opens on demand.",
+  },
+  {
+    id: "correct",
+    label: "Review AI corrects",
+    note: "Agent did a step the live AI missed — a second AI logs it in the background. The agent never corrects it.",
+  },
+];
+
 // The configured workflow steps (the AI only monitors these). state:
 //   "done" | "active" | "pending". The page derives previous/current/next
 // from this list. `script` = suggested phrasing; `knowledge` = a specific
@@ -57,7 +82,14 @@ export const GUIDED_DRILL_STEPS = [
     at: "0:04",
     instruction: "Open with your name + brand and confirm the reason for the call.",
     script: "Hi, you're through to Acme — my name's Sam. I can see you're calling about your latest bill; happy to help.",
-    knowledge: null,
+    // Script support broken into beats for the opening.
+    scriptBeats: [
+      { label: "Greet", text: "Hi, thanks for calling Acme." },
+      { label: "Self-identify", text: "My name's Sam." },
+      { label: "Warm greeting", text: "Good to have you with us." },
+      { label: "Acknowledge", text: "I can see you're calling about your bill — happy to help." },
+    ],
+    knowledgeCards: [],
   },
   {
     id: "disclosure",
@@ -69,7 +101,7 @@ export const GUIDED_DRILL_STEPS = [
     at: "0:09",
     instruction: "State that the call is recorded for quality and training.",
     script: "Just so you know, this call is recorded for quality and training purposes.",
-    knowledge: null,
+    knowledgeCards: [],
   },
   {
     id: "verify",
@@ -81,7 +113,7 @@ export const GUIDED_DRILL_STEPS = [
     at: "0:48",
     instruction: "Confirm two account identifiers before discussing the bill.",
     script: "Before we look at the account, can you confirm your full name and the first line of your address?",
-    knowledge: null,
+    knowledgeCards: [],
   },
   {
     id: "locate",
@@ -93,7 +125,7 @@ export const GUIDED_DRILL_STEPS = [
     at: null,
     instruction: "Find the line-item that changed on this month's bill and read it back.",
     script: "I can see exactly what changed this month — let me walk you through the two lines so it's clear where the difference is coming from.",
-    knowledge: null,
+    knowledgeCards: [],
   },
   {
     id: "ipc",
@@ -105,10 +137,16 @@ export const GUIDED_DRILL_STEPS = [
     at: null,
     instruction: "Name the adjustment and the amount in plain language.",
     script: "This is the annual IPC adjustment that applies to every plan each April — on your tariff that's an extra £2.10 a month, and I can show you how it's worked out.",
-    knowledge: {
-      title: "IPC annual tariff",
-      body: "Govt-linked CPI/IPC uplift applied to all plans each April. 2026 = +£2.10 on the £29.90 tariff. Flagged in the March statement.",
-    },
+    knowledgeCards: [
+      {
+        title: "IPC tariff policy",
+        body: "Part of the annual tariff policy — a govt-linked CPI/IPC uplift applied to every plan each April. 2026 = +£2.10 on the £29.90 tariff; flagged in the March statement.",
+      },
+      {
+        title: "Past cases (3)",
+        body: "Three older cases with this exact charge — all resolved with a goodwill loyalty credit, none escalated.",
+      },
+    ],
   },
   {
     id: "churn",
@@ -120,7 +158,7 @@ export const GUIDED_DRILL_STEPS = [
     at: null,
     instruction: "Listen for switch intent or a competitor mention.",
     script: "How are you finding the service overall — is anything making you reconsider your plan?",
-    knowledge: null,
+    knowledgeCards: [],
   },
   {
     id: "offer",
@@ -132,10 +170,12 @@ export const GUIDED_DRILL_STEPS = [
     at: null,
     instruction: "Offer from the approved matrix; lead with value, not price.",
     script: "Because you've been with us six years, I can hold your effective rate with a loyalty credit — that keeps you below the price you mentioned without changing your plan.",
-    knowledge: {
-      title: "Retention offer matrix",
-      body: "6-yr tenure → loyalty credit up to £4/mo for 12 months, no supervisor approval. Lead with value (roaming, family discount) before price.",
-    },
+    knowledgeCards: [
+      {
+        title: "Retention offer matrix",
+        body: "6-yr tenure → loyalty credit up to £4/mo for 12 months, no supervisor approval. Lead with value (roaming, family discount) before price.",
+      },
+    ],
   },
   {
     id: "record",
@@ -147,7 +187,7 @@ export const GUIDED_DRILL_STEPS = [
     at: null,
     instruction: "Read back the agreed terms and log them on the account.",
     script: "So that's the loyalty credit applied from your next bill — I'll note it on your account and you'll get an email confirmation.",
-    knowledge: null,
+    knowledgeCards: [],
   },
   {
     id: "close",
@@ -159,7 +199,7 @@ export const GUIDED_DRILL_STEPS = [
     at: null,
     instruction: "Summarise next steps and confirm nothing else is outstanding.",
     script: "To recap: your bill returns to around £29.90 from next month, confirmed by email. Is there anything else I can help with?",
-    knowledge: null,
+    knowledgeCards: [],
   },
 ];
 
