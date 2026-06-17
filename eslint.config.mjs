@@ -43,6 +43,7 @@ export default [
       "components/TabsRow.jsx",
       "components/StatCard.jsx",
       "components/ExportButton.jsx",
+      "components/Select.jsx",
     ],
     rules: {
       "no-restricted-syntax": "off",
