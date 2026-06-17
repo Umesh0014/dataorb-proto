@@ -59,8 +59,38 @@ conditional sub-steps · ✅ Step `type` (compliance/action/decision) + `require
 Out of scope (noted, not built): real generation/STT engine, agent live view (already shipped),
 real-time-assist & post-call-audit flavors, manager assisted-vs-unassisted analytics, mobile.
 
+## Gate 1 outcome (Umesh, Jun 17)
+
+**Funnel: keep all three.** Wide refine constraint applied across A/B/C:
+- The editor opens with an **AI-populated base workflow** the lead edits (explicit banner; create flow generates the draft).
+- Every step carries **evidence**: a success rate in plain language (*"X% of calls that followed
+  this step ended in <outcome>, across N interactions"*) **plus the real phrasing top agents used**
+  there (quotes + interaction IDs).
+- **AI-suggested steps** the lead can accept, each with its own success rate + evidence.
+
+## DS-compliance + completeness loop (design-evaluator)
+
+Two passes. Pass 1 found a blocking **G14** (Publish/Save draft were present-but-dead CTAs) and a
+**G12** (inert `role="tab"` spans); pass 2 (after fixes) **converged — all 14 gates pass on all
+three variants.** A third polish pass adopted the DataOrb spec focus ring (`.gw-focusable`).
+
+| Variant | Band | Gates | Weighted | Verdict |
+|---|---|:--:|:--:|---|
+| A · Checklist | 🟢 Safe | 14/14 | 88% | Handoff-ready (strongest — top reuse + inline edit/delete) |
+| C · Studio | 🔴 Ambitious | 14/14 | 87% | Handoff-ready (most differentiated — evidence-beside-checklist) |
+| B · Board | 🟡 Balanced | 14/14 | 85% | Handoff-ready (best call-shape read; fixed-width lanes are the i18n cost) |
+
+Gate fixes shipped: real Publish (confirm → Active + "live to N personas") + Save-draft feedback
+(G14/INT-8); breadcrumb `<nav>` not fake tabs (G12); script edits lifted to host state + persisted +
+attributed across all three editors (INT-7); inline delete confirm (INT-8); Studio `aria-live`
+selection/grounding announce (WCAG-10); select-a-step + empty-lane cues (INT-2/INT-5); spec focus
+ring + larger hit targets (WCAG-6/G10).
+
+Routed to **Akash** (not settled per-screen): the author-monogram palette uses hardcoded hex
+(`mocks/guidedWorkflows.js`), a repo-wide convention (`guides.js`/`replays.js`/`guideArtefacts.js`) —
+needs a tokenised author-palette decision.
+
 ## Build status
 
-All three build clean (`next build` ✓ TypeScript ✓); `/learning/guided-workflows` SSRs 200.
-Awaiting **Gate 1** — Umesh funnels the directions in the VersionBar (keep / discard / refine /
-merge). Surviving direction(s) then go to the DS-compliance + completeness loop.
+All three build clean (`next build` ✓ TypeScript ✓); `/learning/guided-workflows` SSRs 200; pushed
+to `claude/eager-gauss-j45i6z`. **Loop converged — ready for preview review (Gate 2 / stakeholder).**
