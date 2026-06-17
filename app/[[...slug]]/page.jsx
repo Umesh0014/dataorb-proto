@@ -30,6 +30,7 @@ import CreditsUsageShell from "../../components/CreditsUsageShell";
 import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
+import GuidedWorkflowsPage from "../../components/GuidedWorkflowsPage";
 import ReplayPage from "../../components/ReplayPage";
 import MobileLearningHubShell from "../../components/MobileLearningHubShell";
 import CreateGuideWizardPage, {
@@ -648,6 +649,7 @@ export default function Page() {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
     const onGuidedDrill = learningNav === "guided-drill";
+    const onGuidedWorkflows = learningNav === "guided-workflows";
     const isAgentDrill = drillPersona === "agent";
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
@@ -750,6 +752,7 @@ export default function Page() {
           onCreateMission={openMissionWizard}
           onCreateGuide={openGuideWizard}
           onOpenGuide={openGuideSession}
+          onOpenGuidedWorkflows={() => router.push("/learning/guided-workflows")}
           onOpenAgent={(id) => {
             setAgentProfileId(id);
             // On the Dashboard the agent detail opens in place (handled above);
@@ -763,9 +766,9 @@ export default function Page() {
     }
 
     sidenavConfig = learningNavConfig;
-    // Guided-drill runtime has no rail item of its own (it's reached via
-    // the Agent drill flow) — keep "Drill" lit while on it.
-    sidenavActiveId = onGuidedDrill ? "drill" : learningNav;
+    // Guided-drill runtime and the guided-workflow authoring surface have no
+    // rail item of their own (both reached via Drill) — keep "Drill" lit.
+    sidenavActiveId = onGuidedDrill || onGuidedWorkflows ? "drill" : learningNav;
     handleSidenavSelect = (id) => {
       setDrillDetailId(null);
       setAgentProfileId(null);
@@ -792,6 +795,14 @@ export default function Page() {
       // outer gutter (spec §3). Exiting returns to the Drill library.
       moduleContent = (
         <DrillGuidedSessionPage onEnd={() => router.push("/learning/drill")} />
+      );
+    } else if (onGuidedWorkflows) {
+      // Team-leader authoring (create / manage / view) — reached from the
+      // Drill "Guided Workflows" tab; standard content frame inside PageLayout.
+      moduleContent = (
+        <PageLayout>
+          <GuidedWorkflowsPage onBack={() => router.push("/learning/drill")} />
+        </PageLayout>
       );
     } else if (onGuide && guideSessionId && !guideWizardStep) {
       // Guide session bypasses PageLayout — owns its own 32px outer
