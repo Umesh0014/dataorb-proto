@@ -78,7 +78,8 @@ export default function DrillGuidedSessionPage({ onEnd }) {
   const [muted, setMuted] = React.useState(false);
   const [secondsLeft, setSecondsLeft] = React.useState(meta.totalSeconds);
   const [scriptOpen, setScriptOpen] = React.useState(false);
-  const [knowledgeOpen, setKnowledgeOpen] = React.useState(false);
+  // Which grounding knowledge card (by title) is expanded under the script.
+  const [openGround, setOpenGround] = React.useState(null);
   const [showAll, setShowAll] = React.useState(false); // deliberate "show all steps"
   const [ended, setEnded] = React.useState(false);
   // AI-behaviour demo: which scenario is being shown.
@@ -123,7 +124,7 @@ export default function DrillGuidedSessionPage({ onEnd }) {
         }),
       );
       setScriptOpen(false);
-      setKnowledgeOpen(false);
+      setOpenGround(null);
     }, 7000);
     return () => window.clearTimeout(id);
   }, []);
@@ -163,8 +164,8 @@ export default function DrillGuidedSessionPage({ onEnd }) {
     doneCount,
     scriptOpen,
     onToggleScript: () => setScriptOpen((o) => !o),
-    knowledgeOpen,
-    onToggleKnowledge: () => setKnowledgeOpen((o) => !o),
+    openGround,
+    onToggleGround: (title) => setOpenGround((cur) => (cur === title ? null : title)),
     showAll,
     onToggleShowAll: () => setShowAll((o) => !o),
     scenario,
@@ -499,7 +500,7 @@ function PositionLabel({ position }) {
 
 // The full current-step card: Step + type/mandatory + instruction + the two
 // reveal-able assets (Script, Knowledge card) + "learn more".
-function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge }) {
+function CurrentStepCard({ step, scriptOpen, onToggleScript, openGround, onToggleGround }) {
   if (!step) {
     return (
       <Card tone="outline" padX={20} padY={20} style={styles.stepCardCurrent}>
@@ -512,6 +513,7 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
       </Card>
     );
   }
+  const grounds = step.knowledgeCards || [];
   return (
     <div aria-current="step" style={styles.currentCardWrap}>
     <Card tone="outline" padX={20} padY={20} style={styles.stepCardCurrent}>
@@ -527,18 +529,6 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
         <Button variant="ai" uppercase={false} onClick={onToggleScript} className="drill-focusable" aria-expanded={scriptOpen} style={{ minHeight: 44, paddingBlock: 6 }}>
           {scriptOpen ? "Hide script support" : "Show script support"}
         </Button>
-        {step.knowledgeCards && step.knowledgeCards.length > 0 && (
-          <button
-            type="button"
-            onClick={onToggleKnowledge}
-            aria-expanded={knowledgeOpen}
-            className="drill-focusable"
-            style={styles.knowledgeBtn}
-          >
-            <BookOpen size={14} color="var(--color-icon-tertiary-fg)" aria-hidden="true" />
-            Knowledge ({step.knowledgeCards.length})
-          </button>
-        )}
       </div>
 
       {scriptOpen && (
@@ -556,16 +546,38 @@ function CurrentStepCard({ step, scriptOpen, onToggleScript, knowledgeOpen, onTo
           ) : (
             <p style={styles.scriptText}>{step.script}</p>
           )}
-        </div>
-      )}
-      {step.knowledgeCards && step.knowledgeCards.length > 0 && knowledgeOpen && (
-        <div style={styles.knowledgeStack}>
-          {step.knowledgeCards.map((k) => (
-            <div key={k.title} style={styles.knowledgeCard}>
-              <span style={styles.knowledgeTitle}>{k.title}</span>
-              <p style={styles.knowledgeText}>{k.body}</p>
+
+          {/* Knowledge cards connected to the suggestion as its grounding —
+              the AI suggests this because of these sources. */}
+          {grounds.length > 0 && (
+            <div style={styles.groundWrap}>
+              <span style={styles.groundLabel}>Grounded in</span>
+              <div style={styles.groundChips}>
+                {grounds.map((k) => {
+                  const on = openGround === k.title;
+                  return (
+                    <button
+                      key={k.title}
+                      type="button"
+                      aria-expanded={on}
+                      onClick={() => onToggleGround(k.title)}
+                      className="drill-focusable"
+                      style={{ ...styles.groundChip, ...(on ? styles.groundChipOn : null) }}
+                    >
+                      <BookOpen size={12} color={on ? "var(--surface-white)" : "var(--color-icon-tertiary-fg)"} aria-hidden="true" />
+                      {k.title}
+                    </button>
+                  );
+                })}
+              </div>
+              {grounds.filter((k) => k.title === openGround).map((k) => (
+                <div key={k.title} style={styles.knowledgeCard}>
+                  <span style={styles.knowledgeTitle}>{k.title}</span>
+                  <p style={styles.knowledgeText}>{k.body}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -669,7 +681,7 @@ function ShowAllToggle({ showAll, onToggle, doneCount, total }) {
 // ---- Variant A — Triptych ----------------------------------------------
 
 function TriptychGuide(props) {
-  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge } = props;
+  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, openGround, onToggleGround } = props;
   return (
     <GuideShell {...props} scrollStyle={styles.guideScroll}>
       <PeekCard step={prevStep} position="previous" />
@@ -677,8 +689,8 @@ function TriptychGuide(props) {
         step={currentStep}
         scriptOpen={scriptOpen}
         onToggleScript={onToggleScript}
-        knowledgeOpen={knowledgeOpen}
-        onToggleKnowledge={onToggleKnowledge}
+        openGround={openGround}
+        onToggleGround={onToggleGround}
       />
       <PeekCard step={nextStep} position="next" />
     </GuideShell>
@@ -688,7 +700,7 @@ function TriptychGuide(props) {
 // ---- Variant B — Focus -------------------------------------------------
 
 function FocusGuide(props) {
-  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge } = props;
+  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, openGround, onToggleGround } = props;
   return (
     <GuideShell {...props} scrollStyle={styles.focusScroll}>
       <div style={styles.peekLineRow}>
@@ -699,8 +711,8 @@ function FocusGuide(props) {
           step={currentStep}
           scriptOpen={scriptOpen}
           onToggleScript={onToggleScript}
-          knowledgeOpen={knowledgeOpen}
-          onToggleKnowledge={onToggleKnowledge}
+          openGround={openGround}
+          onToggleGround={onToggleGround}
         />
       </div>
       <div style={styles.peekLineRow}>
@@ -713,7 +725,7 @@ function FocusGuide(props) {
 // ---- Variant C — Filmstrip ---------------------------------------------
 
 function FilmstripGuide(props) {
-  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, knowledgeOpen, onToggleKnowledge } = props;
+  const { prevStep, currentStep, nextStep, scriptOpen, onToggleScript, openGround, onToggleGround } = props;
   return (
     <GuideShell {...props} scrollStyle={styles.filmScroll}>
       <div style={styles.filmstrip}>
@@ -725,8 +737,8 @@ function FilmstripGuide(props) {
             step={currentStep}
             scriptOpen={scriptOpen}
             onToggleScript={onToggleScript}
-            knowledgeOpen={knowledgeOpen}
-            onToggleKnowledge={onToggleKnowledge}
+        openGround={openGround}
+        onToggleGround={onToggleGround}
           />
         </div>
         <div style={styles.filmSide}>
@@ -970,11 +982,23 @@ const styles = {
     borderRadius: 4, fontSize: 11, fontWeight: 700, letterSpacing: "0.3px",
   },
   assetRow: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 2 },
-  knowledgeBtn: {
-    display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
-    background: "transparent", border: "none", cursor: "pointer", padding: "6px 0",
-    fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--color-icon-tertiary-fg)",
+  // Grounding — knowledge cards attached to the suggestion as its source.
+  groundWrap: {
+    display: "flex", flexDirection: "column", gap: 8,
+    marginTop: 8, paddingTop: 10, borderTop: "1px dashed var(--color-icon-tertiary-fg)",
   },
+  groundLabel: {
+    fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  groundChips: { display: "flex", gap: 6, flexWrap: "wrap" },
+  groundChip: {
+    display: "inline-flex", alignItems: "center", gap: 5, minHeight: 28, padding: "4px 10px",
+    borderRadius: 999, cursor: "pointer", border: "1px solid var(--color-icon-tertiary-fg)",
+    background: "var(--surface-white)", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+    color: "var(--color-icon-tertiary-fg)", transition: "background 150ms ease, color 150ms ease",
+  },
+  groundChipOn: { background: "var(--color-icon-tertiary-fg)", color: "var(--surface-white)" },
   currentCardWrap: { minWidth: 0 },
   scriptBox: {
     display: "flex", flexDirection: "column", gap: 4, padding: "10px 12px", borderRadius: 8,
@@ -1084,7 +1108,6 @@ const styles = {
   beatText: { fontSize: 13, fontWeight: 500, lineHeight: 1.45, color: "var(--color-text-medium)" },
 
   // Knowledge cards (multiple)
-  knowledgeStack: { display: "flex", flexDirection: "column", gap: 8 },
   reviewTag: {
     display: "inline-flex", alignItems: "center", height: 20, padding: "0 8px", borderRadius: 4,
     fontSize: 11, fontWeight: 700, letterSpacing: "0.2px",
