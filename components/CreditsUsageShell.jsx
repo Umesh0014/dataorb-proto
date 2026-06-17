@@ -2,44 +2,39 @@
 
 import React from "react";
 import CreditsUsagePage from "./CreditsUsagePage";
-import CreditsUsageMasterDetail from "./CreditsUsageMasterDetail";
-import CreditsUsageMonitor from "./CreditsUsageMonitor";
-import CreditsUsageAgentCaps from "./CreditsUsageAgentCaps";
 import VersionBar from "./VersionBar";
 
-// CreditsUsageShell — demo-only host for the Credits & Usage design
-// directions (take-ticket: Credit & Usage tracking). Holds the variant
-// state in-memory (resets to "D" when the session ends, deletable in a
-// single commit) and mounts the VersionBar switcher bottom-right. Each
-// variant is a self-contained page reusing the shared CreditsUsageParts
-// atoms.
+// CreditsUsageShell — host for the Credit & Usage surface. The locked core
+// (utilisation + rules) is the same across versions; the VersionBar swaps
+// only the *assignment experience* between four coherent explorations:
 //
-//   A — Stacked sections (team-level, config-first)
-//   B — Master–detail two-pane (team-level, management-first)
-//   C — Monitoring dashboard + edit-on-demand (team-level, monitor-first)
-//   D — Agent weekly session caps (Jun 15 V1: org-level, per-agent;
-//       team-level distribution deferred to a later version)
+//   A  — Assign by rule (Workspace conditional-field builder)
+//   B  — Select & bulk-move (table-first)
+//   C1 — Bucket as folder, inline (separate quota-buckets + assignment
+//        cards; agents are added in-page, no dialog)
+//   C2 — Bucket as folder, merged (quota buckets + assignment in one card,
+//        a vertical bucket rail beside the list; agents added via a dialog)
+//   C3 — Bucket as folder, merged with the bucket cards stacked
+//        horizontally on top of the list (dialog kept)
 //
-// A/B/C are the earlier team-level directions, retained for comparison; D
-// is the default because it reflects the locked Jun 15 V1 scope.
-
+// A is the default. These are intentional variants held for comparison on
+// the deployed URL — not a merged design. Variant state is in-memory and
+// resets to A when the session ends.
 const CU_VERSIONS = [
   { id: "a", label: "A", iterations: [] },
   { id: "b", label: "B", iterations: [] },
-  { id: "c", label: "C", iterations: [] },
-  { id: "d", label: "D", iterations: [] },
+  { id: "c1", label: "C1", iterations: [] },
+  { id: "c2", label: "C2", iterations: [] },
+  { id: "c3", label: "C3", iterations: [] },
 ];
-const CU_BASELINE = [{ id: "cu", label: "Credits & Usage" }];
+const CU_BASELINE = [{ id: "cu", label: "Credit & Usage" }];
 
 export default function CreditsUsageShell({ onBack }) {
-  const [variant, setVariant] = React.useState("D");
+  const [variant, setVariant] = React.useState("A");
 
   return (
     <>
-      {variant === "A" && <CreditsUsagePage onBack={onBack} />}
-      {variant === "B" && <CreditsUsageMasterDetail onBack={onBack} />}
-      {variant === "C" && <CreditsUsageMonitor onBack={onBack} />}
-      {variant === "D" && <CreditsUsageAgentCaps onBack={onBack} />}
+      <CreditsUsagePage onBack={onBack} assignmentMode={variant} />
 
       <VersionBar
         versions={CU_VERSIONS}

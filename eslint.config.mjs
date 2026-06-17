@@ -185,6 +185,31 @@ export default [
       ],
     },
   },
+  // Credit & Usage bucket surface. Button.jsx has no variant for a radio
+  // card (the limit-rule chooser), a segmented control (the decision-to-
+  // confirm controls), or a full-card clickable tile (the bucket-as-folder
+  // entry), and the codebase has no shared SegmentedControl / radio-card
+  // primitive yet — same posture as AgentLearningImpact / CommandCenter.
+  // Promote when a shared primitive lands. Kept as warn so the raw <button>
+  // stays visible in lint.
+  {
+    files: [
+      "components/BucketCard.jsx",
+      "components/LimitRuleControl.jsx",
+      "components/BucketDecisionControls.jsx",
+      "components/BucketFolderMerged.jsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or a shared SegmentedControl / radio-card primitive) when this component is next touched.",
+        },
+      ],
+    },
+  },
   // MilestoneSideRail — a self-contained meta-tooling side rail + popover
   // (dark surface, monospace, yellow accent) beside the Performance score
   // card. Its controls (state-switcher buttons, info trigger, close,

@@ -536,16 +536,20 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
-    const settingsContent = settingsSubpage === "credits-usage"
-      ? <CreditsUsageShell onBack={() => router.push("/settings")} />
-      : <SettingsPage onSelectCard={(cardId) => {
-          if (cardId === "credits-usage") router.push("/settings/credits-usage");
-        }} />;
-    moduleContent = (
-      <PageLayout>
-        {settingsContent}
-      </PageLayout>
-    );
+    if (settingsSubpage === "credits-usage") {
+      // Credit & Usage owns its own PageLayout (so the per-agent Adjust
+      // panel can dock/overlay via rightPanel) and mounts the VersionBar —
+      // same self-hosting precedent as the guided-session surfaces.
+      moduleContent = <CreditsUsageShell onBack={() => router.push("/settings")} />;
+    } else {
+      moduleContent = (
+        <PageLayout>
+          <SettingsPage onSelectCard={(cardId) => {
+            if (cardId === "credits-usage") router.push("/settings/credits-usage");
+          }} />
+        </PageLayout>
+      );
+    }
   } else if (currentPage === "mira") {
     const { Component: MiraPage, pageName } = resolvePage(MIRA_PAGES, miraNav, "Ask Mira Pro");
     const isChat = miraNav === "chat";

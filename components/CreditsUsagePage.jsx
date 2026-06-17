@@ -1,404 +1,292 @@
 "use client";
 
 import React from "react";
-import { Gauge, ChevronDown, ChevronRight } from "lucide-react";
+import { Gauge } from "lucide-react";
 import PageHeader from "./PageHeader";
-import TenantCapacityHero from "./CreditsUsageHero";
+import PageLayout from "./PageLayout";
+import StatCard from "./StatCard";
+import { Section, CapacityBar, CapAlertBanner } from "./CreditsUsageParts";
+import BucketCard from "./BucketCard";
+import EstimatedImpactBanner from "./EstimatedImpactBanner";
+import BucketAssignmentRegion from "./BucketAssignmentRegion";
+import BucketFolderPanel from "./BucketFolderPanel";
+import BucketFolderMerged from "./BucketFolderMerged";
+import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
+import LimitRuleControl from "./LimitRuleControl";
+import BucketDecisionControls from "./BucketDecisionControls";
+import CreditsUsageAdjustPanel from "./CreditsUsageAdjustPanel";
 import {
-  InfoBanner,
-  Section,
-  CapacityBar,
-  CompositionBadge,
-  AdditionalUsageChoice,
-  RequestRoutingField,
-  AgentBannerPreview,
-  cadenceShort,
-} from "./CreditsUsageParts";
-import { TENANT_SAMPLE, TEAMS_SAMPLE, AGENTS_SAMPLE, CADENCES, EMAIL_RE } from "./mocks/creditsUsage";
+  WEEKLY_QUOTA,
+  QUOTA_BUCKETS,
+  AGENT_BUCKET_SAMPLE,
+  RULE_DEFAULTS,
+  estimateMonthlyDelta,
+} from "./mocks/creditsUsage";
 
-// CreditsUsagePage — Credits & Usage admin surface.
-//
-// Team-level quota model: credit is committed at the tenant, quota is
-// distributed per team, and cadence (daily/weekly/monthly) is a per-team
-// variable because tenured and new agents consume very differently. Teams
-// are divider-separated rows under a prominent committed-capacity hero;
-// opening a team reveals its agents with agent-level usage and a plain
-// per-agent quota box (agents inherit the team cadence). When capacity runs
-// out the tenant either caps spend or allows capped additional usage; an
-// out-of-quota agent raises a routed request. All sample data is mock.
+// CreditsUsagePage — the Credit & Usage admin surface (bucket / folding
+// model). The weekly cap belongs to the agent; a bucket is a fixed-cap
+// folding you sort agents into. This page owns all state and the right-
+// panel; the VersionBar (in CreditsUsageShell) swaps only the Assignment
+// region between approaches A/B/C — table, buckets, utilisation and rules
+// stay mounted. All data is mock.
+export default function CreditsUsagePage({ onBack, assignmentMode = "A" }) {
+  const [agents, setAgents] = React.useState(AGENT_BUCKET_SAMPLE);
+  const [buckets, setBuckets] = React.useState(QUOTA_BUCKETS);
+  const [rules, setRules] = React.useState(RULE_DEFAULTS);
+  const [selectedIds, setSelectedIds] = React.useState([]);
+  const [selectedBucketId, setSelectedBucketId] = React.useState(QUOTA_BUCKETS[0].id);
+  const [adjustAgent, setAdjustAgent] = React.useState(null);
+  const [pendingChange, setPendingChange] = React.useState(null);
 
-const AVATAR_COLORS = [
-  "var(--chart-blue)",
-  "var(--chart-teal)",
-  "var(--chart-lavender)",
-  "var(--chart-orange)",
-  "var(--chart-pink)",
-  "var(--chart-green)",
-];
+  // Swapping assignment approach resets only the approach-local selection —
+  // the shared data (agents / buckets / rules) stays put. Done with the
+  // documented "adjust state during render on prop change" pattern rather
+  // than an effect (no cascading render).
+  const [prevMode, setPrevMode] = React.useState(assignmentMode);
+  if (assignmentMode !== prevMode) {
+    setPrevMode(assignmentMode);
+    setSelectedIds([]);
+  }
 
-export default function CreditsUsagePage({ onBack }) {
-  const allocatedCap = TENANT_SAMPLE.allocatedCap;
-  const [usageMode, setUsageMode] = React.useState("additional"); // "cap" | "additional"
-  const [additionalCap, setAdditionalCap] = React.useState(TENANT_SAMPLE.additionalCap);
-  const [teams, setTeams] = React.useState(TEAMS_SAMPLE);
-  const [agents, setAgents] = React.useState(AGENTS_SAMPLE);
-  const [routingEmail, setRoutingEmail] = React.useState("");
-  const [openTeams, setOpenTeams] = React.useState(() => new Set());
+  const agentsRef = React.useRef(null);
+  const scrollToAgents = () => agentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  const emailError =
-    routingEmail.trim() && !EMAIL_RE.test(routingEmail.trim())
-      ? "Enter a valid email address."
-      : null;
+  const setRule = (key, value) => setRules((prev) => ({ ...prev, [key]: value }));
 
-  const toggleTeam = (id) =>
-    setOpenTeams((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  // moveAgents — fold a set of agents into a bucket, optionally with a
+  // manual cap override. Adjusts tenant bucket counts and recomputes the
+  // bill-impact forecast.
+  const moveAgents = (ids, toBucketId, overrideCap = null) => {
+    const idSet = new Set(ids);
+    const moving = agents.filter((a) => idSet.has(a.id));
+    const target = buckets.find((b) => b.id === toBucketId);
+    if (!target) return;
+
+    setAgents((prev) =>
+      prev.map((a) =>
+        idSet.has(a.id)
+          ? { ...a, bucketId: toBucketId, override: overrideCap != null ? { capMin: overrideCap } : null }
+          : a,
+      ),
+    );
+
+    setBuckets((prev) => {
+      const fromCounts = {};
+      let into = 0;
+      moving.forEach((a) => {
+        if (a.bucketId !== toBucketId) {
+          fromCounts[a.bucketId] = (fromCounts[a.bucketId] || 0) + 1;
+          into += 1;
+        }
+      });
+      return prev.map((b) => {
+        let c = b.agentCount;
+        if (fromCounts[b.id]) c -= fromCounts[b.id];
+        if (b.id === toBucketId) c += into;
+        return { ...b, agentCount: c };
+      });
     });
 
-  const setTeamCadence = (id, cadence) =>
-    setTeams((prev) => prev.map((t) => (t.id === id ? { ...t, cadence } : t)));
-
-  const setTeamPerAgent = (id, perAgent) =>
-    setTeams((prev) => prev.map((t) => (t.id === id ? { ...t, perAgent } : t)));
-
-  // Editing an agent's quota inline also marks them as overriding the team
-  // default.
-  const setAgentQuota = (id, limit) =>
-    setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, limit, hasCustom: true } : a)));
-
-  const agentsByTeam = React.useMemo(() => {
-    const map = {};
-    agents.forEach((a) => {
-      (map[a.team] = map[a.team] || []).push(a);
-    });
-    return map;
-  }, [agents]);
-
-  const handleSave = () => {
-    if (emailError) return;
-    console.log("save credits & usage settings");
+    const capMin = overrideCap ?? target.capMin;
+    const count = ids.length;
+    setPendingChange({ count, bucketName: target.name, capMin, estDelta: estimateMonthlyDelta(count, capMin) });
   };
 
+  const handleSaveAdjust = (agentId, { bucketId, manualCap }) => moveAgents([agentId], bucketId, manualCap);
+  const handleBulkMove = (toBucketId) => {
+    moveAgents(selectedIds, toBucketId);
+    setSelectedIds([]);
+  };
+
+  const toggleSelect = (id) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  const toggleSelectAll = () =>
+    setSelectedIds((prev) => (prev.length === agents.length ? [] : agents.map((a) => a.id)));
+
+  // Over-cap consequence only applies when the rule actually pauses practice.
+  const overCapCount = agents.filter((a) => a.usedMin >= appliedCap(a, buckets)).length;
+  const overCap =
+    rules.limitBehavior !== "allow_additional" && overCapCount > 0
+      ? { count: overCapCount, resetDay: WEEKLY_QUOTA.resetDay }
+      : null;
+
+  const consumedPct = Math.round((WEEKLY_QUOTA.consumedMin / WEEKLY_QUOTA.totalMin) * 100);
+
+  const adjustPanel = adjustAgent ? (
+    <CreditsUsageAdjustPanel
+      agent={adjustAgent}
+      buckets={buckets}
+      onClose={() => setAdjustAgent(null)}
+      onSave={handleSaveAdjust}
+    />
+  ) : null;
+
   return (
-    <div style={styles.column}>
-      <PageHeader
-        back={onBack}
-        identifier={{
-          icon: <Gauge size={16} color="var(--color-icon-tertiary-fg)" />,
-          label: "Credits & Usage",
-          iconBg: "var(--color-icon-tertiary-bg)",
-          iconColor: "var(--color-icon-tertiary-fg)",
-        }}
-        subtitle="Manage practice capacity, team quotas, and usage visibility for your tenant."
-      />
+    <PageLayout rightPanel={adjustPanel} onPanelClose={() => setAdjustAgent(null)}>
+      <div style={styles.column}>
+        <PageHeader
+          back={onBack}
+          identifier={{
+            icon: <Gauge size={16} color="var(--color-icon-tertiary-fg)" />,
+            label: "Credit & Usage",
+            iconBg: "var(--color-icon-tertiary-bg)",
+            iconColor: "var(--color-icon-tertiary-fg)",
+          }}
+          subtitle="Set weekly practice limits and track how your tenant's quota is used."
+          primaryAction={{ label: "Save changes", onClick: () => console.log("save credits & usage") }}
+        />
 
-      <InfoBanner />
-
-      <TenantCapacityHero
-        allocatedCap={allocatedCap}
-        usageMode={usageMode}
-        additionalCap={additionalCap}
-        onSave={handleSave}
-        saveDisabled={Boolean(emailError)}
-      />
-
-      <Section
-        title="Teams & agents"
-        description="Quota is distributed per team. Open a team to adjust its agents."
-        headerRight={<span style={styles.teamCount}>{teams.length} teams</span>}
-      >
-        <div style={styles.teamList}>
-          {teams.map((team, idx) => (
-            <TeamRow
-              key={team.id}
-              team={team}
-              agents={agentsByTeam[team.id] || []}
-              open={openTeams.has(team.id)}
-              last={idx === teams.length - 1}
-              onToggleOpen={() => toggleTeam(team.id)}
-              onCadence={setTeamCadence}
-              onPerAgent={setTeamPerAgent}
-              onSetAgentQuota={setAgentQuota}
+        {/* Tenant utilisation — shared header across approaches A/B/C */}
+        <Section
+          title="Credit utilisation"
+          description={`${WEEKLY_QUOTA.consumedMin.toLocaleString()} of ${WEEKLY_QUOTA.totalMin.toLocaleString()} committed min used · ${WEEKLY_QUOTA.periodLabel}`}
+        >
+          <div style={styles.consumedLine}>
+            <span style={styles.consumedPct}>{consumedPct}%</span>
+            <span style={styles.consumedCaption}>of committed capacity consumed</span>
+          </div>
+          <CapacityBar used={WEEKLY_QUOTA.consumedMin} total={WEEKLY_QUOTA.totalMin} height={10} />
+          <div style={styles.statRow}>
+            <StatCard size="md" labelStyle="uppercase" label="Total pool" value={`${WEEKLY_QUOTA.totalMin.toLocaleString()} min`} sublabel={WEEKLY_QUOTA.totalSub} />
+            <StatCard size="md" labelStyle="uppercase" label="Consumed" value={`${WEEKLY_QUOTA.consumedMin.toLocaleString()} min`} sublabel={WEEKLY_QUOTA.consumedSub} />
+            <StatCard size="md" labelStyle="uppercase" label="Remaining" value={`${WEEKLY_QUOTA.remainingMin.toLocaleString()} min`} sublabel={WEEKLY_QUOTA.remainingSub} />
+          </div>
+          {overCap && (
+            <CapAlertBanner
+              count={overCap.count}
+              resetDay={overCap.resetDay}
+              onViewAgents={scrollToAgents}
             />
-          ))}
-        </div>
-      </Section>
-
-      <div style={styles.pairRow}>
-        <Section
-          title="When capacity runs out"
-          description="Cap spend, or allow capped additional usage."
-          style={styles.pairCard}
-        >
-          <AdditionalUsageChoice
-            mode={usageMode}
-            onMode={setUsageMode}
-            additionalCap={additionalCap}
-            onAdditionalCap={setAdditionalCap}
-          />
+          )}
         </Section>
-        <Section
-          title="Quota-exceeded requests"
-          description="Routing plus the agent-facing banner."
-          style={styles.pairCard}
-        >
-          <RequestRoutingField value={routingEmail} onChange={setRoutingEmail} error={emailError} />
-          <AgentBannerPreview />
-        </Section>
-      </div>
-    </div>
-  );
-}
 
-// ---- Team row + drill-down ------------------------------------------------
+        <EstimatedImpactBanner pendingChange={pendingChange} />
 
-function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent, onSetAgentQuota }) {
-  const pct = team.allocated > 0 ? Math.round((team.used / team.allocated) * 100) : 0;
-  const cad = cadenceShort(team.cadence);
-
-  return (
-    <div style={{ ...styles.team, borderBottom: last ? "none" : "1px solid var(--color-border-card-soft)" }}>
-      <div style={styles.row}>
-        <button type="button" onClick={onToggleOpen} aria-expanded={open} style={styles.identity}>
-          <span style={styles.chevron}>
-            {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </span>
-          <span style={styles.identityText}>
-            <span style={styles.teamTitleRow}>
-              <span style={styles.teamName}>{team.name}</span>
-              <CompositionBadge composition={team.composition} />
-            </span>
-            <span style={styles.teamAgentCount}>{agents.length} agents</span>
-          </span>
-        </button>
-
-        <div style={styles.usage}>
-          <CapacityBar used={team.used} total={team.allocated} height={10} />
-          <span style={styles.usageVal}>
-            {team.used.toLocaleString()} / {team.allocated.toLocaleString()} min · {pct}%
-          </span>
-        </div>
-
-        <div style={styles.quota}>
-          <CadenceDropdown
-            value={team.cadence}
-            onChange={(v) => onCadence(team.id, v)}
-            ariaLabel={`Quota cadence for ${team.name}`}
-          />
-          <QuotaInput
-            value={team.perAgent}
-            onChange={(v) => onPerAgent(team.id, v)}
-            suffix="min"
-            ariaLabel={`Per-agent quota for ${team.name}`}
-          />
-        </div>
-      </div>
-
-      {open && (
-        <div style={styles.agentPanel}>
-          {agents.map((agent, i) => {
-            const quota = agent.hasCustom ? agent.limit : team.perAgent;
-            const aPct = quota > 0 ? Math.round((agent.used / quota) * 100) : 0;
-            return (
-              <div key={agent.id} style={styles.agentRow}>
-                <span style={styles.agentIdentity}>
-                  <Avatar name={agent.name} index={i} />
-                  <span style={styles.agentName}>{agent.name}</span>
-                </span>
-                <div style={styles.agentUsage}>
-                  <CapacityBar used={agent.used} total={quota} height={6} />
-                  <span style={styles.agentUsageVal}>
-                    {agent.used} / {quota} min{cad} · {aPct}%
-                  </span>
-                </div>
-                <QuotaInput
-                  value={quota}
-                  onChange={(v) => onSetAgentQuota(agent.id, v)}
-                  suffix={`min${cad}`}
-                  ariaLabel={`Quota for ${agent.name}`}
+        {/* Fixed quota buckets — C2 / C3 fold these into their merged card,
+            so the standalone section is shown for every other approach. */}
+        {assignmentMode !== "C2" && assignmentMode !== "C3" && (
+          <Section
+            title="Quota buckets"
+            description="Each agent gets a weekly cap from one bucket. Buckets are fixed — move agents between them; the values don't change."
+          >
+            <div style={styles.bucketRow}>
+              {buckets.map((b) => (
+                <BucketCard
+                  key={b.id}
+                  bucket={b}
+                  interactive={assignmentMode === "C1"}
+                  selected={assignmentMode === "C1" && selectedBucketId === b.id}
+                  onClick={() => setSelectedBucketId(b.id)}
                 />
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+              ))}
+            </div>
+          </Section>
+        )}
 
-// QuotaInput — number field with a visible focus ring (the documented 2px
-// white + brand-blue ring) so the team/agent quota edits stay keyboard-
-// discoverable (WCAG-3). Mirrors the styling of the original inline input.
-function QuotaInput({ value, onChange, suffix, ariaLabel }) {
-  const [focus, setFocus] = React.useState(false);
-  return (
-    <label
-      style={{
-        ...styles.quotaInput,
-        boxShadow: focus ? "0 0 0 2px #FFFFFF, 0 0 0 4px var(--do-brand-blue)" : "none",
-        borderColor: focus ? "var(--do-brand-blue)" : "var(--color-border-card-soft)",
-      }}
-    >
-      <input
-        type="number"
-        min={1}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
-        aria-label={ariaLabel}
-        style={styles.quotaInputField}
-      />
-      <span style={styles.quotaSuffix}>{suffix}</span>
-    </label>
-  );
-}
+        {/* Assignment fork — A/B: region + standalone table; C1: inline
+            bucket-folder; C2: merged buckets-and-folder card. */}
+        {assignmentMode === "C1" && (
+          <BucketFolderPanel
+            bucket={buckets.find((b) => b.id === selectedBucketId) || null}
+            agents={agents}
+            buckets={buckets}
+            onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
+            onAdjust={setAdjustAgent}
+          />
+        )}
+        {(assignmentMode === "C2" || assignmentMode === "C3") && (
+          <BucketFolderMerged
+            layout={assignmentMode === "C3" ? "top" : "rail"}
+            buckets={buckets}
+            agents={agents}
+            selectedBucketId={selectedBucketId}
+            onSelectBucket={setSelectedBucketId}
+            onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
+            onAdjust={setAdjustAgent}
+          />
+        )}
+        {(assignmentMode === "A" || assignmentMode === "B") && (
+          <>
+            <BucketAssignmentRegion
+              mode={assignmentMode}
+              buckets={buckets}
+              agents={agents}
+              selectedIds={selectedIds}
+              onBulkMove={handleBulkMove}
+            />
 
-function CadenceDropdown({ value, onChange, ariaLabel }) {
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={ariaLabel} style={styles.select}>
-      {CADENCES.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.adjective}
-        </option>
-      ))}
-    </select>
-  );
-}
+            <div ref={agentsRef} style={styles.tableHead}>
+              <span style={styles.tableTitle}>Agent usage</span>
+              <span style={styles.count}>{agents.length} shown</span>
+            </div>
+            <AgentBucketTable
+              agents={agents}
+              buckets={buckets}
+              paginate
+              selectable={assignmentMode === "B"}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              onAdjust={setAdjustAgent}
+            />
+          </>
+        )}
 
-function Avatar({ name, index }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
-  return (
-    <span style={{ ...styles.avatar, background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}>
-      {initials}
-    </span>
+        {/* Rules + decisions to confirm — two cards side by side */}
+        <Section title="Rules">
+          <div style={styles.rulesGrid}>
+            <div style={styles.rulesPanel}>
+              <LimitRuleControl
+                value={rules.limitBehavior}
+                onChange={(v) => setRule("limitBehavior", v)}
+                additionalCapMin={rules.additionalCapMin}
+                onAdditionalCapMin={(v) => setRule("additionalCapMin", v)}
+              />
+            </div>
+            <div style={styles.rulesPanel}>
+              <BucketDecisionControls rules={rules} onRuleChange={setRule} />
+            </div>
+          </div>
+        </Section>
+      </div>
+    </PageLayout>
   );
 }
 
 const styles = {
-  column: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    width: "100%",
-    fontFamily: "var(--font-sans)",
+  column: { display: "flex", flexDirection: "column", gap: 16, width: "100%", fontFamily: "var(--font-sans)" },
+  consumedLine: { display: "flex", alignItems: "baseline", gap: 8 },
+  consumedPct: {
+    fontFamily: '"Mulish", sans-serif',
+    fontSize: 28,
+    fontWeight: 700,
+    lineHeight: 1,
+    color: "var(--color-text-deep)",
+    fontVariantNumeric: "tabular-nums",
   },
-
-  teamCount: {
+  consumedCaption: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
+  statRow: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 },
+  bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
+  tableHead: { display: "flex", alignItems: "center", gap: 12, marginTop: 8 },
+  tableTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },
+  count: {
     padding: "3px 10px",
     borderRadius: 999,
-    background: "#F3F4F6",
+    background: "var(--color-card-emoji-bg)",
     fontSize: 11,
     fontWeight: 600,
     color: "var(--color-text-tertiary)",
-    whiteSpace: "nowrap",
   },
-
-  teamList: { display: "flex", flexDirection: "column" },
-  team: { display: "flex", flexDirection: "column" },
-  row: { display: "flex", alignItems: "center", gap: 20, padding: "18px 4px" },
-
-  identity: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 10,
-    width: 240,
-    flexShrink: 0,
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "inherit",
-    padding: 0,
+  rulesGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 16,
+    alignItems: "start",
   },
-  chevron: { display: "flex", color: "var(--color-text-tertiary)", flexShrink: 0, marginTop: 2 },
-  identityText: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
-  teamTitleRow: { display: "flex", alignItems: "center", gap: 8 },
-  teamName: { fontSize: 15, fontWeight: 600, color: "var(--color-text-deep)" },
-  teamAgentCount: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
-
-  usage: { display: "flex", flexDirection: "column", gap: 7, flex: 1, minWidth: 0 },
-  usageVal: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
-
-  quota: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
-  quotaInput: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "8px 12px",
-    border: "1px solid var(--color-border-card-soft)",
-    borderRadius: 8,
-    background: "#FFFFFF",
-    transition: "box-shadow 120ms ease, border-color 120ms ease",
-  },
-  quotaInputField: {
-    width: 44,
-    border: "none",
-    outline: "none",
-    fontFamily: "inherit",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-    background: "transparent",
-    appearance: "textfield",
-  },
-  quotaSuffix: { fontSize: 11, color: "var(--color-text-tertiary)", whiteSpace: "nowrap" },
-  select: {
-    height: 36,
-    padding: "0 10px",
-    borderRadius: 8,
+  rulesPanel: {
+    padding: 16,
+    borderRadius: 12,
     border: "1px solid var(--color-border-card-soft)",
     background: "#FFFFFF",
-    fontFamily: "inherit",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-medium)",
-    cursor: "pointer",
-    appearance: "auto",
   },
-
-  avatar: {
-    width: 26,
-    height: 26,
-    borderRadius: "50%",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: "0.2px",
-    flexShrink: 0,
-  },
-
-  agentPanel: {
-    display: "flex",
-    flexDirection: "column",
-    padding: "4px 8px 12px 46px",
-    background: "var(--color-card-emoji-bg)",
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  agentRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 20,
-    padding: "12px 8px",
-    borderBottom: "1px solid #ECECF4",
-  },
-  agentIdentity: { display: "flex", alignItems: "center", gap: 10, width: 220, flexShrink: 0 },
-  agentName: { fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
-  agentUsage: { display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 },
-  agentUsageVal: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
-
-  pairRow: { display: "flex", gap: 16, alignItems: "stretch" },
-  pairCard: { flex: 1, minWidth: 0 },
 };
