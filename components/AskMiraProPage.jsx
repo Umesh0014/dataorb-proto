@@ -5,28 +5,24 @@ import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import MiraConversation from "./MiraConversation";
+import MiraSpaceShell from "./MiraSpaceShell";
 import {
-  MiraStarIcon,
   TuneIcon,
   FilterFunnelIcon,
   ArrowUpIcon,
 } from "./SideNav/icons";
 
-const SUGGESTED_QUESTIONS = [
-  "What are the top pain points reported by customers this month?",
-  "Which customer segments are most at-risk and what proactive interventions could prevent churn?",
-  "Which products generate the highest satisfaction vs. complaint volumes?",
-  "What contact reasons take longest to resolve and face the most impediments?",
-  "What educational content gaps exist based on common customer questions?",
-  "What pricing feedback appears in dissatisfied customer interactions?",
-];
-
 /**
  * AskMiraProPage — Ask Mira Pro module home route.
  *
  * Two states share the same route:
- *   - Home  (no conversation)  : centered greeting + suggested-question grid + composer
- *   - Chat  (>= 1 turn)        : header band + conversation thread + composer
+ *   - Space (no conversation) : the collaborative outcome "space" — the new
+ *     landing (Notion ticket: [Ask Mira Pro] Landing page). Renders via
+ *     MiraSpaceShell, which hosts the design directions behind a VersionBar.
+ *     The space's own ask affordances call onSubmit, which opens chat.
+ *   - Chat  (>= 1 turn)       : header band + conversation thread + composer.
+ *     Chat is demoted to "one tool" — reached from the space, not the front
+ *     door — but its wiring is unchanged.
  *
  * Conversation, pending, queriesUsed, and panel state are all controlled
  * by the parent (app/page.jsx). Lifting them avoids state loss when
@@ -46,7 +42,6 @@ const SUGGESTED_QUESTIONS = [
  * }} props
  */
 export default function AskMiraProPage({
-  userName = "Demo Internal",
   queriesTotal = 1002,
   conversation,
   pendingTurnId,
@@ -74,25 +69,21 @@ export default function AskMiraProPage({
     setQuery("");
   };
 
+  // Resting state: the outcome space replaces the old chatbot-homepage.
+  if (!inChat) {
+    return <MiraSpaceShell onAsk={submit} />;
+  }
+
   return (
     <div style={s.page}>
-      {inChat ? (
-        <ChatHeader onBack={resetToHome} onNewChat={resetToHome} />
-      ) : null}
+      <ChatHeader onBack={resetToHome} onNewChat={resetToHome} />
 
-      <div style={inChat ? s.chatBody : s.homeHero}>
-        {inChat ? (
-          <MiraConversation
-            turns={conversation}
-            pendingTurnId={pendingTurnId}
-            onSubmitFollowUp={submit}
-          />
-        ) : (
-          <HomeHero
-            userName={userName}
-            onPickSuggestion={(q) => setQuery(q)}
-          />
-        )}
+      <div style={s.chatBody}>
+        <MiraConversation
+          turns={conversation}
+          pendingTurnId={pendingTurnId}
+          onSubmitFollowUp={submit}
+        />
       </div>
 
       <Composer
@@ -113,7 +104,7 @@ function ChatHeader({ onBack, onNewChat }) {
   return (
     <Card padX={20} padY={14} style={s.chatHeaderCard}>
       <div style={s.chatHeaderRow}>
-        <Button variant="icon" aria-label="Back to home" onClick={onBack}>
+        <Button variant="icon" aria-label="Back to space" onClick={onBack}>
           <ArrowLeft size={20} color="var(--color-text-medium)" />
         </Button>
         <span style={s.chatHeaderTitle}>Ask Mira Pro</span>
@@ -127,44 +118,6 @@ function ChatHeader({ onBack, onNewChat }) {
         </Button>
       </div>
     </Card>
-  );
-}
-
-function HomeHero({ userName, onPickSuggestion }) {
-  return (
-    <div style={s.heroInner}>
-      <div style={s.greetingRow}>
-        <div style={s.greetingIconWrap} aria-hidden="true">
-          <MiraStarIcon size={40} color="var(--color-button-primary-bg)" />
-        </div>
-        <div style={s.greetingText}>
-          <div style={s.greetingHeading}>Hello, {userName}!</div>
-          <div style={s.greetingSubtitle}>
-            Unlock actionable insights from every customer interaction.
-          </div>
-        </div>
-      </div>
-
-      <div style={s.grid} role="list">
-        {SUGGESTED_QUESTIONS.map((q) => (
-          <button
-            key={q}
-            type="button"
-            role="listitem"
-            onClick={() => onPickSuggestion(q)}
-            style={s.suggestionCard}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--color-card-emoji-bg)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "var(--surface-white)";
-            }}
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -264,79 +217,11 @@ const s = {
     color: "var(--color-text-deep)",
   },
 
-  homeHero: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    minHeight: 0,
-  },
-  heroInner: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 32,
-    width: "100%",
-    maxWidth: 760,
-    marginInline: "auto",
-  },
-
   chatBody: {
     flex: 1,
     minHeight: 0,
     display: "flex",
     flexDirection: "column",
-  },
-
-  greetingRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-  },
-  greetingIconWrap: {
-    width: 48,
-    height: 48,
-    display: "grid",
-    placeItems: "center",
-    flexShrink: 0,
-  },
-  greetingText: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  greetingHeading: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.3,
-  },
-  greetingSubtitle: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    lineHeight: 1.4,
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 16,
-  },
-  suggestionCard: {
-    appearance: "none",
-    textAlign: "left",
-    padding: "20px 20px",
-    minHeight: 116,
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-divider-card)",
-    borderRadius: 12,
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    lineHeight: 1.5,
-    cursor: "pointer",
-    transition: "background 120ms ease",
   },
 
   composerWrap: {
