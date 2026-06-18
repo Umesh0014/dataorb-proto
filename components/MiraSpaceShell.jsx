@@ -4,6 +4,7 @@ import React from "react";
 import MiraSpaceBriefing from "./MiraSpaceBriefing";
 import MiraSpaceRoom from "./MiraSpaceRoom";
 import MiraSpacePlayer from "./MiraSpacePlayer";
+import MiraSpaceWorkspace from "./MiraSpaceWorkspace";
 import MiraChatColumn from "./MiraChatColumn";
 import VersionBar from "./VersionBar";
 
@@ -18,6 +19,7 @@ import VersionBar from "./VersionBar";
 //   A — Briefing-first front page  (arrive to be briefed; newspaper/memo)
 //   B — The Room                   (furnished blocks you inhabit; Notion/Coda)
 //   C — Player-centric             (your outcome has a podcast; Spotify/NotebookLM)
+//   D — Workspace                  (three-column metric investigation; NotebookLM)
 //
 // The VersionBar "?" popover carries each direction's pros/cons (top layer)
 // and the reference → insight chain it was built from (More detail), per the
@@ -27,6 +29,7 @@ const DIRECTIONS = {
   A: { label: "Briefing", Component: MiraSpaceBriefing },
   B: { label: "Room", Component: MiraSpaceRoom },
   C: { label: "Player", Component: MiraSpacePlayer },
+  D: { label: "Workspace", Component: MiraSpaceWorkspace },
 };
 
 const VERSIONS = Object.entries(DIRECTIONS).map(([id, d]) => ({
@@ -88,6 +91,23 @@ const RATIONALE = {
       ["Audio-in-enterprise pitfalls", "Open floors / back-to-back meetings make audio-only hostile", "Never autoplay; transcript + 1-line TL;DR are equal peers."],
     ],
   },
+  D: {
+    name: "D · Workspace",
+    model: "Three-column metric investigation (NotebookLM)",
+    pros: [
+      "Master→detail: pick a metric, get its trend, AI read, audio clip + chats.",
+      "Per-metric 2-voice clips — drill audio, not just one space brief.",
+      "Chat is a permanent right column with private/public + starter topics.",
+    ],
+    cons: [
+      "Densest of the four — three columns demand width.",
+      "Investigation-first; less of a glanceable “arrive and absorb” surface.",
+    ],
+    refs: [
+      ["NotebookLM 3-pane (sources · detail · chat)", "Pickable items + a working surface + a persistent assistant scales investigation", "Metrics list (left) drives a detail column (middle) with chat always at hand (right)."],
+      ["Exec verify-then-trust + “private vs shared got it wrong”", "Execs probe before trusting and need a safe place to do it", "Per-metric chats with an explicit private (scratchpad) / public (shared) switch."],
+    ],
+  },
 };
 
 export default function MiraSpaceShell({
@@ -104,8 +124,13 @@ export default function MiraSpaceShell({
   const [chatOpen, setChatOpen] = React.useState(false);
   const { Component } = DIRECTIONS[dir];
 
-  // A direction's ask affordance (suggested prompt, KPI "Ask", exploration)
-  // opens the chat column pre-scoped and submits the question if one is given.
+  // D (Workspace) is self-contained — it owns its own three columns including
+  // a permanent chat column, so it takes the chat state directly and the
+  // shell skips the global collapsible chat column.
+  const isWorkspace = dir === "D";
+
+  // For A/B/C, a direction's ask affordance (suggested prompt, KPI "Ask",
+  // exploration) opens the global chat column pre-scoped and submits.
   const handleAsk = (text) => {
     setChatOpen(true);
     if (text && text.trim() && !pendingTurnId) onSubmit(text);
@@ -115,23 +140,34 @@ export default function MiraSpaceShell({
     <div style={{ position: "relative", width: "100%" }}>
       <style>{`@keyframes mira-spin { to { transform: rotate(360deg); } }`}</style>
 
-      <div style={row}>
-        <div style={main}>
-          <Component onAsk={handleAsk} />
-        </div>
-        <MiraChatColumn
-          open={chatOpen}
-          onToggle={setChatOpen}
+      {isWorkspace ? (
+        <Component
           conversation={conversation}
           pendingTurnId={pendingTurnId}
           queriesUsed={queriesUsed}
           queriesTotal={queriesTotal}
           onSubmit={onSubmit}
           onReset={onReset}
-          setupContextOpen={setupContextOpen}
-          onToggleSetupContext={onToggleSetupContext}
         />
-      </div>
+      ) : (
+        <div style={row}>
+          <div style={main}>
+            <Component onAsk={handleAsk} />
+          </div>
+          <MiraChatColumn
+            open={chatOpen}
+            onToggle={setChatOpen}
+            conversation={conversation}
+            pendingTurnId={pendingTurnId}
+            queriesUsed={queriesUsed}
+            queriesTotal={queriesTotal}
+            onSubmit={onSubmit}
+            onReset={onReset}
+            setupContextOpen={setupContextOpen}
+            onToggleSetupContext={onToggleSetupContext}
+          />
+        </div>
+      )}
 
       <VersionBar
         versions={VERSIONS}

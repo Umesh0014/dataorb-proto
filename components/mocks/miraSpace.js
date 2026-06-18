@@ -77,6 +77,9 @@ export const BRIEFING = {
 // The ~7–10 KPI cards that matter for THIS outcome. Each carries a labelled,
 // unit-bearing delta and a source/definition (lineage). `tone` drives the
 // delta treatment (paired with sign + arrow, never colour alone — G9).
+// `theme` groups the metric in the Workspace direction's left column;
+// `explain` is the AI read of the metric; `clip` is its per-metric 2-voice
+// audio explanation.
 export const KPIS = [
   {
     id: "win-rate",
@@ -84,8 +87,14 @@ export const KPIS = [
     value: "31%",
     delta: "-4 pp vs last week",
     tone: "down",
+    theme: "growth",
     source: "Won ÷ (won + lost), closed deals, trailing 7 days",
     spark: [38, 36, 37, 35, 34, 33, 31],
+    explain: "Win rate fell four points this week. Almost the entire drop is three enterprise deals lost to Northwind on price — mid-market actually improved, so this is a segment story, not a broad decline.",
+    clip: { durationLabel: "0:48", durationSec: 48, transcript: [
+      { speaker: "Maya", line: "Win rate's down to 31%, off four points." },
+      { speaker: "Theo", line: "But it's concentrated — three enterprise losses to Northwind, all on price. Strip those and the trend's flat." },
+    ] },
   },
   {
     id: "top-competitor",
@@ -93,8 +102,14 @@ export const KPIS = [
     value: "Northwind",
     delta: "3 of 5 losses this week",
     tone: "warn",
+    theme: "risk",
     source: "Competitor tagged on closed-lost deals",
     spark: null,
+    explain: "Northwind appeared in three of five losses, every time underbidding us. Two of those deals had budget approved — the blocker was our 12-month term, not headline price.",
+    clip: { durationLabel: "0:39", durationSec: 39, transcript: [
+      { speaker: "Maya", line: "Northwind took three of our five losses." },
+      { speaker: "Theo", line: "And it wasn't pure price — two were winnable if we'd flexed the contract term." },
+    ] },
   },
   {
     id: "segment-winrate",
@@ -102,8 +117,14 @@ export const KPIS = [
     value: "44%",
     delta: "+6 pp vs last week",
     tone: "up",
+    theme: "growth",
     source: "Win rate filtered to mid-market segment",
     spark: [37, 38, 39, 40, 41, 42, 44],
+    explain: "Mid-market had its best week of the quarter, up six points. The Insights add-on is doing a lot of the lifting here — attach and win rate are climbing together.",
+    clip: { durationLabel: "0:42", durationSec: 42, transcript: [
+      { speaker: "Maya", line: "Mid-market quietly hit 44% — best of the quarter." },
+      { speaker: "Theo", line: "The Insights add-on is the common thread in those wins." },
+    ] },
   },
   {
     id: "leading-products",
@@ -111,8 +132,14 @@ export const KPIS = [
     value: "26%",
     delta: "+5 pp vs last week",
     tone: "up",
+    theme: "growth",
     source: "Won deals including the Insights add-on ÷ all won deals",
     spark: [18, 19, 21, 22, 23, 24, 26],
+    explain: "The Insights add-on is now in one of every four won deals. Where it's attached, deals close about nine days faster — it's becoming a velocity lever, not just upsell.",
+    clip: { durationLabel: "0:44", durationSec: 44, transcript: [
+      { speaker: "Maya", line: "Insights attach is up to 26% of won deals." },
+      { speaker: "Theo", line: "And those deals close nine days quicker — that's the real story." },
+    ] },
   },
   {
     id: "avg-deal",
@@ -120,8 +147,14 @@ export const KPIS = [
     value: "$48.2k",
     delta: "+$2.1k vs last week",
     tone: "up",
+    theme: "efficiency",
     source: "Mean closed-won contract value, trailing 7 days",
     spark: [44, 45, 46, 45, 47, 47, 48],
+    explain: "Average deal size ticked up $2.1k, driven by add-on attach rather than list-price increases. Healthy: we're growing value without leaning harder on discounts.",
+    clip: { durationLabel: "0:36", durationSec: 36, transcript: [
+      { speaker: "Maya", line: "Deals are running a touch bigger — up $2.1k." },
+      { speaker: "Theo", line: "And it's from attach, not discounting less. Good kind of growth." },
+    ] },
   },
   {
     id: "cycle-time",
@@ -129,8 +162,14 @@ export const KPIS = [
     value: "37 days",
     delta: "-9 days when Insights attached",
     tone: "up",
+    theme: "efficiency",
     source: "Days from opportunity created to closed-won",
     spark: [46, 45, 44, 42, 41, 39, 37],
+    explain: "Cycle time keeps shortening. The headline: deals with the Insights add-on close nine days faster than those without — the clearest efficiency signal in the space.",
+    clip: { durationLabel: "0:40", durationSec: 40, transcript: [
+      { speaker: "Maya", line: "Sales cycle is down to 37 days." },
+      { speaker: "Theo", line: "Nine of those days come straight from the Insights add-on." },
+    ] },
   },
   {
     id: "discount",
@@ -138,8 +177,14 @@ export const KPIS = [
     value: "14%",
     delta: "+3 pp vs last week",
     tone: "down",
+    theme: "risk",
     source: "Discount off list on closed-won deals",
     spark: [9, 10, 11, 11, 12, 13, 14],
+    explain: "Discounting crept up three points as reps chased the enterprise deals we ultimately lost. Worth watching — early data says heavier discounting isn't actually buying wins.",
+    clip: { durationLabel: "0:37", durationSec: 37, transcript: [
+      { speaker: "Maya", line: "Discounting's up to 14% — three points." },
+      { speaker: "Theo", line: "And it didn't even win the deals. That's the part to flag." },
+    ] },
   },
   {
     id: "pipeline",
@@ -147,10 +192,36 @@ export const KPIS = [
     value: "$3.1M",
     delta: "flat vs last week",
     tone: "flat",
+    theme: "growth",
     source: "Open opportunities past qualification stage",
     spark: [30, 31, 31, 30, 31, 31, 31],
+    explain: "Pipeline held flat at $3.1M. Stable coverage, but no new top-of-funnel momentum this week — something to revisit if win rate stays soft.",
+    clip: { durationLabel: "0:34", durationSec: 34, transcript: [
+      { speaker: "Maya", line: "Pipeline's flat at $3.1M." },
+      { speaker: "Theo", line: "Coverage is fine; we just didn't add much new this week." },
+    ] },
   },
 ];
+
+// Left-column groupings for the Workspace direction (KPIs grouped by theme).
+export const METRIC_GROUPS = [
+  { id: "growth", label: "Growth & win", metricIds: ["win-rate", "segment-winrate", "leading-products", "pipeline"] },
+  { id: "risk", label: "Risk & pricing", metricIds: ["top-competitor", "discount"] },
+  { id: "efficiency", label: "Efficiency", metricIds: ["avg-deal", "cycle-time"] },
+];
+
+// Metric-scoped saved chats/explorations — the middle column's "chats about
+// this metric". Visibility is explicit (shared into the space vs private).
+export const METRIC_THREADS = [
+  { id: "t1", metricId: "win-rate", title: "Which Northwind deals were winnable on terms, not price?", author: { name: "Marco Díaz", initials: "MD", bg: "#DCF5E8", fg: "#1B7A4B" }, visibility: "shared", updated: "2h ago" },
+  { id: "t2", metricId: "win-rate", title: "Win rate by rep — who's slipping?", author: { name: "Priya Nair", initials: "PN", bg: "#EDE9FE", fg: "#6650A5" }, visibility: "private", updated: "Yesterday" },
+  { id: "t3", metricId: "segment-winrate", title: "What's repeatable from the mid-market wins?", author: { name: "Lena Okafor", initials: "LO", bg: "#FFE8D6", fg: "#B5531B" }, visibility: "shared", updated: "3h ago" },
+  { id: "t4", metricId: "leading-products", title: "Where does the Insights add-on close fastest?", author: { name: "Lena Okafor", initials: "LO", bg: "#FFE8D6", fg: "#B5531B" }, visibility: "shared", updated: "Yesterday" },
+  { id: "t5", metricId: "cycle-time", title: "Does attach really cause the faster close?", author: { name: "Marco Díaz", initials: "MD", bg: "#DCF5E8", fg: "#1B7A4B" }, visibility: "shared", updated: "2d ago" },
+  { id: "t6", metricId: "discount", title: "My scratch: discount vs. win-rate by rep", author: { name: "Priya Nair", initials: "PN", bg: "#EDE9FE", fg: "#6650A5" }, visibility: "private", updated: "3d ago" },
+  { id: "t7", metricId: "top-competitor", title: "Northwind battlecard — where we keep losing", author: { name: "Sam Whitfield", initials: "SW", bg: "#E3ECFF", fg: "#2456C9" }, visibility: "shared", updated: "4d ago" },
+];
+
 
 // Explorations — first-class, persistent, nameable (NOT disposable chats).
 // Private scratchpad by default; an explicit "add to space" promotes one to
