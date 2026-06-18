@@ -243,6 +243,7 @@ export const GW_STEPS = [
   {
     id: "offer",
     stage: "act",
+    scenario: "retention",
     instruction: "Present the best-practice retention offer",
     detail: "Offer from the approved matrix; lead with value, not price.",
     type: "action",
@@ -258,6 +259,7 @@ export const GW_STEPS = [
   {
     id: "agreement",
     stage: "act",
+    scenario: "retention",
     instruction: "Confirm agreement & record it",
     detail: "Read back the agreed terms and log them on the account.",
     type: "compliance",
@@ -265,6 +267,32 @@ export const GW_STEPS = [
     script: "Just to confirm: you're happy to stay on your current plan with the loyalty credit applied from next month — I'll note that now.",
     knowledge: null,
     grounding: { interactionId: "20102", quote: "“So that's confirmed and noted on your account.”" },
+    subSteps: [],
+  },
+  {
+    id: "apply-correction",
+    stage: "act",
+    scenario: "billing",
+    instruction: "Apply the billing correction",
+    detail: "Reverse the erroneous charge and confirm the corrected amount.",
+    type: "action",
+    requirement: "required",
+    script: "You're right — that charge shouldn't be there. I'm reversing it now, so your corrected total is £29.90.",
+    knowledge: null,
+    grounding: { interactionId: "20188", quote: "“I've removed that charge and corrected the bill.”" },
+    subSteps: [],
+  },
+  {
+    id: "confirm-correction",
+    stage: "act",
+    scenario: "billing",
+    instruction: "Confirm the adjustment & record it",
+    detail: "Read back the corrected amount and log the adjustment on the account.",
+    type: "compliance",
+    requirement: "required",
+    script: "So that's the £8.60 reversed and noted on your account — you'll see the corrected amount on your next statement.",
+    knowledge: null,
+    grounding: { interactionId: "20188", quote: "“That's corrected and noted for you.”" },
     subSteps: [],
   },
   {
@@ -383,6 +411,18 @@ export const GW_STEP_EVIDENCE = {
       { interactionId: "20188", quote: "I'll read that back: current plan, loyalty credit from next cycle. All good?" },
     ],
   },
+  "apply-correction": {
+    successRate: 86, callCount: 70, outcome: "the dispute resolved first-contact",
+    examples: [
+      { interactionId: "20188", quote: "That charge shouldn't be there — I'm reversing it now." },
+    ],
+  },
+  "confirm-correction": {
+    successRate: 90, callCount: 66, outcome: "no repeat call within 30 days",
+    examples: [
+      { interactionId: "20188", quote: "That's the £8.60 reversed and noted on your account." },
+    ],
+  },
   close: {
     successRate: 93, callCount: 200, outcome: "no repeat call within 30 days",
     examples: [
@@ -455,6 +495,31 @@ export const GW_SUGGESTED_STEPS = [
     },
   },
 ];
+
+// Conditional SCENARIOS — within a stage, a scenario is a short run of
+// show/hide steps under a plain-language "If <trigger>" header (Process
+// Street model: conditional tasks, not a branching tree). Steps carry a
+// `scenario` id; steps with none are always-on.
+export const GW_SCENARIOS = {
+  retention: { label: "Retention save", trigger: "If the customer mentions a competitor or switching" },
+  billing: { label: "Billing correction", trigger: "If the charge is a genuine billing error" },
+};
+export function gwScenario(id) {
+  return GW_SCENARIOS[id] || null;
+}
+
+// Group a stage's steps into { alwaysOn: [...], scenarios: [{id,label,trigger,steps}] }
+// preserving order — used by the sectioned checklist editor.
+export function gwGroupStage(steps) {
+  const alwaysOn = steps.filter((s) => !s.scenario);
+  const order = [];
+  const byId = {};
+  steps.filter((s) => s.scenario).forEach((s) => {
+    if (!byId[s.scenario]) { byId[s.scenario] = { id: s.scenario, ...GW_SCENARIOS[s.scenario], steps: [] }; order.push(s.scenario); }
+    byId[s.scenario].steps.push(s);
+  });
+  return { alwaysOn, scenarios: order.map((id) => byId[id]) };
+}
 
 // ---- meta helpers -------------------------------------------------------
 

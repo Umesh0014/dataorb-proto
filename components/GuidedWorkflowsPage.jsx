@@ -12,6 +12,7 @@ import GuidedWorkflowWizardEditor from "./GuidedWorkflowWizardEditor";
 import GuidedWorkflowDocEditor from "./GuidedWorkflowDocEditor";
 import GuidedWorkflowTableEditor from "./GuidedWorkflowTableEditor";
 import GuidedWorkflowCoauthorEditor from "./GuidedWorkflowCoauthorEditor";
+import GuidedWorkflowSectionedEditor from "./GuidedWorkflowSectionedEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
 import { TabContext, EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
@@ -33,16 +34,17 @@ import {
 // differs. Honours the locked decisions: edit-mode = create-mode (nothing
 // blank), flat checklist (no branching), unlimited attempts, audit first.
 
-// New directions (this run) ride the VersionBar as primary chips; the earlier
-// three are kept but tucked into a "Bombed ideas" dropdown (baselineOptions).
+// The research-grounded simple checklist is the single primary direction;
+// every earlier exploration is kept but parked in a "Bombed ideas" dropdown.
 const DIRECTIONS = [
-  { id: "wizard", label: "Wizard", iterations: [] },
-  { id: "document", label: "Document", iterations: [] },
-  { id: "table", label: "Table", iterations: [] },
-  { id: "coauthor", label: "Co-author", iterations: [] },
+  { id: "checklist", label: "Checklist", iterations: [] },
 ];
 const BOMBED = [
-  { id: "safe", label: "Checklist (bombed)" },
+  { id: "wizard", label: "Wizard (bombed)" },
+  { id: "document", label: "Document (bombed)" },
+  { id: "table", label: "Table (bombed)" },
+  { id: "coauthor", label: "Co-author (bombed)" },
+  { id: "safe", label: "Checklist v1 (bombed)" },
   { id: "balanced", label: "Board (bombed)" },
   { id: "ambitious", label: "Studio (bombed)" },
 ];
@@ -52,7 +54,7 @@ const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
 export default function GuidedWorkflowsPage({ onBack }) {
-  const [variant, setVariant] = React.useState("wizard");
+  const [variant, setVariant] = React.useState("checklist");
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -200,7 +202,9 @@ export default function GuidedWorkflowsPage({ onBack }) {
               heading="AI drafted this base workflow"
               body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
             />
-            {variant === "wizard" ? (
+            {variant === "checklist" ? (
+              <GuidedWorkflowSectionedEditor {...editorProps} />
+            ) : variant === "wizard" ? (
               <GuidedWorkflowWizardEditor {...editorProps} />
             ) : variant === "document" ? (
               <GuidedWorkflowDocEditor {...editorProps} />

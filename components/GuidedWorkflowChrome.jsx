@@ -86,12 +86,10 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
 export function DirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>New ways to author</span>
-      <p style={vbHelp.text}><b>Wizard</b> — a short AI-prefilled interview, one stage at a time. "A 13-year-old can build it."</p>
-      <p style={vbHelp.text}><b>Document</b> — a living SOP doc: stages as headings, steps as blocks, grounding as citations.</p>
-      <p style={vbHelp.text}><b>Table</b> — a dense grid: rows = steps, columns = stage / type / required / grounding / success.</p>
-      <p style={vbHelp.text}><b>Co-author</b> — pair-write with the AI; accepted edits land in a live preview.</p>
-      <p style={vbHelp.hint}>The earlier three (Checklist / Board / Studio) are parked in the “Bombed ideas” dropdown. All directions keep the flat-checklist, no-branching, evidence-grounded contract.</p>
+      <span style={vbHelp.title}>Checklist — the simple direction</span>
+      <p style={vbHelp.text}>Stages are collapsible <b>sections</b>; steps are inline rows with drag/keyboard reorder + inline add (Todoist-simple).</p>
+      <p style={vbHelp.text}>Multiple scenarios (e.g. Act) are <b>conditional steps under an “If &lt;trigger&gt;” header</b> — show/hide, never a tree (Process Street model).</p>
+      <p style={vbHelp.hint}>Research: Sprinklr = the use case (live agent guidance) but its node-tree authoring is what to avoid; Process Street/Manifestly = conditional show/hide tasks; Todoist = the section + inline-add interaction. Every earlier exploration is parked in the “Bombed ideas” dropdown.</p>
     </div>
   );
 }
