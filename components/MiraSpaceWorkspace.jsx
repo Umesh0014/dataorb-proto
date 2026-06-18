@@ -2,8 +2,8 @@
 
 import React from "react";
 import {
-  Play, Pause, ChevronRight, Lock, Users, Sparkles, TrendingUp, TrendingDown,
-  Minus, Info, Plus, RefreshCw,
+  Play, Pause, ChevronRight, ChevronLeft, Lock, Users, Sparkles, TrendingUp,
+  TrendingDown, Minus, Info, Plus, RefreshCw, PanelLeft,
 } from "lucide-react";
 import MiraConversation from "./MiraConversation";
 import Button from "./Button";
@@ -13,11 +13,12 @@ import {
 } from "./mocks/miraSpace";
 
 // Direction D — Workspace (NotebookLM-style three-column investigation surface).
-// LEFT: every metric to investigate, grouped by theme (master). MIDDLE: the
-// selected metric's trend + AI explanation + its own 2-voice audio clip + the
-// chats saved about it (detail). RIGHT: Ask Mira, with a private/public
-// visibility switcher and starter topics. Distinct from A/B/C: this is a
-// metric-by-metric research workspace, not a briefing, room, or player.
+// Full-bleed: it breaks out of PageLayout's 1068 cap to use the whole content
+// area as a fixed three-pane app. Each column is its own card panel; the left
+// (metrics) column collapses to a slim rail.
+//   LEFT   — every metric to investigate, grouped by theme (master, collapsible).
+//   MIDDLE — selected metric's trend + AI read + its own 2-voice clip + chats.
+//   RIGHT  — Ask Mira, with a private/public visibility switcher + starters.
 
 const TONE = {
   up: { color: "var(--color-success)", Icon: TrendingUp },
@@ -30,32 +31,44 @@ export default function MiraSpaceWorkspace({
   conversation, pendingTurnId, queriesUsed, queriesTotal, onSubmit, onReset,
 }) {
   const [metricId, setMetricId] = React.useState(KPIS[0].id);
+  const [leftOpen, setLeftOpen] = React.useState(true);
   const metric = KPIS.find((k) => k.id === metricId) || KPIS[0];
 
+  const cols = `${leftOpen ? "256px" : "48px"} minmax(0, 1fr) 380px`;
+
   return (
-    <div style={s.grid}>
-      <MetricList activeId={metricId} onPick={setMetricId} />
-      <MetricDetail metric={metric} onAsk={(t) => onSubmit(t)} pending={Boolean(pendingTurnId)} />
-      <WorkspaceChat
-        metric={metric}
-        conversation={conversation}
-        pendingTurnId={pendingTurnId}
-        queriesUsed={queriesUsed}
-        queriesTotal={queriesTotal}
-        onSubmit={onSubmit}
-        onReset={onReset}
-      />
+    <div style={s.root}>
+      <div style={{ ...s.grid, gridTemplateColumns: cols }}>
+        {leftOpen
+          ? <MetricList activeId={metricId} onPick={setMetricId} onCollapse={() => setLeftOpen(false)} />
+          : <CollapsedRail onExpand={() => setLeftOpen(true)} />}
+        <MetricDetail metric={metric} onAsk={(t) => onSubmit(t)} pending={Boolean(pendingTurnId)} />
+        <WorkspaceChat
+          metric={metric}
+          conversation={conversation}
+          pendingTurnId={pendingTurnId}
+          queriesUsed={queriesUsed}
+          queriesTotal={queriesTotal}
+          onSubmit={onSubmit}
+          onReset={onReset}
+        />
+      </div>
     </div>
   );
 }
 
-// ---- LEFT: metrics grouped by theme --------------------------------------
-function MetricList({ activeId, onPick }) {
+// ---- LEFT: metrics grouped by theme (collapsible) ------------------------
+function MetricList({ activeId, onPick, onCollapse }) {
   return (
-    <aside style={s.left} aria-label="Metrics to investigate">
+    <aside style={s.colCard} aria-label="Metrics to investigate">
       <div style={s.leftHead}>
-        <span style={s.spaceName}>{SPACE.name}</span>
-        <span style={s.leftSub}>Metrics to investigate</span>
+        <div style={s.leftHeadText}>
+          <span style={s.spaceName}>{SPACE.name}</span>
+          <span style={s.leftSub}>Metrics to investigate</span>
+        </div>
+        <button type="button" onClick={onCollapse} aria-label="Collapse metrics" style={s.iconBtn}>
+          <ChevronLeft size={18} color="var(--color-text-medium)" />
+        </button>
       </div>
       <div style={s.groups}>
         {METRIC_GROUPS.map((g) => (
@@ -90,15 +103,26 @@ function MetricList({ activeId, onPick }) {
   );
 }
 
+function CollapsedRail({ onExpand }) {
+  return (
+    <aside style={s.railCard} aria-label="Metrics (collapsed)">
+      <button type="button" onClick={onExpand} aria-label="Expand metrics" style={s.railBtn}>
+        <PanelLeft size={18} color="var(--color-text-medium)" />
+        <span style={s.railLabel}>Metrics</span>
+      </button>
+    </aside>
+  );
+}
+
 // ---- MIDDLE: selected metric detail --------------------------------------
 function MetricDetail({ metric, onAsk, pending }) {
   const meta = TONE[metric.tone] || TONE.flat;
   const { Icon } = meta;
   const threads = METRIC_THREADS.filter((t) => t.metricId === metric.id);
   return (
-    <section style={s.mid} aria-label={`${metric.label} detail`}>
-      <header style={s.midHead}>
-        <div>
+    <section style={s.midCard} aria-label={`${metric.label} detail`}>
+      <div style={s.midScroll}>
+        <header style={s.midHead}>
           <h2 style={s.midTitle}>{metric.label}</h2>
           <div style={s.midValueRow}>
             <span style={s.midValue}>{metric.value}</span>
@@ -106,48 +130,44 @@ function MetricDetail({ metric, onAsk, pending }) {
               <Icon size={15} aria-hidden="true" /> {metric.delta}
             </span>
           </div>
+          <p style={s.sourceLine}><Info size={13} /> {metric.source}</p>
+        </header>
+
+        {metric.spark
+          ? <TrendChart points={metric.spark} color={meta.color} />
+          : <NoTrend value={metric.value} />}
+
+        <div style={s.explainCard}>
+          <span style={s.aiTag}><Sparkles size={13} /> Mira's read</span>
+          <p style={s.explainText}>{metric.explain}</p>
         </div>
-      </header>
 
-      <p style={s.sourceLine}><Info size={13} /> {metric.source}</p>
+        <MetricClip clip={metric.clip} label={metric.label} />
 
-      {metric.spark
-        ? <TrendChart points={metric.spark} color={meta.color} />
-        : <NoTrend value={metric.value} />}
-
-      {/* AI explanation */}
-      <div style={s.explainCard}>
-        <span style={s.aiTag}><Sparkles size={13} /> Mira's read</span>
-        <p style={s.explainText}>{metric.explain}</p>
-      </div>
-
-      {/* Per-metric audio clip */}
-      <MetricClip clip={metric.clip} label={metric.label} />
-
-      {/* Chats about this metric */}
-      <div style={s.threads}>
-        <div style={s.threadsHead}>
-          <span style={s.sectionLabel}>Chats about this metric</span>
-          <button
-            type="button"
-            onClick={() => onAsk(`Why did ${metric.label.toLowerCase()} change this week?`)}
-            style={s.startChat}
-            disabled={pending}
-          >
-            <Plus size={14} /> Start a chat
-          </button>
+        <div style={s.threads}>
+          <div style={s.threadsHead}>
+            <span style={s.sectionLabel}>Chats about this metric</span>
+            <button
+              type="button"
+              onClick={() => onAsk(`Why did ${metric.label.toLowerCase()} change this week?`)}
+              style={s.startChat}
+              disabled={pending}
+            >
+              <Plus size={14} /> Start a chat
+            </button>
+          </div>
+          {threads.length === 0 ? (
+            <p style={s.threadsEmpty}>No chats about this metric yet. Start one to investigate.</p>
+          ) : (
+            threads.map((t) => <ThreadRow key={t.id} thread={t} onOpen={() => onAsk(t.title)} />)
+          )}
         </div>
-        {threads.length === 0 ? (
-          <p style={s.threadsEmpty}>No chats about this metric yet. Start one to investigate.</p>
-        ) : (
-          threads.map((t) => <ThreadRow key={t.id} thread={t} onOpen={() => onAsk(t.title)} />)
-        )}
       </div>
     </section>
   );
 }
 
-function TrendChart({ points, color, w = 460, h = 132 }) {
+function TrendChart({ points, color, w = 560, h = 150 }) {
   const min = Math.min(...points);
   const max = Math.max(...points);
   const span = max - min || 1;
@@ -265,7 +285,7 @@ function WorkspaceChat({ metric, conversation, pendingTurnId, queriesUsed, queri
   ];
 
   return (
-    <aside style={s.right} aria-label="Ask Mira">
+    <aside style={s.rightCard} aria-label="Ask Mira">
       <header style={s.rightHead}>
         <span style={s.headTitle}>
           <MiraStarIcon size={18} color="var(--color-button-primary-bg)" /> Ask Mira
@@ -277,7 +297,6 @@ function WorkspaceChat({ metric, conversation, pendingTurnId, queriesUsed, queri
         )}
       </header>
 
-      {/* Private / Public visibility switcher */}
       <div style={s.visWrap}>
         <div style={s.visToggle} role="group" aria-label="Chat visibility">
           {[{ id: "private", label: "Private", Icon: Lock }, { id: "public", label: "Public", Icon: Users }].map((o) => {
@@ -341,45 +360,62 @@ function WorkspaceChat({ metric, conversation, pendingTurnId, queriesUsed, queri
   );
 }
 
+// Full-bleed: expand past PageLayout's 1068 cap to the whole content area.
+const BLEED_W = "calc(100vw - var(--sidenav-width) - 2 * var(--page-gutter))";
 const COL_H = "calc(100vh - var(--page-padding-top, 32px) - var(--page-padding-bottom, 32px))";
 
 const s = {
-  grid: { display: "grid", gridTemplateColumns: "232px minmax(0, 1fr) 332px", gap: 16, alignItems: "start", fontFamily: "var(--font-sans)" },
+  root: {
+    width: BLEED_W,
+    marginInline: `calc((100% - ${BLEED_W}) / 2)`,
+    fontFamily: "var(--font-sans)",
+  },
+  grid: { display: "grid", gap: 16, alignItems: "start", height: COL_H, transition: "grid-template-columns 200ms ease" },
+
+  // Shared column-card chrome
+  colCard: { height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", boxShadow: "var(--shadow-1)", overflow: "hidden" },
 
   // Left
-  left: { position: "sticky", top: "var(--page-padding-top, 32px)", height: COL_H, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16, paddingInlineEnd: 4 },
-  leftHead: { display: "flex", flexDirection: "column", gap: 2 },
-  spaceName: { fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--color-text-deep)" },
-  leftSub: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)" },
-  groups: { display: "flex", flexDirection: "column", gap: 18 },
+  leftHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "14px 14px 12px", borderBottom: "1px solid var(--color-divider-card)", flexShrink: 0 },
+  leftHeadText: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
+  spaceName: { fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--color-text-deep)" },
+  leftSub: { fontSize: 11.5, fontWeight: 600, color: "var(--color-text-tertiary)" },
+  iconBtn: { width: 30, height: 30, borderRadius: 8, border: "none", background: "transparent", display: "inline-grid", placeItems: "center", cursor: "pointer", flexShrink: 0 },
+  groups: { display: "flex", flexDirection: "column", gap: 18, overflowY: "auto", padding: 12 },
   group: { display: "flex", flexDirection: "column", gap: 4 },
   groupLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-tertiary)", paddingInline: 4, marginBottom: 2 },
   metricRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 10px", borderRadius: 10, border: "1px solid transparent", background: "transparent", cursor: "pointer", textAlign: "start", width: "100%", fontFamily: "var(--font-sans)", transition: "background 150ms ease, border-color 150ms ease" },
-  metricRowOn: { background: "var(--surface-white)", border: "1px solid var(--color-border-card-soft)", boxShadow: "var(--shadow-1)" },
+  metricRowOn: { background: "var(--color-surface-header-tinted)", border: "1px solid var(--color-border-card-soft)" },
   metricLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   metricRight: { display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 },
   metricValue: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
 
-  // Middle
-  mid: { display: "flex", flexDirection: "column", gap: 16, minWidth: 0 },
-  midHead: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
-  midTitle: { margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--color-text-deep)" },
-  midValueRow: { display: "flex", alignItems: "baseline", gap: 12, marginTop: 4 },
-  midValue: { fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--color-text-deep)", lineHeight: 1 },
-  midDelta: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700 },
-  sourceLine: { margin: 0, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-tertiary)" },
+  // Collapsed rail
+  railCard: { height: "100%", display: "flex", flexDirection: "column", alignItems: "center", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", boxShadow: "var(--shadow-1)", overflow: "hidden" },
+  railBtn: { width: "100%", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingBlock: 16, border: "none", background: "transparent", cursor: "pointer", fontFamily: "var(--font-sans)" },
+  railLabel: { writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 12, fontWeight: 700, color: "var(--color-text-tertiary)", letterSpacing: "0.04em", textTransform: "uppercase" },
 
-  chartFig: { margin: 0, display: "flex", flexDirection: "column", gap: 6, padding: 16, borderRadius: 12, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)" },
+  // Middle
+  midCard: { height: "100%", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", boxShadow: "var(--shadow-1)", overflow: "hidden", minWidth: 0 },
+  midScroll: { height: "100%", overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 18 },
+  midHead: { display: "flex", flexDirection: "column", gap: 4 },
+  midTitle: { margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--color-text-deep)" },
+  midValueRow: { display: "flex", alignItems: "baseline", gap: 12, marginTop: 2 },
+  midValue: { fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--color-text-deep)", lineHeight: 1 },
+  midDelta: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700 },
+  sourceLine: { margin: "4px 0 0", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-tertiary)" },
+
+  chartFig: { margin: 0, display: "flex", flexDirection: "column", gap: 6 },
   chartCaption: { display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)" },
-  noTrend: { display: "flex", flexDirection: "column", gap: 4, padding: 20, borderRadius: 12, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)" },
-  noTrendValue: { fontSize: 28, fontWeight: 800, color: "var(--color-text-deep)" },
+  noTrend: { display: "flex", flexDirection: "column", gap: 4, padding: "12px 0" },
+  noTrendValue: { fontSize: 30, fontWeight: 800, color: "var(--color-text-deep)" },
   noTrendNote: { fontSize: 12, color: "var(--color-text-tertiary)" },
 
   explainCard: { display: "flex", flexDirection: "column", gap: 8, padding: 16, borderRadius: 12, background: "var(--color-surface-header-tinted)", border: "1px solid var(--color-border-card-soft)" },
   aiTag: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--color-icon-tertiary-fg)" },
   explainText: { margin: 0, fontSize: 14, lineHeight: 1.6, color: "var(--color-text-deep)" },
 
-  clip: { display: "flex", gap: 14, padding: 14, borderRadius: 12, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)" },
+  clip: { display: "flex", gap: 14, padding: 14, borderRadius: 12, border: "1px solid var(--color-border-card-soft)", background: "var(--color-surface-header-tinted)" },
   clipBtn: { width: 40, height: 40, borderRadius: 999, flexShrink: 0, border: "none", background: "var(--color-icon-tertiary-fg)", display: "inline-grid", placeItems: "center", cursor: "pointer" },
   clipBody: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 },
   clipTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
@@ -406,7 +442,7 @@ const s = {
   threadSub: { fontSize: 11.5, color: "var(--color-text-tertiary)" },
 
   // Right
-  right: { position: "sticky", top: "var(--page-padding-top, 32px)", height: COL_H, display: "flex", flexDirection: "column", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", overflow: "hidden", boxShadow: "var(--shadow-1)" },
+  rightCard: { height: "100%", display: "flex", flexDirection: "column", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", boxShadow: "var(--shadow-1)", overflow: "hidden" },
   rightHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "12px 14px", borderBottom: "1px solid var(--color-divider-card)", flexShrink: 0 },
   headTitle: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
   visWrap: { display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", borderBottom: "1px solid var(--color-divider-card)", flexShrink: 0 },
