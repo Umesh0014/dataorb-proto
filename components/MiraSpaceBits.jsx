@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
-import { ArrowUpIcon } from "./SideNav/icons";
 
 // MiraSpaceBits — shared leaf atoms for the Ask Mira Pro outcome-space
 // directions (Briefing-first / Room / Player). A KPI card is a KPI card in
@@ -360,46 +359,6 @@ export function CollaboratorRow({ person, compact = false }) {
   );
 }
 
-// ---- Ask bar (chat demoted to one tool) ----------------------------------
-// Chat is no longer the landing — it's a focused, dismissible entry invoked
-// from the space. Suggested follow-ups are pre-scoped so the exec never
-// starts from a blank prompt.
-export function AskBar({ suggested = [], onAsk, placeholder = "Ask about this space…" }) {
-  const [q, setQ] = React.useState("");
-  const submit = () => {
-    const v = q.trim();
-    if (!v) return;
-    onAsk?.(v);
-    setQ("");
-  };
-  return (
-    <div style={ab.wrap}>
-      {suggested.length > 0 && (
-        <div style={ab.chips}>
-          {suggested.map((s) => (
-            <button key={s} type="button" onClick={() => onAsk?.(s)} style={ab.chip}>
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-      <Card tone="outline" padX={16} padY={12} style={ab.bar}>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-          placeholder={placeholder}
-          aria-label="Ask a question"
-          style={ab.input}
-        />
-        <Button variant="icon" size="md" aria-label="Send" onClick={submit} style={ab.send}>
-          <ArrowUpIcon size={18} color="var(--color-text-medium)" />
-        </Button>
-      </Card>
-    </div>
-  );
-}
-
 // ---- Section header ------------------------------------------------------
 export function SectionLabel({ icon, children, action }) {
   return (
@@ -523,20 +482,6 @@ const co = {
   quotaBar: { height: 5, borderRadius: 999, background: "var(--color-divider-card)", overflow: "hidden" },
   quotaFill: { height: "100%", borderRadius: 999, transition: "width 200ms ease" },
   quotaText: { fontSize: 11, color: "var(--color-text-tertiary)", textAlign: "end", fontFamily: "var(--font-mono)" },
-};
-
-const ab = {
-  wrap: { display: "flex", flexDirection: "column", gap: 10 },
-  chips: { display: "flex", flexWrap: "wrap", gap: 8 },
-  chip: {
-    appearance: "none", border: "1px solid var(--color-divider-card)", background: "var(--surface-white)",
-    borderRadius: 999, height: 32, paddingInline: 14, cursor: "pointer", fontFamily: "var(--font-sans)",
-    fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)",
-    transition: "background 150ms ease, border-color 150ms ease",
-  },
-  bar: { display: "flex", alignItems: "center", gap: 10 },
-  input: { flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--color-text-deep)" },
-  send: { border: "1px solid var(--color-divider-card)" },
 };
 
 const sl = {

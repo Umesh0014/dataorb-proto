@@ -3,10 +3,10 @@
 import React from "react";
 import { MessageSquare, Plus, Pin } from "lucide-react";
 import {
-  BriefingPlayer, KpiCard, ExplorationCard, CollaboratorRow, AskBar, SectionLabel,
+  BriefingPlayer, KpiCard, ExplorationCard, CollaboratorRow,
 } from "./MiraSpaceBits";
 import Button from "./Button";
-import { SPACE, COLLABORATORS, BRIEFING, KPIS, EXPLORATIONS, SUGGESTED } from "./mocks/miraSpace";
+import { SPACE, COLLABORATORS, BRIEFING, KPIS, EXPLORATIONS } from "./mocks/miraSpace";
 
 // Direction B — The Room (Notion / Coda "document as application" model).
 // The space is a FURNISHED ROOM YOU INHABIT WITH YOUR TEAM: heterogeneous
@@ -53,11 +53,6 @@ export default function MiraSpaceRoom({ onAsk }) {
           </Block>
         </div>
       </div>
-
-      <section style={s.ask}>
-        <SectionLabel>Have a question? Ask the room</SectionLabel>
-        <AskBar suggested={SUGGESTED} onAsk={onAsk} placeholder="Ask the room about Sales…" />
-      </section>
     </div>
   );
 }
@@ -143,6 +138,4 @@ const s = {
   collabList: { display: "flex", flexDirection: "column", gap: 14 },
   note: { margin: "14px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--color-text-tertiary)", paddingTop: 12, borderTop: "1px solid var(--color-divider-card)" },
   exList: { display: "flex", flexDirection: "column", gap: 12 },
-
-  ask: { display: "flex", flexDirection: "column", gap: 14, paddingTop: 20, borderTop: "1px solid var(--color-divider-card)" },
 };

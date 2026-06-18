@@ -3,10 +3,10 @@
 import React from "react";
 import { Plus, BarChart3 } from "lucide-react";
 import {
-  BriefingPlayer, KpiCard, ExplorationCard, CollaboratorRow, AskBar, SectionLabel,
+  BriefingPlayer, KpiCard, ExplorationCard, CollaboratorRow, SectionLabel,
 } from "./MiraSpaceBits";
 import Button from "./Button";
-import { SPACE, OWNER, COLLABORATORS, BRIEFING, KPIS, EXPLORATIONS, SUGGESTED } from "./mocks/miraSpace";
+import { SPACE, COLLABORATORS, BRIEFING, KPIS, EXPLORATIONS } from "./mocks/miraSpace";
 
 // Direction A — Briefing-first front page (newspaper / Amazon-memo model).
 // You ARRIVE TO BE BRIEFED: the narrative audio brief is the hero above the
@@ -55,12 +55,6 @@ export default function MiraSpaceBriefing({ onAsk }) {
           <p style={s.quotaNote}>Each collaborator holds a share of this space's monthly query quota.</p>
         </aside>
       </div>
-
-      {/* Chat, demoted to one tool — a closing affordance, not pinned chrome */}
-      <section style={s.ask}>
-        <SectionLabel>Have a question? Ask Mira</SectionLabel>
-        <AskBar suggested={SUGGESTED} onAsk={onAsk} placeholder="Ask a follow-up about Sales…" />
-      </section>
     </div>
   );
 }
@@ -103,6 +97,4 @@ const s = {
   collabCard: { display: "flex", flexDirection: "column", gap: 14, padding: 20, borderRadius: 16, background: "var(--color-surface-header-tinted)", border: "1px solid var(--color-border-card-soft)" },
   collabList: { display: "flex", flexDirection: "column", gap: 14 },
   quotaNote: { margin: 0, fontSize: 12, lineHeight: 1.5, color: "var(--color-text-tertiary)", paddingTop: 12, borderTop: "1px solid var(--color-divider-card)" },
-
-  ask: { display: "flex", flexDirection: "column", gap: 14, paddingTop: 24, borderTop: "1px solid var(--color-divider-card)" },
 };

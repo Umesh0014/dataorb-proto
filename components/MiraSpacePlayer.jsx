@@ -3,9 +3,9 @@
 import React from "react";
 import { Play, Headphones, ListMusic } from "lucide-react";
 import {
-  BriefingPlayer, KpiCard, ExplorationCard, AskBar, SectionLabel,
+  BriefingPlayer, KpiCard, ExplorationCard, SectionLabel,
 } from "./MiraSpaceBits";
-import { SPACE, COLLABORATORS, BRIEFING, KPIS, EXPLORATIONS, SUGGESTED } from "./mocks/miraSpace";
+import { SPACE, COLLABORATORS, BRIEFING, KPIS, EXPLORATIONS } from "./mocks/miraSpace";
 
 // Direction D — Player-centric (Spotify / NotebookLM model).
 // Your outcome HAS A PODCAST: the audio briefing is the hero object, with an
@@ -76,11 +76,6 @@ export default function MiraSpacePlayer({ onAsk }) {
           {EXPLORATIONS.map((e) => <ExplorationCard key={e.id} exploration={e} onOpen={() => onAsk?.(e.title)} />)}
         </div>
       </section>
-
-      <section style={s.ask}>
-        <SectionLabel>Have a question? Ask a follow-up</SectionLabel>
-        <AskBar suggested={SUGGESTED} onAsk={onAsk} placeholder="Ask a follow-up about this briefing…" />
-      </section>
     </div>
   );
 }
@@ -129,6 +124,4 @@ const s = {
   kpiRow: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(196px, 1fr))", gap: 12 },
   kpiCell: { minWidth: 0 },
   exGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 },
-
-  ask: { display: "flex", flexDirection: "column", gap: 14, paddingTop: 20, borderTop: "1px solid var(--color-divider-card)" },
 };

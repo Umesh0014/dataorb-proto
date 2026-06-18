@@ -4,6 +4,7 @@ import React from "react";
 import MiraSpaceBriefing from "./MiraSpaceBriefing";
 import MiraSpaceRoom from "./MiraSpaceRoom";
 import MiraSpacePlayer from "./MiraSpacePlayer";
+import MiraChatColumn from "./MiraChatColumn";
 import VersionBar from "./VersionBar";
 
 // MiraSpaceShell — demo-only host for the "Ask Mira Pro" landing-page
@@ -89,15 +90,48 @@ const RATIONALE = {
   },
 };
 
-export default function MiraSpaceShell({ onAsk }) {
+export default function MiraSpaceShell({
+  conversation,
+  pendingTurnId,
+  queriesUsed,
+  queriesTotal,
+  onSubmit,
+  onReset,
+  setupContextOpen,
+  onToggleSetupContext,
+}) {
   const [dir, setDir] = React.useState("A");
+  const [chatOpen, setChatOpen] = React.useState(false);
   const { Component } = DIRECTIONS[dir];
+
+  // A direction's ask affordance (suggested prompt, KPI "Ask", exploration)
+  // opens the chat column pre-scoped and submits the question if one is given.
+  const handleAsk = (text) => {
+    setChatOpen(true);
+    if (text && text.trim() && !pendingTurnId) onSubmit(text);
+  };
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
       <style>{`@keyframes mira-spin { to { transform: rotate(360deg); } }`}</style>
 
-      <Component onAsk={onAsk} />
+      <div style={row}>
+        <div style={main}>
+          <Component onAsk={handleAsk} />
+        </div>
+        <MiraChatColumn
+          open={chatOpen}
+          onToggle={setChatOpen}
+          conversation={conversation}
+          pendingTurnId={pendingTurnId}
+          queriesUsed={queriesUsed}
+          queriesTotal={queriesTotal}
+          onSubmit={onSubmit}
+          onReset={onReset}
+          setupContextOpen={setupContextOpen}
+          onToggleSetupContext={onToggleSetupContext}
+        />
+      </div>
 
       <VersionBar
         versions={VERSIONS}
@@ -109,6 +143,9 @@ export default function MiraSpaceShell({ onAsk }) {
     </div>
   );
 }
+
+const row = { display: "flex", alignItems: "flex-start", gap: 20, width: "100%" };
+const main = { flex: 1, minWidth: 0 };
 
 // Help popover content — pros/cons on top, the reference → insight chain
 // behind a "More detail" toggle. Styled for the VersionBar's dark popover.
