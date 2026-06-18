@@ -86,11 +86,12 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
 export function DirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Three ways to author</span>
-      <p style={vbHelp.text}><b>A · Checklist</b> — one flat list grouped by stage. Asana-simple, highest reuse. Safest.</p>
-      <p style={vbHelp.text}><b>B · Board</b> — five stage swim-lanes + an outcome lane; read the shape of the call at a glance.</p>
-      <p style={vbHelp.text}><b>C · Studio</b> — outline beside the evidence it was mined from; click a step to see its proof.</p>
-      <p style={vbHelp.hint}>Research: Scribe/Tango show nobody writes SOPs from scratch → generate-first. Process Street → the requirement/type tags are the eval contract. All three: flat checklist, no branching.</p>
+      <span style={vbHelp.title}>New ways to author</span>
+      <p style={vbHelp.text}><b>Wizard</b> — a short AI-prefilled interview, one stage at a time. "A 13-year-old can build it."</p>
+      <p style={vbHelp.text}><b>Document</b> — a living SOP doc: stages as headings, steps as blocks, grounding as citations.</p>
+      <p style={vbHelp.text}><b>Table</b> — a dense grid: rows = steps, columns = stage / type / required / grounding / success.</p>
+      <p style={vbHelp.text}><b>Co-author</b> — pair-write with the AI; accepted edits land in a live preview.</p>
+      <p style={vbHelp.hint}>The earlier three (Checklist / Board / Studio) are parked in the “Bombed ideas” dropdown. All directions keep the flat-checklist, no-branching, evidence-grounded contract.</p>
     </div>
   );
 }

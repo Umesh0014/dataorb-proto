@@ -8,6 +8,10 @@ import GuidedWorkflowLibrary from "./GuidedWorkflowLibrary";
 import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
 import GuidedWorkflowStudioEditor from "./GuidedWorkflowStudioEditor";
+import GuidedWorkflowWizardEditor from "./GuidedWorkflowWizardEditor";
+import GuidedWorkflowDocEditor from "./GuidedWorkflowDocEditor";
+import GuidedWorkflowTableEditor from "./GuidedWorkflowTableEditor";
+import GuidedWorkflowCoauthorEditor from "./GuidedWorkflowCoauthorEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
 import { TabContext, EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
@@ -29,10 +33,18 @@ import {
 // differs. Honours the locked decisions: edit-mode = create-mode (nothing
 // blank), flat checklist (no branching), unlimited attempts, audit first.
 
+// New directions (this run) ride the VersionBar as primary chips; the earlier
+// three are kept but tucked into a "Bombed ideas" dropdown (baselineOptions).
 const DIRECTIONS = [
-  { id: "safe", label: "A · Checklist", iterations: [] },
-  { id: "balanced", label: "B · Board", iterations: [] },
-  { id: "ambitious", label: "C · Studio", iterations: [] },
+  { id: "wizard", label: "Wizard", iterations: [] },
+  { id: "document", label: "Document", iterations: [] },
+  { id: "table", label: "Table", iterations: [] },
+  { id: "coauthor", label: "Co-author", iterations: [] },
+];
+const BOMBED = [
+  { id: "safe", label: "Checklist (bombed)" },
+  { id: "balanced", label: "Board (bombed)" },
+  { id: "ambitious", label: "Studio (bombed)" },
 ];
 
 const REQUIREMENT_CYCLE = ["required", "conditional", "recommended"];
@@ -40,7 +52,7 @@ const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
 export default function GuidedWorkflowsPage({ onBack }) {
-  const [variant, setVariant] = React.useState("balanced");
+  const [variant, setVariant] = React.useState("wizard");
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -188,7 +200,15 @@ export default function GuidedWorkflowsPage({ onBack }) {
               heading="AI drafted this base workflow"
               body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
             />
-            {variant === "safe" ? (
+            {variant === "wizard" ? (
+              <GuidedWorkflowWizardEditor {...editorProps} />
+            ) : variant === "document" ? (
+              <GuidedWorkflowDocEditor {...editorProps} />
+            ) : variant === "table" ? (
+              <GuidedWorkflowTableEditor {...editorProps} />
+            ) : variant === "coauthor" ? (
+              <GuidedWorkflowCoauthorEditor {...editorProps} />
+            ) : variant === "safe" ? (
               <GuidedWorkflowChecklistEditor {...editorProps} />
             ) : variant === "balanced" ? (
               <GuidedWorkflowBoardEditor {...editorProps} />
@@ -224,9 +244,9 @@ export default function GuidedWorkflowsPage({ onBack }) {
       )}
 
       <VersionBar
-        tabsMode
         versions={DIRECTIONS}
-        baselineOptions={[]}
+        baselineOptions={BOMBED}
+        baselineLabel="Bombed ideas"
         value={{ versionId: variant, iterationId: null }}
         onChange={({ versionId }) => setVariant(versionId)}
         help={<DirectionsHelp />}
