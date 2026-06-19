@@ -18,7 +18,9 @@ description: >-
 
 Take one Notion ticket and run it through the full divergence→convergence pipeline.
 You (the agent) do the mechanical work and the self-correcting loops; the human
-stands at four gates where taste, strategy, and politics actually live.
+stands at the gates where taste, strategy, and politics actually live. Gate 1 (the
+direction decision) is automated by a real evaluator and reverts to the human only
+when confidence is low — the other three gates (0, 2, 3) stay human.
 
 **Core principle:** automate the *convergence* loops (does this match the spec /
 the design system / the pixels?), gate the *divergence* decisions (which idea, is
@@ -66,11 +68,27 @@ Catch hallucinated context here, where it's cheap.
 
 ### Phase 1 — Research for insights (comes first)
 
-Before generating anything, research the problem space: similar use cases on the
-web, how comparable products solve and *position* this, what patterns convert.
-Apply the insight≠information gate. Output, per emerging angle: references →
-insight → pro/con. This is the raw material directions are *built from*, not
-decorated with afterwards.
+Before generating anything, research the problem space on two parallel tracks.
+Both converge through the **insight≠information gate** — every reference, conceptual
+or visual, must end in "…therefore, for our direction: ___." Output, per emerging
+angle: references → insight → pro/con. This is the raw material directions are
+*built from*, not decorated with afterwards.
+
+**Track A — Conceptual.** Similar use cases on the web, how comparable products
+solve and *position* this, what patterns convert.
+
+**Track B — Visual inspiration loop.** Mine real UI/layout references for structural
+ideas. Mechanism: `WebSearch` scoped to design galleries (`site:dribbble.com`,
+`site:behance.net`, Pinterest boards, Google Images result pages) → `WebFetch` the
+shot/board pages → `get_screenshot` where you need to actually see the layout.
+- **Extract structure, not skin.** Pull mental model, navigation, density, and core
+  interaction patterns — *never* colors, fonts, shadows, or spacing. DataOrb forbids
+  new tokens (CLAUDE.md), and the distinctness gate is defined on structural axes, so
+  structural inspiration feeds directions directly while styling inspiration is noise.
+- **Relevance + on-brand filter.** Score each reference for relevance to the ticket's
+  problem; de-dupe against DataOrb's own design language before it earns a slot.
+- **Loop exit:** ≥1 distinct structural pattern per emerging angle AND new references
+  stop yielding new patterns (saturation / diminishing returns) — not a fixed count.
 
 ### Phase 2 — Generate N distinct directions (from the insights)
 
@@ -82,11 +100,36 @@ Each inherits its pros/cons and reference→insight chain from Phase 1.
 - Each version carries a **"?"** affordance → popover. Top layer: scannable pros/cons.
   "More detail" tab: the references pulled and the insights derived (the reasoning chain).
 
-### Phase 3 — **GATE 1** · direction review (the big one)
+### Phase 3 — **AUTO-GATE 1** · direction decision (the big one)
 
-The human reviews directions in the version bar. Feedback is a fixed verb schema so
-you parse it deterministically — **always echo your parsed reading back for a
-one-line confirm before acting:**
+This is the one divergence decision the skill automates — but never blindly. The
+move is **score → confidence-check → branch**: build a real evaluator, auto-select
+only when it's confident, and fall back to the human exactly when it isn't. This
+honors "never gate what an evaluator can judge; always gate what only the human can"
+rather than breaking it.
+
+1. **Score every direction.** Run the `design-evaluator` agent against a weighted
+   rubric: spec-fit · distinctness · insight-grounding · design-system fit ·
+   feasibility · predicted-strategy-fit. Rank the directions.
+2. **Confidence check decides who drives:**
+   - Top score clears an **absolute threshold** AND beats the runner-up by a
+     **margin** AND trips no hard-negative constraint → **auto-select and proceed.**
+   - Close call / low confidence → **fall back to HUMAN GATE 1** (manual review below).
+3. **Auto-select is recoverable.** Decide *before* the Figma ownership-flip, while the
+   prototype is still cheap. Post the pick + full scorecard + reasoning to Notion and
+   open a **time-boxed veto window** — proceed by default; a human veto/redirect routes
+   back to the human gate.
+4. **Escape hatch.** No direction clears the threshold → regenerate Phase 2 with the
+   failure as a hard-negative constraint, **bounded to N retries**, then escalate to
+   the human. Bounded so it can never spin forever.
+
+> **Honest caveat:** *predicted-strategy-fit* is the one axis an evaluator can't truly
+> judge — that's exactly what the threshold, margin, and veto window protect.
+
+**Human Gate 1 (fallback).** When confidence is low, vetoed, or retries are exhausted,
+the human reviews directions in the version bar using a fixed verb schema you parse
+deterministically — **always echo your parsed reading back for a one-line confirm
+before acting:**
 
 - Per direction: `keep` · `discard` · `refine <scoped note>` · `merge <a+b>` · `branch <into variants>`
 - Global: `funnel <keep these, drop rest>` · `reject-all <reason>`
@@ -135,14 +178,16 @@ Figma + prototype links, and final status. Notion stays the system of record.
 
 ## The loops, and what stops each (quick reference)
 
-- **Distinctness** (Phase 2) — stop when all directions are structurally orthogonal.
+- **Visual mining** (Phase 1, Track B) — stop at structural-pattern saturation.
 - **Insight ≠ info** (Phase 1) — drop any finding without a design implication.
+- **Distinctness** (Phase 2) — stop when all directions are structurally orthogonal.
+- **Direction scoring** (Phase 3) — auto-select on confidence; else fall back to human.
 - **DS-compliance + completeness** (Phase 4) — stop when audit clean + all states defined.
 - **Pixel-match** (Phase 6) — stop when visual diff ≈ 0.
 - **Standardization** (Phase 7) — stop when consistent with sibling Figma files.
 
-Only the first two ever surface to the human (at Gate 1). The rest run silent and
-report pass/fail.
+Only the insight and distinctness loops ever surface to the human (at Gate 1, and
+only when Auto-Gate 1 hands off). The rest run silent and report pass/fail.
 
 ## Principles
 
@@ -156,5 +201,64 @@ report pass/fail.
   Sync is one-directional. No bidirectional drift.
 - **Reuse beats invent.** Borrow components from the library; build new only when
   forced, and standardize it immediately.
-- **Gates are few and load-bearing.** Four human gates, no more. Everything else is
-  a loop with an exit condition.
+- **Gates are few and load-bearing.** Gate 1 is automated by a real evaluator and
+  reverts to the human only on low confidence; the other three (0, 2, 3) stay human.
+  Everything else is a loop with an exit condition.
+
+## Flow diagram
+
+```mermaid
+flowchart TD
+    A[Phase 0: Ingest ticket] --> G0{GATE 0\nbrief accurate?}
+    G0 -->|human confirm| P1
+
+    subgraph P1 [Phase 1: Research for insights]
+        direction TB
+        C[Track A: Conceptual\nhow products solve & position]
+        subgraph VIS [Track B: Visual inspiration loop NEW]
+            direction TB
+            V1[WebSearch scoped:\nDribbble / Pinterest / Behance / Google Images]
+            V2[WebFetch + get_screenshot\nsee real layouts]
+            V3[Extract STRUCTURE not skin\nmental model / density / nav]
+            V4[Relevance + on-brand filter\nde-dupe vs DataOrb language]
+            V1 --> V2 --> V3 --> V4
+            V4 -->|patterns still emerging| V1
+        end
+        C --> IG
+        V4 --> IG{Insight =/= info gate\nends in 'therefore: ___' ?}
+    end
+    IG -->|saturated:\n>=1 structural pattern per angle| P2
+
+    P2[Phase 2: Generate N distinct directions\nlive coded prototypes + version bar] --> DG{Distinctness gate}
+    DG -->|not orthogonal| P2
+
+    DG -->|all orthogonal| SC[Score each direction\ndesign-evaluator agent + weighted rubric]
+
+    subgraph AG1 [Auto-Gate 1 NEW: automate direction decision]
+        direction TB
+        SC --> CONF{Confidence check\ntop >= threshold AND\nmargin over runner-up AND\nno hard-negative hits?}
+        CONF -->|no direction passes| RG{Retries left?}
+        RG -->|yes| P2
+        RG -->|no| HG[Fall back to HUMAN GATE 1]
+        CONF -->|close call / low conf| HG
+        CONF -->|clear winner| AUTO[Auto-select top direction\npost scorecard + reasoning to Notion]
+        AUTO --> VETO{Time-boxed veto window\nhuman interrupts?}
+        VETO -->|veto / redirect| HG
+    end
+
+    HG -->|funnel / keep| P4
+    VETO -->|no veto, proceed| P4
+
+    P4[Phase 4: Build base Figma\nFigma now canonical] --> L4{DS audit + all states defined?}
+    L4 -->|fail| P4
+    L4 -->|clean| G2{GATE 2\nstakeholder review}
+    G2 --> P6[Phase 6: Figma -> code sync]
+    P6 --> L6{Visual diff ~ 0?}
+    L6 -->|no| P6
+    L6 -->|yes| P7[Phase 7: Completeness + standardization]
+    P7 --> G3{GATE 3\nfinal sign-off + handoff}
+    G3 --> P8[Phase 8: Write status back to Notion]
+
+    style VIS fill:#e8f0fe,stroke:#4285f4
+    style AG1 fill:#fce8e6,stroke:#ea4335
+```
