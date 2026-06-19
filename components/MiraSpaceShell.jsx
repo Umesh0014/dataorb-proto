@@ -4,177 +4,121 @@ import React from "react";
 import MiraSpaceBriefing from "./MiraSpaceBriefing";
 import MiraSpaceRoom from "./MiraSpaceRoom";
 import MiraSpacePlayer from "./MiraSpacePlayer";
-import MiraSpaceWorkspace from "./MiraSpaceWorkspace";
+import MiraWorkspaceCombined from "./MiraWorkspaceCombined";
+import MiraWorkspaceCanvas from "./MiraWorkspaceCanvas";
+import MiraWorkspaceThreePane from "./MiraWorkspaceThreePane";
+import MiraWorkspaceDashboard from "./MiraWorkspaceDashboard";
 import MiraChatColumn from "./MiraChatColumn";
 import VersionBar from "./VersionBar";
 
-// MiraSpaceShell — demo-only host for the "Ask Mira Pro" landing-page
-// directions (Notion ticket: [Ask Mira Pro] Landing page). Mirrors the
-// CreditsUsageShell precedent: holds the active-direction state in-memory
-// (G5 — resets when the session ends, deletable in one commit) and mounts the
-// VersionBar switcher bottom-right. Each direction renders the SAME space
-// content (one pre-populated "Sales" space) arranged to a distinct mental
-// model, so the Gate-1 comparison is structural, not cosmetic.
+// MiraSpaceShell — demo-only host for the "Ask Mira Pro" landing directions.
+// Two categories sit in the VersionBar as chips, each with iterations:
 //
-//   A — Briefing-first front page  (arrive to be briefed; newspaper/memo)
-//   B — The Room                   (furnished blocks you inhabit; Notion/Coda)
-//   C — Player-centric             (your outcome has a podcast; Spotify/NotebookLM)
-//   D — Workspace                  (three-column metric investigation; NotebookLM)
+//   Archive   — the earlier concept explorations (A Briefing · B Room · C Player).
+//   Workspace — the chosen direction, now with four versions:
+//                 1 Combined Explorer (accordion)
+//                 2 Full-Canvas Master–Detail (two-pane)
+//                 3 Three-Pane Pro (cards · detail · context rail)
+//                 4 Dashboard → Focus (overview grid ⇄ focus)
 //
-// The VersionBar "?" popover carries each direction's pros/cons (top layer)
-// and the reference → insight chain it was built from (More detail), per the
-// notion-ticket factory's Gate-1 contract.
+// Default lands on Workspace · 1. Archive directions keep the collapsible
+// right chat column; Workspace versions are full-bleed and own the bottom
+// Facebook-style chat. State is in-memory only (G5).
 
-const DIRECTIONS = {
-  A: { label: "Briefing", Component: MiraSpaceBriefing },
-  B: { label: "Room", Component: MiraSpaceRoom },
-  C: { label: "Player", Component: MiraSpacePlayer },
-  D: { label: "Workspace", Component: MiraSpaceWorkspace },
-};
+const ARCHIVE = { A: MiraSpaceBriefing, B: MiraSpaceRoom, C: MiraSpacePlayer };
+const WORKSPACE = { 1: MiraWorkspaceCombined, 2: MiraWorkspaceCanvas, 3: MiraWorkspaceThreePane, 4: MiraWorkspaceDashboard };
 
-const VERSIONS = Object.entries(DIRECTIONS).map(([id, d]) => ({
-  id: id.toLowerCase(),
-  label: d.label,
-  iterations: [],
-}));
+const VERSIONS = [
+  { id: "archive", label: "Archive", iterations: ["A", "B", "C"] },
+  { id: "workspace", label: "Workspace", iterations: ["1", "2", "3", "4"] },
+];
 
-// Per-direction reasoning, surfaced in the "?" popover.
 const RATIONALE = {
-  A: {
-    name: "A · Briefing-first front page",
-    model: "Arrive to be briefed (newspaper / Amazon-memo)",
-    pros: [
-      "Insight is on screen before any input — kills the chatbot-homepage.",
-      "Narrative brief pre-ranks what matters; KPIs are the appendix.",
-      "Lowest-risk, strongest fit for “insight arrives to them”.",
-    ],
-    cons: [
-      "Collaboration is a sidebar, not the spine — quieter on teamwork.",
-      "Long page; the brief dominates the first screen.",
-    ],
-    refs: [
-      ["Tableau Pulse “Today’s Pulse” + Amazon six-pager", "Briefing-over-dashboard pre-ranks what matters", "Lead with authored prose that takes a position, not a TTS of numbers."],
-      ["Exec push-vs-pull behaviour", "Execs consume insight where it arrives, not by visiting a tool", "The brief is the hero; chat is a quiet follow-up."],
-    ],
-  },
-  B: {
-    name: "B · The Room",
-    model: "A furnished space you inhabit with your team (Notion / Coda)",
-    pros: [
-      "Collaboration is the spine — every block has presence + comments.",
-      "Heterogeneous blocks map exactly to Neil’s four things.",
-      "Explorations pin back into the room as first-class blocks.",
-    ],
-    cons: [
-      "Risks reintroducing blank-canvas friction if not strictly templated.",
-      "Briefing shares the stage rather than leading it.",
-    ],
-    refs: [
-      ["Notion AI Home / Coda “documents as applications”", "A space is a living doc of blocks members comment on", "KPI cards, player, explorations are blocks; collaborators are members."],
-      ["Neil: “private vs shared got it wrong”", "Ambiguous visibility default makes execs self-censor", "Explicit Shared/Private badge + deliberate add-to-space promotion."],
-    ],
-  },
-  C: {
-    name: "C · Player-centric",
-    model: "Your outcome has a podcast (Spotify / NotebookLM)",
-    pros: [
-      "Audio brief is the hero — built for dead-time, hands/eyes-busy consumption.",
-      "Episode feed makes the brief a serial you follow.",
-      "One-click play; transcript + TL;DR keep it usable muted.",
-    ],
-    cons: [
-      "Over-indexes on audio for the desk / muted context.",
-      "KPIs demoted to show-notes — less glanceable than A.",
-    ],
-    refs: [
-      ["NotebookLM Audio Overview (100M+ plays)", "Two-voice format is the engagement engine, not a gimmick", "One-click-to-play hero; EN→AR toggle lives on the player."],
-      ["Audio-in-enterprise pitfalls", "Open floors / back-to-back meetings make audio-only hostile", "Never autoplay; transcript + 1-line TL;DR are equal peers."],
-    ],
-  },
-  D: {
-    name: "D · Workspace",
-    model: "Three-column metric investigation (NotebookLM)",
-    pros: [
-      "Master→detail: pick a metric, get its trend, AI read, audio clip + chats.",
-      "Per-metric 2-voice clips — drill audio, not just one space brief.",
-      "Chat is a permanent right column with private/public + starter topics.",
-    ],
-    cons: [
-      "Densest of the four — three columns demand width.",
-      "Investigation-first; less of a glanceable “arrive and absorb” surface.",
-    ],
-    refs: [
-      ["NotebookLM 3-pane (sources · detail · chat)", "Pickable items + a working surface + a persistent assistant scales investigation", "Metrics list (left) drives a detail column (middle) with chat always at hand (right)."],
-      ["Exec verify-then-trust + “private vs shared got it wrong”", "Execs probe before trusting and need a safe place to do it", "Per-metric chats with an explicit private (scratchpad) / public (shared) switch."],
-    ],
-  },
+  "archive:A": { name: "Archive · A — Briefing", model: "Arrive to be briefed (newspaper / Amazon-memo)",
+    pros: ["Insight on screen before any input.", "Narrative brief pre-ranks what matters."],
+    cons: ["Parked: superseded by Workspace.", "Collaboration is a sidebar."],
+    refs: [["Tableau Pulse + Amazon six-pager", "Briefing-over-dashboard pre-ranks what matters", "Lead with authored prose, not a TTS of numbers."]] },
+  "archive:B": { name: "Archive · B — Room", model: "A furnished space you inhabit (Notion / Coda)",
+    pros: ["Collaboration is the spine.", "Blocks map to the four things."],
+    cons: ["Parked: superseded by Workspace.", "Briefing shares the stage."],
+    refs: [["Notion AI Home / Coda", "A space is a living doc of blocks", "KPIs, player, explorations as blocks; members comment."]] },
+  "archive:C": { name: "Archive · C — Player", model: "Your outcome has a podcast (Spotify / NotebookLM)",
+    pros: ["Audio brief is the hero.", "Episode feed makes it a serial."],
+    cons: ["Parked: superseded by Workspace.", "Over-indexes on audio for the desk."],
+    refs: [["NotebookLM Audio Overview", "Two-voice format is the engagement engine", "One-click play; transcript keeps it usable muted."]] },
+
+  "workspace:1": { name: "Workspace · 1 — Combined Explorer", model: "Accordion: metrics + details in one surface",
+    pros: ["Metric and its detail are one unit — expand in place.", "Celebrated metric cards, no list↔detail switch.", "Bottom chat frees the full width."],
+    cons: ["One metric open at a time.", "Less side-by-side comparison."],
+    refs: [["Combine metrics + details (your feedback)", "Browsing and drilling shouldn't split panes", "Cards expand inline to reveal trend + read + clip + chats."]] },
+  "workspace:2": { name: "Workspace · 2 — Full-Canvas Master–Detail", model: "Two-pane: card rail + persistent detail",
+    pros: ["Detail always visible beside the metric list.", "Full width for data; chat at bottom.", "Fast metric-to-metric scanning."],
+    cons: ["Detail column can feel wide on big metrics.", "No team/context pane."],
+    refs: [["Full width + bottom chat (your feedback)", "Maximise data; chat on demand", "Card rail + detail own 100% width; Ask Mira is a bottom widget."]] },
+  "workspace:3": { name: "Workspace · 3 — Three-Pane Pro", model: "Cards · detail · context rail (everything visible)",
+    pros: ["Adds collaborators-with-quota + shared chats per metric.", "Power-user, all-at-once surface.", "Celebrated cards + clean panes."],
+    cons: ["Densest of the four.", "Needs the most width."],
+    refs: [["Exec collaboration + quota", "Context (who, shared work) belongs next to the metric", "A right rail carries collaborators + the metric's shared chats."]] },
+  "workspace:4": { name: "Workspace · 4 — Dashboard → Focus", model: "Overview grid ⇄ focused metric",
+    pros: ["See every metric at a glance first.", "Focus view is distraction-free.", "Familiar dashboard entry."],
+    cons: ["Extra click to reach detail.", "Two screens to maintain."],
+    refs: [["Overview-first navigation", "Execs scan all metrics before drilling", "A celebrated-card grid opens into a focused detail; Back returns."]] },
 };
 
 export default function MiraSpaceShell({
-  conversation,
-  pendingTurnId,
-  queriesUsed,
-  queriesTotal,
-  onSubmit,
-  onReset,
-  setupContextOpen,
-  onToggleSetupContext,
+  conversation, pendingTurnId, queriesUsed, queriesTotal, onSubmit, onReset,
+  setupContextOpen, onToggleSetupContext,
 }) {
-  const [dir, setDir] = React.useState("A");
+  const [sel, setSel] = React.useState({ versionId: "workspace", iterationId: "1" });
   const [chatOpen, setChatOpen] = React.useState(false);
-  const { Component } = DIRECTIONS[dir];
 
-  // D (Workspace) is self-contained — it owns its own three columns including
-  // a permanent chat column, so it takes the chat state directly and the
-  // shell skips the global collapsible chat column.
-  const isWorkspace = dir === "D";
+  const isArchive = sel.versionId === "archive";
 
-  // For A/B/C, a direction's ask affordance (suggested prompt, KPI "Ask",
-  // exploration) opens the global chat column pre-scoped and submits.
+  // Archive directions (A/B/C) use the collapsible right chat column; a card's
+  // ask affordance opens it pre-scoped and submits.
   const handleAsk = (text) => {
     setChatOpen(true);
     if (text && text.trim() && !pendingTurnId) onSubmit(text);
   };
 
+  const chatProps = {
+    conversation, pendingTurnId, queriesUsed, queriesTotal, onSubmit, onReset,
+  };
+
+  let body;
+  if (isArchive) {
+    const Direction = ARCHIVE[sel.iterationId] || ARCHIVE.A;
+    body = (
+      <div style={row}>
+        <div style={main}><Direction onAsk={handleAsk} /></div>
+        <MiraChatColumn
+          open={chatOpen}
+          onToggle={setChatOpen}
+          setupContextOpen={setupContextOpen}
+          onToggleSetupContext={onToggleSetupContext}
+          {...chatProps}
+        />
+      </div>
+    );
+  } else {
+    const Version = WORKSPACE[sel.iterationId] || WORKSPACE[1];
+    body = <Version {...chatProps} />;
+  }
+
   return (
     <div style={{ position: "relative", width: "100%" }}>
       <style>{`@keyframes mira-spin { to { transform: rotate(360deg); } }`}</style>
 
-      {isWorkspace ? (
-        <Component
-          conversation={conversation}
-          pendingTurnId={pendingTurnId}
-          queriesUsed={queriesUsed}
-          queriesTotal={queriesTotal}
-          onSubmit={onSubmit}
-          onReset={onReset}
-        />
-      ) : (
-        <div style={row}>
-          <div style={main}>
-            <Component onAsk={handleAsk} />
-          </div>
-          <MiraChatColumn
-            open={chatOpen}
-            onToggle={setChatOpen}
-            conversation={conversation}
-            pendingTurnId={pendingTurnId}
-            queriesUsed={queriesUsed}
-            queriesTotal={queriesTotal}
-            onSubmit={onSubmit}
-            onReset={onReset}
-            setupContextOpen={setupContextOpen}
-            onToggleSetupContext={onToggleSetupContext}
-          />
-        </div>
-      )}
+      {body}
 
       <VersionBar
         versions={VERSIONS}
         tabsMode
-        value={{ versionId: dir.toLowerCase(), iterationId: null }}
-        onChange={({ versionId }) => setDir(versionId.toUpperCase())}
-        help={<DirectionHelp dir={dir} />}
+        value={{ versionId: sel.versionId, iterationId: sel.iterationId }}
+        onChange={({ versionId, iterationId }) =>
+          setSel({ versionId, iterationId: iterationId ?? (versionId === "archive" ? "A" : "1") })
+        }
+        help={<DirectionHelp sel={sel} />}
       />
     </div>
   );
@@ -183,26 +127,21 @@ export default function MiraSpaceShell({
 const row = { display: "flex", alignItems: "flex-start", gap: 20, width: "100%" };
 const main = { flex: 1, minWidth: 0 };
 
-// Help popover content — pros/cons on top, the reference → insight chain
-// behind a "More detail" toggle. Styled for the VersionBar's dark popover.
-function DirectionHelp({ dir }) {
+// Help popover — pros/cons on top, the reference → insight chain behind a
+// "More detail" toggle. Styled for the VersionBar's dark popover.
+function DirectionHelp({ sel }) {
   const [detail, setDetail] = React.useState(false);
-  const r = RATIONALE[dir];
+  const r = RATIONALE[`${sel.versionId}:${sel.iterationId}`] || RATIONALE["workspace:1"];
   return (
     <div style={h.wrap}>
       <span style={h.name}>{r.name}</span>
       <span style={h.model}>{r.model}</span>
-
       {!detail ? (
         <>
           <span style={h.heading}>Pros</span>
-          <ul style={h.list}>
-            {r.pros.map((p, i) => <li key={i} style={h.li}>{p}</li>)}
-          </ul>
+          <ul style={h.list}>{r.pros.map((p, i) => <li key={i} style={h.li}>{p}</li>)}</ul>
           <span style={h.heading}>Cons</span>
-          <ul style={h.list}>
-            {r.cons.map((c, i) => <li key={i} style={h.li}>{c}</li>)}
-          </ul>
+          <ul style={h.list}>{r.cons.map((c, i) => <li key={i} style={h.li}>{c}</li>)}</ul>
         </>
       ) : (
         <>
@@ -218,7 +157,6 @@ function DirectionHelp({ dir }) {
           </div>
         </>
       )}
-
       <button type="button" onClick={() => setDetail((v) => !v)} style={h.toggle}>
         {detail ? "← Back to pros / cons" : "More detail — the reasoning →"}
       </button>
