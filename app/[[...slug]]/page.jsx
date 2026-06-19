@@ -570,6 +570,9 @@ export default function Page() {
           onReset={startNewMiraChat}
           setupContextOpen={miraSetupOpen}
           onToggleSetupContext={() => setMiraSetupOpen((o) => !o)}
+          conversations={miraConversations}
+          onOpenConversation={openMiraConversation}
+          onViewAll={() => router.push(pathForMira("history"))}
         />
       );
     } else if (isHistory) {

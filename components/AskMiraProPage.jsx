@@ -5,12 +5,23 @@ import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import MiraConversation from "./MiraConversation";
+import MiraLandingDeck from "./MiraLandingDeck";
+import VersionBar from "./VersionBar";
 import {
   MiraStarIcon,
   TuneIcon,
   FilterFunnelIcon,
   ArrowUpIcon,
 } from "./SideNav/icons";
+
+// Two named landing directions ride one VersionBar (no "v1/v2" alphabets).
+// Launchpad is the adopted ChatGPT-style home (ask box → metric pulse →
+// chats); Welcome Mat is the previous centered-greeting design, parked but
+// still switchable.
+const DIRECTIONS = [
+  { id: "launchpad", label: "Launchpad", iterations: [] },
+  { id: "welcome", label: "Welcome Mat", iterations: [] },
+];
 
 const SUGGESTED_QUESTIONS = [
   "What are the top pain points reported by customers this month?",
@@ -43,6 +54,9 @@ const SUGGESTED_QUESTIONS = [
  *   onReset: () => void,
  *   setupContextOpen?: boolean,
  *   onToggleSetupContext?: () => void,
+ *   conversations?: Array<{ id: string, firstQuestion: string, createdAt: number, turns: Array<unknown> }>,
+ *   onOpenConversation?: (id: string) => void,
+ *   onViewAll?: () => void,
  * }} props
  */
 export default function AskMiraProPage({
@@ -55,8 +69,12 @@ export default function AskMiraProPage({
   onReset,
   setupContextOpen = false,
   onToggleSetupContext,
+  conversations = [],
+  onOpenConversation,
+  onViewAll,
 }) {
   const [query, setQuery] = React.useState("");
+  const [direction, setDirection] = React.useState("launchpad");
 
   const queriesLeft = Math.max(queriesTotal - queriesUsed, 0);
   const inChat = conversation.length > 0;
@@ -74,37 +92,84 @@ export default function AskMiraProPage({
     setQuery("");
   };
 
-  return (
-    <div style={s.page}>
-      {inChat ? (
-        <ChatHeader onBack={resetToHome} onNewChat={resetToHome} />
-      ) : null}
+  const composer = (
+    <Composer
+      query={query}
+      onChange={setQuery}
+      onSubmit={() => submit(query)}
+      pending={Boolean(pendingTurnId)}
+      setupContextOpen={setupContextOpen}
+      onToggleSetupContext={onToggleSetupContext}
+      queriesLeft={queriesLeft}
+      queriesTotal={queriesTotal}
+    />
+  );
 
-      <div style={inChat ? s.chatBody : s.homeHero}>
-        {inChat ? (
+  if (inChat) {
+    return (
+      <div style={s.page}>
+        <ChatHeader onBack={resetToHome} onNewChat={resetToHome} />
+        <div style={s.chatBody}>
           <MiraConversation
             turns={conversation}
             pendingTurnId={pendingTurnId}
             onSubmitFollowUp={submit}
           />
-        ) : (
-          <HomeHero
-            userName={userName}
-            onPickSuggestion={(q) => setQuery(q)}
-          />
-        )}
+        </div>
+        {composer}
       </div>
+    );
+  }
 
-      <Composer
-        query={query}
-        onChange={setQuery}
-        onSubmit={() => submit(query)}
-        pending={Boolean(pendingTurnId)}
-        setupContextOpen={setupContextOpen}
-        onToggleSetupContext={onToggleSetupContext}
-        queriesLeft={queriesLeft}
-        queriesTotal={queriesTotal}
+  return (
+    <div style={s.page}>
+      {direction === "launchpad" ? (
+        <MiraLandingDeck
+          userName={userName}
+          composer={composer}
+          conversations={conversations}
+          onAskAbout={(q) => setQuery(q)}
+          onOpenConversation={onOpenConversation}
+          onViewAll={onViewAll}
+        />
+      ) : (
+        <>
+          <div style={s.homeHero}>
+            <HomeHero userName={userName} onPickSuggestion={(q) => setQuery(q)} />
+          </div>
+          {composer}
+        </>
+      )}
+
+      <VersionBar
+        tabsMode
+        versions={DIRECTIONS}
+        baselineOptions={[]}
+        value={{ versionId: direction, iterationId: null }}
+        onChange={({ versionId }) => setDirection(versionId)}
+        help={<MiraDirectionsHelp />}
       />
+    </div>
+  );
+}
+
+function MiraDirectionsHelp() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <span style={vbHelp.title}>Two landing directions</span>
+      <p style={vbHelp.text}>
+        <b>Launchpad</b> — ask box up top, a pulse of every metric category, then
+        your recent chats. Most to act on at a glance.
+      </p>
+      <p style={vbHelp.text}>
+        <b>Welcome Mat</b> — a calm centered greeting with starter prompts and the
+        composer anchored below. The previous design, parked here.
+      </p>
+      <p style={vbHelp.hint}>
+        Borrowed structure: input-first home with category tiles (ChatGPT /
+        Perplexity home) → therefore surface DataOrb&apos;s metric categories as
+        one-tap question seeds.
+      </p>
     </div>
   );
 }
@@ -421,4 +486,10 @@ const s = {
     fontWeight: 500,
     color: "var(--color-text-tertiary)",
   },
+};
+
+const vbHelp = {
+  title: { fontSize: 13, fontWeight: 700, color: "var(--vb-txt)" },
+  text: { margin: 0, fontSize: 12, lineHeight: 1.5, color: "var(--vb-txt)" },
+  hint: { margin: "4px 0 0", fontSize: 11, lineHeight: 1.5, color: "var(--vb-muted)" },
 };
