@@ -262,3 +262,155 @@ export const SUGGESTED = [
   "Which reps close fastest with the Insights add-on?",
   "Where is discounting hurting more than it helps?",
 ];
+
+// ---------------------------------------------------------------------------
+// STORIES — authored analytical narratives (Jun 19 sharpening). You arrive to
+// these, not a blank prompt: a story is authored ONCE from an exploration and
+// made viewable to everyone (token discipline — no re-asking the same thing).
+// Default-PUBLIC (others can view, not edit); private is opt-in. Stories carry
+// pinned/highlighted insights (the Kindle-highlight analogy), comments, a KPI
+// trend with "key moments", lineage back to the exploration, and related
+// stories. `blocks` is the ordered body the story-artifact template renders.
+//
+// status: "authored" (published) | "draft"      visibility: "public" | "private"
+export const STORIES = [
+  {
+    id: "s-winrate",
+    title: "Win rate slipped — but it's a segment story, not a decline",
+    question: "Why did win rate drop to 31% this week?",
+    titleAr: "تراجع معدل الفوز — لكنها قصة قطاع وليست انخفاضًا عامًّا",
+    author: { name: "Marco Díaz", initials: "MD", bg: "#DCF5E8", fg: "#1B7A4B" },
+    status: "authored",
+    visibility: "public",
+    date: "Jun 18, 2026",
+    readTimeLabel: "3 min read",
+    viewCount: 14,
+    commentCount: 3,
+    kpiIds: ["win-rate", "top-competitor", "segment-winrate"],
+    basedOnExplorationId: "x1",
+    relatedStoryIds: ["s-midmarket", "s-discount"],
+    tldr: "Overall win rate fell 4pp to 31%, but almost the entire drop is three enterprise deals lost to Northwind on contract terms — mid-market actually climbed. Don't chase enterprise on price.",
+    tldrAr: "انخفض معدل الفوز 4 نقاط إلى 31٪، لكن الانخفاض كله تقريبًا ثلاث صفقات مؤسسية خسرناها أمام Northwind بسبب شروط العقد — بينما ارتفع السوق المتوسطة.",
+    blocks: [
+      { id: "b1", type: "narrative", text: "Win rate dropped four points this week, and the instinct is to read it as a broad slowdown. The data says the opposite: this is concentrated, not systemic." },
+      { id: "b2", type: "chart", kpiId: "win-rate", caption: "Win rate, trailing 7 weeks", keyMoments: [
+        { at: "Jun 12", label: "Northwind enters", note: "The first of three enterprise deals where Northwind undercut us begins to slip." },
+        { at: "Jun 16", label: "Mid-market turns", note: "Insights-attached mid-market deals start closing — the line stabilises underneath." },
+      ] },
+      { id: "b3", type: "insight", text: "2 of the 3 Northwind losses had budget approved. The blocker wasn't headline price — it was our 12-month term.", source: "Exploration: Which Northwind deals were winnable on terms? (Marco Díaz)", pinnedBy: { name: "Sam Whitfield", initials: "SW", bg: "#E3ECFF", fg: "#2456C9" } },
+      { id: "b4", type: "narrative", text: "Strip those three deals and the trend is flat. Meanwhile mid-market win rate climbed 6pp to 44% — its best week of the quarter — with the Insights add-on as the common thread." },
+      { id: "b5", type: "recommendation", text: "Don't chase the enterprise losses on price. Pilot a flexible contract term for deals where Northwind is present, and double down on what's working in mid-market." },
+    ],
+    pinnedInsights: [
+      { id: "pi1", blockId: "b3", text: "2 of 3 Northwind losses were winnable on terms, not price.", by: { name: "Sam Whitfield", initials: "SW", bg: "#E3ECFF", fg: "#2456C9" } },
+    ],
+    comments: [
+      { id: "cm1", author: { name: "Sam Whitfield", initials: "SW", bg: "#E3ECFF", fg: "#2456C9" }, anchorBlockId: "b3", at: "1h ago", text: "This is the one. Let's get a flexible-term pilot in front of legal this week." },
+      { id: "cm2", author: { name: "Priya Nair", initials: "PN", bg: "#EDE9FE", fg: "#6650A5" }, anchorBlockId: null, at: "40m ago", text: "Pulling in RevOps — Lena, can we quantify the margin hit of a 6-month term?" },
+      { id: "cm3", author: { name: "Lena Okafor", initials: "LO", bg: "#FFE8D6", fg: "#B5531B" }, anchorBlockId: null, at: "12m ago", text: "On it. First pass says <2pts of margin for the deals in question." },
+    ],
+  },
+  {
+    id: "s-midmarket",
+    title: "What's repeatable from the mid-market wins",
+    question: "What's working in mid-market that we could repeat?",
+    titleAr: "ما الذي يمكن تكراره من مكاسب السوق المتوسطة",
+    author: { name: "Lena Okafor", initials: "LO", bg: "#FFE8D6", fg: "#B5531B" },
+    status: "authored",
+    visibility: "public",
+    date: "Jun 17, 2026",
+    readTimeLabel: "2 min read",
+    viewCount: 9,
+    commentCount: 1,
+    kpiIds: ["segment-winrate", "leading-products", "cycle-time"],
+    basedOnExplorationId: "x2",
+    relatedStoryIds: ["s-winrate"],
+    tldr: "Mid-market hit 44% win rate on the back of the Insights add-on. Where it's attached, deals close 9 days faster — strongest in the 50–200 seat band.",
+    tldrAr: "بلغ السوق المتوسطة معدل فوز 44٪ بفضل إضافة Insights. وحيثما أُضيفت، تُغلق الصفقات أسرع بتسعة أيام.",
+    blocks: [
+      { id: "b1", type: "narrative", text: "Mid-market quietly had its best week of the quarter. The pattern behind it is repeatable — and it's the Insights add-on." },
+      { id: "b2", type: "chart", kpiId: "segment-winrate", caption: "Mid-market win rate, trailing 7 weeks", keyMoments: [
+        { at: "Jun 14", label: "Attach inflects", note: "Insights add-on attach crosses 25% in mid-market." },
+      ] },
+      { id: "b3", type: "insight", text: "9-day faster close where Insights is attached — strongest in the 50–200 seat band.", source: "Exploration: Where does the Insights add-on close fastest? (Lena Okafor)", pinnedBy: { name: "Priya Nair", initials: "PN", bg: "#EDE9FE", fg: "#6650A5" } },
+      { id: "b4", type: "recommendation", text: "Make Insights the default line item on mid-market proposals in the 50–200 seat band." },
+    ],
+    pinnedInsights: [
+      { id: "pi1", blockId: "b3", text: "Insights attach → 9-day faster close in the 50–200 seat band.", by: { name: "Priya Nair", initials: "PN", bg: "#EDE9FE", fg: "#6650A5" } },
+    ],
+    comments: [
+      { id: "cm1", author: { name: "Priya Nair", initials: "PN", bg: "#EDE9FE", fg: "#6650A5" }, anchorBlockId: null, at: "Yesterday", text: "Adding this to the SKO playbook." },
+    ],
+  },
+  {
+    id: "s-discount",
+    title: "Is discounting actually buying wins?",
+    question: "Where is discounting hurting more than it helps?",
+    titleAr: "هل الخصم يشتري الصفقات فعلًا؟",
+    author: { name: "Priya Nair", initials: "PN", bg: "#EDE9FE", fg: "#6650A5" },
+    status: "authored",
+    visibility: "public",
+    date: "Jun 16, 2026",
+    readTimeLabel: "2 min read",
+    viewCount: 6,
+    commentCount: 0,
+    kpiIds: ["discount", "win-rate"],
+    basedOnExplorationId: "x3",
+    relatedStoryIds: ["s-winrate"],
+    tldr: "Discounting crept up 3pp to 14% as reps chased the enterprise deals we lost anyway. Early read: heavier discounting isn't buying wins.",
+    tldrAr: "ارتفع الخصم 3 نقاط إلى 14٪ بينما طارد المندوبون صفقات مؤسسية خسرناها على أي حال.",
+    blocks: [
+      { id: "b1", type: "narrative", text: "Discount off list rose to 14% this week. The worry isn't the number — it's that the extra discount didn't convert." },
+      { id: "b2", type: "chart", kpiId: "discount", caption: "Average discount given, trailing 7 weeks", keyMoments: [] },
+      { id: "b3", type: "insight", text: "The deals with the deepest discounts this week were the three we lost to Northwind — discount didn't move the outcome.", source: "Exploration: discount vs. win-rate by rep (Priya Nair)", pinnedBy: null },
+    ],
+    pinnedInsights: [],
+    comments: [],
+  },
+  {
+    id: "s-northwind",
+    title: "Northwind battlecard: where we keep losing",
+    question: "Where does Northwind beat us, and on what?",
+    titleAr: "بطاقة المواجهة مع Northwind: أين نخسر باستمرار",
+    author: { name: "Sam Whitfield", initials: "SW", bg: "#E3ECFF", fg: "#2456C9" },
+    status: "authored",
+    visibility: "public",
+    date: "Jun 14, 2026",
+    readTimeLabel: "4 min read",
+    viewCount: 21,
+    commentCount: 2,
+    kpiIds: ["top-competitor", "win-rate"],
+    basedOnExplorationId: null,
+    relatedStoryIds: ["s-winrate"],
+    tldr: "Northwind shows up in 3 of 5 losses, almost always on contract flexibility rather than price. A flexible-term play neutralises most of it.",
+    tldrAr: "تظهر Northwind في 3 من 5 خسائر، غالبًا بسبب مرونة العقد لا السعر.",
+    blocks: [
+      { id: "b1", type: "narrative", text: "Northwind is now our most-tagged competitor in losses. The pattern is consistent enough to build a play around." },
+    ],
+    pinnedInsights: [],
+    comments: [],
+  },
+  {
+    id: "s-pipeline",
+    title: "Pipeline coverage heading into Q3 (draft)",
+    question: "Do we have enough qualified pipeline for Q3?",
+    titleAr: "تغطية خط الأنابيب مع دخول الربع الثالث (مسودة)",
+    author: { name: "Lena Okafor", initials: "LO", bg: "#FFE8D6", fg: "#B5531B" },
+    status: "draft",
+    visibility: "private",
+    date: "Jun 19, 2026",
+    readTimeLabel: "1 min read",
+    viewCount: 0,
+    commentCount: 0,
+    kpiIds: ["pipeline"],
+    basedOnExplorationId: null,
+    relatedStoryIds: [],
+    tldr: "Pipeline held flat at $3.1M. Coverage is fine for now, but no new top-of-funnel momentum — worth a closer look before Q3.",
+    tldrAr: "ظل خط الأنابيب ثابتًا عند 3.1 مليون دولار.",
+    blocks: [
+      { id: "b1", type: "narrative", text: "Draft — pulling the Q3 coverage picture together. Pipeline is flat; the question is whether current coverage carries the Q3 number." },
+    ],
+    pinnedInsights: [],
+    comments: [],
+  },
+];
