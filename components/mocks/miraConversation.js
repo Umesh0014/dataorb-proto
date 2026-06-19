@@ -93,13 +93,6 @@ export const CONTACT_CENTER_RESPONSE_TEMPLATE = {
   ],
 };
 
-export const SETUP_CONTEXT_FILTERS = [
-  { id: "date", label: "Date", value: "Apr 14, 2025 - Apr 14, 2026" },
-  { id: "workspaces", label: "Workspaces", value: null },
-  { id: "teams", label: "Teams", value: null },
-  { id: "agents", label: "Agents", value: null },
-];
-
 // Seed conversations loaded into the store on first mount. Times are
 // computed at module load so they read as relative ("6 minutes ago") via
 // `formatRelativeTime` below; rebuilding the page won't shift these

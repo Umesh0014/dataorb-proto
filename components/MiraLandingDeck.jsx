@@ -9,8 +9,9 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
 import Card from "./Card";
+import MetricSparkline from "./MetricSparkline";
 import { MiraStarIcon } from "./SideNav/icons";
-import { LANDING_METRICS } from "./mocks/miraLandingMetrics";
+import { LANDING_METRICS, TREND_MONTHS } from "./mocks/miraLandingMetrics";
 import { formatRelativeTime } from "./mocks/miraConversation";
 
 const RECENT_LIMIT = 4;
@@ -21,25 +22,23 @@ const RECENT_LIMIT = 4;
  * Stacks three bands top-to-bottom: the greeting, the composer (passed in
  * so a single Composer implementation is shared with the chat + Welcome Mat
  * states), a grid of metric-category pulse cards, then the user's recent
- * chat interactions. Clicking a pulse card seeds a question about that
- * category into the composer; clicking a chat row opens that conversation.
+ * chat interactions. Clicking a pulse card opens that metric's detail view;
+ * clicking a chat row opens that conversation.
  *
  * @param {{
  *   userName?: string,
  *   composer: React.ReactNode,
  *   conversations: Array<{ id: string, firstQuestion: string, createdAt: number, turns: Array<unknown> }>,
- *   onAskAbout: (text: string) => void,
+ *   onSelectMetric: (id: string) => void,
  *   onOpenConversation: (id: string) => void,
- *   onViewAll: () => void,
  * }} props
  */
 export default function MiraLandingDeck({
   userName = "Demo Internal",
   composer,
   conversations,
-  onAskAbout,
+  onSelectMetric,
   onOpenConversation,
-  onViewAll,
 }) {
   const recent = React.useMemo(
     () => [...conversations].sort((a, b) => b.createdAt - a.createdAt).slice(0, RECENT_LIMIT),
@@ -67,7 +66,7 @@ export default function MiraLandingDeck({
               <PulseCard
                 key={metric.id}
                 metric={metric}
-                onClick={() => onAskAbout(metric.ask)}
+                onClick={() => onSelectMetric(metric.id)}
               />
             ))}
           </div>
@@ -76,9 +75,6 @@ export default function MiraLandingDeck({
         <section style={s.section} aria-label="Your chats">
           <div style={s.sectionHeader}>
             <span style={s.sectionTitle}>Your chats</span>
-            <button type="button" style={s.viewAll} onClick={onViewAll}>
-              View all
-            </button>
           </div>
           <Card padX={0} padY={0}>
             <div style={s.list}>
@@ -98,7 +94,7 @@ export default function MiraLandingDeck({
 }
 
 function PulseCard({ metric, onClick }) {
-  const { Icon, label, rows, ask } = metric;
+  const { Icon, label, rows, unit = "", trend, target } = metric;
   const [hovered, setHovered] = React.useState(false);
   return (
     <button
@@ -107,7 +103,7 @@ function PulseCard({ metric, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{ ...s.pulse, ...(hovered ? s.pulseHover : null) }}
-      aria-label={`Ask Mira: ${ask}`}
+      aria-label={`Open ${label} report`}
     >
       <div style={s.pulseHead}>
         <span style={s.pulseIconWrap} aria-hidden="true">
@@ -118,6 +114,15 @@ function PulseCard({ metric, onClick }) {
           size={16}
           color="var(--color-text-tertiary)"
           style={{ opacity: hovered ? 1 : 0, transition: "opacity 120ms ease" }}
+        />
+      </div>
+      <div style={s.pulseChart}>
+        <MetricSparkline
+          points={trend}
+          target={target}
+          labels={TREND_MONTHS}
+          color="var(--color-button-primary-bg)"
+          formatValue={(v) => `${Math.round(v)}${unit}`}
         />
       </div>
       <div style={s.pulseRows}>
@@ -227,18 +232,6 @@ const s = {
     fontWeight: 700,
     color: "var(--color-text-deep)",
   },
-  viewAll: {
-    appearance: "none",
-    border: "none",
-    background: "transparent",
-    padding: 0,
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--color-button-primary-bg)",
-    cursor: "pointer",
-  },
-
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
@@ -281,6 +274,9 @@ const s = {
     fontSize: 14,
     fontWeight: 700,
     color: "var(--color-text-deep)",
+  },
+  pulseChart: {
+    width: "100%",
   },
   pulseRows: {
     display: "flex",

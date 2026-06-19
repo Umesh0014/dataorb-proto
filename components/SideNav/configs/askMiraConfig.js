@@ -4,8 +4,6 @@ import { MiraStarIcon, HistoryIcon, SkillsIcon, TasksIcon } from "../icons";
 
 // Per-module config: ONLY the middle-section icon set + their routing data.
 // Chrome (rail, brand, app switcher trigger, footer, avatar) is owned by SideNav.
-// Setup Context is intentionally NOT a rail item — it's a chip in the
-// composer that opens MiraSetupContextPanel as a right-docked panel.
 export const askMiraConfig = {
   moduleId: "mira",
   moduleLabel: "Ask Mira Pro",

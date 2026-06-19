@@ -19,7 +19,6 @@ import MissionWizardPage, {
 } from "../../components/MissionWizardPage";
 import ComingSoon from "../../components/ComingSoon";
 import AskMiraProPage from "../../components/AskMiraProPage";
-import MiraSetupContextPanel from "../../components/MiraSetupContextPanel";
 import MiraChatsPage from "../../components/MiraChatsPage";
 import SkillsPage from "../../components/SkillsPage";
 import SkillRecordPage from "../../components/SkillRecordPage";
@@ -283,7 +282,6 @@ export default function Page() {
   const [tasks, setTasks] = React.useState(INITIAL_TASKS);
   const [taskWizardStep, setTaskWizardStep] = React.useState(null);
   const [taskDraft, setTaskDraft] = React.useState(EMPTY_TASK_DRAFT);
-  const [miraSetupOpen, setMiraSetupOpen] = React.useState(false);
   const [miraConversations, setMiraConversations] = React.useState(INITIAL_MIRA_CONVERSATIONS);
   const [miraActiveId, setMiraActiveId] = React.useState(null);
   const [miraPendingTurnId, setMiraPendingTurnId] = React.useState(null);
@@ -554,9 +552,6 @@ export default function Page() {
     const activeConv = miraActiveId
       ? miraConversations.find((c) => c.id === miraActiveId)
       : null;
-    const miraRightPanel = isChat && miraSetupOpen
-      ? <MiraSetupContextPanel open onClose={() => setMiraSetupOpen(false)} />
-      : null;
 
     let miraContent;
     if (isChat) {
@@ -568,11 +563,8 @@ export default function Page() {
           queriesUsed={miraQueriesUsed}
           onSubmit={submitMiraQuestion}
           onReset={startNewMiraChat}
-          setupContextOpen={miraSetupOpen}
-          onToggleSetupContext={() => setMiraSetupOpen((o) => !o)}
           conversations={miraConversations}
           onOpenConversation={openMiraConversation}
-          onViewAll={() => router.push(pathForMira("history"))}
         />
       );
     } else if (isHistory) {
@@ -624,7 +616,6 @@ export default function Page() {
     sidenavConfig = askMiraConfig;
     sidenavActiveId = miraNav;
     handleSidenavSelect = (id) => {
-      if (id !== "chat") setMiraSetupOpen(false);
       setSkillRecordId(null);
       setTaskRecordId(null);
       setTaskWizardStep(null);
@@ -632,7 +623,6 @@ export default function Page() {
       router.push(pathForMira(id));
     };
     handleAppSelectPage = (page) => {
-      setMiraSetupOpen(false);
       setSkillRecordId(null);
       setTaskRecordId(null);
       setTaskWizardStep(null);
@@ -640,14 +630,7 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
-    moduleContent = (
-      <PageLayout
-        rightPanel={miraRightPanel}
-        onPanelClose={() => setMiraSetupOpen(false)}
-      >
-        {miraContent}
-      </PageLayout>
-    );
+    moduleContent = <PageLayout>{miraContent}</PageLayout>;
   } else if (currentPage === "learning") {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";

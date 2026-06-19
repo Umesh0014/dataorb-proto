@@ -1,18 +1,20 @@
+/* eslint-disable no-restricted-syntax --
+   The suggestion cards (Welcome Mat) and the private/public visibility
+   switcher in the composer are clickable card / segmented surfaces, not the
+   pill/icon/text shapes Button.jsx models — same precedent as VersionBar and
+   MiraChatsPage rows. Raw <button> keeps each a single accessible target. */
 "use client";
 
 import React from "react";
-import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Lock, Globe } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import MiraConversation from "./MiraConversation";
 import MiraLandingDeck from "./MiraLandingDeck";
+import MiraMetricDetail from "./MiraMetricDetail";
 import VersionBar from "./VersionBar";
-import {
-  MiraStarIcon,
-  TuneIcon,
-  FilterFunnelIcon,
-  ArrowUpIcon,
-} from "./SideNav/icons";
+import { LANDING_METRICS } from "./mocks/miraLandingMetrics";
+import { MiraStarIcon, ArrowUpIcon } from "./SideNav/icons";
 
 // Two named landing directions ride one VersionBar (no "v1/v2" alphabets).
 // Launchpad is the adopted ChatGPT-style home (ask box → metric pulse →
@@ -52,11 +54,8 @@ const SUGGESTED_QUESTIONS = [
  *   queriesUsed: number,
  *   onSubmit: (text: string) => void,
  *   onReset: () => void,
- *   setupContextOpen?: boolean,
- *   onToggleSetupContext?: () => void,
  *   conversations?: Array<{ id: string, firstQuestion: string, createdAt: number, turns: Array<unknown> }>,
  *   onOpenConversation?: (id: string) => void,
- *   onViewAll?: () => void,
  * }} props
  */
 export default function AskMiraProPage({
@@ -67,17 +66,20 @@ export default function AskMiraProPage({
   queriesUsed,
   onSubmit,
   onReset,
-  setupContextOpen = false,
-  onToggleSetupContext,
   conversations = [],
   onOpenConversation,
-  onViewAll,
 }) {
   const [query, setQuery] = React.useState("");
   const [direction, setDirection] = React.useState("launchpad");
+  const [visibility, setVisibility] = React.useState("public");
+  const [selectedMetricId, setSelectedMetricId] = React.useState(null);
 
   const queriesLeft = Math.max(queriesTotal - queriesUsed, 0);
   const inChat = conversation.length > 0;
+  const selectedMetric =
+    selectedMetricId != null
+      ? LANDING_METRICS.find((m) => m.id === selectedMetricId)
+      : null;
 
   const submit = (text) => {
     const value = text.trim();
@@ -98,8 +100,8 @@ export default function AskMiraProPage({
       onChange={setQuery}
       onSubmit={() => submit(query)}
       pending={Boolean(pendingTurnId)}
-      setupContextOpen={setupContextOpen}
-      onToggleSetupContext={onToggleSetupContext}
+      visibility={visibility}
+      onVisibilityChange={setVisibility}
       queriesLeft={queriesLeft}
       queriesTotal={queriesTotal}
     />
@@ -121,6 +123,17 @@ export default function AskMiraProPage({
     );
   }
 
+  if (direction === "launchpad" && selectedMetric) {
+    return (
+      <div style={s.page}>
+        <MiraMetricDetail
+          metric={selectedMetric}
+          onBack={() => setSelectedMetricId(null)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={s.page}>
       {direction === "launchpad" ? (
@@ -128,9 +141,8 @@ export default function AskMiraProPage({
           userName={userName}
           composer={composer}
           conversations={conversations}
-          onAskAbout={(q) => setQuery(q)}
+          onSelectMetric={setSelectedMetricId}
           onOpenConversation={onOpenConversation}
-          onViewAll={onViewAll}
         />
       ) : (
         <>
@@ -158,8 +170,9 @@ function MiraDirectionsHelp() {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <span style={vbHelp.title}>Two landing directions</span>
       <p style={vbHelp.text}>
-        <b>Launchpad</b> — ask box up top, a pulse of every metric category, then
-        your recent chats. Most to act on at a glance.
+        <b>Launchpad</b> — ask box up top, a pulse of every metric category (each
+        with a trend vs target), then your recent chats. Open a card for the full
+        report and the public chats others have run on it.
       </p>
       <p style={vbHelp.text}>
         <b>Welcome Mat</b> — a calm centered greeting with starter prompts and the
@@ -168,7 +181,7 @@ function MiraDirectionsHelp() {
       <p style={vbHelp.hint}>
         Borrowed structure: input-first home with category tiles (ChatGPT /
         Perplexity home) → therefore surface DataOrb&apos;s metric categories as
-        one-tap question seeds.
+        drill-in cards backed by community chats.
       </p>
     </div>
   );
@@ -238,8 +251,8 @@ function Composer({
   onChange,
   onSubmit,
   pending,
-  setupContextOpen,
-  onToggleSetupContext,
+  visibility,
+  onVisibilityChange,
   queriesLeft,
   queriesTotal,
 }) {
@@ -257,24 +270,7 @@ function Composer({
         />
 
         <div style={s.composerFooter}>
-          <div style={s.chipRow}>
-            <button type="button" style={s.chip} onClick={() => {}}>
-              <TuneIcon size={16} color="var(--color-text-medium)" />
-              <span>Graph</span>
-            </button>
-            <button
-              type="button"
-              style={{
-                ...s.chip,
-                ...(setupContextOpen ? s.chipActive : null),
-              }}
-              onClick={() => onToggleSetupContext?.()}
-            >
-              <FilterFunnelIcon size={16} color={setupContextOpen ? "var(--color-button-primary-bg)" : "var(--color-text-medium)"} />
-              <span style={setupContextOpen ? { color: "var(--color-button-primary-bg)" } : null}>Setup Context</span>
-              <span style={s.chipBadge}>1</span>
-            </button>
-          </div>
+          <VisibilitySwitch value={visibility} onChange={onVisibilityChange} />
 
           <Button
             variant="icon"
@@ -300,6 +296,37 @@ function Composer({
           {queriesLeft} of {queriesTotal} queries left.
         </span>
       </div>
+    </div>
+  );
+}
+
+// Private / Public visibility for the chat being composed. Public is the
+// default — chats are shareable to the team unless explicitly kept private.
+function VisibilitySwitch({ value, onChange }) {
+  const options = [
+    { id: "private", label: "Private", Icon: Lock },
+    { id: "public", label: "Public", Icon: Globe },
+  ];
+  return (
+    <div style={s.visSwitch} role="group" aria-label="Chat visibility">
+      {options.map(({ id, label, Icon }) => {
+        const active = value === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            aria-pressed={active}
+            style={{ ...s.visSeg, ...(active ? s.visSegActive : null) }}
+          >
+            <Icon
+              size={14}
+              color={active ? "var(--color-button-primary-bg)" : "var(--color-text-medium)"}
+            />
+            <span>{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -431,43 +458,34 @@ const s = {
     justifyContent: "space-between",
     gap: 12,
   },
-  chipRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  chip: {
+  visSwitch: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 6,
-    height: 32,
-    paddingInline: 12,
+    gap: 2,
+    padding: 2,
     borderRadius: 8,
     border: "1px solid var(--color-divider-card)",
     background: "var(--surface-white)",
+  },
+  visSeg: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    height: 28,
+    paddingInline: 10,
+    borderRadius: 6,
+    border: "none",
+    background: "transparent",
     fontFamily: "var(--font-sans)",
     fontSize: 13,
     fontWeight: 500,
     color: "var(--color-text-medium)",
     cursor: "pointer",
   },
-  chipActive: {
-    border: "1px solid var(--color-button-primary-bg)",
-    background: "var(--color-primary-alpha-04)",
-  },
-  chipBadge: {
-    minWidth: 18,
-    height: 18,
-    padding: "0 5px",
-    borderRadius: 9,
+  visSegActive: {
     background: "var(--color-primary-alpha-12)",
     color: "var(--color-button-primary-bg)",
-    fontFamily: "var(--font-sans)",
-    fontSize: 11,
-    fontWeight: 700,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
+    fontWeight: 600,
   },
   sendBtn: {
     border: "1px solid var(--color-divider-card)",
