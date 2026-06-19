@@ -8,29 +8,38 @@ import MiraWorkspaceCombined from "./MiraWorkspaceCombined";
 import MiraWorkspaceCanvas from "./MiraWorkspaceCanvas";
 import MiraWorkspaceThreePane from "./MiraWorkspaceThreePane";
 import MiraWorkspaceDashboard from "./MiraWorkspaceDashboard";
+import MiraWorkspaceConnectedRail from "./MiraWorkspaceConnectedRail";
+import MiraWorkspaceConnectedTabs from "./MiraWorkspaceConnectedTabs";
+import MiraWorkspaceAssistantForward from "./MiraWorkspaceAssistantForward";
 import MiraChatColumn from "./MiraChatColumn";
 import VersionBar from "./VersionBar";
 
 // MiraSpaceShell — demo-only host for the "Ask Mira Pro" landing directions.
 // Two categories sit in the VersionBar as chips, each with iterations:
 //
-//   Archive   — the earlier concept explorations (A Briefing · B Room · C Player).
-//   Workspace — the chosen direction, now with four versions:
-//                 1 Combined Explorer (accordion)
-//                 2 Full-Canvas Master–Detail (two-pane)
-//                 3 Three-Pane Pro (cards · detail · context rail)
-//                 4 Dashboard → Focus (overview grid ⇄ focus)
+//   Workspace — the chosen direction (current): one unified connected card for
+//               metrics + detail, Ask Mira as a full collapsible column.
+//                 1 Connected Rail      (vertical rail; selected connects in)
+//                 2 Connected Tabs      (horizontal strip; selected connects down)
+//                 3 Assistant-Forward   (Mira co-equal column, rail collapsible)
+//   Archive   — earlier explorations kept for comparison:
+//                 A Briefing · B Room · C Player (concepts)
+//                 D Combined · E Canvas · F Three-Pane · G Dashboard (workspace v1)
 //
-// Default lands on Workspace · 1. Archive directions keep the collapsible
-// right chat column; Workspace versions are full-bleed and own the bottom
-// Facebook-style chat. State is in-memory only (G5).
+// Default lands on Workspace · 1. Archive A/B/C keep the collapsible right chat
+// column; Archive D–G and all Workspace versions are full-bleed and own their
+// chat. State is in-memory only (G5).
 
-const ARCHIVE = { A: MiraSpaceBriefing, B: MiraSpaceRoom, C: MiraSpacePlayer };
-const WORKSPACE = { 1: MiraWorkspaceCombined, 2: MiraWorkspaceCanvas, 3: MiraWorkspaceThreePane, 4: MiraWorkspaceDashboard };
+const ARCHIVE = {
+  A: MiraSpaceBriefing, B: MiraSpaceRoom, C: MiraSpacePlayer,
+  D: MiraWorkspaceCombined, E: MiraWorkspaceCanvas, F: MiraWorkspaceThreePane, G: MiraWorkspaceDashboard,
+};
+const ARCHIVE_CONCEPTS = new Set(["A", "B", "C"]); // use the right chat column
+const WORKSPACE = { 1: MiraWorkspaceConnectedRail, 2: MiraWorkspaceConnectedTabs, 3: MiraWorkspaceAssistantForward };
 
 const VERSIONS = [
-  { id: "archive", label: "Archive", iterations: ["A", "B", "C"] },
-  { id: "workspace", label: "Workspace", iterations: ["1", "2", "3", "4"] },
+  { id: "workspace", label: "Workspace", iterations: ["1", "2", "3"] },
+  { id: "archive", label: "Archive", iterations: ["A", "B", "C", "D", "E", "F", "G"] },
 ];
 
 const RATIONALE = {
@@ -47,22 +56,35 @@ const RATIONALE = {
     cons: ["Parked: superseded by Workspace.", "Over-indexes on audio for the desk."],
     refs: [["NotebookLM Audio Overview", "Two-voice format is the engagement engine", "One-click play; transcript keeps it usable muted."]] },
 
-  "workspace:1": { name: "Workspace · 1 — Combined Explorer", model: "Accordion: metrics + details in one surface",
-    pros: ["Metric and its detail are one unit — expand in place.", "Celebrated metric cards, no list↔detail switch.", "Bottom chat frees the full width."],
-    cons: ["One metric open at a time.", "Less side-by-side comparison."],
-    refs: [["Combine metrics + details (your feedback)", "Browsing and drilling shouldn't split panes", "Cards expand inline to reveal trend + read + clip + chats."]] },
-  "workspace:2": { name: "Workspace · 2 — Full-Canvas Master–Detail", model: "Two-pane: card rail + persistent detail",
-    pros: ["Detail always visible beside the metric list.", "Full width for data; chat at bottom.", "Fast metric-to-metric scanning."],
-    cons: ["Detail column can feel wide on big metrics.", "No team/context pane."],
-    refs: [["Full width + bottom chat (your feedback)", "Maximise data; chat on demand", "Card rail + detail own 100% width; Ask Mira is a bottom widget."]] },
-  "workspace:3": { name: "Workspace · 3 — Three-Pane Pro", model: "Cards · detail · context rail (everything visible)",
-    pros: ["Adds collaborators-with-quota + shared chats per metric.", "Power-user, all-at-once surface.", "Celebrated cards + clean panes."],
-    cons: ["Densest of the four.", "Needs the most width."],
-    refs: [["Exec collaboration + quota", "Context (who, shared work) belongs next to the metric", "A right rail carries collaborators + the metric's shared chats."]] },
-  "workspace:4": { name: "Workspace · 4 — Dashboard → Focus", model: "Overview grid ⇄ focused metric",
-    pros: ["See every metric at a glance first.", "Focus view is distraction-free.", "Familiar dashboard entry."],
-    cons: ["Extra click to reach detail.", "Two screens to maintain."],
-    refs: [["Overview-first navigation", "Execs scan all metrics before drilling", "A celebrated-card grid opens into a focused detail; Back returns."]] },
+  "archive:D": { name: "Archive · D — Combined Explorer", model: "Accordion; metric cards expand in place (workspace v1)",
+    pros: ["Metric + detail are one unit.", "Bottom chat frees the full width."],
+    cons: ["Parked: superseded by the connected card.", "One metric open at a time."],
+    refs: [["Combine metrics + details", "Browsing and drilling shouldn't split panes", "Cards expand inline."]] },
+  "archive:E": { name: "Archive · E — Full-Canvas", model: "Two-pane card rail + detail (workspace v1)",
+    pros: ["Detail always beside the list.", "Full width for data."],
+    cons: ["Parked: superseded.", "Separate cards, no unified surface."],
+    refs: [["Full width + bottom chat", "Maximise data, chat on demand", "Card rail + detail own 100% width."]] },
+  "archive:F": { name: "Archive · F — Three-Pane Pro", model: "Cards · detail · context rail (workspace v1)",
+    pros: ["Collaborators + quota + shared chats visible.", "All-at-once power surface."],
+    cons: ["Parked: superseded.", "Densest layout."],
+    refs: [["Exec collaboration + quota", "Context belongs next to the metric", "Right rail carries collaborators + shared chats."]] },
+  "archive:G": { name: "Archive · G — Dashboard → Focus", model: "Overview grid ⇄ focus (workspace v1)",
+    pros: ["Every metric at a glance.", "Focus view is distraction-free."],
+    cons: ["Parked: superseded.", "Extra click to detail."],
+    refs: [["Overview-first navigation", "Scan all before drilling", "Card grid opens a focused detail."]] },
+
+  "workspace:1": { name: "Workspace · 1 — Connected Rail", model: "One unified card; selected metric connects into the detail",
+    pros: ["Metric list + detail share one white card — no separate panes.", "Selection by background play: gray → hover card → connected white.", "Ask Mira is a full column (button → column), not a bubble."],
+    cons: ["Rail caps how many metrics show at once.", "The connection seam needs care at small widths."],
+    refs: [["macOS/iOS source-list + Gmail settings", "Selected row should merge into its detail, not sit in a separate pane", "Selected item's white bleeds across the rail/detail seam."]] },
+  "workspace:2": { name: "Workspace · 2 — Connected Tabs", model: "Unified card; horizontal metric strip connects down to the detail",
+    pros: ["Wider, full-width detail beneath the strip.", "Scan metrics across the top; selected tab connects down.", "Ask Mira is a full column."],
+    cons: ["Horizontal strip scrolls with many metrics.", "Less vertical metric overview."],
+    refs: [["Connected tab → panel (segmented controls)", "An active tab should join its panel seamlessly", "Selected tab's white merges into the detail below."]] },
+  "workspace:3": { name: "Workspace · 3 — Assistant-Forward", model: "Connected card + Mira as a co-equal column, open by default",
+    pros: ["“Ask anything, start here” is felt immediately.", "Metric rail collapses to widen the detail.", "Mira is a prominent first-class column."],
+    cons: ["Less room for the detail by default.", "Assistant-first may not suit pure scanning."],
+    refs: [["Copilot / Cursor side panel as primary", "The assistant should be a real column, not an afterthought", "Mira opens co-equal by default; the rail yields space."]] },
 };
 
 export default function MiraSpaceShell({
@@ -86,7 +108,8 @@ export default function MiraSpaceShell({
   };
 
   let body;
-  if (isArchive) {
+  if (isArchive && ARCHIVE_CONCEPTS.has(sel.iterationId)) {
+    // A/B/C concepts use the collapsible right chat column.
     const Direction = ARCHIVE[sel.iterationId] || ARCHIVE.A;
     body = (
       <div style={row}>
@@ -101,8 +124,10 @@ export default function MiraSpaceShell({
       </div>
     );
   } else {
-    const Version = WORKSPACE[sel.iterationId] || WORKSPACE[1];
-    body = <Version {...chatProps} />;
+    // Archive D–G (old workspace) and all current Workspace versions are
+    // full-bleed and own their chat.
+    const Direction = isArchive ? (ARCHIVE[sel.iterationId] || ARCHIVE.D) : (WORKSPACE[sel.iterationId] || WORKSPACE[1]);
+    body = <Direction {...chatProps} />;
   }
 
   return (

@@ -30,17 +30,14 @@ export const BLEED_W = "calc(100vw - var(--sidenav-width) - 2 * var(--page-gutte
 export const COL_H = "calc(100vh - var(--page-padding-top, 32px) - var(--page-padding-bottom, 32px))";
 export const fullBleed = { width: BLEED_W, marginInline: `calc((100% - ${BLEED_W}) / 2)`, fontFamily: "var(--font-sans)" };
 
-// ---- Celebrated metric card ----------------------------------------------
-export function CelebratedMetricCard({ kpi, active, onClick }) {
+// ---- Metric face (label + value + delta pill + spark) --------------------
+// The celebrated metric content, reused by the card, the connected rail item,
+// and the connected tab.
+export function MetricFace({ kpi }) {
   const meta = TONE[kpi.tone] || TONE.flat;
   const { Icon } = meta;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      style={{ ...mc.card, ...(active ? mc.cardOn : null) }}
-    >
+    <>
       <div style={mc.head}>
         <span style={mc.label}>{kpi.label}</span>
         {kpi.spark && <Spark points={kpi.spark} color={meta.color} />}
@@ -49,6 +46,15 @@ export function CelebratedMetricCard({ kpi, active, onClick }) {
       <span style={{ ...mc.delta, background: meta.bg, color: meta.text }}>
         <Icon size={13} aria-hidden="true" /> {kpi.delta}
       </span>
+    </>
+  );
+}
+
+// ---- Celebrated metric card ----------------------------------------------
+export function CelebratedMetricCard({ kpi, active, onClick }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active} style={{ ...mc.card, ...(active ? mc.cardOn : null) }}>
+      <MetricFace kpi={kpi} />
     </button>
   );
 }
@@ -292,6 +298,71 @@ export function MiraBottomChat({ open, onOpenChange, metric, conversation, pendi
   );
 }
 
+// ---- Mira as a full column (collapsed rail → full column) ----------------
+// Not a floating bubble — a first-class column in the layout grid. The host
+// direction controls `open` and sets the grid column width accordingly.
+export function MiraColumn({ open, onToggle, metric, conversation, pendingTurnId, queriesUsed, queriesTotal = 1002, onSubmit, onReset }) {
+  const [query, setQuery] = React.useState("");
+  const [visibility, setVisibility] = React.useState("public");
+  const inChat = conversation.length > 0;
+  const pending = Boolean(pendingTurnId);
+  const queriesLeft = Math.max(queriesTotal - queriesUsed, 0);
+  const submit = (text) => {
+    const v = (text ?? query).trim();
+    if (!v || pending) return;
+    onSubmit(v);
+    setQuery("");
+    onToggle(true);
+  };
+
+  if (!open) {
+    return (
+      <aside style={col.rail} aria-label="Ask Mira (collapsed)">
+        <button type="button" onClick={() => onToggle(true)} style={col.railBtn} aria-label="Open Ask Mira">
+          <MiraStarIcon size={20} color="var(--color-button-primary-bg)" />
+          <span style={col.railLabel}>Ask Mira</span>
+          {inChat && <span style={col.railDot} aria-hidden="true" />}
+        </button>
+      </aside>
+    );
+  }
+
+  return (
+    <aside style={col.col} aria-label="Ask Mira">
+      <header style={col.head}>
+        <span style={col.headTitle}><MiraStarIcon size={18} color="var(--color-button-primary-bg)" /> Ask Mira</span>
+        <div style={{ flex: 1 }} />
+        {inChat && <Button variant="icon" size="sm" aria-label="New chat" onClick={onReset}><Plus size={16} color="var(--color-text-medium)" /></Button>}
+        <Button variant="icon" size="sm" aria-label="Collapse Ask Mira" onClick={() => onToggle(false)}><ChevronRight size={18} color="var(--color-text-medium)" /></Button>
+      </header>
+      <div style={col.visWrap}>
+        <PublicPrivateToggle value={visibility} onChange={setVisibility} />
+        <span style={col.visNote}>{visibility === "public" ? `Shared with the ${SPACE.name} space.` : "Only you can see this chat."}</span>
+      </div>
+      <div style={col.body}>
+        {inChat
+          ? <MiraConversation turns={conversation} pendingTurnId={pendingTurnId} onSubmitFollowUp={submit} />
+          : <div style={col.starters}><p style={col.startersLabel}>Start from a topic</p><StarterCards metric={metric} onPick={submit} /></div>}
+      </div>
+      <footer style={col.composerWrap}>
+        <div style={col.composerCard}>
+          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder={`Ask about ${metric.label.toLowerCase()}…`} aria-label="Ask a question" style={col.input} />
+          <div style={col.composerFooter}>
+            <div style={col.chipRow}>
+              <button type="button" style={col.chip} onClick={() => {}}><TuneIcon size={15} color="var(--color-text-medium)" /> Graph</button>
+              <button type="button" style={col.chip} onClick={() => {}}><FilterFunnelIcon size={15} color="var(--color-text-medium)" /> Context</button>
+            </div>
+            <Button variant="icon" size="md" aria-label={pending ? "Generating" : "Send"} onClick={pending ? () => {} : () => submit()} style={col.sendBtn}>
+              {pending ? <RefreshCw size={16} color="var(--color-text-medium)" /> : <ArrowUpIcon size={18} color="var(--color-text-medium)" />}
+            </Button>
+          </div>
+        </div>
+        <div style={col.disclaimer}><span>Mira can make mistakes.</span><span>{queriesLeft} of {queriesTotal} left</span></div>
+      </footer>
+    </aside>
+  );
+}
+
 // ==== Styles ==============================================================
 
 const mc = {
@@ -368,6 +439,30 @@ const bc = {
   fabDot: { width: 9, height: 9, borderRadius: 999, background: "var(--color-warning)", border: "2px solid var(--color-button-primary-bg)" },
 
   panel: { position: "fixed", right: 24, bottom: 96, zIndex: 50, width: 384, maxWidth: "calc(100vw - 48px)", height: "min(560px, calc(100vh - 150px))", display: "flex", flexDirection: "column", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", boxShadow: "var(--shadow-24)", overflow: "hidden" },
+  head: { display: "flex", alignItems: "center", gap: 6, padding: "12px 12px 12px 14px", borderBottom: "1px solid var(--color-divider-card)", flexShrink: 0 },
+  headTitle: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
+  visWrap: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid var(--color-divider-card)", flexShrink: 0 },
+  visNote: { fontSize: 11.5, color: "var(--color-text-tertiary)", minWidth: 0 },
+  body: { flex: 1, minHeight: 0, overflowY: "auto", padding: 16 },
+  starters: { display: "flex", flexDirection: "column", gap: 10 },
+  startersLabel: { margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
+  composerWrap: { flexShrink: 0, padding: 12, borderTop: "1px solid var(--color-divider-card)", display: "flex", flexDirection: "column", gap: 6 },
+  composerCard: { display: "flex", flexDirection: "column", gap: 10, padding: "12px 14px", borderRadius: 12, border: "1px solid var(--color-border-tab)" },
+  input: { width: "100%", border: "none", outline: "none", background: "transparent", fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--color-text-deep)" },
+  composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  chipRow: { display: "flex", alignItems: "center", gap: 6 },
+  chip: { display: "inline-flex", alignItems: "center", gap: 5, height: 30, paddingInline: 10, borderRadius: 8, border: "1px solid var(--color-divider-card)", background: "var(--surface-white)", fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", cursor: "pointer" },
+  sendBtn: { border: "1px solid var(--color-divider-card)" },
+  disclaimer: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingInline: 4, fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)" },
+};
+
+const col = {
+  rail: { height: "100%", width: "100%", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", boxShadow: "var(--shadow-1)", overflow: "hidden" },
+  railBtn: { width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingBlock: 16, border: "none", background: "transparent", cursor: "pointer", fontFamily: "var(--font-sans)", position: "relative" },
+  railLabel: { writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 13, fontWeight: 700, color: "var(--color-text-medium)", letterSpacing: "0.03em" },
+  railDot: { position: "absolute", top: 14, left: "50%", marginLeft: -4, width: 8, height: 8, borderRadius: 999, background: "var(--color-warning)" },
+
+  col: { height: "100%", width: "100%", display: "flex", flexDirection: "column", borderRadius: 16, border: "1px solid var(--color-border-card-soft)", background: "var(--surface-white)", boxShadow: "var(--shadow-1)", overflow: "hidden" },
   head: { display: "flex", alignItems: "center", gap: 6, padding: "12px 12px 12px 14px", borderBottom: "1px solid var(--color-divider-card)", flexShrink: 0 },
   headTitle: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
   visWrap: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid var(--color-divider-card)", flexShrink: 0 },
