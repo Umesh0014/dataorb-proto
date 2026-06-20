@@ -16,14 +16,19 @@ import VersionBar from "./VersionBar";
 import { LANDING_METRICS } from "./mocks/miraLandingMetrics";
 import { MiraStarIcon, ArrowUpIcon } from "./SideNav/icons";
 
-// Two named landing directions ride one VersionBar (no "v1/v2" alphabets).
+// Named landing directions ride one VersionBar (no "v1/v2" alphabets).
 // Launchpad is the adopted ChatGPT-style home (ask box → metric pulse →
-// chats); Welcome Mat is the previous centered-greeting design, parked but
-// still switchable.
+// chats); Bento is the same shell with a mixed-size, accent-washed metric
+// grid; Welcome Mat is the previous centered-greeting design, parked.
 const DIRECTIONS = [
   { id: "launchpad", label: "Launchpad", iterations: [] },
+  { id: "bento", label: "Bento", iterations: [] },
   { id: "welcome", label: "Welcome Mat", iterations: [] },
 ];
+
+// Launchpad and Bento share the input-first shell; only the metric band
+// differs. Welcome Mat is the parked centered-greeting layout.
+const isLaunchpadDirection = (d) => d === "launchpad" || d === "bento";
 
 const SUGGESTED_QUESTIONS = [
   "What are the top pain points reported by customers this month?",
@@ -123,7 +128,7 @@ export default function AskMiraProPage({
     );
   }
 
-  if (direction === "launchpad" && selectedMetric) {
+  if (isLaunchpadDirection(direction) && selectedMetric) {
     return (
       <div style={s.page}>
         <MiraMetricDetail
@@ -136,13 +141,14 @@ export default function AskMiraProPage({
 
   return (
     <div style={s.page}>
-      {direction === "launchpad" ? (
+      {isLaunchpadDirection(direction) ? (
         <MiraLandingDeck
           userName={userName}
           composer={composer}
           conversations={conversations}
           onSelectMetric={setSelectedMetricId}
           onOpenConversation={onOpenConversation}
+          variant={direction === "bento" ? "bento" : "grid"}
         />
       ) : (
         <>
@@ -168,11 +174,15 @@ export default function AskMiraProPage({
 function MiraDirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Two landing directions</span>
+      <span style={vbHelp.title}>Three landing directions</span>
       <p style={vbHelp.text}>
         <b>Launchpad</b> — ask box up top, a pulse of every metric category (each
         with a trend vs target), then your recent chats. Open a card for the full
         report and the public chats others have run on it.
+      </p>
+      <p style={vbHelp.text}>
+        <b>Bento</b> — same shell, fewer metrics in a mixed-size grid: one feature
+        tile, accent washes, and bolder numbers. Scan-first instead of list-first.
       </p>
       <p style={vbHelp.text}>
         <b>Welcome Mat</b> — a calm centered greeting with starter prompts and the

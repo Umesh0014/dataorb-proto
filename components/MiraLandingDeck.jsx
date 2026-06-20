@@ -10,6 +10,7 @@ import React from "react";
 import { ChevronRight } from "lucide-react";
 import Card from "./Card";
 import MetricSparkline from "./MetricSparkline";
+import MiraMetricsBento from "./MiraMetricsBento";
 import { MiraStarIcon } from "./SideNav/icons";
 import { LANDING_METRICS, TREND_MONTHS } from "./mocks/miraLandingMetrics";
 import { formatRelativeTime } from "./mocks/miraConversation";
@@ -23,7 +24,8 @@ const RECENT_LIMIT = 4;
  * so a single Composer implementation is shared with the chat + Welcome Mat
  * states), a grid of metric-category pulse cards, then the user's recent
  * chat interactions. Clicking a pulse card opens that metric's detail view;
- * clicking a chat row opens that conversation.
+ * clicking a chat row opens that conversation. `variant` swaps only the
+ * metric band: "grid" (uniform 3-up cards) or "bento" (mixed-size tiles).
  *
  * @param {{
  *   userName?: string,
@@ -31,6 +33,7 @@ const RECENT_LIMIT = 4;
  *   conversations: Array<{ id: string, firstQuestion: string, createdAt: number, turns: Array<unknown> }>,
  *   onSelectMetric: (id: string) => void,
  *   onOpenConversation: (id: string) => void,
+ *   variant?: "grid" | "bento",
  * }} props
  */
 export default function MiraLandingDeck({
@@ -39,6 +42,7 @@ export default function MiraLandingDeck({
   conversations,
   onSelectMetric,
   onOpenConversation,
+  variant = "grid",
 }) {
   const recent = React.useMemo(
     () => [...conversations].sort((a, b) => b.createdAt - a.createdAt).slice(0, RECENT_LIMIT),
@@ -61,15 +65,19 @@ export default function MiraLandingDeck({
         {composer}
 
         <section style={s.section} aria-label="Metric highlights">
-          <div style={s.grid} role="list">
-            {LANDING_METRICS.map((metric) => (
-              <PulseCard
-                key={metric.id}
-                metric={metric}
-                onClick={() => onSelectMetric(metric.id)}
-              />
-            ))}
-          </div>
+          {variant === "bento" ? (
+            <MiraMetricsBento onSelect={onSelectMetric} />
+          ) : (
+            <div style={s.grid} role="list">
+              {LANDING_METRICS.map((metric) => (
+                <PulseCard
+                  key={metric.id}
+                  metric={metric}
+                  onClick={() => onSelectMetric(metric.id)}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         <section style={s.section} aria-label="Your chats">
