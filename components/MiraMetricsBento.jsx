@@ -1,8 +1,7 @@
 /* eslint-disable no-restricted-syntax --
-   Each bento tile is a full clickable surface (varied-size, varied-fill
-   metric tile), not a Button.jsx pill/icon/text shape — same precedent as
-   MiraLandingDeck and VersionBar. Raw <button> keeps the whole tile one
-   accessible target. */
+   Each bento tile is a full clickable surface (varied-size metric tile), not
+   a Button.jsx pill/icon/text shape — same precedent as MiraLandingDeck and
+   VersionBar. Raw <button> keeps the whole tile one accessible target. */
 "use client";
 
 import React from "react";
@@ -15,10 +14,11 @@ const byId = (id) => LANDING_METRICS.find((m) => m.id === id);
 /**
  * MiraMetricsBento — bento-grid metric layout for the "Bento" direction.
  *
- * Borrows the inspiration's treatment within DataOrb tokens: filled tiles
- * (each keeping its own chart-palette accent), an oversized hero number, a
- * month-over-month change pill, and a list-style tile — trend charts instead
- * of bars. Five tiles of mixed size; each opens the metric detail.
+ * Borrows the inspiration's structure within DataOrb tokens: white tiles of
+ * mixed size (the accent only colors the icon, trend line, dots, and change
+ * pill), an oversized hero number, month-over-month change pills, and a
+ * list-style tile — trend charts instead of bars. Five tiles; each opens the
+ * metric detail.
  *
  * @param {{ onSelect: (id: string) => void }} props
  */
@@ -28,39 +28,34 @@ export default function MiraMetricsBento({ onSelect }) {
       <HeroTile metric={byId("interactions")} onSelect={onSelect} />
       <ListTile metric={byId("reasons")} onSelect={onSelect} />
       <SentimentTile metric={byId("sentiment")} onSelect={onSelect} />
-      <CompactTile metric={byId("resolution")} mode="light" onSelect={onSelect} />
-      <CompactTile metric={byId("churn")} mode="deep" onSelect={onSelect} />
+      <CompactTile metric={byId("resolution")} onSelect={onSelect} />
+      <CompactTile metric={byId("churn")} onSelect={onSelect} />
     </div>
   );
 }
 
-// palette — resolve tile background + text colors for a fill mode, all from
-// the metric's accent + DataOrb tokens (no new colors).
-function palette(mode, accent) {
-  if (mode === "deep") {
-    return {
-      bg: `color-mix(in srgb, ${accent} 72%, var(--color-text-deep))`,
-      title: "var(--surface-white)",
-      value: "var(--surface-white)",
-      sub: "color-mix(in srgb, var(--surface-white) 64%, transparent)",
-      iconBg: "color-mix(in srgb, var(--surface-white) 20%, transparent)",
-      iconFg: "var(--surface-white)",
-      spark: "var(--surface-white)",
-    };
-  }
-  const bg =
-    mode === "light"
-      ? `color-mix(in srgb, ${accent} 15%, var(--surface-white))`
-      : "var(--surface-white)";
+// palette — every tile is a white card; the accent only colors the icon,
+// the trend line, dots, and the change pill (no filled tiles). Text stays on
+// DataOrb's standard ink tokens.
+function palette(accent) {
   return {
-    bg,
     title: "var(--color-text-deep)",
     value: "var(--color-text-deep)",
     sub: "var(--color-text-tertiary)",
-    iconBg: `color-mix(in srgb, ${accent} 22%, var(--surface-white))`,
+    iconBg: `color-mix(in srgb, ${accent} 16%, var(--surface-white))`,
     iconFg: accent,
     spark: accent,
   };
+}
+
+const TONE_COLOR = {
+  positive: "var(--color-success)",
+  negative: "var(--color-error)",
+  neutral: "var(--chart-grey)",
+};
+
+function toneColor(tone) {
+  return TONE_COLOR[tone] || "var(--color-text-deep)";
 }
 
 function useHover() {
@@ -71,11 +66,10 @@ function useHover() {
 // Shared button-shell style for every tile: fill from the palette, lift on
 // hover. Each archetype renders its own <button> (explicit composition) so
 // there's no render-prop indirection.
-function tileShell(p, hovered, span) {
+function tileShell(hovered, span) {
   return {
     ...b.tile,
     ...span,
-    background: p.bg,
     boxShadow: hovered ? "var(--shadow-8)" : "var(--shadow-card)",
     transform: hovered ? "translateY(-2px)" : "none",
   };
@@ -127,7 +121,7 @@ function spark(metric, color) {
 
 function HeroTile({ metric, onSelect }) {
   const [hovered, bind] = useHover();
-  const p = palette("light", metric.accent);
+  const p = palette(metric.accent);
   const headline = metric.rows[0];
   return (
     <button
@@ -135,7 +129,7 @@ function HeroTile({ metric, onSelect }) {
       {...bind}
       onClick={() => onSelect(metric.id)}
       aria-label={`Open ${metric.label} report`}
-      style={tileShell(p, hovered, b.feature)}
+      style={tileShell(hovered,b.feature)}
     >
       <div style={b.headRow}>
         <Head metric={metric} p={p} hovered={hovered} chevron={false} />
@@ -160,14 +154,14 @@ function HeroTile({ metric, onSelect }) {
 
 function ListTile({ metric, onSelect }) {
   const [hovered, bind] = useHover();
-  const p = palette("plain", metric.accent);
+  const p = palette(metric.accent);
   return (
     <button
       type="button"
       {...bind}
       onClick={() => onSelect(metric.id)}
       aria-label={`Open ${metric.label} report`}
-      style={tileShell(p, hovered, b.feature)}
+      style={tileShell(hovered,b.feature)}
     >
       <div style={b.headRow}>
         <Head metric={metric} p={p} hovered={hovered} chevron={false} />
@@ -186,22 +180,16 @@ function ListTile({ metric, onSelect }) {
   );
 }
 
-const TONE_COLOR = {
-  positive: "var(--color-success)",
-  negative: "var(--color-error)",
-  neutral: "var(--chart-grey)",
-};
-
 function SentimentTile({ metric, onSelect }) {
   const [hovered, bind] = useHover();
-  const p = palette("deep", metric.accent);
+  const p = palette(metric.accent);
   return (
     <button
       type="button"
       {...bind}
       onClick={() => onSelect(metric.id)}
       aria-label={`Open ${metric.label} report`}
-      style={tileShell(p, hovered, b.wide)}
+      style={tileShell(hovered,b.wide)}
     >
       <div style={b.headRow}>
         <Head metric={metric} p={p} hovered={hovered} chevron={false} />
@@ -211,10 +199,10 @@ function SentimentTile({ metric, onSelect }) {
         <div style={b.statRow}>
           {metric.rows.map((r) => (
             <div key={r.label} style={b.stat}>
-              <span style={{ ...b.statValue, color: p.value }}>{r.value}</span>
+              <span style={{ ...b.statValue, color: toneColor(r.tone) }}>{r.value}</span>
               <span style={b.statLabelRow}>
                 <span
-                  style={{ ...b.statDot, background: TONE_COLOR[r.tone] || "var(--chart-grey)" }}
+                  style={{ ...b.statDot, background: toneColor(r.tone) }}
                   aria-hidden="true"
                 />
                 <span style={{ ...b.statLabel, color: p.sub }}>{r.label}</span>
@@ -228,9 +216,9 @@ function SentimentTile({ metric, onSelect }) {
   );
 }
 
-function CompactTile({ metric, mode, onSelect }) {
+function CompactTile({ metric, onSelect }) {
   const [hovered, bind] = useHover();
-  const p = palette(mode, metric.accent);
+  const p = palette(metric.accent);
   const headline = metric.rows[0];
   return (
     <button
@@ -238,11 +226,11 @@ function CompactTile({ metric, mode, onSelect }) {
       {...bind}
       onClick={() => onSelect(metric.id)}
       aria-label={`Open ${metric.label} report`}
-      style={tileShell(p, hovered, b.compact)}
+      style={tileShell(hovered,b.compact)}
     >
       <Head metric={metric} p={p} hovered={hovered} />
       <div style={b.compactValueRow}>
-        <span style={{ ...b.compactValue, color: p.value }}>{headline.value}</span>
+        <span style={{ ...b.compactValue, color: toneColor(headline.tone) }}>{headline.value}</span>
         <ChangePill change={metric.change} />
       </div>
       <div style={b.compactChart}>{spark(metric, p.spark)}</div>
@@ -267,7 +255,8 @@ const b = {
     gap: 10,
     padding: 18,
     borderRadius: 18,
-    border: "none",
+    background: "var(--surface-white)",
+    border: "1px solid var(--color-divider-card)",
     cursor: "pointer",
     fontFamily: "var(--font-sans)",
     transition: "box-shadow 140ms ease, transform 140ms ease",

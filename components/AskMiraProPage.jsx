@@ -18,8 +18,8 @@ import { MiraStarIcon, ArrowUpIcon } from "./SideNav/icons";
 
 // Named landing directions ride one VersionBar (no "v1/v2" alphabets).
 // Launchpad is the adopted ChatGPT-style home (ask box → metric pulse →
-// chats); Bento is the same shell with a mixed-size, accent-washed metric
-// grid; Welcome Mat is the previous centered-greeting design, parked.
+// chats); Bento is the same shell with a mixed-size white-tile metric grid;
+// Welcome Mat is the previous centered-greeting design, parked.
 const DIRECTIONS = [
   { id: "launchpad", label: "Launchpad", iterations: [] },
   { id: "bento", label: "Bento", iterations: [] },
@@ -181,8 +181,8 @@ function MiraDirectionsHelp() {
         report and the public chats others have run on it.
       </p>
       <p style={vbHelp.text}>
-        <b>Bento</b> — same shell, fewer metrics in a mixed-size grid: one feature
-        tile, accent washes, and bolder numbers. Scan-first instead of list-first.
+        <b>Bento</b> — same shell, fewer metrics in a mixed-size grid of white
+        tiles: one feature tile, change pills, and bolder numbers. Scan-first.
       </p>
       <p style={vbHelp.text}>
         <b>Welcome Mat</b> — a calm centered greeting with starter prompts and the
