@@ -11,6 +11,7 @@ import MiraWorkspaceDashboard from "./MiraWorkspaceDashboard";
 import MiraWorkspaceConnectedRail from "./MiraWorkspaceConnectedRail";
 import MiraWorkspaceConnectedTabs from "./MiraWorkspaceConnectedTabs";
 import MiraWorkspaceAssistantForward from "./MiraWorkspaceAssistantForward";
+import MiraHome from "./MiraHome";
 import MiraStoriesBoard from "./MiraStoriesBoard";
 import MiraStoriesReuse from "./MiraStoriesReuse";
 import MiraStoriesTrend from "./MiraStoriesTrend";
@@ -20,109 +21,136 @@ import MiraChatColumn from "./MiraChatColumn";
 import VersionBar from "./VersionBar";
 
 // MiraSpaceShell — demo-only host for the "Ask Mira Pro" landing directions.
-// Two categories sit in the VersionBar as chips, each with iterations:
+// Each direction carries a real name in the VersionBar (no bare A/B/1 tokens).
+// Three categories sit as chips, each with named iterations:
 //
-//   Stories — the current direction (Jun 19 sharpening): arrive to authored
-//             stories, not a blank prompt. Default-public, reuse-over-regenerate.
-//               Landings:  1 Story Board · 2 Ask-to-Reuse · 3 Living Trend
-//               Artifacts: 4 Published Story · 5 Scrolly Story
-//   Archive — earlier explorations kept for comparison:
-//               A Briefing · B Room · C Player (concepts)
-//               D Combined · E Canvas · F Three-Pane · G Dashboard (workspace v1)
-//               H Connected Rail · I Connected Tabs · J Assistant-Forward (workspace v2)
+//   Home    — the current direction (ChatGPT-5 home borrow): greeting → one
+//             "ask anything" input → top metrics per category → your chats.
+//               By Category (3 cards) · Top Metrics (6 cards)
+//   Stories — parked: arrive-to-authored-stories explorations.
+//               Story Board · Ask-to-Reuse · Living Trend · Published · Scrolly
+//   Archive — parked: earlier explorations kept for comparison.
+//               Briefing · Room · Player (concepts; use the right chat column)
+//               Combined · Canvas · Three-Pane · Dashboard (workspace v1)
+//               Connected Rail · Connected Tabs · Assistant-Forward (workspace v2)
 //
-// Default lands on Stories · 1 (Story Board). Archive A/B/C keep the collapsible
-// right chat column; everything else is full-bleed and owns its chat. State is
-// in-memory only (G5).
+// Default lands on Home · By Category. State is in-memory only (G5).
 
 const STORIES_DIRS = {
-  1: MiraStoriesBoard, 2: MiraStoriesReuse, 3: MiraStoriesTrend,
-  4: MiraStoryPublished, 5: MiraStoryScrolly,
+  board: MiraStoriesBoard, reuse: MiraStoriesReuse, trend: MiraStoriesTrend,
+  published: MiraStoryPublished, scrolly: MiraStoryScrolly,
 };
 
 const ARCHIVE = {
-  A: MiraSpaceBriefing, B: MiraSpaceRoom, C: MiraSpacePlayer,
-  D: MiraWorkspaceCombined, E: MiraWorkspaceCanvas, F: MiraWorkspaceThreePane, G: MiraWorkspaceDashboard,
-  H: MiraWorkspaceConnectedRail, I: MiraWorkspaceConnectedTabs, J: MiraWorkspaceAssistantForward,
+  briefing: MiraSpaceBriefing, room: MiraSpaceRoom, player: MiraSpacePlayer,
+  combined: MiraWorkspaceCombined, canvas: MiraWorkspaceCanvas, threepane: MiraWorkspaceThreePane, dashboard: MiraWorkspaceDashboard,
+  rail: MiraWorkspaceConnectedRail, tabs: MiraWorkspaceConnectedTabs, assistant: MiraWorkspaceAssistantForward,
 };
-const ARCHIVE_CONCEPTS = new Set(["A", "B", "C"]); // use the right chat column
+const ARCHIVE_CONCEPTS = new Set(["briefing", "room", "player"]); // use the right chat column
+
+const DEFAULT_ITER = { home: "cat3", stories: "board", archive: "briefing" };
 
 const VERSIONS = [
-  { id: "stories", label: "Stories", iterations: ["1", "2", "3", "4", "5"] },
-  { id: "archive", label: "Archive", iterations: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] },
+  { id: "home", label: "Home", iterations: [
+    { id: "cat3", label: "By Category" }, { id: "kpi6", label: "Top Metrics" },
+    { id: "bento", label: "Bento" },
+  ] },
+  { id: "stories", label: "Stories", iterations: [
+    { id: "board", label: "Story Board" }, { id: "reuse", label: "Ask-to-Reuse" },
+    { id: "trend", label: "Living Trend" }, { id: "published", label: "Published Story" },
+    { id: "scrolly", label: "Scrolly Story" },
+  ] },
+  { id: "archive", label: "Archive", iterations: [
+    { id: "briefing", label: "Briefing" }, { id: "room", label: "Room" }, { id: "player", label: "Player" },
+    { id: "combined", label: "Combined" }, { id: "canvas", label: "Canvas" }, { id: "threepane", label: "Three-Pane" },
+    { id: "dashboard", label: "Dashboard" }, { id: "rail", label: "Connected Rail" },
+    { id: "tabs", label: "Connected Tabs" }, { id: "assistant", label: "Assistant-Forward" },
+  ] },
 ];
 
 const RATIONALE = {
-  "archive:A": { name: "Archive · A — Briefing", model: "Arrive to be briefed (newspaper / Amazon-memo)",
-    pros: ["Insight on screen before any input.", "Narrative brief pre-ranks what matters."],
-    cons: ["Parked: superseded by Workspace.", "Collaboration is a sidebar."],
-    refs: [["Tableau Pulse + Amazon six-pager", "Briefing-over-dashboard pre-ranks what matters", "Lead with authored prose, not a TTS of numbers."]] },
-  "archive:B": { name: "Archive · B — Room", model: "A furnished space you inhabit (Notion / Coda)",
-    pros: ["Collaboration is the spine.", "Blocks map to the four things."],
-    cons: ["Parked: superseded by Workspace.", "Briefing shares the stage."],
-    refs: [["Notion AI Home / Coda", "A space is a living doc of blocks", "KPIs, player, explorations as blocks; members comment."]] },
-  "archive:C": { name: "Archive · C — Player", model: "Your outcome has a podcast (Spotify / NotebookLM)",
-    pros: ["Audio brief is the hero.", "Episode feed makes it a serial."],
-    cons: ["Parked: superseded by Workspace.", "Over-indexes on audio for the desk."],
-    refs: [["NotebookLM Audio Overview", "Two-voice format is the engagement engine", "One-click play; transcript keeps it usable muted."]] },
+  "home:cat3": { name: "Home · By Category", model: "ChatGPT-5 home borrow: ask box → metrics by category → your chats",
+    pros: ["Familiar home: greeting + one \"ask anything\" input on top.", "Top metrics grouped into 3 category cards directly under the input.", "Your chat interactions are right there — tabbed (chats / stories / pinned / prompts)."],
+    cons: ["Category roll-up hides individual metric trends until you ask.", "Less of an authored-story front than the Stories set."],
+    refs: [["ChatGPT-5 home", "Greeting + single input + glanceable cards + recent threads is a proven home", "Ask box on top; metrics per category below; chat history beneath."]] },
+  "home:kpi6": { name: "Home · Top Metrics", model: "Same home; the metric band shows the 6 headline KPIs",
+    pros: ["Six headline KPIs with value + delta + sparkline at a glance.", "Same ask-on-top + chat-history-below structure.", "Trends are visible without drilling in."],
+    cons: ["Six tiles compete for the \"one thing that moved\".", "No category grouping."],
+    refs: [["ChatGPT-5 home + stat-card grid", "Glanceable KPI tiles beat a table for the no-SQL exec", "6 KPI cards under the ask box; colour never alone for deltas."]] },
 
-  "archive:D": { name: "Archive · D — Combined Explorer", model: "Accordion; metric cards expand in place (workspace v1)",
-    pros: ["Metric + detail are one unit.", "Bottom chat frees the full width."],
-    cons: ["Parked: superseded by the connected card.", "One metric open at a time."],
-    refs: [["Combine metrics + details", "Browsing and drilling shouldn't split panes", "Cards expand inline."]] },
-  "archive:E": { name: "Archive · E — Full-Canvas", model: "Two-pane card rail + detail (workspace v1)",
-    pros: ["Detail always beside the list.", "Full width for data."],
-    cons: ["Parked: superseded.", "Separate cards, no unified surface."],
-    refs: [["Full width + bottom chat", "Maximise data, chat on demand", "Card rail + detail own 100% width."]] },
-  "archive:F": { name: "Archive · F — Three-Pane Pro", model: "Cards · detail · context rail (workspace v1)",
-    pros: ["Collaborators + quota + shared chats visible.", "All-at-once power surface."],
-    cons: ["Parked: superseded.", "Densest layout."],
-    refs: [["Exec collaboration + quota", "Context belongs next to the metric", "Right rail carries collaborators + shared chats."]] },
-  "archive:G": { name: "Archive · G — Dashboard → Focus", model: "Overview grid ⇄ focus (workspace v1)",
-    pros: ["Every metric at a glance.", "Focus view is distraction-free."],
-    cons: ["Parked: superseded.", "Extra click to detail."],
-    refs: [["Overview-first navigation", "Scan all before drilling", "Card grid opens a focused detail."]] },
+  "home:bento": { name: "Home · Bento", model: "Same home; metrics in a bento grid with visual flair",
+    pros: ["Fewer, hero-weighted metric cards in an asymmetric bento grid.", "Visual flair: tinted gradients, big numerals, sparklines — scannable at a glance.", "Same ask-on-top + chat-history-below structure."],
+    cons: ["Hero weighting editorialises which metric matters most.", "Shows fewer metrics than the 6-up grid."],
+    refs: [["Bento-grid dashboards (Vercel / Linear / Apple)", "An asymmetric grid with a hero tile reads faster than equal tiles", "One hero KPI + a few supporting tiles, each with a sparkline and tinted tone."]] },
 
-  "archive:H": { name: "Archive · H — Connected Rail", model: "One unified card; selected metric connects into the detail (workspace v2)",
-    pros: ["Metric list + detail share one white card.", "Selection by background play: gray → hover → connected white."],
-    cons: ["Parked: this is Neil's Phase ① (analyse next to the outcome), now folded into Stories.", "No authored-story front."],
-    refs: [["macOS/iOS source-list + Gmail settings", "Selected row should merge into its detail", "Selected item's white bleeds across the seam."]] },
-  "archive:I": { name: "Archive · I — Connected Tabs", model: "Unified card; horizontal metric strip connects down (workspace v2)",
-    pros: ["Wider, full-width detail beneath the strip.", "Selected tab connects down into the detail."],
-    cons: ["Parked alongside the connected set.", "Less vertical metric overview."],
-    refs: [["Connected tab → panel", "An active tab should join its panel seamlessly", "Selected tab's white merges into the detail below."]] },
-  "archive:J": { name: "Archive · J — Assistant-Forward", model: "Connected card + Mira as a co-equal column (workspace v2)",
-    pros: ["Mira open by default; \"ask anything\" felt immediately.", "Metric rail collapses to widen the detail."],
-    cons: ["Parked alongside the connected set.", "Still chat-forward, not story-forward."],
-    refs: [["Copilot / Cursor side panel", "The assistant should be a real column", "Mira opens co-equal by default."]] },
-
-  "stories:1": { name: "Stories · 1 — Story Board", model: "Arrive to a board of authored story-objects (the default)",
-    pros: ["Front surface is authored stories, never a blank prompt.", "Story is the atomic unit; KPIs live inside cards; \"run analysis\" makes a new one.", "Best home for multi-team scale — cross-team stories drop onto the board."],
-    cons: ["Boards can decay into clutter without curation.", "Less opinionated about the one thing that moved than a briefing."],
+  "stories:board": { name: "Stories · Story Board", model: "Arrive to a board of authored story-objects",
+    pros: ["Front surface is authored stories, never a blank prompt.", "Story is the atomic unit; KPIs live inside cards.", "Best home for multi-team scale — cross-team stories drop onto the board."],
+    cons: ["Parked behind Home.", "Boards can decay into clutter without curation."],
     refs: [["Gemini Enterprise Projects · Notion/Coda", "A space is a board of co-authored artifacts, not one doc", "Story cards (default-public) fill the board for everyone."]] },
-  "stories:2": { name: "Stories · 2 — Ask-to-Reuse", model: "A question searches existing stories before spending a token",
-    pros: ["Operationalizes \"author once, view many\" — token discipline you can feel.", "Intercepts with \"Marco already explored this\" before regenerating.", "Explicit \"ask fresh anyway\" escape hatch."],
-    cons: ["A wrong \"already answered\" is worse than a blank prompt.", "Quality hinges on match relevance."],
-    refs: [["Stack Overflow duplicate intercept · GitHub \"marked as answer\"", "\"Avoid redundant regeneration\" IS the duplicate-question problem", "Typed question → search existing stories/explorations first; story = accepted answer."]] },
-  "stories:3": { name: "Stories · 3 — Living Trend", model: "The outcome as a living annotated trend (stock-tracker pattern)",
-    pros: ["Execs read a line, not a table — tap a \"key moment\" for \"what happened here?\".", "Compare-across-windows is first-class.", "Stories that explain each move are crawled in alongside."],
-    cons: ["Forces a time axis — weak for non-temporal cuts (segment mix, who/what).", "One metric in focus at a time."],
-    refs: [["Koyfin · Bloomberg · AlphaSense · Public.com", "The chart is the index into the narrative", "Key moments on the trend expand to a Mira mini-analysis; related stories attach."]] },
-  "stories:4": { name: "Stories · 4 — Published Story (artifact)", model: "A story as a published object (Perplexity Pages / Hex app)",
-    pros: ["Maps 1:1 to \"story = generated HTML/CSS/React component\".", "Builder-vs-viewer split = default-public-view / opt-in-private-edit.", "Every section carries lineage; pins are live pointers with an \"as of\"."],
-    cons: ["Perplexity's export dead-end — needs the \"send to deck\" exit (stubbed).", "Authoring controls add surface."],
-    refs: [["Perplexity Pages \"Convert to Page\" · Hex data apps", "Analysis is the source; the story is the published build", "One promotion from analysis → durable, sectioned, citation-bearing story."]] },
-  "stories:5": { name: "Stories · 5 — Scrolly Story (artifact)", model: "A story as a guided scrollytelling narrative",
-    pros: ["One insight per step — highest comprehension for the no-SQL exec.", "Sticky chart; scrolling moves the \"key moment\".", "Ends on a recommended action; TL;DR keeps it usable muted."],
-    cons: ["Linear — poor for jumping straight to a metric (needs the board/timeline for that).", "Authored pacing won't suit every reader."],
+  "stories:reuse": { name: "Stories · Ask-to-Reuse", model: "A question searches existing stories before spending a token",
+    pros: ["Operationalizes \"author once, view many\".", "Intercepts with \"Marco already explored this\" before regenerating.", "Explicit \"ask fresh anyway\" escape."],
+    cons: ["Parked behind Home.", "A wrong \"already answered\" is worse than a blank prompt."],
+    refs: [["Stack Overflow duplicate intercept", "\"Avoid redundant regeneration\" IS the duplicate-question problem", "Typed question → search existing stories first; story = accepted answer."]] },
+  "stories:trend": { name: "Stories · Living Trend", model: "The outcome as a living annotated trend (stock-tracker pattern)",
+    pros: ["Tap a \"key moment\" for \"what happened here?\".", "Compare-across-windows is first-class.", "Stories that explain each move are crawled in alongside."],
+    cons: ["Parked behind Home.", "Forces a time axis — weak for non-temporal cuts."],
+    refs: [["Koyfin · Bloomberg · AlphaSense", "The chart is the index into the narrative", "Key moments expand to a Mira mini-analysis; related stories attach."]] },
+  "stories:published": { name: "Stories · Published Story", model: "A story as a published object (Perplexity Pages / Hex app)",
+    pros: ["Maps 1:1 to \"story = generated component\".", "Builder-vs-viewer split = default-public-view / opt-in-private-edit.", "Every section carries lineage; pins are live pointers with an \"as of\"."],
+    cons: ["Parked behind Home.", "Export dead-end risk — needs the \"send to deck\" exit (stubbed)."],
+    refs: [["Perplexity Pages · Hex data apps", "Analysis is the source; the story is the published build", "One promotion from analysis → durable, citation-bearing story."]] },
+  "stories:scrolly": { name: "Stories · Scrolly Story", model: "A story as a guided scrollytelling narrative",
+    pros: ["One insight per step — highest comprehension for the no-SQL exec.", "Sticky chart; scrolling moves the \"key moment\".", "Ends on a recommended action."],
+    cons: ["Parked behind Home.", "Linear — poor for jumping straight to a metric."],
     refs: [["Flourish · Tableau Story Points", "Non-technical execs lose dense dashboards; build up one step at a time", "Stepped reveals over a sticky annotated trend, ending in an action."]] },
+
+  "archive:briefing": { name: "Archive · Briefing", model: "Arrive to be briefed (newspaper / Amazon-memo)",
+    pros: ["Insight on screen before any input.", "Narrative brief pre-ranks what matters."],
+    cons: ["Parked.", "Collaboration is a sidebar."],
+    refs: [["Tableau Pulse + Amazon six-pager", "Briefing-over-dashboard pre-ranks what matters", "Lead with authored prose, not a TTS of numbers."]] },
+  "archive:room": { name: "Archive · Room", model: "A furnished space you inhabit (Notion / Coda)",
+    pros: ["Collaboration is the spine.", "Blocks map to the four things."],
+    cons: ["Parked.", "Briefing shares the stage."],
+    refs: [["Notion AI Home / Coda", "A space is a living doc of blocks", "KPIs, player, explorations as blocks; members comment."]] },
+  "archive:player": { name: "Archive · Player", model: "Your outcome has a podcast (Spotify / NotebookLM)",
+    pros: ["Audio brief is the hero.", "Episode feed makes it a serial."],
+    cons: ["Parked.", "Over-indexes on audio for the desk."],
+    refs: [["NotebookLM Audio Overview", "Two-voice format is the engagement engine", "One-click play; transcript keeps it usable muted."]] },
+  "archive:combined": { name: "Archive · Combined Explorer", model: "Accordion; metric cards expand in place (workspace v1)",
+    pros: ["Metric + detail are one unit.", "Bottom chat frees the full width."],
+    cons: ["Parked.", "One metric open at a time."],
+    refs: [["Combine metrics + details", "Browsing and drilling shouldn't split panes", "Cards expand inline."]] },
+  "archive:canvas": { name: "Archive · Full-Canvas", model: "Two-pane card rail + detail (workspace v1)",
+    pros: ["Detail always beside the list.", "Full width for data."],
+    cons: ["Parked.", "Separate cards, no unified surface."],
+    refs: [["Full width + bottom chat", "Maximise data, chat on demand", "Card rail + detail own 100% width."]] },
+  "archive:threepane": { name: "Archive · Three-Pane Pro", model: "Cards · detail · context rail (workspace v1)",
+    pros: ["Collaborators + quota + shared chats visible.", "All-at-once power surface."],
+    cons: ["Parked.", "Densest layout."],
+    refs: [["Exec collaboration + quota", "Context belongs next to the metric", "Right rail carries collaborators + shared chats."]] },
+  "archive:dashboard": { name: "Archive · Dashboard → Focus", model: "Overview grid ⇄ focus (workspace v1)",
+    pros: ["Every metric at a glance.", "Focus view is distraction-free."],
+    cons: ["Parked.", "Extra click to detail."],
+    refs: [["Overview-first navigation", "Scan all before drilling", "Card grid opens a focused detail."]] },
+  "archive:rail": { name: "Archive · Connected Rail", model: "One unified card; selected metric connects into the detail (workspace v2)",
+    pros: ["Metric list + detail share one white card.", "Selection by background play: gray → hover → connected white."],
+    cons: ["Parked.", "No authored-story front."],
+    refs: [["macOS/iOS source-list + Gmail settings", "Selected row should merge into its detail", "Selected item's white bleeds across the seam."]] },
+  "archive:tabs": { name: "Archive · Connected Tabs", model: "Unified card; horizontal metric strip connects down (workspace v2)",
+    pros: ["Wider, full-width detail beneath the strip.", "Selected tab connects down into the detail."],
+    cons: ["Parked.", "Less vertical metric overview."],
+    refs: [["Connected tab → panel", "An active tab should join its panel seamlessly", "Selected tab's white merges into the detail below."]] },
+  "archive:assistant": { name: "Archive · Assistant-Forward", model: "Connected card + Mira as a co-equal column (workspace v2)",
+    pros: ["Mira open by default; \"ask anything\" felt immediately.", "Metric rail collapses to widen the detail."],
+    cons: ["Parked.", "Chat-forward, not story-forward."],
+    refs: [["Copilot / Cursor side panel", "The assistant should be a real column", "Mira opens co-equal by default."]] },
 };
 
 export default function MiraSpaceShell({
   conversation, pendingTurnId, queriesUsed, queriesTotal, onSubmit, onReset,
   setupContextOpen, onToggleSetupContext,
 }) {
-  const [sel, setSel] = React.useState({ versionId: "stories", iterationId: "1" });
+  const [sel, setSel] = React.useState({ versionId: "home", iterationId: "cat3" });
   const [chatOpen, setChatOpen] = React.useState(false);
 
   const isArchive = sel.versionId === "archive";
@@ -139,9 +167,12 @@ export default function MiraSpaceShell({
   };
 
   let body;
-  if (isArchive && ARCHIVE_CONCEPTS.has(sel.iterationId)) {
-    // A/B/C concepts use the collapsible right chat column.
-    const Direction = ARCHIVE[sel.iterationId] || ARCHIVE.A;
+  if (sel.versionId === "home") {
+    // The ChatGPT-5-style home; iteration id selects the metric-band variant.
+    body = <MiraHome variant={sel.iterationId} {...chatProps} />;
+  } else if (isArchive && ARCHIVE_CONCEPTS.has(sel.iterationId)) {
+    // Concept archive (Briefing/Room/Player) uses the collapsible right chat.
+    const Direction = ARCHIVE[sel.iterationId] || ARCHIVE.briefing;
     body = (
       <div style={row}>
         <div style={main}><Direction onAsk={handleAsk} /></div>
@@ -155,9 +186,8 @@ export default function MiraSpaceShell({
       </div>
     );
   } else {
-    // Archive D–J (parked workspaces) and all Stories directions are full-bleed
-    // and own their chat.
-    const Direction = isArchive ? (ARCHIVE[sel.iterationId] || ARCHIVE.D) : (STORIES_DIRS[sel.iterationId] || STORIES_DIRS[1]);
+    // Parked workspaces (Archive) and all Stories directions are full-bleed.
+    const Direction = isArchive ? (ARCHIVE[sel.iterationId] || ARCHIVE.combined) : (STORIES_DIRS[sel.iterationId] || STORIES_DIRS.board);
     body = <Direction {...chatProps} />;
   }
 
@@ -172,7 +202,7 @@ export default function MiraSpaceShell({
         tabsMode
         value={{ versionId: sel.versionId, iterationId: sel.iterationId }}
         onChange={({ versionId, iterationId }) =>
-          setSel({ versionId, iterationId: iterationId ?? (versionId === "archive" ? "A" : "1") })
+          setSel({ versionId, iterationId: iterationId ?? DEFAULT_ITER[versionId] ?? "cat3" })
         }
         help={<DirectionHelp sel={sel} />}
       />
@@ -187,7 +217,7 @@ const main = { flex: 1, minWidth: 0 };
 // "More detail" toggle. Styled for the VersionBar's dark popover.
 function DirectionHelp({ sel }) {
   const [detail, setDetail] = React.useState(false);
-  const r = RATIONALE[`${sel.versionId}:${sel.iterationId}`] || RATIONALE["stories:1"];
+  const r = RATIONALE[`${sel.versionId}:${sel.iterationId}`] || RATIONALE["home:cat3"];
   return (
     <div style={h.wrap}>
       <span style={h.name}>{r.name}</span>

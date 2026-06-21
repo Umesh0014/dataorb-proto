@@ -34,6 +34,11 @@ const BASELINE_OPTIONS = [
 const COLLAPSED_SIZE = 56;
 const CLOSE_SIZE = 52;
 
+// Iterations may be plain strings ("A") or { id, label } objects so a chip can
+// show a real name ("Story Board") instead of a bare token.
+const iterId = (it) => (typeof it === "string" ? it : it.id);
+const iterLabel = (it) => (typeof it === "string" ? it : it.label);
+
 export default function VersionBar({
   versions = DEFAULT_VERSIONS,
   baselineOptions = BASELINE_OPTIONS,
@@ -65,7 +70,7 @@ export default function VersionBar({
   const [iterById, setIterById] = React.useState(() => {
     const m = {};
     versions.forEach((v) => {
-      if (v.iterations.length) m[v.id] = v.iterations[0];
+      if (v.iterations.length) m[v.id] = iterId(v.iterations[0]);
     });
     return m;
   });
@@ -165,13 +170,14 @@ export default function VersionBar({
     if (!v || !v.iterations.length) return;
     const handler = (e) => {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-      const current = iterById[expandedId] ?? v.iterations[0];
-      const idx = v.iterations.indexOf(current);
+      const ids = v.iterations.map(iterId);
+      const current = iterById[expandedId] ?? ids[0];
+      const idx = ids.indexOf(current);
       const nextIdx =
         e.key === "ArrowRight"
-          ? (idx + 1) % v.iterations.length
-          : (idx - 1 + v.iterations.length) % v.iterations.length;
-      const next = v.iterations[nextIdx];
+          ? (idx + 1) % ids.length
+          : (idx - 1 + ids.length) % ids.length;
+      const next = ids[nextIdx];
       setIterById((m) => ({ ...m, [expandedId]: next }));
       setActiveId(expandedId);
       fire(expandedId, next);
@@ -208,7 +214,7 @@ export default function VersionBar({
     if (v.iterations.length) {
       setActiveId(v.id);
       setExpandedId((cur) => (cur === v.id ? null : v.id));
-      const iter = iterById[v.id] ?? v.iterations[0];
+      const iter = iterById[v.id] ?? iterId(v.iterations[0]);
       fire(v.id, iter);
     } else {
       setActiveId(v.id);
@@ -253,7 +259,10 @@ export default function VersionBar({
         <div className="vb-wrap">
           <div
             className="vb-morph"
-            style={{ width: open ? `${barWidth}px` : `${COLLAPSED_SIZE}px` }}
+            style={{
+              width: open ? `${barWidth}px` : `${COLLAPSED_SIZE}px`,
+              maxWidth: open ? "calc(100vw - 56px)" : undefined,
+            }}
             role={!open ? "button" : undefined}
             tabIndex={!open ? 0 : -1}
             aria-label={!open ? "Open versions" : undefined}
@@ -494,15 +503,16 @@ function VGroup({ version, activeIter, onIter }) {
   return (
     <div style={vbStyles.vgroup}>
       <span style={vbStyles.vlabel}>{version.label}</span>
-      {version.iterations.map((i) => {
-        const on = i === activeIter;
+      {version.iterations.map((it) => {
+        const id = iterId(it);
+        const on = id === activeIter;
         return (
           <button
-            key={i}
+            key={id}
             type="button"
             aria-pressed={on}
             className="vb-focusable"
-            onClick={() => onIter(i)}
+            onClick={() => onIter(id)}
             style={{
               ...vbStyles.iter,
               background: on ? "var(--vb-accent)" : "transparent",
@@ -510,7 +520,7 @@ function VGroup({ version, activeIter, onIter }) {
               fontWeight: on ? 700 : 500,
             }}
           >
-            {i}
+            {iterLabel(it)}
           </button>
         );
       })}
@@ -751,14 +761,16 @@ const vbStyles = {
     whiteSpace: "nowrap",
   },
   iter: {
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
+    minWidth: 30,
+    height: 30,
+    paddingInline: 12,
+    borderRadius: 999,
     border: "none",
     cursor: "pointer",
     fontFamily: "var(--vb-mono)",
-    fontSize: 11,
+    fontSize: 11.5,
     letterSpacing: "0.02em",
+    whiteSpace: "nowrap",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -851,7 +863,11 @@ const VB_STYLESHEET = `
   border-radius: 18px;
   cursor: default;
   box-shadow: 0 20px 50px -22px rgba(0,0,0,0.7);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.vb-dock.is-open .vb-morph::-webkit-scrollbar { display: none; }
 .vb-m-bar {
   display: inline-flex;
   align-items: center;
