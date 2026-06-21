@@ -23,6 +23,7 @@ export const LANDING_METRICS = [
     Icon: MessageSquare,
     accent: "var(--chart-blue)",
     unit: "",
+    change: { value: "+25%", dir: "up", good: true },
     trend: [300, 310, 330, 420, 680, 920, 840, 1050],
     target: 900,
     rows: [
@@ -49,6 +50,7 @@ export const LANDING_METRICS = [
     Icon: CheckCircle2,
     accent: "var(--chart-teal)",
     unit: "%",
+    change: { value: "-3%", dir: "down", good: false },
     trend: [34, 35, 36, 38, 40, 39, 37, 36],
     target: 45,
     rows: [
@@ -74,6 +76,7 @@ export const LANDING_METRICS = [
     Icon: Smile,
     accent: "var(--chart-green)",
     unit: "%",
+    change: { value: "+2%", dir: "up", good: true },
     trend: [50, 52, 55, 53, 54, 55, 55, 55],
     target: 60,
     rows: [
@@ -100,6 +103,7 @@ export const LANDING_METRICS = [
     Icon: TrendingDown,
     accent: "var(--chart-coral)",
     unit: "",
+    change: { value: "-9%", dir: "down", good: true },
     trend: [1, 1, 4, 18, 22, 20, 10, 10],
     target: 5,
     rows: [
@@ -125,6 +129,7 @@ export const LANDING_METRICS = [
     Icon: Tags,
     accent: "var(--chart-lavender)",
     unit: "",
+    change: { value: "+3%", dir: "up", good: true },
     trend: [900, 1100, 1300, 1600, 1900, 2100, 2250, 2316],
     target: 2000,
     rows: [
@@ -151,6 +156,7 @@ export const LANDING_METRICS = [
     Icon: Target,
     accent: "var(--chart-amber)",
     unit: "",
+    change: { value: "-12%", dir: "down", good: false },
     trend: [0, 1, 2, 5, 8, 6, 7, 8],
     target: 10,
     rows: [
