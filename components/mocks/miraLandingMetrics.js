@@ -26,6 +26,17 @@ export const LANDING_METRICS = [
     change: { value: "+25%", dir: "up", good: true },
     trend: [300, 310, 330, 420, 680, 920, 840, 1050],
     target: 900,
+    // Calls vs WhatsApp split per month, for the Interactions hero bar chart.
+    bars: [
+      { month: "Oct", calls: 255, whatsapp: 45 },
+      { month: "Nov", calls: 264, whatsapp: 46 },
+      { month: "Dec", calls: 281, whatsapp: 49 },
+      { month: "Jan", calls: 357, whatsapp: 63 },
+      { month: "Feb", calls: 578, whatsapp: 102 },
+      { month: "Mar", calls: 782, whatsapp: 138 },
+      { month: "Apr", calls: 714, whatsapp: 126 },
+      { month: "May", calls: 893, whatsapp: 157 },
+    ],
     rows: [
       { label: "This month", value: "1,050" },
       { label: "Call", value: "6,018" },

@@ -7,6 +7,7 @@
 import React from "react";
 import { ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import MetricSparkline from "./MetricSparkline";
+import InteractionsBarChart, { INTERACTIONS_SERIES } from "./InteractionsBarChart";
 import { LANDING_METRICS, TREND_MONTHS } from "./mocks/miraLandingMetrics";
 
 const byId = (id) => LANDING_METRICS.find((m) => m.id === id);
@@ -15,10 +16,10 @@ const byId = (id) => LANDING_METRICS.find((m) => m.id === id);
  * MiraMetricsBento — bento-grid metric layout for the "Bento" direction.
  *
  * Borrows the inspiration's structure within DataOrb tokens: white tiles of
- * mixed size (the accent only colors the icon, trend line, dots, and change
- * pill), an oversized hero number, month-over-month change pills, and a
- * list-style tile — trend charts instead of bars. Five tiles; each opens the
- * metric detail.
+ * mixed size (the accent only colors the icon, charts, dots, and change pill),
+ * an oversized hero number, month-over-month change pills, and a list-style
+ * tile. The Interactions hero carries a Calls-vs-WhatsApp bar chart (recharts);
+ * the other tiles use trend sparklines. Five tiles; each opens the detail.
  *
  * @param {{ onSelect: (id: string) => void }} props
  */
@@ -139,12 +140,18 @@ function HeroTile({ metric, onSelect }) {
         <span style={{ ...b.heroValue, color: p.value }}>{headline.value}</span>
         <span style={{ ...b.heroValueLabel, color: p.sub }}>{headline.label}</span>
       </div>
-      <div style={b.heroChart}>{spark(metric, p.spark)}</div>
-      <div style={b.miniRows}>
-        {metric.rows.slice(1).map((r) => (
-          <div key={r.label} style={b.miniRow}>
-            <span style={{ ...b.miniLabel, color: p.sub }}>{r.label}</span>
-            <span style={{ ...b.miniValue, color: p.value }}>{r.value}</span>
+      <div style={b.heroChart}>
+        <InteractionsBarChart data={metric.bars} />
+      </div>
+      <div style={b.legend}>
+        {metric.rows.slice(1).map((r, i) => (
+          <div key={r.label} style={b.legendItem}>
+            <span
+              style={{ ...b.legendDot, background: INTERACTIONS_SERIES[i].color }}
+              aria-hidden="true"
+            />
+            <span style={{ ...b.legendLabel, color: p.sub }}>{r.label}</span>
+            <span style={{ ...b.legendValue, color: p.value }}>{r.value}</span>
           </div>
         ))}
       </div>
@@ -301,10 +308,11 @@ const b = {
   heroValue: { fontSize: 44, fontWeight: 800, lineHeight: 1, fontVariantNumeric: "tabular-nums" },
   heroValueLabel: { fontSize: 13, fontWeight: 500 },
   heroChart: { marginTop: "auto" },
-  miniRows: { display: "flex", gap: 24 },
-  miniRow: { display: "flex", flexDirection: "column", gap: 2 },
-  miniLabel: { fontSize: 11, fontWeight: 500 },
-  miniValue: { fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums" },
+  legend: { display: "flex", gap: 20, flexWrap: "wrap" },
+  legendItem: { display: "inline-flex", alignItems: "center", gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 2, flexShrink: 0 },
+  legendLabel: { fontSize: 12, fontWeight: 500 },
+  legendValue: { fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums" },
 
   list: {
     display: "flex",
