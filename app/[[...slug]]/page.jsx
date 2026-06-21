@@ -630,7 +630,9 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
-    moduleContent = <PageLayout>{miraContent}</PageLayout>;
+    moduleContent = (
+      <PageLayout background="var(--surface-white)">{miraContent}</PageLayout>
+    );
   } else if (currentPage === "learning") {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");
     const onDrill = learningNav === "drill";
