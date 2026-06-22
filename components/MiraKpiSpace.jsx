@@ -1,14 +1,15 @@
 /* eslint-disable no-restricted-syntax --
-   The KPI rail items, suggestion chips, and chat rows are clickable list /
-   chip surfaces, not the pill/icon/text shapes Button.jsx models — same
+   The KPI selector chips, story rows, suggestion chips, chat rows, AMP
+   collapse button, and the floating action button are clickable chip / row /
+   icon surfaces, not the pill/icon/text shapes Button.jsx models — same
    precedent as MiraLandingDeck and VersionBar. Raw <button> keeps each a
    single accessible target. */
 "use client";
 
 import React from "react";
-import { ChevronRight, ArrowUpRight, ArrowDownRight, Lock, Globe, Pin } from "lucide-react";
-import Card from "./Card";
+import { ChevronRight, ArrowUpRight, ArrowDownRight, Lock, Globe, Pin, Minimize2 } from "lucide-react";
 import KpiTrendChart from "./KpiTrendChart";
+import MiraStoryDetail from "./MiraStoryDetail";
 import { MiraStarIcon } from "./SideNav/icons";
 import { OUTCOME_KPIS, SPACE_STORIES, kpiSuggestions } from "./mocks/miraKpiSpace";
 import { formatRelativeTime } from "./mocks/miraConversation";
@@ -16,10 +17,10 @@ import { formatRelativeTime } from "./mocks/miraConversation";
 /**
  * MiraKpiSpace — the "KPI Space" landing direction (outcome-space surface).
  *
- * Three columns: an Outcome-KPI rail (left) selects the outcome; the middle
- * shows that KPI's trend chart plus the space's authored Stories and Chats;
- * the right ~50% is the AMP ask surface for running analysis beside the
- * outcome. State (selected KPI) is local to this direction.
+ * Two cards on the canvas surface: the left card holds the Outcome (KPI
+ * selector + headline) and, below a separator, the Outcome details (trend,
+ * Stories, Chats); the right card is the AMP ask surface, collapsible into a
+ * floating action button. Clicking a Story opens its authored detail.
  *
  * @param {{
  *   userName?: string,
@@ -37,6 +38,8 @@ export default function MiraKpiSpace({
   onPickSuggestion,
 }) {
   const [selectedId, setSelectedId] = React.useState(OUTCOME_KPIS[0].id);
+  const [openStoryId, setOpenStoryId] = React.useState(null);
+  const [ampCollapsed, setAmpCollapsed] = React.useState(false);
   const selected = OUTCOME_KPIS.find((k) => k.id === selectedId) || OUTCOME_KPIS[0];
 
   const recentChats = React.useMemo(
@@ -44,110 +47,133 @@ export default function MiraKpiSpace({
     [conversations]
   );
 
+  const openStory = openStoryId ? SPACE_STORIES.find((st) => st.id === openStoryId) : null;
+  if (openStory) {
+    return <MiraStoryDetail story={openStory} onBack={() => setOpenStoryId(null)} />;
+  }
+
   return (
     <div style={s.space}>
-      <aside style={s.rail} aria-label="Outcome KPIs">
-        <div style={s.railTitle}>Outcomes</div>
-        {OUTCOME_KPIS.map((kpi) => (
-          <RailItem
-            key={kpi.id}
-            kpi={kpi}
-            active={kpi.id === selectedId}
-            onClick={() => setSelectedId(kpi.id)}
-          />
-        ))}
-      </aside>
-
-      <div style={s.center}>
-        <div style={s.centerHead}>
-          <div>
-            <div style={s.centerKpiLabel}>{selected.label}</div>
-            <div style={s.centerValueRow}>
-              <span style={s.centerValue}>{selected.value}</span>
-              <ChangePill change={selected.change} />
-            </div>
+      <div style={s.col}>
+        {/* Outcome */}
+        <div style={s.chips} role="list" aria-label="Outcome KPIs">
+          {OUTCOME_KPIS.map((kpi) => (
+            <KpiChip
+              key={kpi.id}
+              kpi={kpi}
+              active={kpi.id === selectedId}
+              onClick={() => setSelectedId(kpi.id)}
+            />
+          ))}
+        </div>
+        <div style={s.outcomeHeader}>
+          <span style={s.outcomeLabel}>{selected.label}</span>
+          <div style={s.outcomeValueRow}>
+            <span style={s.outcomeValue}>{selected.value}</span>
+            <ChangePill change={selected.change} />
           </div>
         </div>
 
-        <Card padX={20} padY={20}>
-          <div style={s.cardHead}>Trend · last 8 months</div>
-          <KpiTrendChart kpi={selected} />
-        </Card>
+        <div style={s.separator} />
 
-        <section style={s.section} aria-label="Stories">
-          <div style={s.sectionHead}>
-            <span style={s.sectionTitle}>Stories</span>
+        {/* Outcome details */}
+        <div style={s.detailBlock}>
+          <div style={s.detailHead}>Trend · last 8 months</div>
+          <KpiTrendChart kpi={selected} />
+        </div>
+
+        <div style={s.detailBlock}>
+          <div style={s.sectionTitle}>
+            Stories
             <span style={s.sectionHint}>Authored by Mira · viewable by everyone</span>
           </div>
           <div style={s.storyList}>
             {SPACE_STORIES.map((story) => (
-              <StoryCard key={story.id} story={story} />
+              <StoryRow key={story.id} story={story} onClick={() => setOpenStoryId(story.id)} />
             ))}
           </div>
-        </section>
-
-        <section style={s.section} aria-label="Chats">
-          <div style={s.sectionHead}>
-            <span style={s.sectionTitle}>Chats</span>
-          </div>
-          <Card padX={0} padY={0}>
-            <div style={s.chatList}>
-              {recentChats.map((c) => (
-                <ChatRow key={c.id} conversation={c} onClick={() => onOpenConversation(c.id)} />
-              ))}
-            </div>
-          </Card>
-        </section>
-      </div>
-
-      <div style={s.amp}>
-        <div style={s.ampHead}>
-          <div style={s.ampIconWrap} aria-hidden="true">
-            <MiraStarIcon size={28} color="var(--color-button-primary-bg)" />
-          </div>
-          <div>
-            <div style={s.ampTitle}>Ask about {selected.label}</div>
-            <div style={s.ampSubtitle}>
-              Run analysis right beside the outcome, {userName.split(" ")[0]}.
-            </div>
-          </div>
         </div>
 
-        <div style={s.suggestions} role="list">
-          {kpiSuggestions(selected.label).map((q) => (
+        <div style={s.detailBlock}>
+          <div style={s.sectionTitle}>Chats</div>
+          <div style={s.chatList}>
+            {recentChats.map((c) => (
+              <ChatRow key={c.id} conversation={c} onClick={() => onOpenConversation(c.id)} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {!ampCollapsed && (
+        <div style={s.amp}>
+          <div style={s.ampHead}>
+            <div style={s.ampIconWrap} aria-hidden="true">
+              <MiraStarIcon size={28} color="var(--color-button-primary-bg)" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={s.ampTitle}>Ask about {selected.label}</div>
+              <div style={s.ampSubtitle}>
+                Run analysis right beside the outcome, {userName.split(" ")[0]}.
+              </div>
+            </div>
             <button
-              key={q}
               type="button"
-              role="listitem"
-              style={s.suggestion}
-              onClick={() => onPickSuggestion(q)}
+              onClick={() => setAmpCollapsed(true)}
+              aria-label="Collapse Mira"
+              title="Collapse Mira"
+              style={s.ampCollapseBtn}
             >
-              {q}
+              <Minimize2 size={16} color="var(--color-text-medium)" />
             </button>
-          ))}
+          </div>
+
+          <div style={s.suggestions} role="list">
+            {kpiSuggestions(selected.label).map((q) => (
+              <button
+                key={q}
+                type="button"
+                role="listitem"
+                style={s.suggestion}
+                onClick={() => onPickSuggestion(q)}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          {composer}
         </div>
+      )}
 
-        <div style={{ flex: 1 }} />
-
-        {composer}
-      </div>
+      {ampCollapsed && (
+        <button
+          type="button"
+          onClick={() => setAmpCollapsed(false)}
+          aria-label="Open Mira"
+          title="Open Mira"
+          style={s.fab}
+        >
+          <MiraStarIcon size={26} color="var(--surface-white)" />
+        </button>
+      )}
     </div>
   );
 }
 
-function RailItem({ kpi, active, onClick }) {
+function KpiChip({ kpi, active, onClick }) {
   return (
     <button
       type="button"
+      role="listitem"
       onClick={onClick}
       aria-pressed={active}
-      style={{ ...s.railItem, ...(active ? s.railItemActive : null) }}
+      style={{ ...s.chip, ...(active ? s.chipActive : null) }}
     >
-      <span style={{ ...s.railDot, background: kpi.accent }} aria-hidden="true" />
-      <span style={s.railText}>
-        <span style={s.railLabel}>{kpi.label}</span>
-        <span style={s.railValue}>{kpi.value}</span>
-      </span>
+      <span style={{ ...s.chipDot, background: kpi.accent }} aria-hidden="true" />
+      <span style={s.chipLabel}>{kpi.label}</span>
+      <span style={s.chipValue}>{kpi.value}</span>
     </button>
   );
 }
@@ -163,13 +189,20 @@ function ChangePill({ change }) {
   );
 }
 
-function StoryCard({ story }) {
+function StoryRow({ story, onClick }) {
+  const [hovered, setHovered] = React.useState(false);
   const isPublic = story.visibility === "public";
   const VisIcon = isPublic ? Globe : Lock;
   return (
-    <div style={s.story}>
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ ...s.storyRow, background: hovered ? "var(--color-card-emoji-bg)" : "transparent" }}
+    >
       <span style={s.storyIconWrap} aria-hidden="true">
-        <MiraStarIcon size={18} color="var(--color-button-primary-bg)" />
+        <MiraStarIcon size={16} color="var(--color-button-primary-bg)" />
       </span>
       <div style={s.storyText}>
         <span style={s.storyTitle}>{story.title}</span>
@@ -187,7 +220,12 @@ function StoryCard({ story }) {
           {story.date}
         </span>
       </div>
-    </div>
+      <ChevronRight
+        size={18}
+        color="var(--color-text-tertiary)"
+        style={{ opacity: hovered ? 1 : 0, transition: "opacity 120ms ease", flexShrink: 0, alignSelf: "center" }}
+      />
+    </button>
   );
 }
 
@@ -217,101 +255,102 @@ function ChatRow({ conversation, onClick }) {
   );
 }
 
+const CARD = {
+  background: "var(--surface-white)",
+  border: "1px solid var(--color-divider-card)",
+  borderRadius: 16,
+  boxSizing: "border-box",
+};
+
 const s = {
-  space: { display: "flex", gap: 16, flex: 1, minHeight: 0 },
+  space: { display: "flex", gap: 16, flex: 1, minHeight: 0, fontFamily: "var(--font-sans)" },
 
-  rail: {
-    width: 200,
-    flexShrink: 0,
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    overflowY: "auto",
-    paddingRight: 4,
-  },
-  railTitle: {
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    color: "var(--color-text-tertiary)",
-    padding: "4px 8px 8px",
-  },
-  railItem: {
-    appearance: "none",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-    textAlign: "left",
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1px solid transparent",
-    background: "transparent",
-    cursor: "pointer",
-    fontFamily: "var(--font-sans)",
-    transition: "background 120ms ease, border-color 120ms ease",
-  },
-  railItemActive: {
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-divider-card)",
-    boxShadow: "var(--shadow-card)",
-  },
-  railDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  railText: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
-  railLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
-  railValue: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-tertiary)",
-    fontVariantNumeric: "tabular-nums",
-  },
-
-  center: {
+  col: {
+    ...CARD,
     flex: 1,
     minWidth: 0,
     display: "flex",
     flexDirection: "column",
-    gap: 20,
+    gap: 16,
+    padding: 20,
     overflowY: "auto",
-    paddingRight: 4,
   },
-  centerHead: { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  centerKpiLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-tertiary)" },
-  centerValueRow: { display: "flex", alignItems: "baseline", gap: 10, marginTop: 2 },
-  centerValue: {
+
+  chips: { display: "flex", flexWrap: "wrap", gap: 8 },
+  chip: {
+    appearance: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    height: 34,
+    paddingInline: 12,
+    borderRadius: 10,
+    border: "1px solid var(--color-divider-card)",
+    background: "var(--surface-white)",
+    cursor: "pointer",
+    fontFamily: "var(--font-sans)",
+    transition: "border-color 120ms ease, background 120ms ease",
+  },
+  chipActive: {
+    borderColor: "var(--color-button-primary-bg)",
+    background: "var(--color-primary-alpha-12)",
+  },
+  chipDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  chipLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
+  chipValue: { fontSize: 13, fontWeight: 700, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
+
+  outcomeHeader: { display: "flex", flexDirection: "column", gap: 2 },
+  outcomeLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-tertiary)" },
+  outcomeValueRow: { display: "flex", alignItems: "baseline", gap: 10 },
+  outcomeValue: {
     fontSize: 30,
     fontWeight: 800,
     color: "var(--color-text-deep)",
     lineHeight: 1.1,
     fontVariantNumeric: "tabular-nums",
   },
-  cardHead: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)", marginBottom: 12 },
 
-  section: { display: "flex", flexDirection: "column", gap: 10 },
-  sectionHead: { display: "flex", alignItems: "baseline", gap: 10 },
-  sectionTitle: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
+  separator: { height: 1, background: "var(--color-divider-card)", flexShrink: 0 },
+
+  detailBlock: { display: "flex", flexDirection: "column", gap: 10 },
+  detailHead: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)" },
+  sectionTitle: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: 10,
+    fontSize: 15,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+  },
   sectionHint: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
 
-  storyList: { display: "flex", flexDirection: "column", gap: 10 },
-  story: {
+  storyList: { display: "flex", flexDirection: "column" },
+  storyRow: {
+    appearance: "none",
+    border: "none",
+    width: "100%",
+    textAlign: "left",
     display: "flex",
+    alignItems: "flex-start",
     gap: 12,
-    padding: 14,
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-divider-card)",
-    borderRadius: 12,
+    padding: "12px 10px",
+    borderBottom: "1px solid var(--color-divider-card)",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontFamily: "var(--font-sans)",
+    transition: "background 120ms ease",
   },
   storyIconWrap: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: 26,
     borderRadius: 8,
     background: "var(--color-primary-alpha-12)",
     display: "grid",
     placeItems: "center",
     flexShrink: 0,
+    marginTop: 1,
   },
-  storyText: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0 },
+  storyText: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 },
   storyTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
   storyMeta: {
     display: "flex",
@@ -322,26 +361,20 @@ const s = {
     color: "var(--color-text-tertiary)",
   },
   storyTag: { display: "inline-flex", alignItems: "center", gap: 4 },
-  metaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 999,
-    background: "var(--color-text-tertiary)",
-    flexShrink: 0,
-  },
+  metaDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)", flexShrink: 0 },
 
   chatList: { display: "flex", flexDirection: "column" },
   chatRow: {
     appearance: "none",
     border: "none",
-    background: "transparent",
     width: "100%",
     textAlign: "left",
-    padding: "14px 20px",
+    padding: "12px 10px",
     display: "flex",
     alignItems: "center",
     gap: 12,
     borderBottom: "1px solid var(--color-divider-card)",
+    borderRadius: 8,
     cursor: "pointer",
     transition: "background 120ms ease",
   },
@@ -370,22 +403,31 @@ const s = {
   },
 
   amp: {
-    width: "46%",
+    ...CARD,
+    width: "38%",
     flexShrink: 0,
     display: "flex",
     flexDirection: "column",
     gap: 16,
     minHeight: 0,
     padding: 20,
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-divider-card)",
-    borderRadius: 16,
-    boxShadow: "var(--shadow-card)",
   },
   ampHead: { display: "flex", alignItems: "center", gap: 12 },
   ampIconWrap: { width: 40, height: 40, display: "grid", placeItems: "center", flexShrink: 0 },
   ampTitle: { fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.3 },
   ampSubtitle: { fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
+  ampCollapseBtn: {
+    appearance: "none",
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    border: "1px solid var(--color-divider-card)",
+    background: "var(--surface-white)",
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+    flexShrink: 0,
+  },
 
   suggestions: { display: "flex", flexDirection: "column", gap: 8 },
   suggestion: {
@@ -401,5 +443,21 @@ const s = {
     color: "var(--color-text-medium)",
     cursor: "pointer",
     transition: "background 120ms ease",
+  },
+
+  fab: {
+    position: "fixed",
+    bottom: 96,
+    insetInlineEnd: 28,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    border: "none",
+    background: "var(--color-button-primary-bg)",
+    boxShadow: "var(--shadow-16)",
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+    zIndex: 60,
   },
 };

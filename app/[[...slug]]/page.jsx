@@ -286,6 +286,9 @@ export default function Page() {
   const [miraActiveId, setMiraActiveId] = React.useState(null);
   const [miraPendingTurnId, setMiraPendingTurnId] = React.useState(null);
   const [miraQueriesUsed, setMiraQueriesUsed] = React.useState(13);
+  // Lifted so the layout can react to the active landing direction (KPI Space
+  // runs full-width on the canvas surface; the others stay white at 1068).
+  const [miraDirection, setMiraDirection] = React.useState("launchpad");
   const [appMenuOpen, setAppMenuOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
@@ -565,6 +568,8 @@ export default function Page() {
           onReset={startNewMiraChat}
           conversations={miraConversations}
           onOpenConversation={openMiraConversation}
+          direction={miraDirection}
+          onDirectionChange={setMiraDirection}
         />
       );
     } else if (isHistory) {
@@ -630,10 +635,11 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
+    const onKpiSpace = isChat && miraDirection === "kpispace";
     moduleContent = (
       <PageLayout
-        background="var(--surface-white)"
-        maxWidth={isChat ? "none" : undefined}
+        background={onKpiSpace ? "var(--surface-canvas)" : "var(--surface-white)"}
+        maxWidth={onKpiSpace ? "none" : undefined}
       >
         {miraContent}
       </PageLayout>

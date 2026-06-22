@@ -64,6 +64,8 @@ const SUGGESTED_QUESTIONS = [
  *   onReset: () => void,
  *   conversations?: Array<{ id: string, firstQuestion: string, createdAt: number, turns: Array<unknown> }>,
  *   onOpenConversation?: (id: string) => void,
+ *   direction: string,
+ *   onDirectionChange: (id: string) => void,
  * }} props
  */
 export default function AskMiraProPage({
@@ -76,9 +78,10 @@ export default function AskMiraProPage({
   onReset,
   conversations = [],
   onOpenConversation,
+  direction,
+  onDirectionChange,
 }) {
   const [query, setQuery] = React.useState("");
-  const [direction, setDirection] = React.useState("launchpad");
   const [visibility, setVisibility] = React.useState("public");
   const [selectedMetricId, setSelectedMetricId] = React.useState(null);
 
@@ -177,7 +180,7 @@ export default function AskMiraProPage({
         versions={DIRECTIONS}
         baselineOptions={[]}
         value={{ versionId: direction, iterationId: null }}
-        onChange={({ versionId }) => setDirection(versionId)}
+        onChange={({ versionId }) => onDirectionChange(versionId)}
         help={<MiraDirectionsHelp />}
       />
     </div>

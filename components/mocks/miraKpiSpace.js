@@ -76,11 +76,85 @@ export const OUTCOME_KPIS = [
 // AMP-authored stories living in the space — authored once, viewable by
 // everyone (default-public), with pinned insights others can jump to.
 export const SPACE_STORIES = [
-  { id: "st-1", title: "Why did Sales Conversion climb in May?", date: "2 days ago", visibility: "public", pins: 3 },
-  { id: "st-2", title: "Retention risk concentrated in enterprise accounts", date: "4 days ago", visibility: "public", pins: 2 },
-  { id: "st-3", title: "What's driving the CSAT dip on billing?", date: "1 week ago", visibility: "public", pins: 5 },
-  { id: "st-4", title: "Win rate by competitor — Q2 readout", date: "1 week ago", visibility: "private", pins: 1 },
-  { id: "st-5", title: "Deal-size trends by customer segment", date: "2 weeks ago", visibility: "public", pins: 4 },
+  {
+    id: "st-1",
+    title: "Why did Sales Conversion climb in May?",
+    date: "2 days ago",
+    visibility: "public",
+    pins: 3,
+    kpiId: "conversion",
+    tldr: "Conversion rose 3 pts to 24% in May — driven by faster follow-up on inbound demo requests and a tighter qualification step earlier in the funnel.",
+  },
+  {
+    id: "st-2",
+    title: "Retention risk concentrated in enterprise accounts",
+    date: "4 days ago",
+    visibility: "public",
+    pins: 2,
+    kpiId: "retention",
+    tldr: "Retention holds at 91% overall, but enterprise renewals are softening — three accounts show declining usage and open escalations heading into renewal.",
+  },
+  {
+    id: "st-3",
+    title: "What's driving the CSAT dip on billing?",
+    date: "1 week ago",
+    visibility: "public",
+    pins: 5,
+    kpiId: "csat",
+    tldr: "CSAT slipped 2 pts to 86%, concentrated in billing-related contacts where dispute handling runs slow and hand-offs repeat.",
+  },
+  {
+    id: "st-4",
+    title: "Win rate by competitor — Q2 readout",
+    date: "1 week ago",
+    visibility: "private",
+    pins: 1,
+    kpiId: "winrate",
+    tldr: "Win rate climbed to 31% in Q2; we win against Competitor A on time-to-value but lose to Competitor B on price in mid-market deals.",
+  },
+  {
+    id: "st-5",
+    title: "Deal-size trends by customer segment",
+    date: "2 weeks ago",
+    visibility: "public",
+    pins: 4,
+    kpiId: "dealsize",
+    tldr: "Average deal size grew 6% to $12.4k, led by mid-market multi-product deals; enterprise single-product deals are flat.",
+  },
+];
+
+// Shared analytical body for a story's detail view. The narrative shape is
+// the same across stories (the per-story tldr + KPI carry the specifics) —
+// "author the story once" template from the ticket.
+export const STORY_SECTIONS = [
+  {
+    heading: "What happened",
+    body: "The metric moved outside its recent band this period. The shift is concentrated in a subset of segments rather than spread evenly, so the headline number understates how sharp the change is where it's happening.",
+  },
+  {
+    heading: "Why it happened",
+    body: "Two drivers explain most of the move: a process change that landed mid-period, and a shift in the mix of contacts. Sentiment and handle-time signals line up with the same segments, which rules out a one-off data artifact.",
+  },
+  {
+    heading: "Recommended next step",
+    body: "Focus on the one segment carrying most of the delta. A short, weekly review loop there will tell us within two weeks whether the change holds — before committing a broader playbook.",
+  },
+];
+
+export const STORY_PINNED = [
+  { text: "The top segment alone accounts for ~60% of the period-over-period move.", by: "Priya Nair" },
+  { text: "Sentiment and handle time track the same accounts — this is a real shift, not a data blip.", by: "Marco Rossi" },
+];
+
+export const STORY_COMMENTS = [
+  { user: "Sofia Almeida", initials: "SA", text: "Pulling logistics into this — the hand-off delay is on our side. Will add notes.", time: "1 day ago" },
+  { user: "James Park", initials: "JP", text: "Pinned the segment chart. Can we get last quarter as a comparison?", time: "22 hours ago" },
+];
+
+export const STORY_COLLABORATORS = [
+  { name: "Priya Nair", initials: "PN" },
+  { name: "Marco Rossi", initials: "MR" },
+  { name: "Sofia Almeida", initials: "SA" },
 ];
 
 export function kpiSuggestions(label) {
