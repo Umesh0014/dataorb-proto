@@ -42,6 +42,11 @@ export const insightsHubConfig = {
           label: "KPI Sidecar",
           route: "/insights/kpi-sidecar",
         },
+        {
+          id: "kpi-goals",
+          label: "KPI & Goals",
+          route: "/insights/kpi-goals",
+        },
       ],
     },
     {
