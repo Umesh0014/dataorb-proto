@@ -16,24 +16,29 @@ export default function KpiDrillInline({ kpi, onClose }) {
   const crumbs = [{ label: kpi.name, go: () => { setAgent(null); setWeek(null); } }];
   if (agent) crumbs.push({ label: agent.name, go: () => setWeek(null) });
   if (week) crumbs.push({ label: week, go: () => {} });
+  // At L1 the single crumb just repeats the L1 header — only show the
+  // breadcrumb once you've drilled into an agent (L2+).
+  const showCrumbs = crumbs.length > 1;
 
   return (
     <div style={s.wrap}>
-      <div style={s.bar}>
-        <nav style={s.crumbs}>
-          {crumbs.map((c, i) => {
-            const last = i === crumbs.length - 1;
-            return (
-              <React.Fragment key={c.label}>
-                {i > 0 && <ChevronRight size={13} color="var(--color-text-placeholder)" />}
-                <button type="button" disabled={last} onClick={c.go}
-                  style={{ ...s.crumb, ...(last ? s.crumbActive : null) }}>
-                  {c.label}
-                </button>
-              </React.Fragment>
-            );
-          })}
-        </nav>
+      <div style={{ ...s.bar, ...(showCrumbs ? s.barCrumbs : null) }}>
+        {showCrumbs ? (
+          <nav style={s.crumbs}>
+            {crumbs.map((c, i) => {
+              const last = i === crumbs.length - 1;
+              return (
+                <React.Fragment key={c.label}>
+                  {i > 0 && <ChevronRight size={13} color="var(--color-text-placeholder)" />}
+                  <button type="button" disabled={last} onClick={c.go}
+                    style={{ ...s.crumb, ...(last ? s.crumbActive : null) }}>
+                    {c.label}
+                  </button>
+                </React.Fragment>
+              );
+            })}
+          </nav>
+        ) : <span />}
         {onClose && <button type="button" style={s.close} onClick={onClose}>Close</button>}
       </div>
 
@@ -50,7 +55,8 @@ export default function KpiDrillInline({ kpi, onClose }) {
 
 const s = {
   wrap: { display: "flex", flexDirection: "column", gap: 16 },
-  bar: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingBottom: 12, borderBottom: "1px solid var(--color-divider-card)" },
+  bar: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  barCrumbs: { paddingBottom: 12, borderBottom: "1px solid var(--color-divider-card)" },
   crumbs: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
   crumb: { border: "none", background: "none", cursor: "pointer", padding: 0, fontSize: 13, fontWeight: 600, color: "var(--do-brand-blue)", fontFamily: "var(--font-sans)" },
   crumbActive: { color: "var(--color-text-deep)", fontWeight: 700, cursor: "default" },
