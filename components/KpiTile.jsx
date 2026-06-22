@@ -62,7 +62,7 @@ export default function KpiTile({ k, onClick, selected = false }) {
 
 const s = {
   card: { display: "flex", flexDirection: "column", gap: 16, padding: 17, background: "#FFFFFF", border: "1px solid #EFEFFF", borderRadius: 8, cursor: "pointer", textAlign: "left", fontFamily: POPPINS, transition: "box-shadow .15s, border-color .15s" },
-  selected: { borderColor: "var(--do-brand-blue)", boxShadow: "0 0 0 1px var(--do-brand-blue)" },
+  selected: { border: "1px solid var(--do-brand-blue)", boxShadow: "0 0 0 1px var(--do-brand-blue)" },
   header: { display: "flex", flexDirection: "column", gap: 4 },
   titleRow: { display: "flex", alignItems: "center", gap: 8 },
   title: { fontFamily: POPPINS, fontWeight: 500, fontSize: 14, lineHeight: "22px", letterSpacing: "0.1px", color: "#5A5D72", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
@@ -72,7 +72,7 @@ const s = {
   suffix: { flex: 1, minWidth: 0, fontFamily: POPPINS, fontWeight: 400, fontSize: 12, lineHeight: "18px", letterSpacing: "0.4px", color: "#5B5E6F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   pill: { display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 4px", borderRadius: 4, fontFamily: POPPINS, fontWeight: 600, fontSize: 11, lineHeight: "18px", letterSpacing: "0.5px", whiteSpace: "nowrap", flexShrink: 0 },
   spark: { width: "100%", height: 40 },
-  footer: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, borderTop: "1px solid #EFEFFF", paddingTop: 8 },
+  footer: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, rowGap: 4, flexWrap: "wrap", borderTop: "1px solid #EFEFFF", paddingTop: 8 },
   status: { fontFamily: LATO, fontWeight: 400, fontSize: 11, lineHeight: "14px", letterSpacing: "0.4px", whiteSpace: "nowrap" },
   legend: { display: "flex", alignItems: "flex-end", gap: 8 },
   legItem: { display: "inline-flex", alignItems: "center", gap: 4 },

@@ -8,6 +8,7 @@ import CircularProgress from "./CircularProgress";
 import KpiGoalsB2 from "./KpiGoalsB2";
 import KpiGoalsB3 from "./KpiGoalsB3";
 import KpiGoalsB4 from "./KpiGoalsB4";
+import KpiGoalsB5 from "./KpiGoalsB5";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
@@ -154,9 +155,10 @@ const KPI_ITERATIONS = [
 // renders a self-contained section (own header + drill), wrapped in a Card
 // so it reads like the other hub sections.
 const OUR_ITERATIONS = [
-  { id: "b2", label: "B2", title: "Progressive — polished triage" },
-  { id: "b3", label: "B3", title: "Tiles + breadcrumb drill" },
-  { id: "b4", label: "B4", title: "Master-detail (categories left)" },
+  { id: "b2", label: "B2", title: "Select category → KPIs populate below" },
+  { id: "b3", label: "B3", title: "Cards + side sidecar" },
+  { id: "b4", label: "B4", title: "Category tree (left) + KPI sidecar" },
+  { id: "b5", label: "B5", title: "Parents on top, children below + side sidecar" },
 ];
 
 function KPIsAndGoalsCard() {
@@ -165,7 +167,7 @@ function KPIsAndGoalsCard() {
   // V3 keeps its own I1/I2 iteration when selected via the Umesh dropdown.
   const [iteration, setIteration] = React.useState("i1");
 
-  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 /> }[view];
+  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 /> }[view];
 
   return (
     <div style={kpiSectionStyles.wrap}>
