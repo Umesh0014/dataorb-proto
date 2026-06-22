@@ -44,6 +44,10 @@ export default function VersionBar({
   figmaHref,
   onOpenFigma,
   help,
+  // baselineLabel: when set, the baseline dropdown trigger always shows this
+  // text (e.g. "Bombed ideas") instead of the selected option's label — so
+  // the dropdown reads as a labelled group rather than the active choice.
+  baselineLabel,
   // tabsMode: drop the baseline dropdown and render every option as a chip
   // (single-axis switchers where a baseline + chips would just duplicate
   // the options). Default off so existing callers are unchanged.
@@ -275,6 +279,7 @@ export default function VersionBar({
                   <Baseline
                     btnRef={baselineBtnRef}
                     selected={baselineSelected}
+                    label={baselineLabel}
                     active={activeId === baselineSelected.id}
                     menuOpen={baselineMenuOpen}
                     onToggleMenu={() => setBaselineMenuOpen((v) => !v)}
@@ -424,7 +429,8 @@ function useAnchorRect(ref, active, ...deps) {
 
 // ---- Bar children --------------------------------------------------------
 
-function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu, isStatic }) {
+function Baseline({ btnRef, selected, label, active, menuOpen, onToggleMenu, isStatic }) {
+  const triggerText = label || selected.label;
   // Static mode (e.g. Credits & Usage): the baseline is a plain label,
   // not a design-phase dropdown — no chevron, no menu, not interactive.
   if (isStatic) {
@@ -438,7 +444,7 @@ function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu, isStatic }
           cursor: "default",
         }}
       >
-        <span>{selected.label}</span>
+        <span>{triggerText}</span>
       </span>
     );
   }
@@ -457,7 +463,7 @@ function Baseline({ btnRef, selected, active, menuOpen, onToggleMenu, isStatic }
         fontWeight: active ? 700 : 500,
       }}
     >
-      <span>{selected.label}</span>
+      <span>{triggerText}</span>
       <span
         style={{
           ...vbStyles.baselineChev,

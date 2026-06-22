@@ -86,11 +86,10 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
 export function DirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Three ways to author</span>
-      <p style={vbHelp.text}><b>A · Checklist</b> — one flat list grouped by stage. Asana-simple, highest reuse. Safest.</p>
-      <p style={vbHelp.text}><b>B · Board</b> — five stage swim-lanes + an outcome lane; read the shape of the call at a glance.</p>
-      <p style={vbHelp.text}><b>C · Studio</b> — outline beside the evidence it was mined from; click a step to see its proof.</p>
-      <p style={vbHelp.hint}>Research: Scribe/Tango show nobody writes SOPs from scratch → generate-first. Process Street → the requirement/type tags are the eval contract. All three: flat checklist, no branching.</p>
+      <span style={vbHelp.title}>3-Column — triage canvas + sidecar</span>
+      <p style={vbHelp.text}>The Jun-18 layout: linear stages (Open/Verify/Discover/Close) are plain checklists; <b>Act is triage</b> — one “field card” <b>column per symptom</b>, side by side.</p>
+      <p style={vbHelp.text}>Each item is <b>2 lines</b> (type pill + text, hint counter); selecting one opens the <b>right sidecar</b> with its hints (say / best-practice / if-then), type, attribution and a link-an-answer-card slot.</p>
+      <p style={vbHelp.hint}>Parallel columns, not a decision tree — the minimalist-checklist target. <b>Checklist</b> (stacked “If” scenarios) is retained as a version; earlier explorations sit in the “Bombed ideas” dropdown.</p>
     </div>
   );
 }

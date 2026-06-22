@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Check, X, FileText, Rocket } from "lucide-react";
+import { Sparkles, Check, X, FileText } from "lucide-react";
 import Button from "./Button";
+import Modal from "./Modal";
 import { GW_SOURCE_INTERACTIONS, GW_PERSONAS } from "./mocks/guidedWorkflows";
 
 // GuidedWorkflowDialogs — the two modal flows the authoring page raises:
@@ -103,39 +104,52 @@ export function AttachOverlay({ attached, onToggle, onClose }) {
 }
 
 // Publish is the workflow's headline, outward-facing action — confirm it
-// before it goes live (G14 journey + INT-8 confirm-irreversible).
+// before it goes live. Uses the shared Modal primitive (the same one the
+// Missions destructive flows use), rather than a bespoke confirm dialog.
 export function PublishOverlay({ attachedCount, onClose, onConfirm }) {
+  const reach = attachedCount > 0
+    ? `Agents on the ${attachedCount} attached persona${attachedCount === 1 ? "" : "s"} will practise against it`
+    : "It isn't attached to a persona yet, so no agent will see it until you attach one";
   return (
-    <Overlay onClose={onClose} title="Publish this guided workflow?" labelledBy="gw-publish-title">
-      <p style={styles.ovLead}>
-        Publishing makes this the live version. {attachedCount > 0
-          ? `Agents on the ${attachedCount} attached persona${attachedCount === 1 ? "" : "s"} will practise against it`
-          : "It isn't attached to a persona yet, so no agent will see it until you attach one"} — with
-        the safety wheel on, so guided scores stay out of the readiness profile.
-      </p>
-      <div style={styles.publishNote}>
-        <Rocket size={15} color="var(--color-button-primary-bg)" aria-hidden="true" />
-        Your edits are versioned — you can update and republish any time.
-      </div>
-      <div style={styles.ovFoot}>
-        <Button variant="text" uppercase={false} onClick={onClose} className="gw-focusable">Cancel</Button>
-        <Button variant="primary" leadingIcon={<Rocket size={16} />} onClick={onConfirm} className="gw-focusable">Publish workflow</Button>
-      </div>
-    </Overlay>
+    <Modal
+      open
+      onDismiss={onClose}
+      onConfirm={onConfirm}
+      title="Publish this guided workflow?"
+      confirmLabel="Publish workflow"
+      body={`Publishing makes this the live version. ${reach} — with the safety wheel on, so guided scores stay out of the readiness profile. Your edits are versioned, so you can update and republish any time.`}
+    />
   );
 }
 
-// Shared modal shell — scrim + dialog, Esc to close, click-outside to close.
-function Overlay({ title, labelledBy, onClose, children }) {
+// Shared overlay shell for the scrollable custom-body dialogs (Create,
+// Attach) and the Board step editor (StepModal). Center scrim + dialog with
+// a titled header + close, Esc / scrim-click to dismiss, focus trapped while
+// open and restored to the trigger on close.
+export function Overlay({ title, labelledBy, onClose, children }) {
+  const ref = React.useRef(null);
   React.useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prev = document.activeElement;
+    const node = ref.current;
+    const focusables = () => Array.from(node?.querySelectorAll('button, input, textarea, [tabindex]:not([tabindex="-1"])') || []);
+    (focusables()[0] || node)?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      const list = focusables();
+      if (!list.length) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("keydown", onKey); if (prev && prev.focus) prev.focus(); };
   }, [onClose]);
 
   return (
     <div style={styles.scrim} role="dialog" aria-modal="true" aria-labelledby={labelledBy} onMouseDown={onClose}>
-      <div style={styles.dialog} onMouseDown={(e) => e.stopPropagation()}>
+      <div ref={ref} tabIndex={-1} style={styles.dialog} onMouseDown={(e) => e.stopPropagation()}>
         <div style={styles.dialogHead}>
           <span id={labelledBy} style={styles.dialogTitle}>{title}</span>
           <button type="button" onClick={onClose} style={styles.closeBtn} className="gw-focusable" aria-label="Close">
@@ -210,8 +224,4 @@ const styles = {
     fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.55,
   },
   ovFoot: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 },
-  publishNote: {
-    display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderRadius: 10,
-    background: "var(--color-primary-alpha-12)", fontSize: 12.5, color: "var(--color-text-medium)", lineHeight: 1.5,
-  },
 };

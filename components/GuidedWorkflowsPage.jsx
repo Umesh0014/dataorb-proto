@@ -3,10 +3,17 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
 import VersionBar from "./VersionBar";
+import Banner from "./Banner";
 import GuidedWorkflowLibrary from "./GuidedWorkflowLibrary";
 import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
 import GuidedWorkflowStudioEditor from "./GuidedWorkflowStudioEditor";
+import GuidedWorkflowWizardEditor from "./GuidedWorkflowWizardEditor";
+import GuidedWorkflowDocEditor from "./GuidedWorkflowDocEditor";
+import GuidedWorkflowTableEditor from "./GuidedWorkflowTableEditor";
+import GuidedWorkflowCoauthorEditor from "./GuidedWorkflowCoauthorEditor";
+import GuidedWorkflowSectionedEditor from "./GuidedWorkflowSectionedEditor";
+import GuidedWorkflowTriageEditor from "./GuidedWorkflowTriageEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
 import { TabContext, EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
@@ -28,10 +35,20 @@ import {
 // differs. Honours the locked decisions: edit-mode = create-mode (nothing
 // blank), flat checklist (no branching), unlimited attempts, audit first.
 
+// The research-grounded simple checklist is the single primary direction;
+// every earlier exploration is kept but parked in a "Bombed ideas" dropdown.
 const DIRECTIONS = [
-  { id: "safe", label: "A · Checklist", iterations: [] },
-  { id: "balanced", label: "B · Board", iterations: [] },
-  { id: "ambitious", label: "C · Studio", iterations: [] },
+  { id: "triage", label: "3-Column", iterations: [] },
+  { id: "checklist", label: "Checklist", iterations: [] },
+];
+const BOMBED = [
+  { id: "wizard", label: "Wizard (bombed)" },
+  { id: "document", label: "Document (bombed)" },
+  { id: "table", label: "Table (bombed)" },
+  { id: "coauthor", label: "Co-author (bombed)" },
+  { id: "safe", label: "Checklist v1 (bombed)" },
+  { id: "balanced", label: "Board (bombed)" },
+  { id: "ambitious", label: "Studio (bombed)" },
 ];
 
 const REQUIREMENT_CYCLE = ["required", "conditional", "recommended"];
@@ -39,7 +56,7 @@ const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
 export default function GuidedWorkflowsPage({ onBack }) {
-  const [variant, setVariant] = React.useState("balanced");
+  const [variant, setVariant] = React.useState("triage");
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -181,15 +198,25 @@ export default function GuidedWorkflowsPage({ onBack }) {
               onSave={saveDraft}
               onPublish={() => setConfirmPublish(true)}
             />
-            <div style={styles.baseBanner}>
-              <Sparkles size={16} color="var(--color-button-primary-bg)" aria-hidden="true" />
-              <span style={styles.baseBannerText}>
-                <b>AI drafted this base workflow</b> from {isNew ? 3 : 12} interactions, grounded in real
-                calls. Edit any step, change what's required, or accept a suggested step below — each
-                one carries the success rate and the phrasing agents used.
-              </span>
-            </div>
-            {variant === "safe" ? (
+            <Banner
+              tone="info"
+              leading={<Sparkles size={20} color="var(--color-button-primary-bg)" style={{ flexShrink: 0 }} aria-hidden="true" />}
+              heading="AI drafted this base workflow"
+              body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
+            />
+            {variant === "triage" ? (
+              <GuidedWorkflowTriageEditor {...editorProps} />
+            ) : variant === "checklist" ? (
+              <GuidedWorkflowSectionedEditor {...editorProps} />
+            ) : variant === "wizard" ? (
+              <GuidedWorkflowWizardEditor {...editorProps} />
+            ) : variant === "document" ? (
+              <GuidedWorkflowDocEditor {...editorProps} />
+            ) : variant === "table" ? (
+              <GuidedWorkflowTableEditor {...editorProps} />
+            ) : variant === "coauthor" ? (
+              <GuidedWorkflowCoauthorEditor {...editorProps} />
+            ) : variant === "safe" ? (
               <GuidedWorkflowChecklistEditor {...editorProps} />
             ) : variant === "balanced" ? (
               <GuidedWorkflowBoardEditor {...editorProps} />
@@ -225,9 +252,9 @@ export default function GuidedWorkflowsPage({ onBack }) {
       )}
 
       <VersionBar
-        tabsMode
         versions={DIRECTIONS}
-        baselineOptions={[]}
+        baselineOptions={BOMBED}
+        baselineLabel="Bombed ideas"
         value={{ versionId: variant, iterationId: null }}
         onChange={({ versionId }) => setVariant(versionId)}
         help={<DirectionsHelp />}
@@ -239,9 +266,4 @@ export default function GuidedWorkflowsPage({ onBack }) {
 const styles = {
   column: { display: "flex", flexDirection: "column", gap: 24, width: "100%", flex: 1, minHeight: 0 },
   editorWrap: { display: "flex", flexDirection: "column", gap: 20 },
-  baseBanner: {
-    display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", borderRadius: 10,
-    background: "var(--color-primary-alpha-12)", border: "1px solid var(--color-button-primary-bg)",
-  },
-  baseBannerText: { fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.55 },
 };
