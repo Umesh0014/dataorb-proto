@@ -101,7 +101,7 @@ export default function GuidedWorkflowTriageEditor({
       </div>
 
       {selected && (
-        <aside style={styles.sidecar} aria-label="Step sidecar">
+        <aside style={styles.sidecar} className="gw-curtain" aria-label="Step sidecar">
           <Sidecar
             step={selected}
             onClose={() => setSelectedId(null)}
