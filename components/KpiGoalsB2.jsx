@@ -64,7 +64,7 @@ const s = {
   subtitle: { fontSize: 13, color: "var(--color-text-tertiary)", margin: "4px 0 0" },
   dateBadge: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", background: "var(--surface-alt)", borderRadius: 999, padding: "5px 12px" },
   catsRow: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },
-  panel: { border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "20px 22px", background: "var(--surface-alt)", minHeight: 240 },
+  panel: { border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "20px 22px", background: "#FFFFFF", minHeight: 240 },
   panelHead: { display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14 },
   panelTitle: { fontSize: 15, fontWeight: 800, color: "var(--color-text-deep)" },
   panelSub: { fontSize: 12, color: "var(--color-text-tertiary)" },
