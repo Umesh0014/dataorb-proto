@@ -631,7 +631,12 @@ export default function Page() {
       router.push(pathForCurrentPage(page));
     };
     moduleContent = (
-      <PageLayout background="var(--surface-white)">{miraContent}</PageLayout>
+      <PageLayout
+        background="var(--surface-white)"
+        maxWidth={isChat ? "none" : undefined}
+      >
+        {miraContent}
+      </PageLayout>
     );
   } else if (currentPage === "learning") {
     const { Component: LearningPage, pageName } = resolvePage(LEARNING_PAGES, learningNav, "Learning Hub");

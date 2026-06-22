@@ -118,15 +118,17 @@ export default function AskMiraProPage({
   if (inChat) {
     return (
       <div style={s.page}>
-        <ChatHeader onBack={resetToHome} onNewChat={resetToHome} />
-        <div style={s.chatBody}>
-          <MiraConversation
-            turns={conversation}
-            pendingTurnId={pendingTurnId}
-            onSubmitFollowUp={submit}
-          />
+        <div style={s.readable}>
+          <ChatHeader onBack={resetToHome} onNewChat={resetToHome} />
+          <div style={s.chatBody}>
+            <MiraConversation
+              turns={conversation}
+              pendingTurnId={pendingTurnId}
+              onSubmitFollowUp={submit}
+            />
+          </div>
+          {composer}
         </div>
-        {composer}
       </div>
     );
   }
@@ -162,12 +164,12 @@ export default function AskMiraProPage({
           onPickSuggestion={(q) => setQuery(q)}
         />
       ) : (
-        <>
+        <div style={s.readable}>
           <div style={s.homeHero}>
             <HomeHero userName={userName} onPickSuggestion={(q) => setQuery(q)} />
           </div>
           {composer}
-        </>
+        </div>
       )}
 
       <VersionBar
@@ -364,6 +366,20 @@ const s = {
     flexDirection: "column",
     minHeight: 0,
     fontFamily: "var(--font-sans)",
+    gap: 16,
+  },
+
+  // Centered, readable cap for the states that shouldn't stretch when the
+  // landing route runs full-width (chat thread, Welcome Mat). KPI Space and
+  // the Launchpad/Bento decks self-size instead.
+  readable: {
+    width: "100%",
+    maxWidth: 880,
+    marginInline: "auto",
+    flex: 1,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
     gap: 16,
   },
 
