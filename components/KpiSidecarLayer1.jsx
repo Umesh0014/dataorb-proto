@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   AgentCell, InfoTip, OutcomeBar, RagChip, SkeletonRows, StatPill,
   gapFor, sortAgents, statusLabelFor,
@@ -13,7 +13,7 @@ const FETCH_MS = 650;
 // Layer 1 — the priority surface. Header + 4-pill stats block + segmented
 // outcome bar (collapsible) + agent table with client-side search and
 // scroll-driven lazy loading (no pagination, no "load more").
-export default function KpiSidecarLayer1({ kpi, onSelectAgent, onBack }) {
+export default function KpiSidecarLayer1({ kpi, onSelectAgent, hideHeader = false }) {
   const sorted = React.useMemo(() => sortAgents(kpi), [kpi]);
   const [query, setQuery] = React.useState("");
   const [shown, setShown] = React.useState(PAGE);
@@ -43,19 +43,14 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent, onBack }) {
 
   return (
     <div style={s.wrap}>
-      <header style={s.header}>
-        <div style={s.titleWrap}>
-          {onBack && (
-            <button type="button" style={s.back} onClick={onBack} aria-label="Back">
-              <ArrowLeft size={16} color="var(--color-text-medium)" />
-            </button>
-          )}
+      {!hideHeader && (
+        <header style={s.header}>
           <div>
             <h2 style={s.title}>{kpi.name}</h2>
             <p style={s.subtitle}>{kpi.subtitle}</p>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Block 1 — four stat pills */}
       <div style={s.statRow}>
