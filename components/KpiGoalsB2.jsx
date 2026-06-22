@@ -42,15 +42,9 @@ export default function KpiGoalsB2() {
         {drill ? (
           <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
         ) : (
-          <>
-            <div style={s.panelHead}>
-              <span style={s.panelTitle}>{cat.name}</span>
-              <span style={s.panelSub}>{cat.onTrack} of {cat.total} on track</span>
-            </div>
-            <div style={s.grid}>
-              {kpis.map((k) => <KpiTile key={k.id} k={k} onClick={() => setDrill(k)} />)}
-            </div>
-          </>
+          <div style={s.grid}>
+            {kpis.map((k) => <KpiTile key={k.id} k={k} onClick={() => setDrill(k)} />)}
+          </div>
         )}
       </section>
     </div>
@@ -65,8 +59,5 @@ const s = {
   dateBadge: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", background: "var(--surface-alt)", borderRadius: 999, padding: "5px 12px" },
   catsRow: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },
   panel: { border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "20px 22px", background: "#FFFFFF", minHeight: 240 },
-  panelHead: { display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14 },
-  panelTitle: { fontSize: 15, fontWeight: 800, color: "var(--color-text-deep)" },
-  panelSub: { fontSize: 12, color: "var(--color-text-tertiary)" },
   grid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },
 };
