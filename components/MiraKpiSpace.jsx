@@ -1,9 +1,9 @@
 /* eslint-disable no-restricted-syntax --
-   The KPI selector chips, story rows, suggestion chips, chat rows, AMP
-   collapse button, and the floating action button are clickable chip / row /
-   icon surfaces, not the pill/icon/text shapes Button.jsx models — same
-   precedent as MiraLandingDeck and VersionBar. Raw <button> keeps each a
-   single accessible target. */
+   The KPI list items, story rows, suggestion chips, chat rows, AMP collapse
+   button, and the floating action button are clickable list / row / icon
+   surfaces, not the pill/icon/text shapes Button.jsx models — same precedent
+   as MiraLandingDeck and VersionBar. Raw <button> keeps each a single
+   accessible target. */
 "use client";
 
 import React from "react";
@@ -17,10 +17,11 @@ import { formatRelativeTime } from "./mocks/miraConversation";
 /**
  * MiraKpiSpace — the "KPI Space" landing direction (outcome-space surface).
  *
- * Two cards on the canvas surface: the left card holds the Outcome (KPI
- * selector + headline) and, below a separator, the Outcome details (trend,
- * Stories, Chats); the right card is the AMP ask surface, collapsible into a
- * floating action button. Clicking a Story opens its authored detail.
+ * Two cards on the canvas surface. The left card has one background but two
+ * columns inside: an Outcome rail (KPI selector) and the Outcome details
+ * (trend, Stories, Chats). Clicking a Story opens its authored detail inline
+ * inside the left card (back arrow; the AMP card stays put). The right card
+ * is the AMP ask surface, collapsible into a labelled floating button.
  *
  * @param {{
  *   userName?: string,
@@ -48,60 +49,67 @@ export default function MiraKpiSpace({
   );
 
   const openStory = openStoryId ? SPACE_STORIES.find((st) => st.id === openStoryId) : null;
-  if (openStory) {
-    return <MiraStoryDetail story={openStory} onBack={() => setOpenStoryId(null)} />;
-  }
 
   return (
     <div style={s.space}>
       <div style={s.col}>
-        {/* Outcome */}
-        <div style={s.chips} role="list" aria-label="Outcome KPIs">
-          {OUTCOME_KPIS.map((kpi) => (
-            <KpiChip
-              key={kpi.id}
-              kpi={kpi}
-              active={kpi.id === selectedId}
-              onClick={() => setSelectedId(kpi.id)}
-            />
-          ))}
-        </div>
-        <div style={s.outcomeHeader}>
-          <span style={s.outcomeLabel}>{selected.label}</span>
-          <div style={s.outcomeValueRow}>
-            <span style={s.outcomeValue}>{selected.value}</span>
-            <ChangePill change={selected.change} />
+        {openStory ? (
+          <div style={s.storyWrap}>
+            <MiraStoryDetail story={openStory} onBack={() => setOpenStoryId(null)} />
           </div>
-        </div>
+        ) : (
+          <div style={s.cardInner}>
+            <div style={s.outcomeCol}>
+              <div style={s.outcomeColTitle}>Outcomes</div>
+              {OUTCOME_KPIS.map((kpi) => (
+                <KpiListItem
+                  key={kpi.id}
+                  kpi={kpi}
+                  active={kpi.id === selectedId}
+                  onClick={() => setSelectedId(kpi.id)}
+                />
+              ))}
+            </div>
 
-        <div style={s.separator} />
+            <div style={s.vSep} />
 
-        {/* Outcome details */}
-        <div style={s.detailBlock}>
-          <div style={s.detailHead}>Trend · last 8 months</div>
-          <KpiTrendChart kpi={selected} />
-        </div>
+            <div style={s.detailsCol}>
+              <div style={s.outcomeHeader}>
+                <span style={s.outcomeLabel}>{selected.label}</span>
+                <div style={s.outcomeValueRow}>
+                  <span style={s.outcomeValue}>{selected.value}</span>
+                  <ChangePill change={selected.change} />
+                </div>
+              </div>
 
-        <div style={s.detailBlock}>
-          <div style={s.sectionTitle}>
-            Stories
-            <span style={s.sectionHint}>Authored by Mira · viewable by everyone</span>
+              <div style={s.detailBlock}>
+                <div style={s.detailHead}>Trend · last 8 months</div>
+                <KpiTrendChart kpi={selected} />
+              </div>
+
+              <div style={s.detailBlock}>
+                <div style={s.sectionTitle}>
+                  Stories
+                  <span style={s.sectionHint}>Authored by Mira · viewable by everyone</span>
+                </div>
+                <div style={s.storyList}>
+                  {SPACE_STORIES.map((story) => (
+                    <StoryRow key={story.id} story={story} onClick={() => setOpenStoryId(story.id)} />
+                  ))}
+                </div>
+              </div>
+
+              <div style={s.detailBlock}>
+                <div style={s.sectionTitle}>Chats</div>
+                <div style={s.chatList}>
+                  {recentChats.map((c) => (
+                    <ChatRow key={c.id} conversation={c} onClick={() => onOpenConversation(c.id)} />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-          <div style={s.storyList}>
-            {SPACE_STORIES.map((story) => (
-              <StoryRow key={story.id} story={story} onClick={() => setOpenStoryId(story.id)} />
-            ))}
-          </div>
-        </div>
-
-        <div style={s.detailBlock}>
-          <div style={s.sectionTitle}>Chats</div>
-          <div style={s.chatList}>
-            {recentChats.map((c) => (
-              <ChatRow key={c.id} conversation={c} onClick={() => onOpenConversation(c.id)} />
-            ))}
-          </div>
-        </div>
+        )}
       </div>
 
       {!ampCollapsed && (
@@ -151,29 +159,32 @@ export default function MiraKpiSpace({
         <button
           type="button"
           onClick={() => setAmpCollapsed(false)}
-          aria-label="Open Mira"
-          title="Open Mira"
+          aria-label="Open Ask Mira Pro"
           style={s.fab}
         >
-          <MiraStarIcon size={26} color="var(--surface-white)" />
+          <span style={s.fabIcon} aria-hidden="true">
+            <MiraStarIcon size={20} color="var(--surface-white)" />
+          </span>
+          Ask Mira Pro
         </button>
       )}
     </div>
   );
 }
 
-function KpiChip({ kpi, active, onClick }) {
+function KpiListItem({ kpi, active, onClick }) {
   return (
     <button
       type="button"
-      role="listitem"
       onClick={onClick}
       aria-pressed={active}
-      style={{ ...s.chip, ...(active ? s.chipActive : null) }}
+      style={{ ...s.kpiItem, ...(active ? s.kpiItemActive : null) }}
     >
-      <span style={{ ...s.chipDot, background: kpi.accent }} aria-hidden="true" />
-      <span style={s.chipLabel}>{kpi.label}</span>
-      <span style={s.chipValue}>{kpi.value}</span>
+      <span style={{ ...s.kpiDot, background: kpi.accent }} aria-hidden="true" />
+      <span style={s.kpiText}>
+        <span style={s.kpiLabel}>{kpi.label}</span>
+        <span style={s.kpiValue}>{kpi.value}</span>
+      </span>
     </button>
   );
 }
@@ -265,8 +276,63 @@ const CARD = {
 const s = {
   space: { display: "flex", gap: 16, flex: 1, minHeight: 0, fontFamily: "var(--font-sans)" },
 
+  // Left card: single background, two columns inside (or the inline story).
   col: {
     ...CARD,
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    overflow: "hidden",
+  },
+  cardInner: { flex: 1, display: "flex", flexDirection: "row", minHeight: 0 },
+  storyWrap: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: 20 },
+
+  outcomeCol: {
+    width: 220,
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: 16,
+    overflowY: "auto",
+  },
+  outcomeColTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    color: "var(--color-text-tertiary)",
+    padding: "2px 10px 8px",
+  },
+  kpiItem: {
+    appearance: "none",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    textAlign: "left",
+    padding: "10px 10px",
+    borderRadius: 10,
+    border: "1px solid transparent",
+    background: "transparent",
+    cursor: "pointer",
+    fontFamily: "var(--font-sans)",
+    transition: "background 120ms ease, border-color 120ms ease",
+  },
+  kpiItemActive: {
+    background: "var(--color-primary-alpha-04)",
+    borderColor: "var(--color-button-primary-bg)",
+  },
+  kpiDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  kpiText: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
+  kpiLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
+  kpiValue: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
+
+  vSep: { width: 1, background: "var(--color-divider-card)", flexShrink: 0 },
+
+  detailsCol: {
     flex: 1,
     minWidth: 0,
     display: "flex",
@@ -275,30 +341,6 @@ const s = {
     padding: 20,
     overflowY: "auto",
   },
-
-  chips: { display: "flex", flexWrap: "wrap", gap: 8 },
-  chip: {
-    appearance: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    height: 34,
-    paddingInline: 12,
-    borderRadius: 10,
-    border: "1px solid var(--color-divider-card)",
-    background: "var(--surface-white)",
-    cursor: "pointer",
-    fontFamily: "var(--font-sans)",
-    transition: "border-color 120ms ease, background 120ms ease",
-  },
-  chipActive: {
-    borderColor: "var(--color-button-primary-bg)",
-    background: "var(--color-primary-alpha-12)",
-  },
-  chipDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  chipLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
-  chipValue: { fontSize: 13, fontWeight: 700, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
-
   outcomeHeader: { display: "flex", flexDirection: "column", gap: 2 },
   outcomeLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-tertiary)" },
   outcomeValueRow: { display: "flex", alignItems: "baseline", gap: 10 },
@@ -309,8 +351,6 @@ const s = {
     lineHeight: 1.1,
     fontVariantNumeric: "tabular-nums",
   },
-
-  separator: { height: 1, background: "var(--color-divider-card)", flexShrink: 0 },
 
   detailBlock: { display: "flex", flexDirection: "column", gap: 10 },
   detailHead: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)" },
@@ -449,15 +489,21 @@ const s = {
     position: "fixed",
     bottom: 96,
     insetInlineEnd: 28,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    paddingInline: 18,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 26,
     border: "none",
     background: "var(--color-button-primary-bg)",
     boxShadow: "var(--shadow-16)",
-    display: "grid",
-    placeItems: "center",
+    color: "var(--surface-white)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 14,
+    fontWeight: 700,
     cursor: "pointer",
     zIndex: 60,
   },
+  fabIcon: { display: "grid", placeItems: "center", flexShrink: 0 },
 };
