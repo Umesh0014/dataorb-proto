@@ -62,7 +62,7 @@ export default function KpiTile({ k, onClick, selected = false }) {
 
 const s = {
   card: { display: "flex", flexDirection: "column", gap: 16, padding: 17, background: "#FFFFFF", border: "1px solid #EFEFFF", borderRadius: 8, cursor: "pointer", textAlign: "left", fontFamily: POPPINS, transition: "box-shadow .15s, border-color .15s" },
-  selected: { border: "1px solid var(--do-brand-blue)", boxShadow: "0 0 0 1px var(--do-brand-blue)" },
+  selected: { border: "1px solid #6650A5", boxShadow: "0 0 0 1px #6650A5" },
   header: { display: "flex", flexDirection: "column", gap: 4 },
   titleRow: { display: "flex", alignItems: "center", gap: 8 },
   title: { fontFamily: POPPINS, fontWeight: 500, fontSize: 14, lineHeight: "22px", letterSpacing: "0.1px", color: "#5A5D72", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },

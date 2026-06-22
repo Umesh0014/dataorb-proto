@@ -65,7 +65,7 @@ const POPPINS = "'Poppins', sans-serif";
 
 const mr = {
   row: { width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", border: "1px solid #EFEFFF", borderRadius: 8, background: "#FFFFFF", cursor: "pointer", textAlign: "left", fontFamily: POPPINS },
-  on: { border: "1px solid var(--do-brand-blue)", boxShadow: "0 0 0 1px var(--do-brand-blue)", background: "#FCFDFF" },
+  on: { border: "1px solid #6650A5", boxShadow: "0 0 0 1px #6650A5", background: "#FBFAFF" },
   name: { fontSize: 13, fontWeight: 600, color: "#2C2F42", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   right: { display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 },
   value: { fontSize: 13, fontWeight: 700, color: "#2C2F42" },

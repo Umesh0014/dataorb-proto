@@ -35,12 +35,12 @@ import {
 //   7. Contact Outcome — donut + breakdown table
 //   8. Quality Adherence — trend line chart
 
-export default function CollectionHubPage() {
+export default function CollectionHubPage({ kpiView = "b3" }) {
   return (
     <>
       <CollectionHeader />
       <HeroCard />
-      <KPIsAndGoalsCard />
+      <KPIsAndGoalsCard view={kpiView} />
       <AIArtifactsCard />
       <ConversationFlowCard />
       <SentimentCard />
@@ -137,7 +137,7 @@ function MiniSparkline({ data, width, height, color }) {
 // pill, yellow active chip, info icon. Separate component because
 // MilestoneSideRail has hardcoded milestone data; flag for Umesh.
 
-const KPI_VERSIONS = [
+export const KPI_VERSIONS = [
   { id: "v0", label: "V0", title: "Current — paginated KPI tiles" },
   { id: "v1", label: "V1", title: "Master KPI grouping view" },
   { id: "v2", label: "V2", title: "Attention-ranked triage" },
@@ -155,7 +155,9 @@ const KPI_ITERATIONS = [
 // tucked into a secondary "Umesh explorations" dropdown. Each of our views
 // renders a self-contained section (own header + drill), wrapped in a Card
 // so it reads like the other hub sections.
-const OUR_ITERATIONS = [
+// Ajinkya's explorations (B2–B6) and Umesh's (V0–V3, KPI_VERSIONS) are both
+// exported so the bottom-bar switcher in InsightsHubPage can drive `view`.
+export const OUR_ITERATIONS = [
   { id: "b2", label: "B2", title: "Select category → KPIs populate below" },
   { id: "b3", label: "B3", title: "Cards + side sidecar" },
   { id: "b4", label: "B4", title: "Category tree (left) + KPI sidecar" },
@@ -163,38 +165,18 @@ const OUR_ITERATIONS = [
   { id: "b6", label: "B6", title: "Select category → KPI opens in a dialog" },
 ];
 
-function KPIsAndGoalsCard() {
-  const [view, setView] = React.useState("b3");
+// Controlled by the bottom-bar explorations dropdowns (view comes from props).
+function KPIsAndGoalsCard({ view = "b3" }) {
   const isUmesh = view.startsWith("v");
-  // V3 keeps its own I1/I2 iteration when selected via the Umesh dropdown.
-  const [iteration, setIteration] = React.useState("i1");
-
   const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 /> }[view];
 
   return (
-    <div style={kpiSectionStyles.wrap}>
-      <div style={kpiSectionStyles.cardArea}>
-        {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
-        {view === "v0" && <KPIsV0 />}
-        {view === "v1" && <KPIsV1 />}
-        {view === "v2" && <KPIsV2 />}
-        {view === "v3" && iteration === "i1" && <KPIsV3 />}
-        {view === "v3" && iteration === "i2" && <KPIsV3I2 />}
-      </div>
-      <div style={kpiSectionStyles.railMount}>
-        <div style={kpiSectionStyles.railSticky}>
-          {view === "v3" && (
-            <div style={kpiSectionStyles.iRailWrap}>
-              <KpiIterationRail value={iteration} onChange={setIteration} />
-            </div>
-          )}
-          <KpiRail label="✦" items={OUR_ITERATIONS} value={isUmesh ? null : view} onChange={setView} />
-          <UmeshExplorationsDropdown
-            value={isUmesh ? view : null}
-            onChange={(v) => { setView(v); if (v === "v3") setIteration("i1"); }}
-          />
-        </div>
-      </div>
+    <div style={kpiSectionStyles.cardArea}>
+      {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
+      {view === "v0" && <KPIsV0 />}
+      {view === "v1" && <KPIsV1 />}
+      {view === "v2" && <KPIsV2 />}
+      {view === "v3" && <KPIsV3 />}
     </div>
   );
 }
