@@ -9,8 +9,6 @@ import DrillDetailPage from "../../components/DrillDetailPage";
 import NewRoleplayPage from "../../components/NewRoleplayPage";
 import NewRoleplayContextPage from "../../components/NewRoleplayContextPage";
 import InteractionsPage from "../../components/InteractionsPage";
-import KpiSidecarShell from "../../components/KpiSidecarShell";
-import KpiGoalsLab from "../../components/KpiGoalsLab";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
@@ -84,8 +82,6 @@ const INSIGHTS_PAGES = {
   "reports":            { Component: ComingSoon,        pageName: "Reports" },
   // direct
   "interaction":        { Component: InteractionsPage,  pageName: "Interactions" },
-  "kpi-sidecar":        { Component: KpiSidecarShell,    pageName: "KPI Sidecar" },
-  "kpi-goals":          { Component: KpiGoalsLab,        pageName: "KPI & Goals" },
   // headset → children
   "agent-performance":  { Component: ComingSoon,        pageName: "Agent Performance" },
   "session":            { Component: ComingSoon,        pageName: "Session" },
