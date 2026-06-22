@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Link2, Check, ListChecks } from "lucide-react";
+import { Link2, Check, ListChecks } from "lucide-react";
 import Button from "./Button";
 import StatusBadge from "./StatusBadge";
 import PageHeader from "./PageHeader";
@@ -12,26 +12,6 @@ import { GW_FLAGSHIP_META } from "./mocks/guidedWorkflows";
 // breadcrumb, the editor header (title, state, publish/save journeys, audit
 // strip), and the VersionBar "?" reasoning popover. Extracted from
 // GuidedWorkflowsPage to keep that orchestrator lean.
-
-// Real breadcrumb navigation, not simulated tabs (G12): the sibling Drill
-// sections are buttons that route back to Drill; the current page is marked
-// aria-current.
-export function TabContext({ onBack }) {
-  return (
-    <nav style={styles.tabContext} aria-label="Drill sections">
-      <button type="button" onClick={onBack} style={styles.backLink} className="gw-focusable">
-        <ArrowLeft size={15} color="var(--color-text-medium)" />
-        Drill
-      </button>
-      <span style={styles.crumbDot} aria-hidden="true" />
-      <div style={styles.miniTabs}>
-        <button type="button" onClick={onBack} style={styles.miniTab} className="gw-focusable">Active drills</button>
-        <button type="button" onClick={onBack} style={styles.miniTab} className="gw-focusable">Library</button>
-        <span style={{ ...styles.miniTab, ...styles.miniTabActive }} aria-current="page">Guided workflows</span>
-      </div>
-    </nav>
-  );
-}
 
 export function EditorChrome({ isNew, state, saved, justPublished, attachedCount, onBack, onAttach, onSave, onPublish }) {
   const meta = GW_FLAGSHIP_META;
@@ -94,12 +74,6 @@ export function DirectionsHelp() {
 }
 
 const styles = {
-  tabContext: { display: "flex", alignItems: "center", gap: 12 },
-  backLink: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)" },
-  crumbDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)" },
-  miniTabs: { display: "inline-flex", alignItems: "center", gap: 4 },
-  miniTab: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)", padding: "4px 10px", borderRadius: 999, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" },
-  miniTabActive: { color: "var(--color-button-primary-bg)", background: "var(--color-primary-alpha-12)", fontWeight: 700, cursor: "default" },
   liveNote: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--color-success-text)" },
   chromeActions: { display: "inline-flex", alignItems: "center", gap: 16 },
   metaRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },

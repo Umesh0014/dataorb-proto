@@ -16,7 +16,7 @@ import GuidedWorkflowSectionedEditor from "./GuidedWorkflowSectionedEditor";
 import GuidedWorkflowTriageEditor from "./GuidedWorkflowTriageEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
-import { TabContext, EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
+import { EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
 import {
   GUIDED_WORKFLOWS,
   GW_STEPS,
@@ -55,7 +55,7 @@ const REQUIREMENT_CYCLE = ["required", "conditional", "recommended"];
 const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
-export default function GuidedWorkflowsPage({ onBack }) {
+export default function GuidedWorkflowsPage() {
   const [variant, setVariant] = React.useState("triage");
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
@@ -181,8 +181,6 @@ export default function GuidedWorkflowsPage({ onBack }) {
   return (
     <>
       <div style={styles.column}>
-        <TabContext onBack={onBack} />
-
         {view === "library" ? (
           <GuidedWorkflowLibrary workflows={GUIDED_WORKFLOWS} onOpen={openExisting} onCreate={startCreate} />
         ) : (
