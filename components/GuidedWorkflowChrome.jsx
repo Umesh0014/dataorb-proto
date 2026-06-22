@@ -44,16 +44,17 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
       </div>
       <PageHeader
         back={onBack}
-        identifier={{ icon: <ListChecks size={16} />, label: isNew ? "Untitled guided workflow" : meta.title }}
+        identifier={{
+          icon: <ListChecks size={16} color="var(--color-icon-tertiary-fg)" />,
+          label: isNew ? "Untitled guided workflow" : meta.title,
+          iconBg: "var(--color-icon-tertiary-bg)",
+          iconColor: "var(--color-icon-tertiary-fg)",
+        }}
         subtitle={meta.jobToBeDone}
         meta={
           <span style={styles.metaRow}>
             <StatusBadge tone={isDraft ? "info" : "success"}>{isDraft ? "Draft" : "Active"}</StatusBadge>
             <AiMark label={isNew ? "Drafted from 3 interactions" : "AI-generated · last edited by María Ruiz today"} />
-            <span style={styles.auditDot} aria-hidden="true" />
-            <span style={styles.auditText}>Unlimited guided attempts per agent</span>
-            <span style={styles.auditDot} aria-hidden="true" />
-            <span style={styles.auditText}>Flat checklist · no branching</span>
             {!isDraft && (
               <>
                 <span style={styles.auditDot} aria-hidden="true" />
@@ -103,7 +104,6 @@ const styles = {
   chromeActions: { display: "inline-flex", alignItems: "center", gap: 16 },
   metaRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   auditDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)" },
-  auditText: { fontSize: 12, color: "var(--color-text-tertiary)" },
   srOnly: { position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 },
 };
 
