@@ -24,12 +24,20 @@ import { ChevronDown } from "lucide-react";
 // Collection Hub, two explorations dropdowns sit beside it — Ajinkya's
 // (B2–B6) and Umesh's (V0–V3) — driving the KPI section's `view`.
 
-const EXPERIENCES = ["Contact Center", "Collection Hub"];
+// Default iteration per exploration group.
+const GROUP_DEFAULT = { ajinkya: "b3", umesh: "v0" };
 
 export default function InsightsHubPage({ filtersOpen, onToggleFilters }) {
-  const [experience, setExperience] = React.useState(EXPERIENCES[0]);
+  const [experience, setExperience] = React.useState("Contact Center");
+  const [group, setGroup] = React.useState("ajinkya");
   const [kpiView, setKpiView] = React.useState("b3");
-  const onCollection = experience === "Collection Hub";
+  const items = group === "umesh" ? KPI_VERSIONS : OUR_ITERATIONS;
+
+  const selectGroup = (g) => {
+    setGroup(g);
+    setExperience("Collection Hub");
+    setKpiView(GROUP_DEFAULT[g]);
+  };
 
   return (
     <>
@@ -49,81 +57,72 @@ export default function InsightsHubPage({ filtersOpen, onToggleFilters }) {
           <ManualEvalCard />
         </>
       ) : (
-        <CollectionHubPage kpiView={kpiView} />
+        <CollectionHubPage kpiView={kpiView} onKpiView={setKpiView} kpiItems={items} />
       )}
       <div style={switcherWrap}>
-        {onCollection && (
-          <>
-            <ExplorationsMenu label="Ajinkya’s explorations" items={OUR_ITERATIONS} value={kpiView} onChange={setKpiView} />
-            <ExplorationsMenu label="Umesh’s explorations" items={KPI_VERSIONS} value={kpiView} onChange={setKpiView} />
-          </>
-        )}
-        <DarkPillSwitcher
-          ariaLabel="Experience switcher"
-          value={experience}
-          options={EXPERIENCES}
-          onChange={setExperience}
+        <ExperienceBar
+          experience={experience}
+          group={group}
+          onContactCenter={() => setExperience("Contact Center")}
+          onSelectGroup={selectGroup}
         />
       </div>
     </>
   );
 }
 
-// Dark dropdown matching the experience pill; menu opens upward (bar is
-// pinned to the bottom). Highlights when the active view is in this group.
-function ExplorationsMenu({ label, items, value, onChange }) {
+// Bottom toggle: a Contact Center pill + a Collection Hub dropdown whose menu
+// lists the two exploration groups. The active group's iterations show in the
+// vertical rail inside the KPI section.
+function ExperienceBar({ experience, group, onContactCenter, onSelectGroup }) {
   const [open, setOpen] = React.useState(false);
-  const active = items.find((i) => i.id === value);
+  const onCC = experience === "Contact Center";
+  const groupLabel = group === "umesh" ? "Umesh" : "Ajinkya";
   return (
-    <div style={em.wrap}>
-      {open && (
-        <div style={em.menu}>
-          {items.map((it) => (
-            <button key={it.id} type="button" onClick={() => { onChange(it.id); setOpen(false); }}
-              style={{ ...em.item, ...(value === it.id ? em.itemOn : null) }}>
-              <span style={em.itemLabel}>{it.label}</span>
-              <span style={em.itemTitle}>{it.title}</span>
-            </button>
-          ))}
-        </div>
-      )}
-      <button type="button" style={{ ...em.trigger, ...(active ? em.triggerOn : null) }} onClick={() => setOpen((o) => !o)}>
-        <span>{label}{active ? ` · ${active.label}` : ""}</span>
-        <ChevronDown size={13} />
+    <div style={eb.bar}>
+      <button type="button" style={{ ...eb.pill, ...(onCC ? eb.pillOn : null) }} onClick={onContactCenter}>
+        Contact Center
       </button>
+      <div style={eb.ddWrap}>
+        {open && (
+          <div style={eb.menu}>
+            <button type="button" style={{ ...eb.item, ...(group === "ajinkya" && !onCC ? eb.itemOn : null) }} onClick={() => { onSelectGroup("ajinkya"); setOpen(false); }}>
+              Ajinkya’s exploration
+            </button>
+            <button type="button" style={{ ...eb.item, ...(group === "umesh" && !onCC ? eb.itemOn : null) }} onClick={() => { onSelectGroup("umesh"); setOpen(false); }}>
+              Umesh’s exploration
+            </button>
+          </div>
+        )}
+        <button type="button" style={{ ...eb.pill, ...(!onCC ? eb.pillOn : null) }} onClick={() => setOpen((o) => !o)}>
+          Collection Hub{!onCC ? ` · ${groupLabel}` : ""}
+          <ChevronDown size={13} style={{ marginLeft: 4 }} />
+        </button>
+      </div>
     </div>
   );
 }
 
 InsightsHubPage.FilterPanel = FilterPanel;
 
-const switcherWrap = {
-  position: "fixed",
-  bottom: 24,
-  right: 24,
-  zIndex: 1000,
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-};
+const switcherWrap = { position: "fixed", bottom: 24, right: 24, zIndex: 1000 };
 
-const em = {
-  wrap: { position: "relative" },
-  trigger: {
-    display: "inline-flex", alignItems: "center", gap: 6, height: 36, padding: "0 12px",
-    borderRadius: 999, border: "none", cursor: "pointer", background: "#1F2024", color: "#F5F5F5",
+const eb = {
+  bar: { display: "inline-flex", alignItems: "center", gap: 4, background: "#1F2024", borderRadius: 999, padding: 4, boxShadow: "0 8px 24px rgba(0,0,0,0.28)" },
+  pill: {
+    display: "inline-flex", alignItems: "center", height: 34, padding: "0 16px", borderRadius: 999, border: "none",
+    cursor: "pointer", background: "transparent", color: "#D4D4D8",
     fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", whiteSpace: "nowrap",
   },
-  triggerOn: { background: "#FDE047", color: "#171717" },
+  pillOn: { background: "#FDE047", color: "#171717" },
+  ddWrap: { position: "relative" },
   menu: {
-    position: "absolute", bottom: "calc(100% + 8px)", right: 0, minWidth: 240, background: "#1F2024",
-    borderRadius: 12, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.35)", display: "flex", flexDirection: "column", gap: 2,
+    position: "absolute", bottom: "calc(100% + 10px)", right: 0, minWidth: 220, background: "#1F2024",
+    borderRadius: 12, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.4)", display: "flex", flexDirection: "column", gap: 2,
   },
   item: {
-    display: "flex", flexDirection: "column", gap: 1, padding: "8px 10px", border: "none", background: "none",
-    borderRadius: 8, cursor: "pointer", textAlign: "left", fontFamily: "var(--font-sans)",
+    padding: "9px 12px", border: "none", background: "none", borderRadius: 8, cursor: "pointer", textAlign: "left",
+    fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 600, color: "#F5F5F5",
   },
   itemOn: { background: "#33343A" },
-  itemLabel: { fontSize: 12, fontWeight: 800, color: "#F5F5F5" },
-  itemTitle: { fontSize: 11, color: "#A3A3A3" },
 };

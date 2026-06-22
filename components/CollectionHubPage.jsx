@@ -35,12 +35,12 @@ import {
 //   7. Contact Outcome — donut + breakdown table
 //   8. Quality Adherence — trend line chart
 
-export default function CollectionHubPage({ kpiView = "b3" }) {
+export default function CollectionHubPage({ kpiView = "b3", onKpiView, kpiItems }) {
   return (
     <>
       <CollectionHeader />
       <HeroCard />
-      <KPIsAndGoalsCard view={kpiView} />
+      <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} />
       <AIArtifactsCard />
       <ConversationFlowCard />
       <SentimentCard />
@@ -165,18 +165,26 @@ export const OUR_ITERATIONS = [
   { id: "b6", label: "B6", title: "Select category → KPI opens in a dialog" },
 ];
 
-// Controlled by the bottom-bar explorations dropdowns (view comes from props).
-function KPIsAndGoalsCard({ view = "b3" }) {
+// Controlled: `view` + the group's `items` come from InsightsHubPage. The
+// vertical rail (segmented control) lists the active group's iterations.
+function KPIsAndGoalsCard({ view = "b3", onView, items = OUR_ITERATIONS }) {
   const isUmesh = view.startsWith("v");
   const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 /> }[view];
 
   return (
-    <div style={kpiSectionStyles.cardArea}>
-      {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
-      {view === "v0" && <KPIsV0 />}
-      {view === "v1" && <KPIsV1 />}
-      {view === "v2" && <KPIsV2 />}
-      {view === "v3" && <KPIsV3 />}
+    <div style={kpiSectionStyles.wrap}>
+      <div style={kpiSectionStyles.cardArea}>
+        {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
+        {view === "v0" && <KPIsV0 />}
+        {view === "v1" && <KPIsV1 />}
+        {view === "v2" && <KPIsV2 />}
+        {view === "v3" && <KPIsV3 />}
+      </div>
+      <div style={kpiSectionStyles.railMount}>
+        <div style={kpiSectionStyles.railSticky}>
+          <KpiRail label={isUmesh ? "V" : "✦"} items={items} value={view} onChange={onView} />
+        </div>
+      </div>
     </div>
   );
 }
