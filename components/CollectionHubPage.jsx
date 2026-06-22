@@ -9,6 +9,7 @@ import KpiGoalsB2 from "./KpiGoalsB2";
 import KpiGoalsB3 from "./KpiGoalsB3";
 import KpiGoalsB4 from "./KpiGoalsB4";
 import KpiGoalsB5 from "./KpiGoalsB5";
+import KpiGoalsB6 from "./KpiGoalsB6";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
@@ -159,6 +160,7 @@ const OUR_ITERATIONS = [
   { id: "b3", label: "B3", title: "Cards + side sidecar" },
   { id: "b4", label: "B4", title: "Category tree (left) + KPI sidecar" },
   { id: "b5", label: "B5", title: "Parents on top, children below + side sidecar" },
+  { id: "b6", label: "B6", title: "Select category → KPI opens in a dialog" },
 ];
 
 function KPIsAndGoalsCard() {
@@ -167,7 +169,7 @@ function KPIsAndGoalsCard() {
   // V3 keeps its own I1/I2 iteration when selected via the Umesh dropdown.
   const [iteration, setIteration] = React.useState("i1");
 
-  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 /> }[view];
+  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 /> }[view];
 
   return (
     <div style={kpiSectionStyles.wrap}>
