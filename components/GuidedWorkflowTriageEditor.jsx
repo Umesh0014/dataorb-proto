@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Lightbulb, GitBranch, X, FileText, Plus } from "lucide-react";
+import { Lightbulb, GitBranch, GripVertical, X, FileText, Plus } from "lucide-react";
 import { TypeTag, RequirementTag } from "./GuidedWorkflowBits";
 import { StepDetailBody, SuggestionGrid, AddStepCta } from "./GuidedWorkflowStepDetail";
 import { gwGroupStage } from "./mocks/guidedWorkflows";
@@ -9,10 +9,11 @@ import { gwGroupStage } from "./mocks/guidedWorkflows";
 // 3-Column · triage canvas + sidecar. The Jun-18 authoring layout: the four
 // linear stages (Open / Verify / Discover / Close) are plain checklists; the
 // Act stage is TRIAGE — one "field card" column per symptom, laid out side by
-// side (non-linear). Each checklist item is a 2-line row (type pill + text,
-// hint counter); selecting one opens the right sidecar with its hints, type,
-// attribution and a future answer-card link. No branching tree — the triage
-// is parallel columns, exactly the minimalist-checklist target Neil set.
+// side (non-linear). Each checklist item is a 2-line row with a drag handle
+// (reorder the sequence) plus type pill + text and a hint counter; clicking a
+// row opens the right sidecar with its hints, type, attribution and a future
+// answer-card link. The sidecar appears only on selection — until then the
+// canvas runs full width. No branching tree — triage is parallel columns.
 
 // Hints are a step property surfaced in the sidecar: a "say" hint (the
 // script), a "best-practice" hint (the knowledge card) and an "if-then" hint
@@ -35,12 +36,23 @@ export default function GuidedWorkflowTriageEditor({
   onUpdateInstruction,
   onRemove,
   onAddBlank,
+  onReorder,
 }) {
   const [selectedId, setSelectedId] = React.useState(null);
   const [openSuggest, setOpenSuggest] = React.useState(null);
+  const [dragId, setDragId] = React.useState(null);
+  const [overId, setOverId] = React.useState(null);
   const selected = steps.find((s) => s.id === selectedId) || null;
 
-  const rowProps = { selectedId, onSelect: setSelectedId };
+  const drop = (targetId) => {
+    if (dragId && dragId !== targetId) onReorder(dragId, targetId);
+    setDragId(null);
+    setOverId(null);
+  };
+  const rowProps = {
+    selectedId, onSelect: setSelectedId, dragId, overId,
+    onDragStart: setDragId, onDragOver: setOverId, onDrop: drop, onDragEnd: () => { setDragId(null); setOverId(null); },
+  };
 
   return (
     <div style={styles.wrap}>
@@ -88,8 +100,8 @@ export default function GuidedWorkflowTriageEditor({
         })}
       </div>
 
-      <aside style={styles.sidecar} aria-label="Step sidecar">
-        {selected ? (
+      {selected && (
+        <aside style={styles.sidecar} className="gw-curtain" aria-label="Step sidecar">
           <Sidecar
             step={selected}
             onClose={() => setSelectedId(null)}
@@ -98,31 +110,34 @@ export default function GuidedWorkflowTriageEditor({
             onCycleRequirement={onCycleRequirement}
             onRemove={(id) => { onRemove(id); setSelectedId(null); }}
           />
-        ) : (
-          <div style={styles.empty}>
-            <Lightbulb size={22} color="var(--color-text-placeholder)" aria-hidden="true" />
-            <span style={styles.emptyTitle}>Select a checklist item</span>
-            <span style={styles.emptyBody}>Its hints, type and attribution open here — the same place you link an answer card.</span>
-          </div>
-        )}
-      </aside>
+        </aside>
+      )}
     </div>
   );
 }
 
-function StepRow({ step, compact, selectedId, onSelect }) {
+function StepRow({ step, compact, selectedId, onSelect, dragId, overId, onDragStart, onDragOver, onDrop, onDragEnd }) {
   const hints = hintsOf(step);
   const isSel = selectedId === step.id;
+  const isOver = overId === step.id && dragId !== step.id;
+  const isDragging = dragId === step.id;
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(step.id)}
-      className="gw-focusable"
-      style={{ ...styles.row, ...(compact ? styles.rowCompact : null), ...(isSel ? styles.rowSelected : null) }}
-      aria-pressed={isSel}
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStart(step.id); }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; onDragOver(step.id); }}
+      onDrop={(e) => { e.preventDefault(); onDrop(step.id); }}
+      onDragEnd={onDragEnd}
+      style={{
+        ...styles.row,
+        ...(compact ? styles.rowCompact : null),
+        ...(isSel ? styles.rowSelected : null),
+        ...(isOver ? styles.rowOver : null),
+        ...(isDragging ? styles.rowDragging : null),
+      }}
     >
-      <span style={{ ...styles.box, ...(isSel ? styles.boxSelected : null) }} aria-hidden="true" />
-      <span style={styles.rowMain}>
+      <span style={styles.grip} aria-hidden="true"><GripVertical size={16} color="var(--color-text-placeholder)" /></span>
+      <button type="button" onClick={() => onSelect(step.id)} className="gw-focusable" style={styles.rowMain} aria-pressed={isSel}>
         <span style={styles.line1}>
           <TypeTag type={step.type} />
           <span style={styles.instruction}>{step.instruction || "Untitled step"}</span>
@@ -134,8 +149,8 @@ function StepRow({ step, compact, selectedId, onSelect }) {
           </span>
           {step.requirement === "required" && <RequirementTag requirement="required" />}
         </span>
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 
@@ -181,12 +196,13 @@ const styles = {
   colLabel: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
   colTrigger: { fontSize: 11.5, color: "var(--color-text-tertiary)", lineHeight: 1.4 },
 
-  row: { display: "flex", gap: 10, padding: "10px 12px", borderRadius: 10, background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%", boxSizing: "border-box" },
-  rowCompact: { padding: "9px 10px", gap: 8 },
+  row: { display: "flex", gap: 8, padding: "10px 12px", borderRadius: 10, background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", boxSizing: "border-box" },
+  rowCompact: { padding: "9px 10px" },
   rowSelected: { borderColor: "var(--color-button-primary-bg)", background: "var(--color-primary-alpha-12)" },
-  box: { width: 16, height: 16, borderRadius: 4, border: "1.6px solid var(--color-divider-card)", marginTop: 2, flexShrink: 0 },
-  boxSelected: { borderColor: "var(--color-button-primary-bg)", background: "var(--color-button-primary-bg)" },
-  rowMain: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1 },
+  rowOver: { boxShadow: "inset 0 2px 0 var(--color-button-primary-bg)" },
+  rowDragging: { opacity: 0.5 },
+  grip: { display: "inline-flex", alignItems: "flex-start", paddingTop: 2, cursor: "grab", flexShrink: 0 },
+  rowMain: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1, background: "transparent", border: "none", padding: 0, margin: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
   line1: { display: "flex", alignItems: "flex-start", gap: 7, flexWrap: "wrap" },
   instruction: { fontSize: 13.5, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.4 },
   line2: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
@@ -204,8 +220,4 @@ const styles = {
   scHintTypes: { fontSize: 11.5, color: "var(--color-text-tertiary)", paddingLeft: 19 },
   answerCard: { display: "flex", alignItems: "center", gap: 9, padding: "11px 12px", borderRadius: 10, border: "1px dashed var(--color-divider-card)", background: "transparent", cursor: "pointer", fontFamily: "inherit", width: "100%", boxSizing: "border-box" },
   answerCardText: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)" },
-
-  empty: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 8, padding: "32px 22px", borderRadius: 14, background: "var(--surface-dim)", border: "1px dashed var(--color-divider-card)" },
-  emptyTitle: { fontSize: 14, fontWeight: 700, color: "var(--color-text-medium)" },
-  emptyBody: { fontSize: 12.5, color: "var(--color-text-tertiary)", lineHeight: 1.5 },
 };

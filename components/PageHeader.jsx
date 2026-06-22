@@ -33,6 +33,9 @@ import AgentHeader from "./AgentHeader";
 // API:
 //   identifier:    { icon, label, withDropdown?, onClick?, iconBg?, iconColor? }
 //   primaryAction: { label, icon?, onClick, variant?, disabled? }
+//   actions:       React.ReactNode — a custom action cluster for the right of
+//                  row 1 (e.g. several buttons). Takes precedence over
+//                  primaryAction when supplied; existing callers are unchanged.
 //   search:        { value, onChange, placeholder? }
 //   toolbar:       Array<{ id, icon, label, onClick, active? }>
 //   filters:       Array<{ id, label, value, onClick }>
@@ -46,6 +49,7 @@ import AgentHeader from "./AgentHeader";
 export default function PageHeader({
   identifier,
   primaryAction,
+  actions,
   search,
   toolbar,
   filters,
@@ -75,7 +79,7 @@ export default function PageHeader({
           {back && <BackChip onClick={back} />}
           {identifier ? <Identifier {...identifier} /> : <span />}
         </div>
-        {primaryAction && <PrimaryAction {...primaryAction} />}
+        {actions ? actions : primaryAction && <PrimaryAction {...primaryAction} />}
       </div>
       {subtitle && <p style={phStyles.subtitle}>{subtitle}</p>}
       {meta && <div style={phStyles.meta}>{meta}</div>}
