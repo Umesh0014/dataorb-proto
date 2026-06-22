@@ -9,7 +9,7 @@ import { rule } from "./KpiSidecarParts";
 
 // Layer 2 — agent drill: 3 comparison pills + trend chart + WoW tabs
 // (Week by Week | By Outcome). Selecting a week opens Layer 3.
-export default function KpiSidecarLayer2({ kpi, agent, onBack, onSelectWeek }) {
+export default function KpiSidecarLayer2({ kpi, agent, onBack, onSelectWeek, hideBack = false }) {
   const [tab, setTab] = React.useState("weeks");
   const r = rule(kpi);
   const orgAvg = kpi.campaignRate;
@@ -18,9 +18,11 @@ export default function KpiSidecarLayer2({ kpi, agent, onBack, onSelectWeek }) {
 
   return (
     <div style={s.wrap}>
-      <button type="button" style={s.back} onClick={onBack}>
-        <ArrowLeft size={15} /> All agents
-      </button>
+      {!hideBack && (
+        <button type="button" style={s.back} onClick={onBack}>
+          <ArrowLeft size={15} /> All agents
+        </button>
+      )}
 
       <div style={s.headRow}>
         <AgentCell name={agent.name} initials={agent.initials} />

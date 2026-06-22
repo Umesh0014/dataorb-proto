@@ -8,7 +8,7 @@ import { EFFICIENCY_INTERACTIONS } from "./mocks/kpiSidecar";
 // Layer 3 — individual interaction cards for a chosen week. Outcome filter
 // dropdown with a per-KPI default. Each card: ID (opens a new tab via ↗),
 // status pill, context tags + overflow, outcome badge, and an ✦ AI snippet.
-export default function KpiSidecarLayer3({ kpi, agent, week, onBack }) {
+export default function KpiSidecarLayer3({ kpi, agent, week, onBack, hideBack = false }) {
   const all = EFFICIENCY_INTERACTIONS[week] || [];
   const outcomeOptions = ["all", ...kpi.outcomes.map((o) => o.label)];
   const [filter, setFilter] = React.useState(
@@ -18,9 +18,11 @@ export default function KpiSidecarLayer3({ kpi, agent, week, onBack }) {
 
   return (
     <div style={s.wrap}>
-      <button type="button" style={s.back} onClick={onBack}>
-        <ArrowLeft size={15} /> Week trend
-      </button>
+      {!hideBack && (
+        <button type="button" style={s.back} onClick={onBack}>
+          <ArrowLeft size={15} /> Week trend
+        </button>
+      )}
 
       <header style={s.header}>
         <div>
