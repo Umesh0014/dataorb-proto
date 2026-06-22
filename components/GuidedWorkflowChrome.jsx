@@ -86,10 +86,10 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
 export function DirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Checklist — the simple direction</span>
-      <p style={vbHelp.text}>Stages are collapsible <b>sections</b>; steps are inline rows with drag/keyboard reorder + inline add (Todoist-simple).</p>
-      <p style={vbHelp.text}>Multiple scenarios (e.g. Act) are <b>conditional steps under an “If &lt;trigger&gt;” header</b> — show/hide, never a tree (Process Street model).</p>
-      <p style={vbHelp.hint}>Research: Sprinklr = the use case (live agent guidance) but its node-tree authoring is what to avoid; Process Street/Manifestly = conditional show/hide tasks; Todoist = the section + inline-add interaction. Every earlier exploration is parked in the “Bombed ideas” dropdown.</p>
+      <span style={vbHelp.title}>3-Column — triage canvas + sidecar</span>
+      <p style={vbHelp.text}>The Jun-18 layout: linear stages (Open/Verify/Discover/Close) are plain checklists; <b>Act is triage</b> — one “field card” <b>column per symptom</b>, side by side.</p>
+      <p style={vbHelp.text}>Each item is <b>2 lines</b> (type pill + text, hint counter); selecting one opens the <b>right sidecar</b> with its hints (say / best-practice / if-then), type, attribution and a link-an-answer-card slot.</p>
+      <p style={vbHelp.hint}>Parallel columns, not a decision tree — the minimalist-checklist target. <b>Checklist</b> (stacked “If” scenarios) is retained as a version; earlier explorations sit in the “Bombed ideas” dropdown.</p>
     </div>
   );
 }

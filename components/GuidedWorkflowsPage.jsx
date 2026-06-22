@@ -13,6 +13,7 @@ import GuidedWorkflowDocEditor from "./GuidedWorkflowDocEditor";
 import GuidedWorkflowTableEditor from "./GuidedWorkflowTableEditor";
 import GuidedWorkflowCoauthorEditor from "./GuidedWorkflowCoauthorEditor";
 import GuidedWorkflowSectionedEditor from "./GuidedWorkflowSectionedEditor";
+import GuidedWorkflowTriageEditor from "./GuidedWorkflowTriageEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
 import { TabContext, EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
@@ -37,6 +38,7 @@ import {
 // The research-grounded simple checklist is the single primary direction;
 // every earlier exploration is kept but parked in a "Bombed ideas" dropdown.
 const DIRECTIONS = [
+  { id: "triage", label: "3-Column", iterations: [] },
   { id: "checklist", label: "Checklist", iterations: [] },
 ];
 const BOMBED = [
@@ -54,7 +56,7 @@ const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
 export default function GuidedWorkflowsPage({ onBack }) {
-  const [variant, setVariant] = React.useState("checklist");
+  const [variant, setVariant] = React.useState("triage");
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -202,7 +204,9 @@ export default function GuidedWorkflowsPage({ onBack }) {
               heading="AI drafted this base workflow"
               body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
             />
-            {variant === "checklist" ? (
+            {variant === "triage" ? (
+              <GuidedWorkflowTriageEditor {...editorProps} />
+            ) : variant === "checklist" ? (
               <GuidedWorkflowSectionedEditor {...editorProps} />
             ) : variant === "wizard" ? (
               <GuidedWorkflowWizardEditor {...editorProps} />

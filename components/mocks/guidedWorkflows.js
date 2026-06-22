@@ -293,6 +293,37 @@ export const GW_STEPS = [
     subSteps: [],
   },
   {
+    id: "check-outage",
+    stage: "act",
+    scenario: "outage",
+    instruction: "Check for a known area outage",
+    detail: "Look up network status for the postcode before troubleshooting the router.",
+    type: "action",
+    requirement: "required",
+    script: "Let me check our network status for your area — yes, there's a known outage affecting your postcode and our engineers are already on it.",
+    knowledge: {
+      title: "Network status check",
+      body: "Always check area status before a reboot or engineer booking — a known outage means the customer's kit is fine. Quote the reference and the live ETA, never a reboot.",
+    },
+    grounding: { interactionId: "30240", quote: "“There's an outage in your area — it's not your router.”" },
+    subSteps: [
+      { id: "ou-1", label: "If the outage is confirmed → do not reboot or book an engineer" },
+    ],
+  },
+  {
+    id: "outage-eta",
+    stage: "act",
+    scenario: "outage",
+    instruction: "Give the restoration ETA & register a text alert",
+    detail: "Set a firm expectation and remove the need to call back.",
+    type: "compliance",
+    requirement: "required",
+    script: "The estimated fix is by 6pm today — I'll register you for an automatic text the moment it's resolved, so you won't need to call back.",
+    knowledge: null,
+    grounding: { interactionId: "30240", quote: "“You'll get a text as soon as it's back — fixed by 6.”" },
+    subSteps: [],
+  },
+  {
     id: "close",
     stage: "close",
     instruction: "Confirm back online & close",
@@ -420,6 +451,18 @@ export const GW_STEP_EVIDENCE = {
       { interactionId: "30188", quote: "Thursday between 8 and 12, text the day before, no charge — all noted." },
     ],
   },
+  "check-outage": {
+    successRate: 88, callCount: 54, outcome: "the customer reassured without a needless truck roll",
+    examples: [
+      { interactionId: "30240", quote: "Good news — it's an area outage, not your router, so nothing to fix your end." },
+    ],
+  },
+  "outage-eta": {
+    successRate: 91, callCount: 50, outcome: "no repeat call within 7 days",
+    examples: [
+      { interactionId: "30240", quote: "Fixed by 6pm and I've set a text alert — you won't need to call back." },
+    ],
+  },
   close: {
     successRate: 93, callCount: 200, outcome: "no repeat call within 7 days",
     examples: [
@@ -500,6 +543,7 @@ export const GW_SUGGESTED_STEPS = [
 export const GW_SCENARIOS = {
   reboot: { label: "Reboot & optimise", trigger: "If the line is up but WiFi is weak or dropping" },
   engineer: { label: "Engineer visit", trigger: "If the broadband light is red or no line sync is detected" },
+  outage: { label: "Area outage", trigger: "If there's a known outage in the customer's area" },
 };
 export function gwScenario(id) {
   return GW_SCENARIOS[id] || null;
