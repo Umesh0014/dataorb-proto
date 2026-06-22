@@ -124,7 +124,7 @@ const onTrack = (cat) =>
 export const CATEGORIES = [
   {
     id: "reach", name: "Reach", score: 38, status: "Needs Attention", rag: "red",
-    blurb: "How reliably we connect with the right person — and how much effort it takes.",
+    blurb: "How reliably we connect with the right party — and how much effort it takes.",
     onTrack: onTrack("Reach"), total: 3,
   },
   {

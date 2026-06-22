@@ -1,12 +1,11 @@
 "use client";
 
 import React from "react";
-import KpiRing from "./KpiRing";
+import KpiCategoryCard from "./KpiCategoryCard";
 import KpiTile from "./KpiTile";
 import KpiDrillInline from "./KpiDrillInline";
-import { RagChip } from "./KpiSidecarParts";
 import {
-  KPIS, CATEGORIES, DATE_RANGE, ON_TRACK_TOTAL, statusOf,
+  KPIS, CATEGORIES, DATE_RANGE, statusOf,
 } from "./mocks/kpiGoals";
 import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
 
@@ -28,20 +27,10 @@ export default function KpiGoalsB3() {
         <span style={s.dateBadge}>{DATE_RANGE}</span>
       </header>
 
-      {/* L0 rings */}
-      <div style={s.rings}>
-        <div style={s.overall}>
-          <KpiRing pct={(ON_TRACK_TOTAL / KPIS.length) * 100} rag="amber" size={64} stroke={7} />
-          <span style={s.overallLabel}><strong>{ON_TRACK_TOTAL}/{KPIS.length}</strong> on track</span>
-        </div>
+      {/* Category cards */}
+      <div style={s.cats}>
         {CATEGORIES.map((c) => (
-          <div key={c.id} style={s.catCard}>
-            <KpiRing pct={c.score} rag={c.rag} size={44} label={c.score} />
-            <div style={s.catText}>
-              <span style={s.catName}>{c.name}</span>
-              <RagChip rag={c.rag} label={`${c.onTrack}/${c.total} on track`} />
-            </div>
-          </div>
+          <KpiCategoryCard key={c.id} cat={c} onClick={() => onOpenKpi?.({ category: c.name })} />
         ))}
       </div>
 
@@ -81,12 +70,7 @@ const s = {
   title: { fontSize: 18, fontWeight: 800, color: "var(--color-text-deep)", margin: 0 },
   subtitle: { fontSize: 13, color: "var(--color-text-tertiary)", margin: "4px 0 0" },
   dateBadge: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", background: "var(--surface-alt)", borderRadius: 999, padding: "5px 12px" },
-  rings: { display: "grid", gridTemplateColumns: "auto repeat(3, 1fr)", gap: 14 },
-  overall: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 18px", background: "var(--surface-alt)", borderRadius: 12, minWidth: 116 },
-  overallLabel: { fontSize: 13, color: "var(--color-text-medium)" },
-  catCard: { display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", border: "1px solid var(--color-divider-card)", borderRadius: 12 },
-  catText: { display: "flex", flexDirection: "column", gap: 6 },
-  catName: { fontSize: 14, fontWeight: 800, color: "var(--color-text-deep)" },
+  cats: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },
   section: { display: "flex", flexDirection: "column", gap: 10 },
   sectionTitle: { fontSize: 13, fontWeight: 800, color: "var(--color-text-deep)", textTransform: "uppercase", letterSpacing: "0.04em" },
   grid3: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },

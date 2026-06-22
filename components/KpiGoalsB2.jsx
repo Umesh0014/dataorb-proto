@@ -2,12 +2,12 @@
 
 import React from "react";
 import { ChevronDown } from "lucide-react";
-import KpiRing from "./KpiRing";
+import KpiCategoryCard from "./KpiCategoryCard";
 import KpiSparkline from "./KpiSparkline";
 import KpiDrillInline from "./KpiDrillInline";
 import { InfoTip, RagChip } from "./KpiSidecarParts";
 import {
-  KPIS, CATEGORIES, DATE_RANGE, ON_TRACK_TOTAL, RAG_HEX,
+  KPIS, CATEGORIES, DATE_RANGE, RAG_HEX,
   statusOf, gapOf, targetLabel, valueLabel,
 } from "./mocks/kpiGoals";
 import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
@@ -33,20 +33,9 @@ export default function KpiGoalsB2() {
         <span style={s.dateBadge}>{DATE_RANGE}</span>
       </header>
 
-      <div style={s.rings}>
-        <div style={s.overall}>
-          <KpiRing pct={(ON_TRACK_TOTAL / KPIS.length) * 100} rag="amber" size={66} stroke={7} />
-          <span style={s.overallLabel}><strong>{ON_TRACK_TOTAL}</strong>/{KPIS.length} on track</span>
-        </div>
+      <div style={s.cats}>
         {CATEGORIES.map((c) => (
-          <div key={c.id} style={s.catCard}>
-            <KpiRing pct={c.score} rag={c.rag} size={42} label={c.score} />
-            <div style={s.catText}>
-              <span style={s.catName}>{c.name}</span>
-              <p style={s.catBlurb}>{c.blurb}</p>
-              <RagChip rag={c.rag} label={`${c.status} · ${c.onTrack}/${c.total}`} />
-            </div>
-          </div>
+          <KpiCategoryCard key={c.id} cat={c} />
         ))}
       </div>
 
@@ -101,13 +90,7 @@ const s = {
   title: { fontSize: 18, fontWeight: 800, color: "var(--color-text-deep)", margin: 0 },
   subtitle: { fontSize: 13, color: "var(--color-text-tertiary)", margin: "4px 0 0" },
   dateBadge: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", background: "var(--surface-alt)", borderRadius: 999, padding: "5px 12px" },
-  rings: { display: "grid", gridTemplateColumns: "auto repeat(3, 1fr)", gap: 14 },
-  overall: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 18px", background: "var(--surface-alt)", borderRadius: 12, minWidth: 116 },
-  overallLabel: { fontSize: 13, color: "var(--color-text-medium)" },
-  catCard: { display: "flex", gap: 12, padding: "14px 16px", border: "1px solid var(--color-divider-card)", borderRadius: 12, alignItems: "flex-start" },
-  catText: { display: "flex", flexDirection: "column", gap: 5, minWidth: 0 },
-  catName: { fontSize: 14, fontWeight: 800, color: "var(--color-text-deep)" },
-  catBlurb: { fontSize: 11.5, color: "var(--color-text-tertiary)", margin: 0, lineHeight: 1.4 },
+  cats: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 },
   listCard: { border: "1px solid var(--color-divider-card)", borderRadius: 12, overflow: "hidden" },
   listHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--surface-alt)" },
   listTitle: { fontSize: 13, fontWeight: 800, color: "var(--color-text-deep)" },
