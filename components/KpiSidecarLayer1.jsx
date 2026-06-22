@@ -55,7 +55,6 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent, onBack }) {
             <p style={s.subtitle}>{kpi.subtitle}</p>
           </div>
         </div>
-        <span style={s.dateBadge}>{kpi.dateRange}</span>
       </header>
 
       {/* Block 1 — four stat pills */}
