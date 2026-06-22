@@ -7,9 +7,8 @@ import { RagChip } from "./KpiSidecarParts";
 
 // Reach / Recovery / Quality category card — replica of the Figma reference:
 // RAG ring (score centred) · title + description · status chip + "X of 3 on
-// track" · chevron. A 4px RAG accent runs down the left edge.
+// track" · chevron.
 const POPPINS = "'Poppins', sans-serif";
-const RAG_LINE = { red: "#F87171", amber: "#FBBF24", green: "#34D399", grey: "#AAB2C5" };
 
 export default function KpiCategoryCard({ cat, onClick, selected = false }) {
   return (
@@ -18,7 +17,6 @@ export default function KpiCategoryCard({ cat, onClick, selected = false }) {
       onClick={onClick}
       style={{ ...s.card, ...(selected ? s.selected : null) }}
     >
-      <span style={{ ...s.accent, background: RAG_LINE[cat.rag] || RAG_LINE.grey }} />
       <span style={s.inner}>
         <KpiRing pct={cat.score} rag={cat.rag} size={56} stroke={6} label={cat.score} />
         <span style={s.body}>
@@ -40,7 +38,6 @@ export default function KpiCategoryCard({ cat, onClick, selected = false }) {
 const s = {
   card: { display: "flex", background: "#FFFFFF", border: "1px solid #EFEFFF", borderRadius: 12, overflow: "hidden", cursor: "pointer", textAlign: "left", fontFamily: POPPINS, padding: 0, transition: "box-shadow .15s, border-color .15s" },
   selected: { borderColor: "var(--do-brand-blue)", boxShadow: "0 0 0 1px var(--do-brand-blue)" },
-  accent: { width: 4, flexShrink: 0, alignSelf: "stretch" },
   inner: { display: "flex", gap: 14, padding: "16px 18px", flex: 1, alignItems: "flex-start", minWidth: 0 },
   body: { display: "flex", flexDirection: "column", gap: 8, flex: 1, minWidth: 0 },
   topRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
