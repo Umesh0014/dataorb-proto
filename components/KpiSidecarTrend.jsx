@@ -51,8 +51,8 @@ export default function KpiSidecarTrend({ data, target, unit = "", lowerIsBetter
             }}
           />
         )}
-        <Line dataKey="agent" type="monotone" stroke="var(--color-agent)" strokeWidth={2.5} dot={false} />
-        <Line dataKey="orgAvg" type="monotone" stroke="var(--color-orgAvg)" strokeWidth={2} strokeDasharray="5 4" dot={false} />
+        <Line dataKey="agent" type="monotone" stroke="var(--color-agent)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+        <Line dataKey="orgAvg" type="monotone" stroke="var(--color-orgAvg)" strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
       </LineChart>
     </ChartContainer>
   );
