@@ -11,6 +11,7 @@ import Card from "./Card";
 import Button from "./Button";
 import MiraConversation from "./MiraConversation";
 import MiraLandingDeck from "./MiraLandingDeck";
+import MiraKpiSpace from "./MiraKpiSpace";
 import MiraMetricDetail from "./MiraMetricDetail";
 import VersionBar from "./VersionBar";
 import { LANDING_METRICS } from "./mocks/miraLandingMetrics";
@@ -19,10 +20,12 @@ import { MiraStarIcon, ArrowUpIcon } from "./SideNav/icons";
 // Named landing directions ride one VersionBar (no "v1/v2" alphabets).
 // Launchpad is the adopted ChatGPT-style home (ask box → metric pulse →
 // chats); Bento is the same shell with a mixed-size white-tile metric grid;
-// Welcome Mat is the previous centered-greeting design, parked.
+// KPI Space is the outcome-space surface (KPI rail → trend + stories + chats
+// → AMP ask surface); Welcome Mat is the previous centered-greeting design.
 const DIRECTIONS = [
   { id: "launchpad", label: "Launchpad", iterations: [] },
   { id: "bento", label: "Bento", iterations: [] },
+  { id: "kpispace", label: "KPI Space", iterations: [] },
   { id: "welcome", label: "Welcome Mat", iterations: [] },
 ];
 
@@ -150,6 +153,14 @@ export default function AskMiraProPage({
           onOpenConversation={onOpenConversation}
           variant={direction === "bento" ? "bento" : "grid"}
         />
+      ) : direction === "kpispace" ? (
+        <MiraKpiSpace
+          userName={userName}
+          composer={composer}
+          conversations={conversations}
+          onOpenConversation={onOpenConversation}
+          onPickSuggestion={(q) => setQuery(q)}
+        />
       ) : (
         <>
           <div style={s.homeHero}>
@@ -174,7 +185,7 @@ export default function AskMiraProPage({
 function MiraDirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Three landing directions</span>
+      <span style={vbHelp.title}>Four landing directions</span>
       <p style={vbHelp.text}>
         <b>Launchpad</b> — ask box up top, a pulse of every metric category (each
         with a trend vs target), then your recent chats. Open a card for the full
@@ -185,13 +196,18 @@ function MiraDirectionsHelp() {
         tiles: one feature tile, change pills, and bolder numbers. Scan-first.
       </p>
       <p style={vbHelp.text}>
+        <b>KPI Space</b> — the outcome-space surface from the ticket: an outcome-KPI
+        rail, the selected KPI&apos;s trend with authored Stories + Chats, and the
+        AMP ask surface beside it. Outcome-first, not chatbot-first.
+      </p>
+      <p style={vbHelp.text}>
         <b>Welcome Mat</b> — a calm centered greeting with starter prompts and the
         composer anchored below. The previous design, parked here.
       </p>
       <p style={vbHelp.hint}>
-        Borrowed structure: input-first home with category tiles (ChatGPT /
-        Perplexity home) → therefore surface DataOrb&apos;s metric categories as
-        drill-in cards backed by community chats.
+        Ticket: rework Mira&apos;s front surface into a collaborative outcome space —
+        authored stories over a blank prompt, default-public explorations, KPIs
+        pre-populated. KPI Space is the direct take; the others are lighter homes.
       </p>
     </div>
   );
