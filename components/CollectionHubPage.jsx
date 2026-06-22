@@ -5,6 +5,9 @@ import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshC
 import Card from "./Card";
 import TabsRow from "./TabsRow";
 import CircularProgress from "./CircularProgress";
+import KpiGoalsB2 from "./KpiGoalsB2";
+import KpiGoalsB3 from "./KpiGoalsB3";
+import KpiGoalsB4 from "./KpiGoalsB4";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
@@ -146,37 +149,100 @@ const KPI_ITERATIONS = [
   { id: "i2", label: "I2", title: "V3 — full-width KPI wall" },
 ];
 
+// Our explorations drive the primary rail; Umesh's original V0–V3 are
+// tucked into a secondary "Umesh explorations" dropdown. Each of our views
+// renders a self-contained section (own header + drill), wrapped in a Card
+// so it reads like the other hub sections.
+const OUR_ITERATIONS = [
+  { id: "b2", label: "B2", title: "Progressive — polished triage" },
+  { id: "b3", label: "B3", title: "Tiles + breadcrumb drill" },
+  { id: "b4", label: "B4", title: "Master-detail (categories left)" },
+];
+
 function KPIsAndGoalsCard() {
-  const [version, setVersion] = React.useState("v0");
-  // Iteration switcher state — only meaningful when version === "v3".
-  // Resets to "i1" each time the user enters V3. In-memory only.
+  const [view, setView] = React.useState("b3");
+  const isUmesh = view.startsWith("v");
+  // V3 keeps its own I1/I2 iteration when selected via the Umesh dropdown.
   const [iteration, setIteration] = React.useState("i1");
-  const handleVersionChange = (v) => {
-    setVersion(v);
-    if (v === "v3") setIteration("i1");
-  };
+
+  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 /> }[view];
+
   return (
     <div style={kpiSectionStyles.wrap}>
       <div style={kpiSectionStyles.cardArea}>
-        {version === "v0" && <KPIsV0 />}
-        {version === "v1" && <KPIsV1 />}
-        {version === "v2" && <KPIsV2 />}
-        {version === "v3" && iteration === "i1" && <KPIsV3 />}
-        {version === "v3" && iteration === "i2" && <KPIsV3I2 />}
+        {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
+        {view === "v0" && <KPIsV0 />}
+        {view === "v1" && <KPIsV1 />}
+        {view === "v2" && <KPIsV2 />}
+        {view === "v3" && iteration === "i1" && <KPIsV3 />}
+        {view === "v3" && iteration === "i2" && <KPIsV3I2 />}
       </div>
       <div style={kpiSectionStyles.railMount}>
         <div style={kpiSectionStyles.railSticky}>
-          {version === "v3" && (
+          {view === "v3" && (
             <div style={kpiSectionStyles.iRailWrap}>
               <KpiIterationRail value={iteration} onChange={setIteration} />
             </div>
           )}
-          <KpiVersionRail value={version} onChange={handleVersionChange} />
+          <KpiRail label="✦" items={OUR_ITERATIONS} value={isUmesh ? null : view} onChange={setView} />
+          <UmeshExplorationsDropdown
+            value={isUmesh ? view : null}
+            onChange={(v) => { setView(v); if (v === "v3") setIteration("i1"); }}
+          />
         </div>
       </div>
     </div>
   );
 }
+
+// Secondary switcher: the original Umesh V0–V3 explorations, collapsed into a
+// dropdown so they stay reachable without crowding our primary rail.
+function UmeshExplorationsDropdown({ value, onChange }) {
+  const [open, setOpen] = React.useState(false);
+  const active = KPI_VERSIONS.find((v) => v.id === value);
+  return (
+    <div style={umeshS.wrap}>
+      <button type="button" style={umeshS.trigger} onClick={() => setOpen((o) => !o)}>
+        <span style={umeshS.triggerLabel}>{active ? `Umesh · ${active.label}` : "Umesh explorations"}</span>
+        <ChevronDown size={14} color="#A3A3A3" />
+      </button>
+      {open && (
+        <div style={umeshS.menu}>
+          {KPI_VERSIONS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              style={{ ...umeshS.item, ...(value === v.id ? umeshS.itemActive : null) }}
+              onClick={() => { onChange(v.id); setOpen(false); }}
+            >
+              <span style={umeshS.itemLabel}>{v.label}</span>
+              <span style={umeshS.itemTitle}>{v.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const umeshS = {
+  wrap: { position: "relative", width: 56, display: "flex", justifyContent: "center" },
+  trigger: {
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: 56, padding: "8px 4px",
+    background: "#262626", border: "none", borderRadius: 12, cursor: "pointer", color: "#F5F5F5",
+    fontFamily: "var(--font-sans)",
+  },
+  triggerLabel: { fontSize: 8.5, fontWeight: 700, lineHeight: 1.2, textAlign: "center", letterSpacing: "0.02em" },
+  menu: {
+    position: "absolute", right: 64, top: 0, width: 230, background: "#FFFFFF", borderRadius: 10,
+    border: "1px solid var(--color-divider-card)", boxShadow: "var(--shadow-card)", padding: 6, zIndex: 30,
+    display: "flex", flexDirection: "column", gap: 2,
+  },
+  item: { display: "flex", flexDirection: "column", gap: 1, padding: "8px 10px", border: "none", background: "none", borderRadius: 8, cursor: "pointer", textAlign: "left", fontFamily: "var(--font-sans)" },
+  itemActive: { background: "var(--surface-alt)" },
+  itemLabel: { fontSize: 12, fontWeight: 800, color: "var(--color-text-deep)" },
+  itemTitle: { fontSize: 11, color: "var(--color-text-tertiary)" },
+};
 
 // V0 — untouched original
 function KPIsV0() {
@@ -1175,6 +1241,37 @@ const v3S = {
     color: "#424659", letterSpacing: "0.1px",
   },
 };
+
+// KpiRail — generalized dark vertical rail (same visuals as KpiVersionRail)
+// driven by a passed `items` list + `label`. Used for our explorations.
+function KpiRail({ label, items, value, onChange }) {
+  const [hovered, setHovered] = React.useState(null);
+  return (
+    <div style={railS.rail}>
+      <span style={railS.railLabel}>{label}</span>
+      <span style={railS.railDivider} />
+      <div style={railS.btnGroup}>
+        {items.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            title={b.title}
+            aria-pressed={value === b.id}
+            onClick={() => onChange(b.id)}
+            onMouseEnter={() => setHovered(b.id)}
+            onMouseLeave={() => setHovered(null)}
+            style={kpiRailBtnStyle(value === b.id, hovered === b.id)}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <div style={railS.infoBtn}>
+        <Info size={14} />
+      </div>
+    </div>
+  );
+}
 
 // KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.
 // Uses same dimensions, colors, radius, shadow, and chip sizing.
