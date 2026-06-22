@@ -19,7 +19,6 @@ import MissionWizardPage, {
 } from "../../components/MissionWizardPage";
 import ComingSoon from "../../components/ComingSoon";
 import AskMiraProPage from "../../components/AskMiraProPage";
-import MiraSetupContextPanel from "../../components/MiraSetupContextPanel";
 import MiraChatsPage from "../../components/MiraChatsPage";
 import SkillsPage from "../../components/SkillsPage";
 import SkillRecordPage from "../../components/SkillRecordPage";
@@ -283,11 +282,13 @@ export default function Page() {
   const [tasks, setTasks] = React.useState(INITIAL_TASKS);
   const [taskWizardStep, setTaskWizardStep] = React.useState(null);
   const [taskDraft, setTaskDraft] = React.useState(EMPTY_TASK_DRAFT);
-  const [miraSetupOpen, setMiraSetupOpen] = React.useState(false);
   const [miraConversations, setMiraConversations] = React.useState(INITIAL_MIRA_CONVERSATIONS);
   const [miraActiveId, setMiraActiveId] = React.useState(null);
   const [miraPendingTurnId, setMiraPendingTurnId] = React.useState(null);
   const [miraQueriesUsed, setMiraQueriesUsed] = React.useState(13);
+  // Lifted so the layout can react to the active landing direction (KPI Space
+  // runs full-width on the canvas surface; the others stay white at 1068).
+  const [miraDirection, setMiraDirection] = React.useState("launchpad");
   const [appMenuOpen, setAppMenuOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
@@ -554,9 +555,6 @@ export default function Page() {
     const activeConv = miraActiveId
       ? miraConversations.find((c) => c.id === miraActiveId)
       : null;
-    const miraRightPanel = isChat && miraSetupOpen
-      ? <MiraSetupContextPanel open onClose={() => setMiraSetupOpen(false)} />
-      : null;
 
     let miraContent;
     if (isChat) {
@@ -568,8 +566,10 @@ export default function Page() {
           queriesUsed={miraQueriesUsed}
           onSubmit={submitMiraQuestion}
           onReset={startNewMiraChat}
-          setupContextOpen={miraSetupOpen}
-          onToggleSetupContext={() => setMiraSetupOpen((o) => !o)}
+          conversations={miraConversations}
+          onOpenConversation={openMiraConversation}
+          direction={miraDirection}
+          onDirectionChange={setMiraDirection}
         />
       );
     } else if (isHistory) {
@@ -621,7 +621,6 @@ export default function Page() {
     sidenavConfig = askMiraConfig;
     sidenavActiveId = miraNav;
     handleSidenavSelect = (id) => {
-      if (id !== "chat") setMiraSetupOpen(false);
       setSkillRecordId(null);
       setTaskRecordId(null);
       setTaskWizardStep(null);
@@ -629,7 +628,6 @@ export default function Page() {
       router.push(pathForMira(id));
     };
     handleAppSelectPage = (page) => {
-      setMiraSetupOpen(false);
       setSkillRecordId(null);
       setTaskRecordId(null);
       setTaskWizardStep(null);
@@ -637,10 +635,11 @@ export default function Page() {
       setAppMenuOpen(false);
       router.push(pathForCurrentPage(page));
     };
+    const onKpiSpace = isChat && miraDirection === "kpispace";
     moduleContent = (
       <PageLayout
-        rightPanel={miraRightPanel}
-        onPanelClose={() => setMiraSetupOpen(false)}
+        background={onKpiSpace ? "var(--surface-canvas)" : "var(--surface-white)"}
+        maxWidth={onKpiSpace ? "none" : undefined}
       >
         {miraContent}
       </PageLayout>

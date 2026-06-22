@@ -38,6 +38,7 @@ import React from "react";
  *   header?: React.ReactNode,            // optional header band above the card stack
  *   rightPanel?: React.ReactNode | null, // pass non-null to open the panel
  *   background?: string,                 // override page background
+ *   maxWidth?: string,                   // override content max-width ("none" = fluid full width)
  * }} props
  */
 export default function PageLayout({
@@ -46,6 +47,7 @@ export default function PageLayout({
   rightPanel = null,
   onPanelClose,
   background = "var(--surface-canvas)",
+  maxWidth = "var(--page-content-max-width)",
 }) {
   const isOpen = Boolean(rightPanel);
   const [mode, setMode] = React.useState(null);
@@ -103,7 +105,7 @@ export default function PageLayout({
             {children}
           </DockedRow>
         ) : (
-          <CenteredColumn header={header}>{children}</CenteredColumn>
+          <CenteredColumn header={header} maxWidth={maxWidth}>{children}</CenteredColumn>
         )}
       </main>
 
@@ -135,12 +137,12 @@ function OverlayScrim({ onClick }) {
 // CenteredColumn — content centered at max-width 1068. Used when panel
 // is closed, or when panel is open in overlay mode (overlay floats over
 // content; content layout is unchanged).
-function CenteredColumn({ children, header }) {
+function CenteredColumn({ children, header, maxWidth = "var(--page-content-max-width)" }) {
   return (
     <div
       style={{
         width: "100%",
-        maxWidth: "var(--page-content-max-width)",
+        maxWidth,
         marginInline: "auto",
         flex: 1,
         display: "flex",
