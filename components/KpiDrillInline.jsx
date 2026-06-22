@@ -22,8 +22,8 @@ export default function KpiDrillInline({ kpi, onClose }) {
 
   return (
     <div style={s.wrap}>
-      <div style={{ ...s.bar, ...(showCrumbs ? s.barCrumbs : null) }}>
-        {showCrumbs ? (
+      {showCrumbs && (
+        <div style={{ ...s.bar, ...s.barCrumbs }}>
           <nav style={s.crumbs}>
             {crumbs.map((c, i) => {
               const last = i === crumbs.length - 1;
@@ -38,16 +38,16 @@ export default function KpiDrillInline({ kpi, onClose }) {
               );
             })}
           </nav>
-        ) : <span />}
-        {onClose && <button type="button" style={s.close} onClick={onClose}>Close</button>}
-      </div>
+          {onClose && <button type="button" style={s.close} onClick={onClose}>Close</button>}
+        </div>
+      )}
 
       {agent && week ? (
         <KpiSidecarLayer3 kpi={kpi} agent={agent} week={week} hideBack />
       ) : agent ? (
         <KpiSidecarLayer2 kpi={kpi} agent={agent} hideBack onSelectWeek={setWeek} />
       ) : (
-        <KpiSidecarLayer1 kpi={kpi} onSelectAgent={setAgent} />
+        <KpiSidecarLayer1 kpi={kpi} onSelectAgent={setAgent} onBack={onClose} />
       )}
     </div>
   );

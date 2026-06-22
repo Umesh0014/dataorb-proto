@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import {
   AgentCell, InfoTip, OutcomeBar, RagChip, SkeletonRows, StatPill,
   gapFor, sortAgents, statusLabelFor,
@@ -13,7 +13,7 @@ const FETCH_MS = 650;
 // Layer 1 — the priority surface. Header + 4-pill stats block + segmented
 // outcome bar (collapsible) + agent table with client-side search and
 // scroll-driven lazy loading (no pagination, no "load more").
-export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
+export default function KpiSidecarLayer1({ kpi, onSelectAgent, onBack }) {
   const sorted = React.useMemo(() => sortAgents(kpi), [kpi]);
   const [query, setQuery] = React.useState("");
   const [shown, setShown] = React.useState(PAGE);
@@ -44,9 +44,16 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
   return (
     <div style={s.wrap}>
       <header style={s.header}>
-        <div>
-          <h2 style={s.title}>{kpi.name}</h2>
-          <p style={s.subtitle}>{kpi.subtitle}</p>
+        <div style={s.titleWrap}>
+          {onBack && (
+            <button type="button" style={s.back} onClick={onBack} aria-label="Back">
+              <ArrowLeft size={16} color="var(--color-text-medium)" />
+            </button>
+          )}
+          <div>
+            <h2 style={s.title}>{kpi.name}</h2>
+            <p style={s.subtitle}>{kpi.subtitle}</p>
+          </div>
         </div>
         <span style={s.dateBadge}>{kpi.dateRange}</span>
       </header>
@@ -130,8 +137,10 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
 const s = {
   wrap: { display: "flex", flexDirection: "column", gap: 18 },
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 },
-  title: { fontSize: 18, fontWeight: 800, color: "var(--color-text-deep)", margin: 0 },
-  subtitle: { fontSize: 13, color: "var(--color-text-tertiary)", margin: "4px 0 0" },
+  titleWrap: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
+  back: { flexShrink: 0, width: 30, height: 30, borderRadius: 8, border: "1px solid var(--color-divider-card)", background: "#fff", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  title: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)", margin: 0 },
+  subtitle: { fontSize: 12, color: "var(--color-text-tertiary)", margin: "2px 0 0" },
   dateBadge: {
     flexShrink: 0, fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)",
     background: "var(--surface-alt)", borderRadius: 999, padding: "5px 12px",
