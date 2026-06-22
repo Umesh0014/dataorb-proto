@@ -14,9 +14,11 @@
 
 export const DATE_RANGE = "1–30 Jun 2026";
 
-// 12-point trend helper — deterministic shape so renders are stable.
+// 12-point trend helper — gentle, smooth drift from start→end (a soft sine
+// ripple, no zig-zag) so the card sparklines read like the Figma design.
 const trend = (start, end) =>
-  Array.from({ length: 12 }, (_, i) => +(start + (end - start) * (i / 11) + (i % 2 ? 1.5 : -1.5)).toFixed(1));
+  Array.from({ length: 12 }, (_, i) =>
+    +(start + (end - start) * (i / 11) + Math.sin(i * 0.8) * (Math.abs(end - start) * 0.06 + 0.4)).toFixed(2));
 
 export const KPIS = [
   // ---- REACH --------------------------------------------------------------
@@ -90,6 +92,16 @@ export function gapOf(k) {
     const base = `${d >= 0 ? "+" : ""}${Math.round(d)} pts`;
     return k.nonCompliant ? `${base} · ≈ ~${k.nonCompliant} non-compliant calls` : base;
   }
+  return `${d >= 0 ? "+" : ""}${d}pp`;
+}
+
+// Concise gap for the card footer (no long annotations — those live in the
+// drill). Keeps the footer single-line like the Figma KPIRow.
+export function gapShort(k) {
+  if (k.type === "E" || k.target == null) return null;
+  const d = +(k.value - k.target).toFixed(1);
+  if (k.type === "C") return `${d > 0 ? "+" : ""}${d}`;
+  if (k.type === "D") return `${d >= 0 ? "+" : ""}${Math.round(d)} pts`;
   return `${d >= 0 ? "+" : ""}${d}pp`;
 }
 
