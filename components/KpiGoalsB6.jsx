@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { X } from "lucide-react";
 import KpiCategoryCard from "./KpiCategoryCard";
 import KpiTile from "./KpiTile";
 import KpiDrillInline from "./KpiDrillInline";
@@ -41,6 +42,9 @@ export default function KpiGoalsB6() {
       {dialogKpi && (
         <div style={s.overlay} onClick={() => setDialogKpi(null)} role="dialog" aria-modal="true">
           <div style={s.dialog} onClick={(e) => e.stopPropagation()}>
+            <button type="button" style={s.closeX} onClick={() => setDialogKpi(null)} aria-label="Close">
+              <X size={18} />
+            </button>
             <KpiDrillInline kpi={drillKpi} onClose={() => setDialogKpi(null)} />
           </div>
         </div>
@@ -59,5 +63,6 @@ const s = {
   panel: { border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "20px 22px", background: "#FFFFFF", minHeight: 200 },
   grid: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 },
   overlay: { position: "fixed", inset: 0, background: "rgba(20,24,40,0.45)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "48px 24px", overflowY: "auto" },
-  dialog: { width: 760, maxWidth: "100%", background: "#FFFFFF", borderRadius: 14, boxShadow: "0 24px 60px rgba(0,0,0,0.28)", padding: "24px 26px" },
+  dialog: { position: "relative", width: 760, maxWidth: "100%", background: "#FFFFFF", borderRadius: 14, boxShadow: "0 24px 60px rgba(0,0,0,0.28)", padding: "24px 26px" },
+  closeX: { position: "absolute", top: 16, right: 16, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
 };

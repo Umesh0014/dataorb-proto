@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Search } from "lucide-react";
 import {
   AgentCell, InfoTip, OutcomeBar, RagChip, SkeletonRows, StatPill,
   gapFor, sortAgents, statusLabelFor,
@@ -19,12 +19,27 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent, hideHeader = fals
   const [shown, setShown] = React.useState(PAGE);
   const [fetching, setFetching] = React.useState(false);
   const [outcomesOpen, setOutcomesOpen] = React.useState(true);
+  // Column sort — click a header control to sort by it; zero-data agents stay
+  // pinned to the bottom. null = the config's default (worst-first) order.
+  const [sort, setSort] = React.useState(null);
+  const toggleSort = (col) => setSort((s) => {
+    if (!s || s.col !== col) return { col, dir: "desc" };
+    return s.dir === "desc" ? { col, dir: "asc" } : null;
+  });
 
   const filtered = React.useMemo(
     () => sorted.filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase())),
     [sorted, query],
   );
-  const visible = filtered.slice(0, shown);
+  const displayed = React.useMemo(() => {
+    if (!sort) return filtered;
+    const key = sort.col;
+    const zeros = filtered.filter((a) => a.rag === null);
+    const live = filtered.filter((a) => a.rag !== null)
+      .sort((a, b) => (sort.dir === "asc" ? a[key] - b[key] : b[key] - a[key]));
+    return [...live, ...zeros];
+  }, [filtered, sort]);
+  const visible = displayed.slice(0, shown);
   const hasMore = shown < filtered.length;
 
   const onScroll = (e) => {
@@ -92,8 +107,14 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent, hideHeader = fals
         <div style={s.tableHead}>
           <span>#</span>
           <span>Agent</span>
-          <span style={s.headRight}>Interactions<InfoTip text={kpi.interactionsTip} /></span>
-          <span style={s.headRight}>{kpi.name}<InfoTip text={kpi.metricTip} /></span>
+          <span style={s.headRight}>
+            Interactions<InfoTip text={kpi.interactionsTip} />
+            <SortControl col="interactions" sort={sort} onToggle={toggleSort} />
+          </span>
+          <span style={s.headRight}>
+            {kpi.name}<InfoTip text={kpi.metricTip} />
+            <SortControl col="value" sort={sort} onToggle={toggleSort} />
+          </span>
         </div>
 
         <div style={s.tableBody} onScroll={onScroll}>
@@ -128,6 +149,21 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent, hideHeader = fals
   );
 }
 
+// Column sort toggle shown beside a header: neutral ⇅, then ↓ desc, then ↑ asc.
+function SortControl({ col, sort, onToggle }) {
+  const active = sort?.col === col;
+  const Icon = !active ? ChevronsUpDown : sort.dir === "desc" ? ArrowDown : ArrowUp;
+  return (
+    <button type="button" style={ss.sortBtn} onClick={() => onToggle(col)} aria-label={`Sort by ${col}`}>
+      <Icon size={13} color={active ? "var(--do-brand-blue)" : "var(--color-text-placeholder)"} />
+    </button>
+  );
+}
+
+const ss = {
+  sortBtn: { display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", background: "none", padding: 2, marginLeft: 2, cursor: "pointer" },
+};
+
 const s = {
   wrap: { display: "flex", flexDirection: "column", gap: 18 },
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 },
@@ -148,7 +184,7 @@ const s = {
   outcomeTitle: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
   chevron: { fontSize: 12, color: "var(--color-text-tertiary)" },
   tableCard: { border: "1px solid var(--color-divider-card)", borderRadius: 10, overflow: "hidden" },
-  tableToolbar: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px" },
+  tableToolbar: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px" },
   searchWrap: {
     display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", flex: 1, maxWidth: 280,
     background: "var(--surface-alt)", borderRadius: 8,
