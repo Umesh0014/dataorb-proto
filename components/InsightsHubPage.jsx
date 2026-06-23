@@ -15,7 +15,7 @@ import ContactReasonCard from "./ContactReasonCard";
 import ManualEvalCard from "./ManualEvalCard";
 import FilterPanel from "./FilterPanel";
 import DarkPillSwitcher from "./DarkPillSwitcher";
-import CollectionHubPage, { OUR_ITERATIONS, KPI_VERSIONS } from "./CollectionHubPage";
+import CollectionHubPage, { OUR_ITERATIONS, OUR_DISCARDED, KPI_VERSIONS } from "./CollectionHubPage";
 import { ChevronDown } from "lucide-react";
 
 // InsightsHubPage owns filter open state + experience switcher.
@@ -25,13 +25,14 @@ import { ChevronDown } from "lucide-react";
 // (B2–B6) and Umesh's (V0–V3) — driving the KPI section's `view`.
 
 // Default iteration per exploration group.
-const GROUP_DEFAULT = { ajinkya: "b3", umesh: "v0" };
+const GROUP_DEFAULT = { ajinkya: "b7", umesh: "v0" };
 
 export default function InsightsHubPage({ filtersOpen, onToggleFilters }) {
   const [experience, setExperience] = React.useState("Contact Center");
   const [group, setGroup] = React.useState("ajinkya");
-  const [kpiView, setKpiView] = React.useState("b3");
+  const [kpiView, setKpiView] = React.useState("b7");
   const items = group === "umesh" ? KPI_VERSIONS : OUR_ITERATIONS;
+  const discarded = group === "umesh" ? [] : OUR_DISCARDED;
 
   const selectGroup = (g) => {
     setGroup(g);
@@ -57,7 +58,7 @@ export default function InsightsHubPage({ filtersOpen, onToggleFilters }) {
           <ManualEvalCard />
         </>
       ) : (
-        <CollectionHubPage kpiView={kpiView} onKpiView={setKpiView} kpiItems={items} />
+        <CollectionHubPage kpiView={kpiView} onKpiView={setKpiView} kpiItems={items} kpiDiscarded={discarded} />
       )}
       <div style={switcherWrap}>
         <ExperienceBar

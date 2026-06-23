@@ -36,12 +36,12 @@ import {
 //   7. Contact Outcome — donut + breakdown table
 //   8. Quality Adherence — trend line chart
 
-export default function CollectionHubPage({ kpiView = "b3", onKpiView, kpiItems }) {
+export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems, kpiDiscarded }) {
   return (
     <>
       <CollectionHeader />
       <HeroCard />
-      <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} />
+      <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} discarded={kpiDiscarded} />
       <AIArtifactsCard />
       <ConversationFlowCard />
       <SentimentCard />
@@ -158,18 +158,23 @@ const KPI_ITERATIONS = [
 // so it reads like the other hub sections.
 // Ajinkya's explorations (B2–B6) and Umesh's (V0–V3, KPI_VERSIONS) are both
 // exported so the bottom-bar switcher in InsightsHubPage can drive `view`.
+// The current exploration on the rail. Earlier ones are kept reachable under
+// a "Discarded" dropdown.
 export const OUR_ITERATIONS = [
+  { id: "b7", label: "B7", title: "Filtered grid, 3 across + pagination + side card" },
+];
+
+export const OUR_DISCARDED = [
   { id: "b2", label: "B2", title: "Select category → KPIs populate below" },
   { id: "b3", label: "B3", title: "Cards + side sidecar" },
   { id: "b4", label: "B4", title: "Category tree (left) + KPI sidecar" },
   { id: "b5", label: "B5", title: "Parents on top, children below + side sidecar" },
   { id: "b6", label: "B6", title: "Select category → KPI opens in a dialog" },
-  { id: "b7", label: "B7", title: "Filtered grid, 3 stacked + pagination" },
 ];
 
 // Controlled: `view` + the group's `items` come from InsightsHubPage. The
 // vertical rail (segmented control) lists the active group's iterations.
-function KPIsAndGoalsCard({ view = "b3", onView, items = OUR_ITERATIONS }) {
+function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discarded }) {
   const isUmesh = view.startsWith("v");
   const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];
 
@@ -183,28 +188,31 @@ function KPIsAndGoalsCard({ view = "b3", onView, items = OUR_ITERATIONS }) {
         {view === "v3" && <KPIsV3 />}
       </div>
       <div style={kpiSectionStyles.railMount}>
-        <div style={kpiSectionStyles.railSticky}>
+        <div style={{ ...kpiSectionStyles.railSticky, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <KpiRail label={isUmesh ? "V" : "✦"} items={items} value={view} onChange={onView} />
+          {discarded && discarded.length > 0 && (
+            <ExplorationsDropdown label="Discarded" items={discarded} value={view} onChange={onView} />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-// Secondary switcher: the original Umesh V0–V3 explorations, collapsed into a
-// dropdown so they stay reachable without crowding our primary rail.
-function UmeshExplorationsDropdown({ value, onChange }) {
+// Secondary switcher: a collapsed dropdown for explorations kept off the rail
+// (e.g. "Discarded" B2–B6). Reachable without crowding the primary rail.
+function ExplorationsDropdown({ label, items, value, onChange }) {
   const [open, setOpen] = React.useState(false);
-  const active = KPI_VERSIONS.find((v) => v.id === value);
+  const active = items.find((v) => v.id === value);
   return (
     <div style={umeshS.wrap}>
       <button type="button" style={umeshS.trigger} onClick={() => setOpen((o) => !o)}>
-        <span style={umeshS.triggerLabel}>{active ? `Umesh · ${active.label}` : "Umesh explorations"}</span>
+        <span style={umeshS.triggerLabel}>{active ? `${label} · ${active.label}` : label}</span>
         <ChevronDown size={14} color="#A3A3A3" />
       </button>
       {open && (
         <div style={umeshS.menu}>
-          {KPI_VERSIONS.map((v) => (
+          {items.map((v) => (
             <button
               key={v.id}
               type="button"
