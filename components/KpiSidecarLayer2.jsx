@@ -1,123 +1,117 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft } from "lucide-react";
-import TabsRow from "./TabsRow";
 import KpiSidecarTrend from "./KpiSidecarTrend";
-import { AgentCell } from "./KpiSidecarParts";
 import { rule } from "./KpiSidecarParts";
 
-// Layer 2 — agent drill: 3 comparison pills + trend chart + WoW tabs
-// (Week by Week | By Outcome). Selecting a week opens Layer 3.
-export default function KpiSidecarLayer2({ kpi, agent, onBack, onSelectWeek, hideBack = false }) {
-  const [tab, setTab] = React.useState("weeks");
+const POPPINS = "'Poppins', sans-serif";
+const LATO = "'Lato', sans-serif";
+const PILL = {
+  green: { bg: "#F1FEF5", fg: "#00711D" },
+  amber: { bg: "#FFFBF5", fg: "#8C620E" },
+  red: { bg: "#FEF2F2", fg: "#BA1A1A" },
+};
+
+// Layer 2 — agent drill (Figma node 1887-70502). Identity card + This Agent /
+// Org Avg / Gap comparison, the trend chart, and a per-week table
+// (Week · Attempts · metric). Header/back owned by KpiDrillInline.
+export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek }) {
   const r = rule(kpi);
   const orgAvg = kpi.campaignRate;
   const diff = +(agent.value - orgAvg).toFixed(1);
   const gapTone = (r.higherIsBetter ? diff >= 0 : diff <= 0) ? "green" : "red";
 
+  // Per-week rows synthesised from the agent + the KPI trend (no backend).
+  const weeks = kpi.trend.map((w, i) => {
+    const value = +(w.agent + (agent.value - orgAvg) * 0.6).toFixed(0);
+    const attempts = Math.round((agent.interactions / kpi.trend.length) * (0.7 + ((i * 7) % 5) * 0.12));
+    const rag = value >= kpi.target ? "green" : value >= kpi.target * 0.9 ? "amber" : "red";
+    return { week: w.week, attempts, value, rag };
+  });
+
   return (
     <div style={s.wrap}>
-      {!hideBack && (
-        <button type="button" style={s.back} onClick={onBack}>
-          <ArrowLeft size={15} /> All agents
-        </button>
-      )}
-
-      <div style={s.headRow}>
-        <AgentCell name={agent.name} initials={agent.initials} />
-        <span style={s.kpiTag}>{kpi.name}</span>
+      {/* identity card */}
+      <div style={s.idCard}>
+        <div style={s.idTop}>
+          <span style={s.avatar} aria-hidden="true">{agent.initials}</span>
+          <span style={s.name}>{agent.name}</span>
+        </div>
+        <div style={s.idMeta}>
+          <span style={s.metaLabel}>{kpi.name}</span>
+          <span style={s.metaVal}><strong>{agent.interactions.toLocaleString()}</strong> interactions</span>
+        </div>
       </div>
 
-      <div style={s.pills}>
-        <Pill label="This agent" value={`${agent.value}${kpi.unit}`} />
-        <Pill label="Org avg" value={`${orgAvg}${kpi.unit}`} />
-        <Pill
-          label="Gap"
-          value={`${diff >= 0 ? "▲" : "▼"} ${Math.abs(diff)}${kpi.unit === "%" ? "pp" : kpi.unit}`}
-          tone={gapTone}
-        />
+      {/* comparison */}
+      <div style={s.compare}>
+        <Stat label="This Agent" value={`${agent.value}${kpi.unit}`} />
+        <Stat label="Organization Avg" value={`${orgAvg}${kpi.unit}`} />
+        <Stat label="Gap" value={`${diff >= 0 ? "+" : ""}${diff}pp`} tone={gapTone} />
       </div>
 
-      <section style={s.chartCard}>
-        <KpiSidecarTrend
-          data={kpi.trend}
-          target={kpi.target}
-          unit={kpi.unit}
-          lowerIsBetter={!r.higherIsBetter}
-        />
-      </section>
+      {/* trend */}
+      <div style={s.chartCard}>
+        <span style={s.sectionLabel}>Interactions</span>
+        <KpiSidecarTrend data={kpi.trend} target={kpi.target} unit={kpi.unit} lowerIsBetter={!r.higherIsBetter} height={180} />
+      </div>
 
-      <TabsRow
-        tabs={[
-          { id: "weeks", label: "Week by Week" },
-          { id: "outcome", label: "By Outcome" },
-        ]}
-        activeTab={tab}
-        onTabClick={setTab}
-      />
-
-      {tab === "weeks" ? (
-        <div style={s.weekGrid}>
-          {kpi.trend.map((w) => {
-            const empty = w.agent == null;
-            return (
-              <button
-                key={w.week}
-                type="button"
-                disabled={empty}
-                style={{ ...s.weekCell, opacity: empty ? 0.5 : 1, cursor: empty ? "default" : "pointer" }}
-                onClick={() => !empty && onSelectWeek(w.week)}
-              >
-                <span style={s.weekLabel}>{w.week}</span>
-                <span style={s.weekValue}>{empty ? "—" : `${w.agent}${kpi.unit}`}</span>
-              </button>
-            );
-          })}
+      {/* week table */}
+      <div style={s.table}>
+        <div style={s.thead}>
+          <span style={s.th}>Week</span>
+          <span style={s.thNum}>Attempts</span>
+          <span style={s.thNum}>{kpi.name}</span>
         </div>
-      ) : (
-        <div style={s.outcomeTable}>
-          <div style={s.outRowHead}><span>Outcome</span><span style={s.right}>Share</span></div>
-          {kpi.outcomes.map((o) => (
-            <div key={o.key} style={s.outRow}>
-              <span style={s.outLabel}><span style={{ ...s.dot, background: o.color }} />{o.label}</span>
-              <span style={s.right}>{o.pct}%</span>
-            </div>
-          ))}
-        </div>
-      )}
+        {weeks.map((w) => {
+          const pill = PILL[w.rag];
+          return (
+            <button key={w.week} type="button" style={s.row} onClick={() => onSelectWeek(w.week)}>
+              <span style={s.tdWeek}>{w.week}</span>
+              <span style={s.tdNum}>{w.attempts}</span>
+              <span style={s.tdMetric}>
+                <span style={{ ...s.pill, background: pill.bg, color: pill.fg }}>{w.value}{kpi.unit}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function Pill({ label, value, tone }) {
-  const color = tone === "green" ? "#00711D" : tone === "red" ? "#BA1A1A" : "var(--color-text-deep)";
+function Stat({ label, value, tone }) {
+  const color = tone === "green" ? "#00711D" : tone === "red" ? "#BA1A1A" : "#2C2F42";
   return (
-    <div style={s.pill}>
-      <span style={s.pillLabel}>{label}</span>
-      <span style={{ ...s.pillValue, color }}>{value}</span>
+    <div style={s.stat}>
+      <span style={s.statLabel}>{label}</span>
+      <span style={{ ...s.statValue, color }}>{value}</span>
     </div>
   );
 }
 
 const s = {
-  wrap: { display: "flex", flexDirection: "column", gap: 16 },
-  back: { display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)", fontFamily: "var(--font-sans)" },
-  headRow: { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  kpiTag: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)", background: "var(--surface-alt)", borderRadius: 999, padding: "4px 10px" },
-  pills: { display: "flex", gap: 12 },
-  pill: { flex: 1, display: "flex", flexDirection: "column", gap: 4, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10 },
-  pillLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)" },
-  pillValue: { fontSize: 18, fontWeight: 800 },
-  chartCard: { border: "1px solid var(--color-divider-card)", borderRadius: 10, padding: "12px 8px 8px" },
-  weekGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 },
-  weekCell: { display: "flex", flexDirection: "column", gap: 4, alignItems: "center", padding: "12px 8px", border: "1px solid var(--color-divider-card)", borderRadius: 8, background: "none", fontFamily: "var(--font-sans)" },
-  weekLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)" },
-  weekValue: { fontSize: 16, fontWeight: 800, color: "var(--color-text-deep)" },
-  outcomeTable: { border: "1px solid var(--color-divider-card)", borderRadius: 8, overflow: "hidden" },
-  outRowHead: { display: "flex", justifyContent: "space-between", padding: "8px 14px", background: "var(--surface-alt)", fontSize: 11, fontWeight: 700, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em" },
-  outRow: { display: "flex", justifyContent: "space-between", padding: "10px 14px", borderTop: "1px solid var(--color-divider-card)", fontSize: 13, color: "var(--color-text-medium)" },
-  outLabel: { display: "inline-flex", alignItems: "center", gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 2 },
-  right: { textAlign: "right", fontWeight: 700, color: "var(--color-text-deep)" },
+  wrap: { display: "flex", flexDirection: "column", gap: 16, fontFamily: POPPINS },
+  idCard: { background: "#FCFBFF", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8 },
+  idTop: { display: "flex", alignItems: "center", gap: 10 },
+  avatar: { width: 28, height: 28, borderRadius: 999, background: "#DDE1FF", color: "#6650A5", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: LATO, fontSize: 12 },
+  name: { fontSize: 16, fontWeight: 600, color: "#2C2F42" },
+  idMeta: { display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#5B5E6F", letterSpacing: "0.4px" },
+  metaLabel: { color: "#5B5E6F" },
+  metaVal: { color: "#5B5E6F" },
+  compare: { display: "flex", gap: 12 },
+  stat: { flex: 1, display: "flex", flexDirection: "column", gap: 4, padding: "12px 14px", background: "#FCFBFF", borderRadius: 10 },
+  statLabel: { fontSize: 12, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px" },
+  statValue: { fontSize: 18, fontWeight: 800 },
+  chartCard: { border: "1px solid #EFEFFF", borderRadius: 12, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 6 },
+  sectionLabel: { fontSize: 14, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px", paddingLeft: 4 },
+  table: { border: "1px solid #EFEFFF", borderRadius: 8, overflow: "hidden" },
+  thead: { display: "grid", gridTemplateColumns: "1fr 100px 100px", height: 40, alignItems: "center", background: "#FCFBFF" },
+  th: { padding: "0 12px", fontSize: 11, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px" },
+  thNum: { padding: "0 12px", fontSize: 11, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px", textAlign: "right" },
+  row: { width: "100%", display: "grid", gridTemplateColumns: "1fr 100px 100px", alignItems: "center", background: "#fff", border: "none", borderTop: "1px solid #F4F4FB", cursor: "pointer", textAlign: "left", fontFamily: POPPINS },
+  tdWeek: { padding: "14px 12px", fontSize: 13, fontWeight: 600, color: "#2C2F42" },
+  tdNum: { padding: "14px 12px", fontSize: 14, fontWeight: 600, color: "#2C2F42", textAlign: "right" },
+  tdMetric: { padding: "14px 12px", display: "flex", justifyContent: "flex-end" },
+  pill: { display: "inline-flex", alignItems: "center", height: 24, padding: "0 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, letterSpacing: "0.5px" },
 };
