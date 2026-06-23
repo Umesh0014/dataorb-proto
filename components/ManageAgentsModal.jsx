@@ -8,7 +8,6 @@ import Select from "./Select";
 import TabsRow from "./TabsRow";
 import { CapacityBar } from "./CreditsUsageParts";
 import { appliedCap, statusOf } from "./AgentBucketTable";
-import { TAG_META } from "./mocks/creditsUsage";
 
 // ManageAgentsModal — the C5 roster manager the "Manage agents" button and the
 // over-limit banner both open. Four tabs: "Nearing limit" (every agent near or
@@ -192,17 +191,13 @@ export default function ManageAgentsModal({
             const cap = appliedCap(a, buckets);
             const status = statusOf(a.usedMin, cap);
             const bucket = buckets.find((b) => b.id === a.bucketId);
-            const tag = TAG_META[a.tag] || TAG_META.new;
             const checked = picked.includes(a.id);
             return (
               <label key={a.id} style={{ ...styles.row, background: checked ? "var(--color-icon-tertiary-bg)" : "transparent" }}>
                 <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} style={styles.checkbox} aria-label={`Select ${a.name}`} />
                 <span style={styles.agentCell}>
                   <span style={{ ...styles.avatar, background: AVATAR_COLORS[a.id % AVATAR_COLORS.length] }}>{initials(a.name)}</span>
-                  <span style={styles.agentText}>
-                    <span style={styles.name}>{a.name}</span>
-                    <span style={{ ...styles.tag, background: tag.bg, color: tag.fg }}>{tag.label}</span>
-                  </span>
+                  <span style={styles.name}>{a.name}</span>
                 </span>
                 <span style={styles.tierCell}>
                   <span style={styles.tierName}>{bucket ? bucket.name : "—"}</span>
@@ -349,9 +344,7 @@ const styles = {
     letterSpacing: "0.2px",
     flexShrink: 0,
   },
-  agentText: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
   name: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  tag: { alignSelf: "flex-start", padding: "1px 8px", borderRadius: "var(--radius-sm)", fontSize: 10, fontWeight: 600, letterSpacing: "0.2px", whiteSpace: "nowrap" },
   tierCell: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
   tierName: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)", whiteSpace: "nowrap" },
   tierCap: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)" },
