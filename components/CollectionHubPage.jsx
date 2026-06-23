@@ -10,6 +10,7 @@ import KpiGoalsB3 from "./KpiGoalsB3";
 import KpiGoalsB4 from "./KpiGoalsB4";
 import KpiGoalsB5 from "./KpiGoalsB5";
 import KpiGoalsB6 from "./KpiGoalsB6";
+import KpiGoalsB7 from "./KpiGoalsB7";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
@@ -163,13 +164,14 @@ export const OUR_ITERATIONS = [
   { id: "b4", label: "B4", title: "Category tree (left) + KPI sidecar" },
   { id: "b5", label: "B5", title: "Parents on top, children below + side sidecar" },
   { id: "b6", label: "B6", title: "Select category → KPI opens in a dialog" },
+  { id: "b7", label: "B7", title: "Filtered grid, 3 stacked + pagination" },
 ];
 
 // Controlled: `view` + the group's `items` come from InsightsHubPage. The
 // vertical rail (segmented control) lists the active group's iterations.
 function KPIsAndGoalsCard({ view = "b3", onView, items = OUR_ITERATIONS }) {
   const isUmesh = view.startsWith("v");
-  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 /> }[view];
+  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];
 
   return (
     <div style={kpiSectionStyles.wrap}>
