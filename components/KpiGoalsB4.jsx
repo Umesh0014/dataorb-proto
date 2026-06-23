@@ -28,9 +28,10 @@ export default function KpiGoalsB4() {
       <div style={s.split}>
         <aside style={s.rail}>
           {CATEGORIES.map((cat) => (
-            <div key={cat.id} style={s.group}>
-              <KpiCategoryCard cat={cat} />
-              <div style={s.kpiCard}>
+            <div key={cat.id} style={s.groupCard}>
+              <KpiCategoryCard cat={cat} flat />
+              <div style={s.divider} />
+              <div style={s.kpiList}>
                 {KPIS.filter((k) => k.category === cat.name).map((k) => (
                   <KpiRadioRow key={k.id} k={k} selected={k.id === selId} onClick={() => setSelId(k.id)} />
                 ))}
@@ -84,8 +85,9 @@ const s = {
   subtitle: { fontSize: 13, color: "var(--color-text-tertiary)", margin: "4px 0 0" },
   dateBadge: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", background: "var(--surface-alt)", borderRadius: 999, padding: "5px 12px" },
   split: { display: "grid", gridTemplateColumns: "360px 1fr", gap: 18, alignItems: "start" },
-  rail: { display: "flex", flexDirection: "column", gap: 18 },
-  group: { display: "flex", flexDirection: "column", gap: 10 },
-  kpiCard: { border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: 6, display: "flex", flexDirection: "column", gap: 2 },
+  rail: { display: "flex", flexDirection: "column", gap: 16 },
+  groupCard: { border: "1px solid var(--color-divider-card)", borderRadius: 12, background: "#FFFFFF", overflow: "hidden", display: "flex", flexDirection: "column" },
+  divider: { height: 1, background: "var(--color-divider-card)" },
+  kpiList: { padding: 6, display: "flex", flexDirection: "column", gap: 2 },
   panel: { minWidth: 0, border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "20px 22px", background: "#FFFFFF", minHeight: 360, position: "sticky", top: 16 },
 };

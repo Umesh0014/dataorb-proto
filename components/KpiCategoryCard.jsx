@@ -9,12 +9,12 @@ import { RagChip } from "./KpiSidecarParts";
 // track" · chevron.
 const POPPINS = "'Poppins', sans-serif";
 
-export default function KpiCategoryCard({ cat, onClick, selected = false }) {
+export default function KpiCategoryCard({ cat, onClick, selected = false, flat = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{ ...s.card, ...(selected ? s.selected : null) }}
+      style={{ ...s.card, ...(flat ? s.flat : null), ...(selected ? s.selected : null) }}
     >
       <span style={s.inner}>
         <KpiRing pct={cat.score} rag={cat.rag} size={56} stroke={6} label={cat.score} />
@@ -34,6 +34,7 @@ export default function KpiCategoryCard({ cat, onClick, selected = false }) {
 const s = {
   card: { display: "flex", background: "#FFFFFF", border: "1px solid #EFEFFF", borderRadius: 12, cursor: "pointer", textAlign: "left", fontFamily: POPPINS, padding: 0, transition: "box-shadow .15s, border-color .15s" },
   selected: { border: "1px solid #6650A5", boxShadow: "0 0 0 1px #6650A5" },
+  flat: { border: "none", borderRadius: 0, background: "transparent", width: "100%" },
   inner: { display: "flex", gap: 14, padding: "16px 18px", flex: 1, alignItems: "flex-start", minWidth: 0 },
   body: { display: "flex", flexDirection: "column", gap: 8, flex: 1, minWidth: 0 },
   title: { fontFamily: POPPINS, fontWeight: 600, fontSize: 16, lineHeight: "22px", color: "#2C2F42" },
