@@ -108,9 +108,9 @@ InsightsHubPage.FilterPanel = FilterPanel;
 const switcherWrap = { position: "fixed", bottom: 24, right: 24, zIndex: 1000 };
 
 const eb = {
-  bar: { display: "inline-flex", alignItems: "center", gap: 4, background: "#1F2024", borderRadius: 999, padding: 4, boxShadow: "0 8px 24px rgba(0,0,0,0.28)" },
+  bar: { display: "inline-flex", alignItems: "center", gap: 4, background: "#1F2024", borderRadius: 10, padding: 4, boxShadow: "0 8px 24px rgba(0,0,0,0.28)" },
   pill: {
-    display: "inline-flex", alignItems: "center", height: 34, padding: "0 16px", borderRadius: 999, border: "none",
+    display: "inline-flex", alignItems: "center", height: 34, padding: "0 16px", borderRadius: 6, border: "none",
     cursor: "pointer", background: "transparent", color: "#D4D4D8",
     fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", whiteSpace: "nowrap",
   },
