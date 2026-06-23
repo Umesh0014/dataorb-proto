@@ -16,7 +16,7 @@ import AgentBucketTable, { appliedCap, statusOf } from "./AgentBucketTable";
 import LimitRuleControl from "./LimitRuleControl";
 import BucketDecisionControls from "./BucketDecisionControls";
 import CreditsUsageAdjustPanel from "./CreditsUsageAdjustPanel";
-import CreditsUsageC5 from "./CreditsUsageC5";
+import CreditsUsageC5, { C5RulesFyi } from "./CreditsUsageC5";
 import {
   WEEKLY_QUOTA,
   QUOTA_BUCKETS,
@@ -183,6 +183,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
           consumedPct={consumedPct}
           overCap={isC5 ? c5Alert : overCap}
           onViewAgents={isC5 ? () => setManageTab("nearing") : scrollToAgents}
+          fyi={isC5 ? <C5RulesFyi /> : null}
         />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />

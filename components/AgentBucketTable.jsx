@@ -48,6 +48,7 @@ export default function AgentBucketTable({
   onToggleSelectAll,
   onAdjust,
   showAdjust = true,
+  showTag = true,
   paginate = false,
   pageSizeOptions = [10, 20, 30, 50],
   bare = false,
@@ -119,6 +120,7 @@ export default function AgentBucketTable({
           onTag={setTagFilter}
           statusFilter={statusFilter}
           onStatus={setStatusFilter}
+          showTag={showTag}
         />
       )}
       {bulkPlacement === "inline" && bulkBar && (
@@ -163,7 +165,7 @@ export default function AgentBucketTable({
               <Avatar name={agent.name} index={i} />
               <span style={styles.identityText}>
                 <span style={styles.name}>{agent.name}</span>
-                <span style={{ ...styles.tag, background: tag.bg, color: tag.fg }}>{tag.label}</span>
+                {showTag && <span style={{ ...styles.tag, background: tag.bg, color: tag.fg }}>{tag.label}</span>}
               </span>
             </span>
             {showBucket && (
@@ -259,7 +261,7 @@ const STATUS_OPTIONS = [
   { value: "at_cap", label: "At cap" },
 ];
 
-function TableToolbar({ bare, query, onQuery, tagFilter, onTag, statusFilter, onStatus }) {
+function TableToolbar({ bare, query, onQuery, tagFilter, onTag, statusFilter, onStatus, showTag = true }) {
   return (
     <div style={bare ? styles.toolbarBare : styles.toolbar}>
       <label style={styles.searchWrap}>
@@ -274,7 +276,7 @@ function TableToolbar({ bare, query, onQuery, tagFilter, onTag, statusFilter, on
         />
       </label>
       <div style={styles.filters}>
-        <Select value={tagFilter} onChange={onTag} options={TAG_OPTIONS} ariaLabel="Filter by tag" />
+        {showTag && <Select value={tagFilter} onChange={onTag} options={TAG_OPTIONS} ariaLabel="Filter by tag" />}
         <Select value={statusFilter} onChange={onStatus} options={STATUS_OPTIONS} ariaLabel="Filter by status" />
       </div>
     </div>

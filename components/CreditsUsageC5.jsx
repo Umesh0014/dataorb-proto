@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users } from "lucide-react";
+import { Users, Info } from "lucide-react";
 import { Section } from "./CreditsUsageParts";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
@@ -9,17 +9,16 @@ import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import ManageAgentsModal from "./ManageAgentsModal";
 
 // CreditsUsageC5 — the C5 (feedback-incorporated) lower stack. Sits under the
-// shared utilisation card (which now docks the amber→red over-limit banner)
-// and owns everything else the product feedback locked:
+// shared utilisation card (which docks the amber→red over-limit banner and the
+// C5RulesFyi notice) and owns the rest of what the product feedback locked:
 //   • minutes-only, three fixed buckets (Kickstart 30 default / Momentum 45 /
-//     Sprint 60); the shared table reads usedMin / capMin.
+//     Sprint 60); the shared table reads usedMin / capMin and drops the tenure
+//     tags for this surface.
 //   • a "Manage agents" button (the renamed + Add agent) opening the 4-tab
 //     modal, plus the main roster sorted closest-to-breaking at the top.
-//   • never-block rules — practice continues past the cap (shown as 39/30);
-//     no hard stop, no "additional minutes" box, no "no weekly limit" option.
 //   • Save moved to the very bottom of the page.
-// The page owns the shared agents/buckets state, the move handlers, and the
-// manager's open/tab state (so the docked banner's "View agents" opens it).
+// The fixed (non-editable) rules now ride along in the utilisation card as an
+// FYI — see C5RulesFyi below. The page owns shared state + the manager's tab.
 export default function CreditsUsageC5({ agents, buckets, manageTab, onManageChange, onMove, onSave }) {
   // Bump each agent one tier up the fixed ladder (Kickstart → Momentum →
   // Sprint); already-top agents stay. Grouped by destination so each target
@@ -66,30 +65,9 @@ export default function CreditsUsageC5({ agents, buckets, manageTab, onManageCha
           buckets={buckets}
           paginate
           showAdjust={false}
+          showTag={false}
           emptyLabel="No agents yet — agents appear here once your tenant is provisioned."
         />
-      </Section>
-
-      <Section title="Rules" description="Non-editable — fixed for this tenant.">
-        <div style={styles.rules}>
-          <RuleLine
-            label="When an agent reaches their weekly cap"
-            lead="Never interrupted mid-session."
-            note="A session already in progress always finishes — a 10-min call started with 1 minute left runs to 39 / 30. Once an agent is over their cap they can't start a new session until a manager moves them up a tier (45 / 60)."
-          />
-          <div style={styles.partition} />
-          <RuleLine
-            label="New agents"
-            lead="Start in Kickstart (30 min)."
-            note="Every new agent begins with the standard weekly cap and can be moved up a tier from Manage agents."
-          />
-          <div style={styles.partition} />
-          <RuleLine
-            label="Weekly reset"
-            lead="Sunday, midnight."
-            note="Practice minutes reset to zero automatically every Sunday at midnight."
-          />
-        </div>
       </Section>
 
       <div style={styles.saveBar}>
@@ -111,32 +89,58 @@ export default function CreditsUsageC5({ agents, buckets, manageTab, onManageCha
   );
 }
 
-function RuleLine({ label, lead, note }) {
+// C5RulesFyi — the fixed (non-editable) practice-limit rules, rendered inside
+// the utilisation card as a read-only FYI rather than a standalone section.
+export function C5RulesFyi() {
   return (
-    <div style={styles.ruleLine}>
-      <span style={styles.ruleLabel}>{label}</span>
-      <p style={styles.ruleNote}>
-        <strong style={styles.ruleLead}>{lead}</strong> {note}
-      </p>
+    <div style={styles.fyi}>
+      <div style={styles.fyiHead}>
+        <Info size={14} color="var(--color-icon-tertiary-fg)" style={{ flexShrink: 0 }} aria-hidden="true" />
+        <span style={styles.fyiTitle}>How weekly limits work</span>
+        <span style={styles.fyiTag}>Fixed</span>
+      </div>
+      <ul style={styles.fyiList}>
+        <li style={styles.fyiItem}>
+          <strong style={styles.fyiLead}>Never interrupted mid-session.</strong> An in-progress session finishes (e.g. 39 / 30); once over the cap, no new sessions until a manager moves the agent up a tier (45 / 60).
+        </li>
+        <li style={styles.fyiItem}>
+          <strong style={styles.fyiLead}>New agents start in Kickstart</strong> — 30 min / week by default.
+        </li>
+        <li style={styles.fyiItem}>
+          <strong style={styles.fyiLead}>Weekly reset</strong> — minutes reset every Sunday at midnight.
+        </li>
+      </ul>
     </div>
   );
 }
 
 const styles = {
   bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
-
-  rules: { display: "flex", flexDirection: "column", gap: 16 },
-  partition: { height: 1, background: "var(--color-border-card-soft)" },
-  ruleLine: { display: "flex", flexDirection: "column", gap: 6 },
-  ruleLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.05em",
-    textTransform: "uppercase",
-    color: "var(--color-text-tertiary)",
-  },
-  ruleNote: { margin: 0, fontSize: 13, fontWeight: 400, lineHeight: "20px", color: "var(--color-text-tertiary)" },
-  ruleLead: { fontWeight: 700, color: "var(--color-text-deep)" },
-
   saveBar: { display: "flex", justifyContent: "flex-end", paddingTop: 4 },
+
+  fyi: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    padding: "12px 16px",
+    borderRadius: 10,
+    background: "var(--color-icon-tertiary-bg)",
+    border: "1px solid rgba(102, 80, 165, 0.12)",
+  },
+  fyiHead: { display: "flex", alignItems: "center", gap: 8 },
+  fyiTitle: { fontSize: 12, fontWeight: 700, color: "var(--color-text-deep)", letterSpacing: "0.01em" },
+  fyiTag: {
+    marginInlineStart: "auto",
+    padding: "1px 8px",
+    borderRadius: 999,
+    background: "#FFFFFF",
+    color: "var(--color-icon-tertiary-fg)",
+    fontSize: 10,
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.4px",
+  },
+  fyiList: { margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 },
+  fyiItem: { fontSize: 12, fontWeight: 400, lineHeight: "18px", color: "var(--color-text-medium)" },
+  fyiLead: { fontWeight: 700, color: "var(--color-text-deep)" },
 };

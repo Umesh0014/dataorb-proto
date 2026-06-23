@@ -9,7 +9,7 @@ import { Section, CapacityBar, CapAlertBanner } from "./CreditsUsageParts";
 // three pool/consumed/remaining tiles, with the over-cap alert docked at the
 // bottom when agents are paused. Pure presentation; figures come from the
 // quota mock and the derived overCap.
-export default function CreditUtilisationCard({ quota, consumedPct, overCap, onViewAgents }) {
+export default function CreditUtilisationCard({ quota, consumedPct, overCap, onViewAgents, fyi }) {
   return (
     <Section
       title="Credit utilisation"
@@ -34,6 +34,7 @@ export default function CreditUtilisationCard({ quota, consumedPct, overCap, onV
           onViewAgents={onViewAgents}
         />
       )}
+      {fyi}
     </Section>
   );
 }
