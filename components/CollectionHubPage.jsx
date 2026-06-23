@@ -11,6 +11,7 @@ import KpiGoalsB4 from "./KpiGoalsB4";
 import KpiGoalsB5 from "./KpiGoalsB5";
 import KpiGoalsB6 from "./KpiGoalsB6";
 import KpiGoalsB7 from "./KpiGoalsB7";
+import KpiGoalsB8 from "./KpiGoalsB8";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
@@ -162,6 +163,7 @@ const KPI_ITERATIONS = [
 // a "Discarded" dropdown.
 export const OUR_ITERATIONS = [
   { id: "b7", label: "B7", title: "Filtered grid, 3 across + pagination + side card" },
+  { id: "b8", label: "B8", title: "Activity rings (left) + attention cards (right)" },
 ];
 
 export const OUR_DISCARDED = [
@@ -176,7 +178,7 @@ export const OUR_DISCARDED = [
 // vertical rail (segmented control) lists the active group's iterations.
 function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discarded }) {
   const isUmesh = view.startsWith("v");
-  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];
+  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 />, b8: <KpiGoalsB8 /> }[view];
 
   return (
     <div style={kpiSectionStyles.wrap}>
