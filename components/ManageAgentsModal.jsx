@@ -163,18 +163,6 @@ export default function ManageAgentsModal({
               placeholder="Move to tier…"
               options={moveOptions}
             />
-            {tab === NEARING && (
-              <Button
-                variant="primary"
-                size="sm"
-                leadingIcon={<ArrowUpCircle size={16} />}
-                disabled={visible.length === 0}
-                onClick={upgradeVisible}
-                style={{ height: 36, paddingInline: 18, minWidth: 0 }}
-              >
-                Select all &amp; upgrade tier
-              </Button>
-            )}
           </div>
         </div>
 
@@ -235,14 +223,27 @@ export default function ManageAgentsModal({
               ? <><strong style={styles.footCount}>{picked.length} selected</strong>{moveTarget ? "" : " — pick a destination tier above"}</>
               : "Check agents and pick a destination tier above, then move them."}
           </span>
-          <Button
-            variant="primary"
-            disabled={!moveTo || picked.length === 0}
-            onClick={applyMove}
-            style={{ height: 40, paddingInline: 24 }}
-          >
-            {moveTarget && picked.length > 0 ? `Move ${picked.length} to ${moveTarget.name}` : "Move"}
-          </Button>
+          <div style={styles.footActions}>
+            {tab === NEARING && (
+              <Button
+                variant="text"
+                leadingIcon={<ArrowUpCircle size={16} />}
+                disabled={visible.length === 0}
+                onClick={upgradeVisible}
+                style={{ height: 40 }}
+              >
+                Select all &amp; upgrade tier
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              disabled={!moveTo || picked.length === 0}
+              onClick={applyMove}
+              style={{ height: 40, paddingInline: 24 }}
+            >
+              {moveTarget && picked.length > 0 ? `Move ${picked.length} to ${moveTarget.name}` : "Move"}
+            </Button>
+          </div>
         </footer>
       </div>
     </div>,
@@ -369,4 +370,5 @@ const styles = {
   },
   footLead: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
   footCount: { fontWeight: 700, color: "var(--color-text-deep)" },
+  footActions: { display: "flex", alignItems: "center", gap: 12 },
 };
