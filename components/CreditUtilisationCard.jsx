@@ -26,7 +26,13 @@ export default function CreditUtilisationCard({ quota, consumedPct, overCap, onV
         <StatCard size="md" labelStyle="uppercase" label="Remaining" value={`${quota.remainingMin.toLocaleString()} min`} sublabel={quota.remainingSub} />
       </div>
       {overCap && (
-        <CapAlertBanner count={overCap.count} resetDay={overCap.resetDay} onViewAgents={onViewAgents} />
+        <CapAlertBanner
+          count={overCap.count}
+          resetDay={overCap.resetDay}
+          tone={overCap.tone}
+          message={overCap.message}
+          onViewAgents={onViewAgents}
+        />
       )}
     </Section>
   );

@@ -12,16 +12,19 @@ import BucketAssignmentRegion from "./BucketAssignmentRegion";
 import BucketFolderPanel from "./BucketFolderPanel";
 import BucketFolderMerged from "./BucketFolderMerged";
 import BulkMoveBar from "./BulkMoveBar";
-import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
+import AgentBucketTable, { appliedCap, statusOf } from "./AgentBucketTable";
 import LimitRuleControl from "./LimitRuleControl";
 import BucketDecisionControls from "./BucketDecisionControls";
 import CreditsUsageAdjustPanel from "./CreditsUsageAdjustPanel";
+import CreditsUsageC5 from "./CreditsUsageC5";
 import {
   WEEKLY_QUOTA,
   QUOTA_BUCKETS,
   QUOTA_BUCKETS_4,
+  QUOTA_BUCKETS_3,
   AGENT_BUCKET_SAMPLE,
   AGENT_BUCKET_SAMPLE_4,
+  AGENT_BUCKET_SAMPLE_3,
   RULE_DEFAULTS,
   estimateMonthlyDelta,
 } from "./mocks/creditsUsage";
@@ -32,14 +35,17 @@ import {
 // panel; the VersionBar (in CreditsUsageShell) swaps only the Assignment
 // region between approaches A/B/C — table, buckets, utilisation and rules
 // stay mounted. All data is mock.
-export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Placement = null }) {
-  // C4 explores a four-tier ladder; the page is remounted across that
-  // boundary (see CreditsUsageShell) so the seed data is chosen once here.
+export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPlacement = null }) {
+  // C4 (four-tier) and C5 (three-tier, feedback-incorporated) each carry
+  // their own bucket ladder + roster; the page is remounted across those
+  // boundaries (see CreditsUsageShell) so the seed data is chosen once here.
   const isC4 = assignmentMode === "C4";
-  const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : QUOTA_BUCKETS;
-  const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : AGENT_BUCKET_SAMPLE;
+  const isC5 = assignmentMode === "C5";
+  const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5 ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
+  const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5 ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
   // C4 uses the bucket-model cap rule (auto-bump default); the others keep
-  // the legacy minute-based rule (hard-stop default).
+  // the legacy minute-based rule (hard-stop default). C5 never blocks, and
+  // renders its own fixed rules, so the page-level rule state is unused there.
   const seedRules = isC4 ? { ...RULE_DEFAULTS, limitBehavior: "auto_bump" } : RULE_DEFAULTS;
 
   const [agents, setAgents] = React.useState(seedAgents);
@@ -49,6 +55,8 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Place
   const [selectedBucketId, setSelectedBucketId] = React.useState(seedBuckets[0].id);
   const [adjustAgent, setAdjustAgent] = React.useState(null);
   const [pendingChange, setPendingChange] = React.useState(null);
+  // C5 manager: null = closed, otherwise the tab to open on ("nearing" | id).
+  const [manageTab, setManageTab] = React.useState(null);
 
   // Swapping assignment approach resets only the approach-local selection —
   // the shared data (agents / buckets / rules) stays put. Done with the
@@ -135,6 +143,11 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Place
       ? { count: overCapCount, resetDay: WEEKLY_QUOTA.resetDay }
       : null;
 
+  // C5 never blocks, so its docked alert is the amber/red over-limit notice
+  // (amber while agents only near the cap, red once any is over) whose View
+  // agents opens the manager on the Nearing-limit tab.
+  const c5Alert = isC5 ? c5OverAlert(agents, buckets) : null;
+
   const consumedPct = Math.round((WEEKLY_QUOTA.consumedMin / WEEKLY_QUOTA.totalMin) * 100);
 
   const adjustPanel = adjustAgent ? (
@@ -158,23 +171,26 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Place
             iconColor: "var(--color-icon-tertiary-fg)",
           }}
           subtitle="Set weekly practice limits and track how your tenant's quota is used."
-          primaryAction={{ label: "Save changes", size: "lg", onClick: () => console.log("save credits & usage") }}
+          primaryAction={
+            isC5 ? undefined : { label: "Save changes", size: "lg", onClick: () => console.log("save credits & usage") }
+          }
         />
 
-        {/* Tenant utilisation — shared header across approaches A/B/C */}
+        {/* Tenant utilisation — shared header. C5 docks the amber/red
+            over-limit notice here and routes View agents into the manager. */}
         <CreditUtilisationCard
           quota={WEEKLY_QUOTA}
           consumedPct={consumedPct}
-          overCap={overCap}
-          onViewAgents={scrollToAgents}
+          overCap={isC5 ? c5Alert : overCap}
+          onViewAgents={isC5 ? () => setManageTab("nearing") : scrollToAgents}
         />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />
 
-        {/* Fixed quota buckets — the merged approaches (C2 / C3 / C4) fold
-            these into their card, so the standalone section is shown for the
-            other approaches only. */}
-        {assignmentMode !== "C2" && assignmentMode !== "C3" && assignmentMode !== "C4" && assignmentMode !== "C5" && (
+        {/* Fixed quota buckets — the merged approaches (C2 / C3 / C4 / the
+            bulk-action study) fold these into their card, and C5 shows its own
+            bucket cards, so the standalone section is for the others only. */}
+        {assignmentMode !== "C2" && assignmentMode !== "C3" && assignmentMode !== "C4" && assignmentMode !== "BULK" && assignmentMode !== "C5" && (
           <Section
             title="Quota buckets"
             description="Each agent gets a weekly cap from one bucket. Buckets are fixed — move agents between them; the values don't change."
@@ -208,10 +224,10 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Place
             onAdjust={setAdjustAgent}
           />
         )}
-        {(assignmentMode === "C2" || assignmentMode === "C3" || assignmentMode === "C4" || assignmentMode === "C5") && (
+        {(assignmentMode === "C2" || assignmentMode === "C3" || assignmentMode === "C4" || assignmentMode === "BULK") && (
           <BucketFolderMerged
             layout={assignmentMode === "C2" ? "rail" : assignmentMode === "C4" ? "attached" : "top"}
-            bulkPlacement={assignmentMode === "C5" ? (c5Placement || "floating") : "top"}
+            bulkPlacement={assignmentMode === "BULK" ? (bulkPlacement || "floating") : "top"}
             buckets={buckets}
             agents={agents}
             selectedBucketId={selectedBucketId}
@@ -221,6 +237,16 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Place
             onToggleSelectAll={toggleSelectAll}
             onBulkMove={handleBulkMove}
             onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
+          />
+        )}
+        {isC5 && (
+          <CreditsUsageC5
+            agents={agents}
+            buckets={buckets}
+            manageTab={manageTab}
+            onManageChange={setManageTab}
+            onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
+            onSave={() => console.log("save credits & usage")}
           />
         )}
         {(assignmentMode === "A" || assignmentMode === "B") && (
@@ -247,28 +273,51 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", c5Place
           </>
         )}
 
-        {/* Rules + decisions to confirm — two cards side by side */}
-        <Section title="Rules">
-          <div style={styles.rulesGrid}>
-            <div style={styles.rulesPanel}>
-              <LimitRuleControl
-                variant={isC4 ? "bucket" : "legacy"}
-                value={rules.limitBehavior}
-                onChange={(v) => setRule("limitBehavior", v)}
-                additionalCapMin={rules.additionalCapMin}
-                onAdditionalCapMin={(v) => setRule("additionalCapMin", v)}
-                bumpScope={rules.bumpScope}
-                onBumpScope={(v) => setRule("bumpScope", v)}
-              />
-            </div>
-            <div style={styles.rulesPanel}>
-              <BucketDecisionControls variant={isC4 ? "bucket" : "legacy"} rules={rules} onRuleChange={setRule} />
-            </div>
-          </div>
-        </Section>
+        {/* Rules + decisions to confirm. C5 owns its own fixed (never-block)
+            rules, so the shared controls are skipped there. */}
+        {!isC5 && <RulesSection rules={rules} isC4={isC4} onRule={setRule} />}
       </div>
     </PageLayout>
   );
+}
+
+// RulesSection — the two shared rule cards (limit behaviour + decisions to
+// confirm). Same in every approach except C5, which renders its own fixed
+// rules; kept out of the page body so the page function stays in budget.
+function RulesSection({ rules, isC4, onRule }) {
+  return (
+    <Section title="Rules">
+      <div style={styles.rulesGrid}>
+        <div style={styles.rulesPanel}>
+          <LimitRuleControl
+            variant={isC4 ? "bucket" : "legacy"}
+            value={rules.limitBehavior}
+            onChange={(v) => onRule("limitBehavior", v)}
+            additionalCapMin={rules.additionalCapMin}
+            onAdditionalCapMin={(v) => onRule("additionalCapMin", v)}
+            bumpScope={rules.bumpScope}
+            onBumpScope={(v) => onRule("bumpScope", v)}
+          />
+        </div>
+        <div style={styles.rulesPanel}>
+          <BucketDecisionControls variant={isC4 ? "bucket" : "legacy"} rules={rules} onRuleChange={onRule} />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+// c5OverAlert — the docked over-limit notice for C5: amber while agents are
+// only nearing their weekly cap, red once any is over it, null when everyone
+// is on track. C5 never blocks, so the copy says practice continues.
+function c5OverAlert(agents, buckets) {
+  const over = agents.filter((a) => statusOf(a.usedMin, appliedCap(a, buckets)) === "at_cap").length;
+  const near = agents.filter((a) => statusOf(a.usedMin, appliedCap(a, buckets)) === "near_limit").length;
+  if (!over && !near) return null;
+  if (over) {
+    return { tone: "red", count: over, message: `${over} agent${over === 1 ? " is" : "s are"} over their weekly limit — they keep practising; review and upgrade their tier.` };
+  }
+  return { tone: "amber", count: near, message: `${near} agent${near === 1 ? " is" : "s are"} nearing their weekly limit.` };
 }
 
 const styles = {

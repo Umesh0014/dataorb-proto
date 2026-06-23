@@ -42,6 +42,16 @@ export const QUOTA_BUCKETS_4 = [
   { id: "sprint4", name: "Sprint", capMin: 60, agentCount: 100 },
 ];
 
+// Three-tier variant (approach C5 — the feedback-incorporated direction).
+// Exactly the three buckets the product feedback locks: Kickstart 30 (the
+// standard default every new agent starts in), Momentum 45, Sprint 60.
+// Ordered low → high so "upgrade to the next tier" is the next entry.
+export const QUOTA_BUCKETS_3 = [
+  { id: "kickstart3", name: "Kickstart", capMin: 30, agentCount: 430, note: "Standard default" },
+  { id: "momentum3", name: "Momentum", capMin: 45, agentCount: 240 },
+  { id: "sprint3", name: "Sprint", capMin: 60, agentCount: 100 },
+];
+
 // Tenure tag presentation. Tags are surfaced now; filtering by tag is a
 // later version. Tones reuse the Settings pastel tile tokens.
 export const TAG_META = {
@@ -70,9 +80,13 @@ const LAST_NAMES = [
 const TENURE_TAGS = ["new", "onboarding", "tenured"];
 const LAST_ACTIVE = ["just now", "2h ago", "5h ago", "1d ago", "2d ago", "3d ago", "1w ago"];
 
-function buildRoster(bucketList) {
+// includeUnassigned — append the 12-strong "active pool" tail (A/B/C1–C4).
+// C5 leaves it off: every agent already sits in a bucket. grace — push the
+// over-cap agents meaningfully past their cap (≈20–40%) so the never-block
+// grace period reads clearly (e.g. 39/30) instead of a single minute over.
+function buildRoster(bucketList, { includeUnassigned = true, grace = false } = {}) {
   const plan = bucketList.map((b) => [b.id, b.agentCount, b.capMin]);
-  plan.push([null, 12, 0]); // unassigned / active pool
+  if (includeUnassigned) plan.push([null, 12, 0]); // unassigned / active pool
   const out = [];
   let id = 1;
   for (const [bucketId, count, cap] of plan) {
@@ -82,7 +96,10 @@ function buildRoster(bucketList) {
       const spread = (id * 37) % 100; // 0–99, deterministic
       let usedMin = 0;
       if (bucketId) {
-        usedMin = spread >= 98 ? cap + (id % 3) + 1 : Math.round((cap * spread) / 100);
+        const over = grace
+          ? Math.round(cap * (1.2 + ((id % 5) * 0.05)))
+          : cap + (id % 3) + 1;
+        usedMin = spread >= 98 ? over : Math.round((cap * spread) / 100);
       }
       out.push({
         id,
@@ -101,6 +118,7 @@ function buildRoster(bucketList) {
 
 export const AGENT_BUCKET_SAMPLE = buildRoster(QUOTA_BUCKETS);
 export const AGENT_BUCKET_SAMPLE_4 = buildRoster(QUOTA_BUCKETS_4);
+export const AGENT_BUCKET_SAMPLE_3 = buildRoster(QUOTA_BUCKETS_3, { includeUnassigned: false, grace: true });
 
 // "What happens when an agent reaches their weekly cap." The legacy set
 // (A/B/C1/C2/C3) is the original minute-based model; `allow_additional`

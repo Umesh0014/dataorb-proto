@@ -157,19 +157,33 @@ export function MetricTile({ label, value, sub, chipLabel }) {
 }
 
 // CapAlertBanner — over-cap notice docked at the bottom of the utilisation
-// card. Count + reset day are derived; the View agents CTA jumps to the
-// agent table. Hidden by the page when no agent is at cap.
-export function CapAlertBanner({ count, resetDay, onViewAgents }) {
+// card. `tone` colours it: neutral (the paused-practice default) or the
+// amber / red codes the C5 direction uses (amber = agents nearing the cap,
+// red = agents over it). `message` overrides the default copy for the
+// never-block variants. Count + reset day are derived; the View agents CTA
+// is supplied by the page. Hidden when no agent needs attention.
+const ALERT_TONES = {
+  neutral: { bg: "#FFFFFF", border: "var(--color-border-card-soft)", fg: "var(--color-warning)", text: "var(--color-text-tertiary)" },
+  amber: { bg: "var(--color-warning-bg)", border: "rgba(239, 108, 0, 0.18)", fg: "var(--color-warning)", text: "var(--color-warning-text)" },
+  red: { bg: "var(--color-error-bg)", border: "rgba(211, 47, 47, 0.18)", fg: "var(--color-error)", text: "var(--color-error)" },
+};
+
+export function CapAlertBanner({ count, resetDay, onViewAgents, tone = "neutral", message }) {
+  const t = ALERT_TONES[tone] || ALERT_TONES.neutral;
   return (
-    <div style={partStyles.capAlert}>
-      <AlertTriangle size={16} color="var(--color-warning)" style={{ flexShrink: 0 }} aria-hidden="true" />
-      <p style={partStyles.capAlertText}>
-        <strong style={partStyles.capAlertLead}>
-          {count} agent{count === 1 ? "" : "s"} {count === 1 ? "has" : "have"}
-        </strong>{" "}
-        hit their weekly cap — practice is paused for them until {resetDay}.
+    <div style={{ ...partStyles.capAlert, background: t.bg, borderColor: t.border }}>
+      <AlertTriangle size={16} color={t.fg} style={{ flexShrink: 0 }} aria-hidden="true" />
+      <p style={{ ...partStyles.capAlertText, color: t.text }}>
+        {message || (
+          <>
+            <strong style={partStyles.capAlertLead}>
+              {count} agent{count === 1 ? "" : "s"} {count === 1 ? "has" : "have"}
+            </strong>{" "}
+            hit their weekly cap — practice is paused for them until {resetDay}.
+          </>
+        )}
       </p>
-      <Button variant="text" uppercase={false} onClick={onViewAgents} style={{ flexShrink: 0 }}>
+      <Button variant="text" uppercase={false} onClick={onViewAgents} style={{ flexShrink: 0, ...(tone !== "neutral" ? { color: t.fg } : {}) }}>
         View agents
       </Button>
     </div>

@@ -175,7 +175,7 @@ export default function AgentBucketTable({
             <div style={styles.usageCell}>
               <CapacityBar used={agent.usedMin} total={cap} height={6} />
               <span style={styles.usageCaption}>
-                {agent.usedMin} / {cap} sessions · last active {agent.lastActive}
+                {agent.usedMin} / {cap} min · last active {agent.lastActive}
               </span>
             </div>
             <span style={{ ...styles.status, color: status.color }}>
@@ -307,7 +307,7 @@ const styles = {
     justifyContent: "space-between",
     gap: 12,
     flexWrap: "wrap",
-    padding: "12px 20px",
+    padding: "20px",
     borderBottom: "1px solid var(--color-divider-card)",
   },
   toolbarBare: {

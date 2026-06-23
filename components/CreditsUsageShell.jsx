@@ -16,17 +16,23 @@ import VersionBar from "./VersionBar";
 //        a vertical bucket rail beside the list; agents added via a dialog)
 //   C3 — Bucket as folder, merged with the bucket cards stacked
 //        horizontally on top of the list (dialog kept)
+//   C4 — Four-tier ladder, list attached to the selected bucket (preferred)
+//   C5 — Feedback-incorporated direction: three fixed buckets (Kickstart 30
+//        default / Momentum 45 / Sprint 60), a "Manage agents" 4-tab manager,
+//        an amber→red over-limit banner, never-block grace period, and Save
+//        moved to the bottom of the page.
 //
-// C1 is the default current direction. A and B are kept but parked in the
+// C4 is the preferred (starred) direction. A and B are kept but parked in the
 // Discarded dropdown — still selectable for comparison, just out of the main
 // row. Variant state is in-memory and resets when the session ends.
 const CU_VERSIONS = [
   { id: "c2", label: "C2", iterations: [] },
-  { id: "c3", label: "C3", iterations: [], preferred: true },
-  { id: "c4", label: "C4", iterations: [] },
+  { id: "c3", label: "C3", iterations: [] },
+  { id: "c4", label: "C4", iterations: [], preferred: true },
+  { id: "c5", label: "C5", iterations: [] },
   // Bulk action exp — a comparison of where the bulk "move selected agents"
   // action sits. i1 floating bar · i2 inline in the toolbar · i3 footer.
-  { id: "c5", label: "Bulk action exp", iterations: ["i1", "i2", "i3"] },
+  { id: "bulk", label: "Bulk action exp", iterations: ["i1", "i2", "i3"] },
 ];
 const CU_DISCARDED = [
   { id: "a", label: "A" },
@@ -34,22 +40,23 @@ const CU_DISCARDED = [
   { id: "c1", label: "C1" },
 ];
 const CU_BASELINE = [{ id: "cu", label: "Credit & Usage" }];
-const C5_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
+const BULK_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
 
 export default function CreditsUsageShell({ onBack }) {
   const [sel, setSel] = React.useState({ versionId: "c2", iterationId: null });
   const variant = sel.versionId.toUpperCase();
-  const c5Placement = sel.versionId === "c5" ? C5_PLACEMENTS[sel.iterationId || "i1"] : null;
+  const bulkPlacement = sel.versionId === "bulk" ? BULK_PLACEMENTS[sel.iterationId || "i1"] : null;
 
   return (
     <>
-      {/* Re-key across the C4 boundary so the page remounts with the four-
-          tier dataset; the five-tier variants share one mounted instance. */}
+      {/* Re-key across the C4 and C5 boundaries so the page remounts with the
+          right tier dataset (four-tier / three-tier); the others share one
+          mounted instance. */}
       <CreditsUsagePage
-        key={variant === "C4" ? "c4" : "main"}
+        key={variant === "C4" ? "c4" : variant === "C5" ? "c5" : "main"}
         onBack={onBack}
         assignmentMode={variant}
-        c5Placement={c5Placement}
+        bulkPlacement={bulkPlacement}
       />
 
       <VersionBar

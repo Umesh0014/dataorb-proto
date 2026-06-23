@@ -27,6 +27,7 @@ export default function Select({
 }) {
   const [open, setOpen] = React.useState(false);
   const [rect, setRect] = React.useState(null);
+  const [pos, setPos] = React.useState(null);
   const [hi, setHi] = React.useState(-1);
   const triggerRef = React.useRef(null);
   const menuRef = React.useRef(null);
@@ -37,9 +38,29 @@ export default function Select({
 
   const openMenu = () => {
     if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect());
+    setPos(null);
     setHi(Math.max(0, options.findIndex((o) => o.value === value)));
     setOpen(true);
   };
+
+  // Flip up when there isn't room below, and cap the menu to the available
+  // space so a tall list near the viewport edge scrolls instead of clipping.
+  React.useLayoutEffect(() => {
+    if (!open || !rect || !menuRef.current) return;
+    const gap = 6;
+    const margin = 8;
+    const menuH = menuRef.current.scrollHeight;
+    const below = window.innerHeight - rect.bottom - gap - margin;
+    const above = rect.top - gap - margin;
+    const dropUp = below < menuH && above > below;
+    const maxHeight = Math.min(280, Math.max(120, dropUp ? above : below));
+    setPos({
+      top: dropUp ? Math.max(margin, rect.top - gap - Math.min(menuH, maxHeight)) : rect.bottom + gap,
+      left: rect.left,
+      minWidth: rect.width,
+      maxHeight,
+    });
+  }, [open, rect]);
 
   React.useEffect(() => {
     if (!open) return undefined;
@@ -107,7 +128,14 @@ export default function Select({
           aria-label={ariaLabel}
           tabIndex={-1}
           onKeyDown={onMenuKey}
-          style={{ ...styles.menu, top: rect.bottom + 6, left: rect.left, minWidth: rect.width }}
+          style={{
+            ...styles.menu,
+            top: pos ? pos.top : rect.bottom + 6,
+            left: pos ? pos.left : rect.left,
+            minWidth: pos ? pos.minWidth : rect.width,
+            maxHeight: pos ? pos.maxHeight : styles.menu.maxHeight,
+            visibility: pos ? "visible" : "hidden",
+          }}
         >
           {options.map((o, i) => {
             const isSel = o.value === value;
