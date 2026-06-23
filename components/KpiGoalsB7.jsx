@@ -63,8 +63,8 @@ export default function KpiGoalsB7() {
         {CATEGORIES.map((c) => <KpiCategoryCard key={c.id} cat={c} />)}
       </div>
 
-      {/* 3 KPI cards, stacked vertically */}
-      <div style={s.list}>
+      {/* 3 KPI cards in a horizontal row */}
+      <div style={{ ...s.list, gridTemplateColumns: `repeat(${sel ? 2 : 3}, minmax(0, 1fr))` }}>
         {items.map((k) => (
           <KpiTile key={k.id} k={k} selected={sel?.id === k.id} onClick={() => setSel(sel?.id === k.id ? null : k)} />
         ))}
@@ -107,8 +107,8 @@ const s = {
   pillOn: { boxShadow: "0 0 0 1px currentColor inset" },
   badge: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 999, background: "#EFEFFF", color: "#004BEF", fontSize: 11, fontWeight: 700 },
   cats: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 },
-  list: { display: "flex", flexDirection: "column", gap: 14 },
-  empty: { padding: "24px 0", fontSize: 13, color: "#8C90A6", textAlign: "center" },
+  list: { display: "grid", gap: 14 },
+  empty: { gridColumn: "1 / -1", padding: "24px 0", fontSize: 13, color: "#8C90A6", textAlign: "center" },
   pager: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--color-divider-card)", paddingTop: 14 },
   pagerInfo: { fontSize: 12, color: "#5B5E6F" },
   pagerNav: { display: "flex", alignItems: "center", gap: 8 },
