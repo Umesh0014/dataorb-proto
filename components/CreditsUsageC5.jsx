@@ -74,8 +74,8 @@ export default function CreditsUsageC5({ agents, buckets, manageTab, onManageCha
         <div style={styles.rules}>
           <RuleLine
             label="When an agent reaches their weekly cap"
-            lead="Never interrupted."
-            note="Practice continues past the cap — a 10-minute call started with 1 minute left finishes. The overage shows on the dashboard (e.g. 39 / 30 min) so you see real usage."
+            lead="Never interrupted mid-session."
+            note="A session already in progress always finishes — a 10-min call started with 1 minute left runs to 39 / 30. Once an agent is over their cap they can't start a new session until a manager moves them up a tier (45 / 60)."
           />
           <div style={styles.partition} />
           <RuleLine
