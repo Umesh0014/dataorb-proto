@@ -41,14 +41,14 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   // boundaries (see CreditsUsageShell) so the seed data is chosen once here.
   const isC4 = assignmentMode === "C4";
   const isC5 = assignmentMode === "C5";
-  // C6a/C6b/C7 are C5 with editable + addable tiers. C6a edits inline, C6b/C7
-  // via a dialog; C7 stacks tiers vertically (up to 10) and shares rules via a
-  // modal instead of the in-card FYI. All share C5's three-tier seed + chrome.
-  const isC6a = assignmentMode === "C6A";
-  const isC6b = assignmentMode === "C6B";
+  // C6/C7 are C5 with editable + addable tiers. C6 carries an in-page a/b
+  // toggle (inline vs dialog edit); C7 fixes dialog edit, stacks tiers in a
+  // rail (up to 10), and shares rules via a popover. All share C5's seed +
+  // chrome.
+  const isC6 = assignmentMode === "C6";
   const isC7 = assignmentMode === "C7";
-  const isC5Like = isC5 || isC6a || isC6b || isC7;
-  const editMode = isC6a ? "inline" : isC6b || isC7 ? "dialog" : undefined;
+  const isC5Like = isC5 || isC6 || isC7;
+  const editMode = isC7 ? "dialog" : undefined;
   const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5Like ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
   const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5Like ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
   // C4 uses the auto-bump cap rule; C5/C6 render their own fixed rules.
@@ -242,6 +242,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
             onSave={() => console.log("save credits & usage")}
             editMode={editMode}
+            editToggle={isC6}
             bucketLayout={isC7 ? "rail" : undefined}
             onEditBucket={editBucket}
             onAddBucket={addBucket}
@@ -284,7 +285,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
 // approaches (C2–C4, bulk) fold buckets into their own card, and C5/C6 own
 // their bucket strip, so this renders nothing for those.
 function StandaloneBuckets({ mode, buckets, selectedBucketId, onSelect }) {
-  if (["C2", "C3", "C4", "BULK", "C5", "C6A", "C6B", "C7"].includes(mode)) return null;
+  if (["C2", "C3", "C4", "BULK", "C5", "C6", "C7"].includes(mode)) return null;
   return (
     <Section
       title="Quota buckets"
