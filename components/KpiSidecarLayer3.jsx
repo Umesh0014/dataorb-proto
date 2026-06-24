@@ -102,7 +102,7 @@ const s = {
   tile: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 },
   tileGap: { background: "#F3F0FB", borderRadius: 8, padding: "8px 12px", flex: "0 0 auto" },
   tileLabel: { fontSize: 12, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px" },
-  tileVal: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 15, fontWeight: 700, color: "#2C2F42" },
+  tileVal: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 700, color: "#2C2F42" },
   tileId: { fontSize: 12, fontWeight: 500, color: "#8C90A6" },
   chartCard: { border: "1px solid #EEF1F8", borderRadius: 12, padding: "16px 14px" },
   axisTick: { fontSize: 9, fill: "#8C90A6", fontFamily: POPPINS },

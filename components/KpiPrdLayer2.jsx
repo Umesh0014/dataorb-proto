@@ -102,7 +102,7 @@ const s = {
   compare: { display: "flex", gap: 12 },
   stat: { flex: 1, display: "flex", flexDirection: "column", gap: 4, padding: "12px 14px", background: "#FCFBFF", borderRadius: 10 },
   statLabel: { fontSize: 12, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px" },
-  statValue: { fontSize: 18, fontWeight: 800 },
+  statValue: { fontSize: 18, fontWeight: 700 },
   chartCard: { border: "1px solid #EFEFFF", borderRadius: 12, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 6 },
   sectionLabel: { fontSize: 14, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px", paddingLeft: 4 },
   table: { border: "1px solid #EFEFFF", borderRadius: 8, overflow: "hidden" },

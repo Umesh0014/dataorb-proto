@@ -64,7 +64,7 @@ const s = {
   bar: { display: "flex", alignItems: "center", gap: 8 },
   arrow: { display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", background: "none", padding: 2, cursor: "pointer", color: "var(--color-text-medium)" },
   crumbs: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  crumb: { border: "none", background: "none", cursor: "pointer", padding: 0, fontSize: 13, fontWeight: 600, color: "var(--do-brand-blue)", fontFamily: "var(--font-sans)" },
+  crumb: { border: "none", background: "none", cursor: "pointer", padding: 0, fontSize: 13, fontWeight: 600, color: "var(--do-brand-blue)", fontFamily: "'Poppins', sans-serif" },
   crumbActive: { color: "var(--color-text-deep)", fontWeight: 700, cursor: "default" },
   subtitle: { fontSize: 12, color: "var(--color-text-tertiary)", margin: "-6px 0 0 28px" },
 };

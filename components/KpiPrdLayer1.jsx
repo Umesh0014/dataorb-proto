@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Phone } from "lucide-react";
-import { OutcomeBar, RagChip, SkeletonRows, sortAgents, statusLabelFor, rule } from "./KpiSidecarParts";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Phone, Info } from "lucide-react";
+import { OutcomeBar, RagChip, SkeletonRows, sortAgents, statusLabelFor, rule, InfoTip } from "./KpiSidecarParts";
 
 const PAGE = 20;
 const FETCH_MS = 650;
@@ -22,7 +22,12 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
   const sorted = React.useMemo(() => sortAgents(kpi), [kpi]);
   const [shown, setShown] = React.useState(PAGE);
   const [fetching, setFetching] = React.useState(false);
-  const [sort, setSort] = React.useState({ col: "interactions", dir: "desc" });
+  // PRD default sort: Type A/D ascending by value (worst first); Type C
+  // descending by value (highest effort first); Type E descending by volume.
+  const [sort, setSort] = React.useState(() =>
+    kpi.kpiType === "E" ? { col: "interactions", dir: "desc" }
+      : kpi.kpiType === "C" ? { col: "value", dir: "desc" }
+        : { col: "value", dir: "asc" });
   const toggleSort = (col) => setSort((s) => (!s || s.col !== col)
     ? { col, dir: "desc" } : s.dir === "desc" ? { col, dir: "asc" } : null);
 
@@ -69,6 +74,9 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
                 {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}{kpi.unit === "%" ? "pp" : ""}
               </span>
             )}
+            {kpi.gapVolumeLabel && rateRag === "red" && (
+              <span style={s.gapVol}>≈ ~{Math.round(Math.abs(delta) * kpi.total / 100).toLocaleString()} {kpi.gapVolumeLabel}</span>
+            )}
           </div>
         </div>
         <div style={s.sumBottom}>
@@ -79,11 +87,14 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
 
       {/* Agents */}
       <span style={s.agentsLabel}>Agents</span>
+      {kpi.mixedPopulation && (
+        <div style={s.callout}><Info size={14} color="#5B5E6F" style={{ flexShrink: 0, marginTop: 1 }} />{kpi.mixedPopulation}</div>
+      )}
       <div style={s.table}>
         <div style={s.thead}>
           <span style={s.thAgent}>Agent</span>
-          <span style={s.thNum}>Interactions<SortControl col="interactions" sort={sort} onToggle={toggleSort} /></span>
-          <span style={s.thMetric}>{kpi.name}<SortControl col="value" sort={sort} onToggle={toggleSort} /></span>
+          <span style={s.thNum}>Interactions{kpi.interactionsTip && <InfoTip text={kpi.interactionsTip} />}<SortControl col="interactions" sort={sort} onToggle={toggleSort} /></span>
+          <span style={s.thMetric}>{kpi.name}{kpi.metricTip && <InfoTip text={kpi.metricTip} />}<SortControl col="value" sort={sort} onToggle={toggleSort} /></span>
           <span style={s.thIcon} />
         </div>
         <div style={s.tbody} onScroll={onScroll}>
@@ -128,7 +139,7 @@ const s = {
   summary: { background: "#FCFBFF", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 16 },
   sumTop: { display: "flex", flexDirection: "column", gap: 8, paddingBottom: 16, borderBottom: "1px solid #EFEFFF" },
   rateRow: { display: "flex", alignItems: "center", gap: 10 },
-  rate: { fontSize: 24, fontWeight: 800, color: "#2C2F42", lineHeight: 1 },
+  rate: { fontSize: 24, fontWeight: 700, color: "#2C2F42", lineHeight: 1 },
   metaRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   meta: { fontSize: 12, color: "#5B5E6F", letterSpacing: "0.4px" },
   metaStrong: { color: "#2C2F42", fontWeight: 700 },
@@ -136,6 +147,8 @@ const s = {
   sumBottom: { display: "flex", flexDirection: "column", gap: 10 },
   sectionLabel: { fontSize: 14, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px" },
   agentsLabel: { fontSize: 14, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px" },
+  gapVol: { fontSize: 11, fontWeight: 600, color: "#BA1A1A" },
+  callout: { display: "flex", alignItems: "flex-start", gap: 8, background: "#F7F8FC", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#5B5E6F", lineHeight: 1.45 },
   table: { border: "1px solid #EFEFFF", borderRadius: 8, overflow: "hidden" },
   thead: { display: "grid", gridTemplateColumns: "1fr 112px 110px 40px", alignItems: "center", height: 40, background: "#FCFBFF", padding: "0 4px" },
   thAgent: { padding: "0 12px", fontSize: 11, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px" },

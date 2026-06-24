@@ -110,28 +110,29 @@ export const sortAgents = (kpi) => [...kpi.agents].sort((a, b) => {
   return rule(kpi).sort(a, b);
 });
 
+const POPPINS = "'Poppins', sans-serif";
 const s = {
   chip: {
     display: "inline-flex", alignItems: "center", padding: "3px 9px", borderRadius: 6,
-    fontSize: 12, fontWeight: 600, fontFamily: "var(--font-sans)", whiteSpace: "nowrap",
+    fontSize: 12, fontWeight: 600, fontFamily: POPPINS, whiteSpace: "nowrap",
   },
   infoTip: { display: "inline-flex", alignItems: "center", cursor: "help", marginLeft: 4, verticalAlign: "middle" },
   agentCell: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
   avatar: {
     width: 28, height: 28, borderRadius: 999, background: "var(--surface-alt)", flexShrink: 0,
     display: "inline-flex", alignItems: "center", justifyContent: "center",
-    fontSize: 11, fontWeight: 700, color: "var(--color-text-medium)", fontFamily: "var(--font-sans)",
+    fontSize: 11, fontWeight: 700, color: "var(--color-text-medium)", fontFamily: "'Lato', sans-serif",
   },
-  agentName: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  agentName: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", fontFamily: POPPINS, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   skeletonRow: { display: "grid", gridTemplateColumns: "40px 1fr 120px 140px", alignItems: "center", gap: 12, padding: "12px 16px" },
   skelBar: { height: 12, borderRadius: 6, background: "linear-gradient(90deg,#EEF1F6,#E2E8F0,#EEF1F6)", display: "inline-block" },
   statPill: {
     flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6,
     padding: "14px 16px", background: "var(--surface-alt)", borderRadius: 10,
   },
-  statLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)", letterSpacing: "0.02em" },
+  statLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)", letterSpacing: "0.02em", fontFamily: POPPINS },
   statValueRow: { display: "flex", alignItems: "center", gap: 8 },
-  statValue: { fontSize: 22, fontWeight: 800, fontFamily: "var(--font-sans)", lineHeight: 1 },
+  statValue: { fontSize: 20, fontWeight: 700, fontFamily: POPPINS, lineHeight: 1 },
   trendArrow: { fontSize: 11, color: "var(--color-text-tertiary)" },
   statSub: { fontSize: 11, color: "var(--color-text-tertiary)" },
   outcomeTrack: { display: "flex", height: 14, borderRadius: 7, overflow: "hidden", gap: 2 },
@@ -139,7 +140,7 @@ const s = {
   legendItem: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-medium)" },
   legendDot: { width: 8, height: 8, borderRadius: 2, flexShrink: 0 },
   legendPct: { fontWeight: 700, color: "var(--color-text-deep)" },
-  snippet: { fontSize: 12.5, color: "var(--color-text-medium)", lineHeight: 1.5 },
+  snippet: { fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.5, fontFamily: POPPINS },
   snippetMark: { color: "var(--do-brand-blue)", fontWeight: 700, marginRight: 6 },
-  snippetEmpty: { fontSize: 12.5, fontStyle: "italic", color: "var(--color-text-tertiary)" },
+  snippetEmpty: { fontSize: 13, fontStyle: "italic", color: "var(--color-text-tertiary)", fontFamily: POPPINS },
 };

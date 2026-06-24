@@ -137,16 +137,22 @@ const SNIPPETS = [
   "Repeat contact from an unresolved earlier ticket; root cause never closed out.",
 ];
 
-function buildInteractions(weekId, n) {
+const toneFromColor = (c = "") => /34D399|009225|00A23A|00711D/i.test(c) ? "green"
+  : /FB7185|BA1A1A|BE123C/i.test(c) ? "red" : "amber";
+
+// Interaction cards carry the KPI's real outcome buckets (PRD §7) so the
+// outcome badge + Layer-3 filter options match the KPI.
+function buildInteractions(weekId, n, outcomes) {
+  const buckets = outcomes && outcomes.length ? outcomes : OUTCOMES;
   return Array.from({ length: n }, (_, i) => {
-    const resolved = (i + weekId.length) % 3 !== 0;
+    const b = buckets[(i + weekId.length) % buckets.length];
     return {
       id: `${weekId}-INT-${4100 + i}`,
-      status: resolved ? "Closed" : "Reopened",
-      tags: ["Billing", "Tier 1", i % 2 ? "Callback" : "Email"].slice(0, 2 + (i % 2)),
-      extraTags: i % 4,
-      outcome: resolved ? "Resolved first contact" : "Repeat contact",
-      outcomeTone: resolved ? "green" : "amber",
+      status: b.label,
+      tags: ["Tier 1", i % 2 ? "Callback" : "Email"].slice(0, 1 + (i % 2)),
+      extraTags: i % 3,
+      outcome: b.label,
+      outcomeTone: toneFromColor(b.color),
       snippet: SNIPPETS[(i + weekId.length) % SNIPPETS.length],
     };
   });
@@ -228,8 +234,10 @@ function makeConfig(seed) {
     interactionsTip: seed.interactionsTip || "", metricTip: seed.metricTip || "",
     outcomes: seed.outcomes, agents: buildAgentsFor(seed.type, seed.target, seed.campaignRate),
     trend, weeks: trend.map((w) => w.week),
-    interactions: Object.fromEntries(trend.map((w, i) => [w.week, buildInteractions(w.week, 5 + (i % 4))])),
+    interactions: Object.fromEntries(trend.map((w, i) => [w.week, buildInteractions(w.week, 5 + (i % 4), seed.outcomes)])),
     defaultOutcomeFilter: seed.defaultOutcomeFilter || "all", stubbed: false,
+    mixedPopulation: seed.mixedPopulation || null,   // §8.2 info callout
+    gapVolumeLabel: seed.gapVolumeLabel || null,     // §1 Compliance volume estimate
   };
 }
 
@@ -263,12 +271,12 @@ const OC_FAILED = [
 // hand-authored config below). Types corrected to the PRD (Appendix A):
 // Compliance = A (100% target), Failed Communication = E (no target).
 const KPI_SEEDS = [
-  { id: "contactability", name: "Contactability", type: "A", unit: "%", subtitle: "of total dials", total: 50000, campaignRate: 42, target: 55, outcomes: OC_CONTACT, interactionsTip: "Total outbound dials placed by this agent in the selected period — all calls regardless of outcome.", metricTip: "Percentage of total dials where the agent confirmed the debtor's identity. Target: 55%. Higher is better." },
+  { id: "contactability", name: "Contactability", type: "A", unit: "%", subtitle: "of total dials", total: 50000, campaignRate: 42, target: 55, outcomes: OC_CONTACT, mixedPopulation: "Includes all dials, not only verified contacts. Reflects list quality and dialing strategy as well as agent performance.", interactionsTip: "Total outbound dials placed by this agent in the selected period — all calls regardless of outcome.", metricTip: "Percentage of total dials where the agent confirmed the debtor's identity. Target: 55%. Higher is better." },
   { id: "effort", name: "Effort", type: "C", unit: " calls", subtitle: "calls per positive contact", total: 50000, campaignRate: 19.8, target: 15, outcomes: OC_EFFORT, interactionsTip: "Total outbound dials placed by this agent — used to calculate dials per productive outcome.", metricTip: "Average dials to reach one verified contact. Target: < 15. Lower is better." },
   { id: "negotiation", name: "Negotiation", type: "A", unit: "%", subtitle: "of verified contacts", total: 28000, campaignRate: 48, target: 25, outcomes: OC_PAYMENT, metricTip: "Percentage of verified contacts where the agent navigated the negotiation stage. Target: 25%." },
   { id: "rescheduled", name: "Rescheduled Call Success Rate", type: "A", unit: "%", subtitle: "of rescheduled callbacks", total: 9000, campaignRate: 38, target: 40, outcomes: OC_PAYMENT, metricTip: "Percentage of rescheduled callbacks that converted to a payment. Target: 40%." },
   { id: "point-of-sale", name: "Point of Sale", type: "A", unit: "%", subtitle: "of recoveries", total: 12000, campaignRate: 44, target: 40, outcomes: OC_PAYMENT, metricTip: "Percentage of recoveries collected via instant POS payment. Target: 40%." },
-  { id: "compliance", name: "Compliance Score", type: "A", unit: "%", subtitle: "of verified contacts", total: 47000, campaignRate: 98, target: 100, outcomes: OC_COMPLIANCE, defaultOutcomeFilter: "Non-Compliant", metricTip: "Percentage of verified contacts where both security protocol steps were completed. Target: 100%." },
+  { id: "compliance", name: "Compliance Score", type: "A", unit: "%", subtitle: "of verified contacts", total: 47000, campaignRate: 98, target: 100, outcomes: OC_COMPLIANCE, defaultOutcomeFilter: "Non-Compliant", gapVolumeLabel: "non-compliant calls", metricTip: "Percentage of verified contacts where both security protocol steps were completed. Target: 100%. Any score below 100% indicates real compliance failures at scale." },
   { id: "effective-comms", name: "Effective Communication Rate", type: "A", unit: "%", subtitle: "of verified contacts", total: 46000, campaignRate: 88, target: 95, outcomes: OC_PAYMENT, metricTip: "Percentage of verified contacts that reached the Debt Communication stage. Target: 95%." },
   { id: "failed-comms", name: "Failed Communication Rate", type: "E", unit: "%", subtitle: "Explore negative contact patterns", total: 15000, campaignRate: 24, target: null, outcomes: OC_FAILED, metricTip: "Percentage of useful contacts that ended with no progress. No target — use for pattern exploration." },
 ];

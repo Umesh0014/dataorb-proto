@@ -95,7 +95,7 @@ function MultiRing({ categories, center }) {
             transform={`rotate(-90 ${size / 2} ${size / 2})`} />
         </g>
       ))}
-      <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 18, fontWeight: 800, fill: "#2C2F42", fontFamily: POPPINS }}>{center}</text>
+      <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 18, fontWeight: 700, fill: "#2C2F42", fontFamily: POPPINS }}>{center}</text>
       <text x="50%" y="61%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 10, fill: "#8C90A6", fontFamily: POPPINS }}>on track</text>
     </svg>
   );
@@ -115,7 +115,7 @@ const s = {
   catName: { fontSize: 13, fontWeight: 600, color: "#2C2F42", whiteSpace: "nowrap" },
   catScore: { flex: 1, fontSize: 12, color: "#8C90A6" },
   right: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 },
-  attnLabel: { fontSize: 13, fontWeight: 800, color: "#2C2F42", textTransform: "uppercase", letterSpacing: "0.04em" },
+  attnLabel: { fontSize: 13, fontWeight: 700, color: "#2C2F42", textTransform: "uppercase", letterSpacing: "0.04em" },
   grid: { display: "grid", gap: 14, flex: 1, alignItems: "stretch" },
   empty: { gridColumn: "1 / -1", padding: "24px 0", fontSize: 13, color: "#8C90A6", textAlign: "center" },
   pager: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--color-divider-card)", paddingTop: 12 },
