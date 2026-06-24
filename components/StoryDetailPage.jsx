@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-syntax --
+/* eslint-disable no-restricted-syntax, max-lines-per-function --
    StoryDetailPage is a feature page (like DrillDetailPage): the Google-Docs-
    style comment layer + infographics need bespoke surfaces Button.jsx doesn't
    model, and the page legitimately runs long. */
@@ -14,9 +14,10 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 const RAIL_W = 300;
 const RAIL_GAP = 28;
-// Constant report width, sized so report + gap + rail == the 1068 content width.
-// This lets the report slide left and the rail slide in with no cropping.
-const FULL_W = 1068 - RAIL_GAP - RAIL_W; // 740
+const FULL_W = 1068; // report width while reading (full content / drill-landing width)
+// While a comment is open the report narrows to this so report + gap + rail
+// fit the 1068 content width with no cropping; it restores when comments close.
+const PAPER_NARROW = FULL_W - RAIL_GAP - RAIL_W; // 740
 
 const PEOPLE = [
   { id: "pn", name: "Priya Nair", initials: "PN", color: "var(--chart-blue)" },
@@ -145,6 +146,12 @@ export default function StoryDetailPage({ outcome, story, onBack }) {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [measure]);
+  // The report reflows as it narrows/widens (500ms); re-measure anchor
+  // positions after the transition so threads land aligned to their text.
+  React.useEffect(() => {
+    const id = setTimeout(measure, 540);
+    return () => clearTimeout(id);
+  }, [commentsActive, measure]);
 
   const onMouseUp = () => {
     const s = window.getSelection();
@@ -184,13 +191,15 @@ export default function StoryDetailPage({ outcome, story, onBack }) {
     <div style={s.page}>
       <style>{HL_STYLE}</style>
       <div style={s.scroll}>
-        {/* Wrap widens when commenting; since it stays centered, the constant-
-            width report slides left and the comment rail slides in on the right. */}
-        <div
-          ref={wrapRef}
-          style={{ ...s.wrap, width: commentsActive ? FULL_W + RAIL_GAP + RAIL_W : FULL_W }}
-        >
-          <div ref={articleRef} style={s.article} onMouseUp={onMouseUp} onClick={onArticleClick}>
+        {/* Wrap fills the content width; the report is wide while reading and
+            narrows (500ms) to make room for the rail, which slides in. */}
+        <div ref={wrapRef} style={{ ...s.wrap, width: FULL_W }}>
+          <div
+            ref={articleRef}
+            style={{ ...s.article, width: commentsActive ? PAPER_NARROW : FULL_W }}
+            onMouseUp={onMouseUp}
+            onClick={onArticleClick}
+          >
             <div style={s.header}>
               <button type="button" onClick={onBack} style={s.back}>
                 <ArrowLeft size={16} color="var(--color-text-tertiary)" />
@@ -493,11 +502,10 @@ const s = {
   // Screen stays on the canvas; the report is a white "paper" card on top.
   page: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" },
   scroll: { flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 64 },
-  wrap: { position: "relative", marginInline: "auto", paddingTop: 8, transition: "width 500ms cubic-bezier(.2,.7,.2,1)" },
+  wrap: { position: "relative", marginInline: "auto", paddingTop: 8 },
   // White paper card; 64px vertical rhythm between every top-level section.
-  // Constant width — the wrap widening (centered) is what slides it left.
+  // Wide while reading; narrows (500ms) when a comment opens.
   article: {
-    width: FULL_W,
     maxWidth: "100%",
     background: "var(--surface-white)",
     borderRadius: 24,
@@ -505,6 +513,7 @@ const s = {
     display: "flex",
     flexDirection: "column",
     gap: 64,
+    transition: "width 500ms cubic-bezier(.2,.7,.2,1)",
   },
   header: {},
 
@@ -569,10 +578,10 @@ const s = {
   authorOrg: { marginTop: 10, fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
   authorAvatar: { width: 64, height: 64, borderRadius: 999, background: "var(--grey-900)", color: "#FFFFFF", display: "grid", placeItems: "center", fontSize: 16, fontWeight: 700, flexShrink: 0 },
 
-  rail: { position: "absolute", top: 16, left: FULL_W + RAIL_GAP, width: RAIL_W, height: "100%", transition: "transform 500ms cubic-bezier(.2,.7,.2,1), opacity 500ms ease" },
+  rail: { position: "absolute", top: 16, left: PAPER_NARROW + RAIL_GAP, width: RAIL_W, height: "100%", transition: "transform 500ms cubic-bezier(.2,.7,.2,1), opacity 500ms ease" },
   railSlot: { position: "absolute", left: 0, width: RAIL_W, transform: "translateY(-50%)", transition: "top 200ms cubic-bezier(.2,.7,.2,1)" },
 
-  resolvedBar: { width: FULL_W, maxWidth: "100%", marginInline: "auto", marginTop: 8 },
+  resolvedBar: { width: PAPER_NARROW, maxWidth: "100%", marginInline: "auto", marginTop: 8 },
   resolvedToggle: { background: "transparent", border: "none", padding: "8px 2px", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "var(--color-button-primary-bg)", fontFamily: "var(--font-sans)" },
   resolvedList: { display: "flex", flexDirection: "column", gap: 12, marginTop: 8 },
 
