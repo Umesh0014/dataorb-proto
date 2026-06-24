@@ -26,6 +26,9 @@ import IterationRail from "./IterationRail";
 //         = dialog) live in the floating IterationRail, not the bottom bar.
 //   C7  — C6b's dialog editing with tiers stacked vertically (up to 10) and the
 //         rules shared through a modal instead of the in-card FYI.
+//   C8  — C7 + a selectable roster: checkboxes drive a card-level "Manage
+//         agents" → move-to-tier dialog, and the red banner opens an over-limit
+//         dialog that moves agents up one or two tiers.
 //
 // Iterations (C6 a/b, the bulk study's i1/i2/i3) render in a vertical floating
 // IterationRail on the right; the bottom VersionBar shows versions only, so its
@@ -39,6 +42,7 @@ const CU_VERSIONS = [
   { id: "c5", label: "C5", iterations: [] },
   { id: "c6", label: "C6", iterations: [] },
   { id: "c7", label: "C7", iterations: [] },
+  { id: "c8", label: "C8", iterations: [] },
 ];
 const CU_DISCARDED = [
   { id: "a", label: "A" },
@@ -72,7 +76,7 @@ export default function CreditsUsageShell({ onBack }) {
           its own state (four-tier C4, three-tier C5/C6/C7); the rest share one
           mounted instance. */}
       <CreditsUsagePage
-        key={["C4", "C5", "C6A", "C6B", "C7"].includes(variant) ? variant.toLowerCase() : "main"}
+        key={["C4", "C5", "C6A", "C6B", "C7", "C8"].includes(variant) ? variant.toLowerCase() : "main"}
         onBack={onBack}
         assignmentMode={variant}
         bulkPlacement={bulkPlacement}

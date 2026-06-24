@@ -9,6 +9,8 @@ import BucketEditor from "./BucketEditor";
 import BucketEditorDialog from "./BucketEditorDialog";
 import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import ManageAgentsModal from "./ManageAgentsModal";
+import MoveToBucketDialog from "./MoveToBucketDialog";
+import OverLimitDialog from "./OverLimitDialog";
 
 // CreditsUsageC5 — the C5 (feedback-incorporated) lower stack. Sits under the
 // shared utilisation card (which docks the amber→red over-limit banner and the
@@ -30,25 +32,28 @@ export default function CreditsUsageC5({
   onSave,
   editMode,
   bucketLayout,
+  selectable,
   onEditBucket,
   onAddBucket,
   onRemoveBucket,
 }) {
-  // Bump each agent one tier up the fixed ladder (Kickstart → Momentum →
-  // Sprint); already-top agents stay. Grouped by destination so each target
-  // is a single move and the bucket counts stay correct.
-  const handleUpgradeTier = (ids) => {
+  // Move agents up `tiers` steps on the fixed ladder (capped at the top tier),
+  // grouped by destination so each target is a single move.
+  const handleMoveUp = (ids, tiers) => {
     const order = buckets.map((b) => b.id);
     const byTarget = {};
     ids.forEach((id) => {
       const agent = agents.find((a) => a.id === id);
       if (!agent) return;
       const idx = order.indexOf(agent.bucketId);
-      if (idx < 0 || idx >= order.length - 1) return;
-      (byTarget[order[idx + 1]] = byTarget[order[idx + 1]] || []).push(id);
+      if (idx < 0) return;
+      const targetIdx = Math.min(idx + tiers, order.length - 1);
+      if (targetIdx === idx) return;
+      (byTarget[order[targetIdx]] = byTarget[order[targetIdx]] || []).push(id);
     });
     Object.entries(byTarget).forEach(([toBucketId, groupIds]) => onMove(groupIds, toBucketId));
   };
+  const handleUpgradeTier = (ids) => handleMoveUp(ids, 1);
 
   // Closest-to-breaking first: rank every agent by how far into (or past)
   // their cap they are, so the people who need attention sit at the top.
@@ -65,6 +70,18 @@ export default function CreditsUsageC5({
   const [selectedBucketId, setSelectedBucketId] = React.useState(buckets[0]?.id);
   const selectedId = buckets.some((b) => b.id === selectedBucketId) ? selectedBucketId : buckets[0]?.id;
   const tableAgents = isDialog ? sorted.filter((a) => a.bucketId === selectedId) : sorted;
+
+  // C8 agent selection (checkboxes) drives the card-level Manage agents button
+  // + the move-to-tier dialog. Cleared when the open tier changes.
+  const [picked, setPicked] = React.useState([]);
+  const [moveOpen, setMoveOpen] = React.useState(false);
+  const [prevSel, setPrevSel] = React.useState(selectedId);
+  if (selectedId !== prevSel) {
+    setPrevSel(selectedId);
+    setPicked([]);
+  }
+  const togglePick = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const togglePickAll = (ids) => setPicked((p) => (p.length === ids.length ? [] : ids));
 
   // C7 ("rail") stacks the editable tiers in a left rail beside the table, the
   // way C2 lays out its buckets; the others keep the strip above the table.
@@ -97,6 +114,10 @@ export default function CreditsUsageC5({
       paginate
       showAdjust={false}
       showTag={false}
+      selectable={selectable}
+      selectedIds={selectable ? picked : []}
+      onToggleSelect={togglePick}
+      onToggleSelectAll={togglePickAll}
       emptyLabel="No agents yet — agents appear here once your tenant is provisioned."
     />
   );
@@ -111,9 +132,15 @@ export default function CreditsUsageC5({
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
         headerRight={
-          <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
-            Manage agents
-          </Button>
+          selectable ? (
+            <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} disabled={picked.length === 0} onClick={() => setMoveOpen(true)}>
+              Manage agents
+            </Button>
+          ) : (
+            <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
+              Manage agents
+            </Button>
+          )
         }
       >
         {rail ? (
@@ -135,15 +162,37 @@ export default function CreditsUsageC5({
         </Button>
       </div>
 
-      <ManageAgentsModal
-        open={manageTab !== null}
-        initialTab={manageTab || "nearing"}
-        buckets={buckets}
-        agents={agents}
-        onClose={() => onManageChange(null)}
-        onMove={onMove}
-        onUpgradeTier={handleUpgradeTier}
-      />
+      {selectable ? (
+        <>
+          <MoveToBucketDialog
+            open={moveOpen}
+            count={picked.length}
+            buckets={buckets}
+            onClose={() => setMoveOpen(false)}
+            onConfirm={(bucketId) => {
+              onMove(picked, bucketId);
+              setPicked([]);
+            }}
+          />
+          <OverLimitDialog
+            open={manageTab !== null}
+            agents={agents}
+            buckets={buckets}
+            onClose={() => onManageChange(null)}
+            onMoveUp={handleMoveUp}
+          />
+        </>
+      ) : (
+        <ManageAgentsModal
+          open={manageTab !== null}
+          initialTab={manageTab || "nearing"}
+          buckets={buckets}
+          agents={agents}
+          onClose={() => onManageChange(null)}
+          onMove={onMove}
+          onUpgradeTier={handleUpgradeTier}
+        />
+      )}
     </>
   );
 }

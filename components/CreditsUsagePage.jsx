@@ -47,23 +47,24 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   const isC6a = assignmentMode === "C6A";
   const isC6b = assignmentMode === "C6B";
   const isC7 = assignmentMode === "C7";
-  const isC5Like = isC5 || isC6a || isC6b || isC7;
-  const editMode = isC6a ? "inline" : isC6b || isC7 ? "dialog" : undefined;
+  // C8 is C7 + a selectable roster (move via a dialog; red banner moves up tiers).
+  const isC8 = assignmentMode === "C8";
+  const isRail = isC7 || isC8;
+  const isC5Like = isC5 || isC6a || isC6b || isC7 || isC8;
+  const editMode = isC6a ? "inline" : isC6b || isRail ? "dialog" : undefined;
   const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5Like ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
   const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5Like ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
-  // C4 uses the auto-bump cap rule; C5/C6 render their own fixed rules.
-  const seedRules = isC4 ? { ...RULE_DEFAULTS, limitBehavior: "auto_bump" } : RULE_DEFAULTS;
-
   const [agents, setAgents] = React.useState(seedAgents);
   const [buckets, setBuckets] = React.useState(seedBuckets);
-  const [rules, setRules] = React.useState(seedRules);
+  // C4 uses the auto-bump cap rule; C5/C6 render their own fixed rules.
+  const [rules, setRules] = React.useState(isC4 ? { ...RULE_DEFAULTS, limitBehavior: "auto_bump" } : RULE_DEFAULTS);
   const [selectedIds, setSelectedIds] = React.useState([]);
   const [selectedBucketId, setSelectedBucketId] = React.useState(seedBuckets[0].id);
   const [adjustAgent, setAdjustAgent] = React.useState(null);
   const [pendingChange, setPendingChange] = React.useState(null);
   // C5 manager: null = closed, otherwise the tab to open on ("nearing" | id).
   const [manageTab, setManageTab] = React.useState(null);
-  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents, isC7 ? 10 : 5);
+  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents, isRail ? 10 : 5);
 
   // Swapping assignment approach resets only the approach-local selection —
   // the shared data (agents / buckets / rules) stays put. Done with the
@@ -154,14 +155,8 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   const c5Alert = isC5Like ? c5OverAlert(agents, buckets) : null;
 
   const consumedPct = Math.round((WEEKLY_QUOTA.consumedMin / WEEKLY_QUOTA.totalMin) * 100);
-
   const adjustPanel = adjustAgent ? (
-    <CreditsUsageAdjustPanel
-      agent={adjustAgent}
-      buckets={buckets}
-      onClose={() => setAdjustAgent(null)}
-      onSave={handleSaveAdjust}
-    />
+    <CreditsUsageAdjustPanel agent={adjustAgent} buckets={buckets} onClose={() => setAdjustAgent(null)} onSave={handleSaveAdjust} />
   ) : null;
 
   return (
@@ -188,8 +183,8 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
           consumedPct={consumedPct}
           overCap={isC5Like ? c5Alert : overCap}
           onViewAgents={isC5Like ? () => setManageTab("nearing") : scrollToAgents}
-          fyi={isC5Like && !isC7 ? <C5RulesFyi /> : null}
-          headerRight={isC7 ? <RulesPopover /> : undefined}
+          fyi={isC5Like && !isRail ? <C5RulesFyi /> : null}
+          headerRight={isRail ? <RulesPopover /> : undefined}
         />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />
@@ -242,7 +237,8 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
             onSave={() => console.log("save credits & usage")}
             editMode={editMode}
-            bucketLayout={isC7 ? "rail" : undefined}
+            bucketLayout={isRail ? "rail" : undefined}
+            selectable={isC8}
             onEditBucket={editBucket}
             onAddBucket={addBucket}
             onRemoveBucket={removeBucket}
@@ -284,7 +280,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
 // approaches (C2–C4, bulk) fold buckets into their own card, and C5/C6 own
 // their bucket strip, so this renders nothing for those.
 function StandaloneBuckets({ mode, buckets, selectedBucketId, onSelect }) {
-  if (["C2", "C3", "C4", "BULK", "C5", "C6A", "C6B", "C7"].includes(mode)) return null;
+  if (["C2", "C3", "C4", "BULK", "C5", "C6A", "C6B", "C7", "C8"].includes(mode)) return null;
   return (
     <Section
       title="Quota buckets"
