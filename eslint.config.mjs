@@ -198,7 +198,6 @@ export default [
       "components/BucketCard.jsx",
       "components/BucketEditor.jsx",
       "components/BucketEditorDialog.jsx",
-      "components/EditModeToggle.jsx",
       "components/LimitRuleControl.jsx",
       "components/BucketDecisionControls.jsx",
       "components/BucketFolderMerged.jsx",

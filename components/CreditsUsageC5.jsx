@@ -7,7 +7,6 @@ import Button from "./Button";
 import BucketCard from "./BucketCard";
 import BucketEditor from "./BucketEditor";
 import BucketEditorDialog from "./BucketEditorDialog";
-import EditModeToggle from "./EditModeToggle";
 import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import ManageAgentsModal from "./ManageAgentsModal";
 
@@ -30,7 +29,6 @@ export default function CreditsUsageC5({
   onMove,
   onSave,
   editMode,
-  editToggle,
   bucketLayout,
   onEditBucket,
   onAddBucket,
@@ -60,14 +58,10 @@ export default function CreditsUsageC5({
   };
   const sorted = [...agents].sort((a, b) => ratio(b) - ratio(a));
 
-  // C6 carries the edit mode as an in-page a/b toggle; C7 fixes it to dialog.
-  const [c6Mode, setC6Mode] = React.useState("inline");
-  const effectiveMode = editToggle ? c6Mode : editMode;
-
-  // Dialog editing doubles as a folder: clicking a tier selects it and the
-  // table shows that tier's agents (editing is the per-card pencil). The
-  // inline and read-only tables show the whole roster.
-  const isDialog = effectiveMode === "dialog";
+  // Dialog editors (C6b / C7) double as a folder: clicking a tier selects it
+  // and the table shows that tier's agents (editing is the per-card pencil).
+  // The inline (C6a) and read-only (C5) tables show the whole roster.
+  const isDialog = editMode === "dialog";
   const [selectedBucketId, setSelectedBucketId] = React.useState(buckets[0]?.id);
   const selectedId = buckets.some((b) => b.id === selectedBucketId) ? selectedBucketId : buckets[0]?.id;
   const tableAgents = isDialog ? sorted.filter((a) => a.bucketId === selectedId) : sorted;
@@ -76,7 +70,7 @@ export default function CreditsUsageC5({
   // way C2 lays out its buckets; the others keep the strip above the table.
   const rail = bucketLayout === "rail";
   const bucketStrip =
-    effectiveMode === "inline" ? (
+    editMode === "inline" ? (
       <BucketEditor buckets={buckets} onEdit={onEditBucket} onAdd={onAddBucket} onRemove={onRemoveBucket} />
     ) : isDialog ? (
       <BucketEditorDialog
@@ -112,7 +106,7 @@ export default function CreditsUsageC5({
       <Section
         title="Quota buckets & assignment"
         description={
-          effectiveMode
+          editMode
             ? `Edit each tier's name and weekly cap, or add up to ${rail ? 10 : 5} tiers. Every agent draws their cap from the tier they're in.`
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
@@ -127,14 +121,6 @@ export default function CreditsUsageC5({
             <div style={styles.railCol}>{bucketStrip}</div>
             <div style={styles.main}>{table}</div>
           </div>
-        ) : editToggle ? (
-          <>
-            <div style={styles.toggleRow}>
-              <div style={styles.toggleCards}>{bucketStrip}</div>
-              <EditModeToggle value={c6Mode} onChange={setC6Mode} />
-            </div>
-            {table}
-          </>
         ) : (
           <>
             {bucketStrip}
@@ -238,8 +224,6 @@ const styles = {
   split: { display: "flex", gap: 24, alignItems: "flex-start" },
   railCol: { width: 200, flexShrink: 0 },
   main: { flex: 1, minWidth: 0 },
-  toggleRow: { display: "flex", gap: 16, alignItems: "flex-start" },
-  toggleCards: { flex: 1, minWidth: 0 },
 
   popScrim: { position: "fixed", inset: 0, background: "transparent", zIndex: 39 },
   popPanel: {

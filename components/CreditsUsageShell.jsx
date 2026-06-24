@@ -3,6 +3,7 @@
 import React from "react";
 import CreditsUsagePage from "./CreditsUsagePage";
 import VersionBar from "./VersionBar";
+import IterationRail from "./IterationRail";
 
 // CreditsUsageShell — host for the Credit & Usage surface. The locked core
 // (utilisation + rules) is the same across versions; the VersionBar swaps
@@ -21,23 +22,23 @@ import VersionBar from "./VersionBar";
 //        default / Momentum 45 / Sprint 60), a "Manage agents" 4-tab manager,
 //        an amber→red over-limit banner, never-block grace period, and Save
 //        moved to the bottom of the page.
-//   C6  — C5 with editable tiers; one chip, with an in-page vertical a/b toggle
-//         beside the cards: a = inline edit, b = dialog edit (click to view,
-//         pencil to edit).
+//   C6  — C5 with editable tiers; one chip whose two edit modes (a = inline, b
+//         = dialog) live in the floating IterationRail, not the bottom bar.
 //   C7  — C6b's dialog editing with tiers stacked vertically (up to 10) and the
 //         rules shared through a modal instead of the in-card FYI.
 //
-// C4 is the preferred (starred) direction. A, B, C1, C2 and C3 are kept but
-// parked in the Discarded dropdown — still selectable for comparison, just out
-// of the main row. Variant state is in-memory and resets when the session ends.
+// Iterations (C6 a/b, the bulk study's i1/i2/i3) render in a vertical floating
+// IterationRail on the right; the bottom VersionBar shows versions only, so its
+// `versions` are passed with iterations stripped.
+//
+// C4 is the preferred (starred) direction. A, B, C1–C3 and the Bulk action exp
+// study are parked in the Discarded dropdown — still selectable for comparison,
+// just out of the main row. Variant state is in-memory; resets on session end.
 const CU_VERSIONS = [
   { id: "c4", label: "C4", iterations: [], preferred: true },
   { id: "c5", label: "C5", iterations: [] },
   { id: "c6", label: "C6", iterations: [] },
   { id: "c7", label: "C7", iterations: [] },
-  // Bulk action exp — a comparison of where the bulk "move selected agents"
-  // action sits. i1 floating bar · i2 inline in the toolbar · i3 footer.
-  { id: "bulk", label: "Bulk action exp", iterations: ["i1", "i2", "i3"] },
 ];
 const CU_DISCARDED = [
   { id: "a", label: "A" },
@@ -45,34 +46,50 @@ const CU_DISCARDED = [
   { id: "c1", label: "C1" },
   { id: "c2", label: "C2" },
   { id: "c3", label: "C3" },
+  { id: "bulk", label: "Bulk action exp" },
 ];
 const CU_BASELINE = [{ id: "cu", label: "Credit & Usage" }];
 const BULK_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
+// Iterations live in the floating rail, keyed by version id (whether the version
+// sits in the main row or in Discarded). The bulk study's i1/i2/i3 pick where
+// its move action sits: i1 floating · i2 inline · i3 footer.
+const CU_ITERATIONS = { c6: ["a", "b"], bulk: ["i1", "i2", "i3"] };
+// The bottom bar shows versions only; iterations move to the IterationRail.
+const CU_BAR_VERSIONS = CU_VERSIONS.map((v) => ({ ...v, iterations: [] }));
 
 export default function CreditsUsageShell({ onBack }) {
   const [sel, setSel] = React.useState({ versionId: "c4", iterationId: null });
-  const variant = sel.versionId.toUpperCase();
-  const bulkPlacement = sel.versionId === "bulk" ? BULK_PLACEMENTS[sel.iterationId || "i1"] : null;
+  const iterations = CU_ITERATIONS[sel.versionId] || [];
+  const activeIter = iterations.includes(sel.iterationId) ? sel.iterationId : iterations[0] || null;
+  // C6's a/b iterations map to the C6A/C6B the page knows; bulk maps to placements.
+  const variant =
+    sel.versionId === "c6" ? (activeIter === "b" ? "C6B" : "C6A") : sel.versionId.toUpperCase();
+  const bulkPlacement = sel.versionId === "bulk" ? BULK_PLACEMENTS[activeIter || "i1"] : null;
 
   return (
     <>
       {/* Re-key across the tier-dataset boundaries so the page remounts with
-          its own state (four-tier C4, three-tier C5/C6a/C6b/C7); the rest share
-          one mounted instance. */}
+          its own state (four-tier C4, three-tier C5/C6/C7); the rest share one
+          mounted instance. */}
       <CreditsUsagePage
-        key={["C4", "C5", "C6", "C7"].includes(variant) ? variant.toLowerCase() : "main"}
+        key={["C4", "C5", "C6A", "C6B", "C7"].includes(variant) ? variant.toLowerCase() : "main"}
         onBack={onBack}
         assignmentMode={variant}
         bulkPlacement={bulkPlacement}
       />
 
       <VersionBar
-        versions={CU_VERSIONS}
+        versions={CU_BAR_VERSIONS}
         discarded={CU_DISCARDED}
         baselineOptions={CU_BASELINE}
         staticBaseline
         value={sel}
         onChange={setSel}
+      />
+      <IterationRail
+        iterations={iterations}
+        value={activeIter}
+        onChange={(it) => setSel((s) => ({ ...s, iterationId: it }))}
       />
     </>
   );
