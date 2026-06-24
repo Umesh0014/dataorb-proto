@@ -641,8 +641,9 @@ export default function Page() {
     };
     const onKpiSpace = isChat && miraDirection === "kpispace";
     // The Outcomes landing + detail (direction "welcome") sit on the canvas BG,
-    // not the white chat surface.
-    const onOutcomesHome = !isChat && miraDirection === "welcome";
+    // not the white chat surface. `isChat` here just means the AMP route is
+    // active (its nav id is "chat"), same gate KPI Space uses.
+    const onOutcomesHome = isChat && miraDirection === "welcome";
     moduleContent = (
       <PageLayout
         background={onKpiSpace || onOutcomesHome ? "var(--surface-canvas)" : "var(--surface-white)"}
