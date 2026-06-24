@@ -12,10 +12,9 @@ import { MiraStarIcon } from "./SideNav/icons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const FULL_W = 1068; // fills the content area (the Learning Hub drill-landing width)
+const FULL_W = 1068; // constant report width (the Learning Hub drill-landing width)
 const RAIL_W = 300;
 const RAIL_GAP = 28;
-const PAPER_NARROW = FULL_W - RAIL_GAP - RAIL_W; // paper shrinks to this when comments open
 
 const PEOPLE = [
   { id: "pn", name: "Priya Nair", initials: "PN", color: "var(--chart-blue)" },
@@ -183,13 +182,13 @@ export default function StoryDetailPage({ outcome, story, onBack }) {
     <div style={s.page}>
       <style>{HL_STYLE}</style>
       <div style={s.scroll}>
-        <div ref={wrapRef} style={{ ...s.wrap, width: FULL_W }}>
-          <div
-            ref={articleRef}
-            style={{ ...s.article, width: commentsActive ? PAPER_NARROW : FULL_W }}
-            onMouseUp={onMouseUp}
-            onClick={onArticleClick}
-          >
+        {/* Wrap widens when commenting; since it stays centered, the constant-
+            width report slides left and the comment rail slides in on the right. */}
+        <div
+          ref={wrapRef}
+          style={{ ...s.wrap, width: commentsActive ? FULL_W + RAIL_GAP + RAIL_W : FULL_W }}
+        >
+          <div ref={articleRef} style={s.article} onMouseUp={onMouseUp} onClick={onArticleClick}>
             <div style={s.header}>
               <button type="button" onClick={onBack} style={s.back}>
                 <ArrowLeft size={16} color="var(--color-text-tertiary)" />
@@ -260,8 +259,16 @@ export default function StoryDetailPage({ outcome, story, onBack }) {
             </div>
           </div>
 
-          {/* Margin rail — anchored threads, each aligned to its selection. */}
-          <div style={{ ...s.rail, opacity: commentsActive ? 1 : 0, pointerEvents: commentsActive ? "auto" : "none" }}>
+          {/* Margin rail — anchored threads, each aligned to its selection.
+              Slides in from the right when commenting. */}
+          <div
+            style={{
+              ...s.rail,
+              opacity: commentsActive ? 1 : 0,
+              transform: commentsActive ? "translateX(0)" : "translateX(44px)",
+              pointerEvents: commentsActive ? "auto" : "none",
+            }}
+          >
             {openAnchored.map((t) => (
               <div key={t.id} style={{ ...s.railSlot, top: tops[t.id] ?? 0 }}>
                 <Thread thread={t} active={activeId === t.id} onActivate={() => setActiveId(t.id)} onAdd={addComment} onCancel={cancelDraft} onResolve={setResolved} />
@@ -484,11 +491,11 @@ const s = {
   // Screen stays on the canvas; the report is a white "paper" card on top.
   page: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" },
   scroll: { flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 64 },
-  wrap: { position: "relative", marginInline: "auto", paddingTop: 8 },
-  // White paper card; 64px vertical rhythm between every top-level section. It
-  // fills the content width and shrinks (no transition, so comment anchors
-  // re-measure cleanly) to make room for the margin rail.
+  wrap: { position: "relative", marginInline: "auto", paddingTop: 8, transition: "width 500ms cubic-bezier(.2,.7,.2,1)" },
+  // White paper card; 64px vertical rhythm between every top-level section.
+  // Constant width — the wrap widening (centered) is what slides it left.
   article: {
+    width: FULL_W,
     maxWidth: "100%",
     background: "var(--surface-white)",
     borderRadius: 24,
@@ -560,10 +567,10 @@ const s = {
   authorOrg: { marginTop: 10, fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
   authorAvatar: { width: 64, height: 64, borderRadius: 999, background: "var(--grey-900)", color: "#FFFFFF", display: "grid", placeItems: "center", fontSize: 16, fontWeight: 700, flexShrink: 0 },
 
-  rail: { position: "absolute", top: 16, left: FULL_W - RAIL_W, width: RAIL_W, height: "100%", transition: "opacity 200ms ease" },
+  rail: { position: "absolute", top: 16, left: FULL_W + RAIL_GAP, width: RAIL_W, height: "100%", transition: "transform 500ms cubic-bezier(.2,.7,.2,1), opacity 500ms ease" },
   railSlot: { position: "absolute", left: 0, width: RAIL_W, transform: "translateY(-50%)", transition: "top 200ms cubic-bezier(.2,.7,.2,1)" },
 
-  resolvedBar: { width: PAPER_NARROW, maxWidth: "100%", marginInline: "auto", marginTop: 8 },
+  resolvedBar: { width: FULL_W, maxWidth: "100%", marginInline: "auto", marginTop: 8 },
   resolvedToggle: { background: "transparent", border: "none", padding: "8px 2px", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "var(--color-button-primary-bg)", fontFamily: "var(--font-sans)" },
   resolvedList: { display: "flex", flexDirection: "column", gap: 12, marginTop: 8 },
 
