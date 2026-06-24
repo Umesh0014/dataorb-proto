@@ -54,6 +54,14 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
   const sourceIds = new Set(agents.map((a) => a.bucketId));
   const options = buckets.filter((b) => !sourceIds.has(b.id)).map((b) => ({ value: b.id, label: `${b.name} (${b.capMin} min)` }));
   const targetBucket = buckets.find((b) => b.id === target);
+  // Net weekly minutes the move commits: Σ (new cap − current cap) over the
+  // checked agents. Positive when moving up a tier, negative when moving down.
+  const deltaMin = targetBucket
+    ? picked.reduce((sum, id) => {
+        const a = agents.find((x) => x.id === id);
+        return a ? sum + (targetBucket.capMin - appliedCap(a, buckets)) : sum;
+      }, 0)
+    : 0;
 
   const q = query.trim().toLowerCase();
   const visible = q ? agents.filter((a) => a.name.toLowerCase().includes(q)) : agents;
@@ -129,9 +137,16 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
           <span style={styles.footLead}>
             <strong style={styles.footCount}>{picked.length}</strong> selected
           </span>
-          <Button variant="primary" disabled={!target || !picked.length} onClick={move} style={{ height: 40, paddingInline: 22 }}>
-            {targetBucket ? `Move to ${targetBucket.name}` : "Move"}
-          </Button>
+          <div style={styles.footRight}>
+            {targetBucket && picked.length > 0 && (
+              <span style={styles.impact}>
+                {deltaMin >= 0 ? "+" : "−"}{Math.abs(deltaMin).toLocaleString()} min / week {deltaMin >= 0 ? "added" : "freed"}
+              </span>
+            )}
+            <Button variant="primary" disabled={!target || !picked.length} onClick={move} style={{ height: 40, paddingInline: 22 }}>
+              {targetBucket ? `Move to ${targetBucket.name}` : "Move"}
+            </Button>
+          </div>
         </footer>
       </div>
     </div>,
@@ -239,4 +254,6 @@ const styles = {
   },
   footLead: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
   footCount: { fontWeight: 700, color: "var(--color-text-deep)" },
+  footRight: { display: "flex", alignItems: "center", gap: 16 },
+  impact: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", whiteSpace: "nowrap" },
 };

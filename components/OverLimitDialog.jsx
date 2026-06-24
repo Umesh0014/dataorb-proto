@@ -65,6 +65,19 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
     onMoveUp(picked, Number(step));
     onClose();
   };
+  // Additional weekly minutes the move commits: Σ (new tier cap − current cap)
+  // over the checked agents (capped at the top tier).
+  const order = buckets.map((b) => b.id);
+  const addedMin = step
+    ? picked.reduce((sum, id) => {
+        const a = agents.find((x) => x.id === id);
+        if (!a) return sum;
+        const idx = order.indexOf(a.bucketId);
+        if (idx < 0) return sum;
+        const newCap = buckets[Math.min(idx + Number(step), order.length - 1)].capMin;
+        return sum + (newCap - appliedCap(a, buckets));
+      }, 0)
+    : 0;
 
   return createPortal(
     <div style={styles.scrim} onClick={onClose} role="presentation">
@@ -129,9 +142,12 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
           <span style={styles.footLead}>
             <strong style={styles.footCount}>{picked.length}</strong> selected
           </span>
-          <Button variant="primary" disabled={!picked.length || !step} onClick={move} style={{ height: 40, paddingInline: 22 }}>
-            {step ? `Move up ${step} tier${step === "1" ? "" : "s"}` : "Move"}
-          </Button>
+          <div style={styles.footRight}>
+            {step && picked.length > 0 && <span style={styles.impact}>+{addedMin.toLocaleString()} min / week added</span>}
+            <Button variant="primary" disabled={!picked.length || !step} onClick={move} style={{ height: 40, paddingInline: 22 }}>
+              {step ? `Move up ${step} tier${step === "1" ? "" : "s"}` : "Move"}
+            </Button>
+          </div>
         </footer>
       </div>
     </div>,
@@ -239,4 +255,6 @@ const styles = {
   },
   footLead: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
   footCount: { fontWeight: 700, color: "var(--color-text-deep)" },
+  footRight: { display: "flex", alignItems: "center", gap: 16 },
+  impact: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", whiteSpace: "nowrap" },
 };
