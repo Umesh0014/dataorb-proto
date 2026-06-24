@@ -3,7 +3,7 @@
 import React from "react";
 import {
   ChevronDown, ChevronUp, Plus, Trash2, X, MessageSquareQuote, BookOpen,
-  GitBranch, ArrowRight, ArrowLeft, Sparkles, ExternalLink, Search, Check,
+  GitBranch, ArrowRight, ArrowLeft, Sparkles, ExternalLink, Search,
 } from "lucide-react";
 import Button from "./Button";
 import { Overlay } from "./GuidedWorkflowDialogs";
@@ -55,14 +55,13 @@ export default function GuidedWorkflowReviewEditor({
   const actScenarios = gwGroupStage((stagesWithSteps.find((s) => s.id === "act") || {}).steps || []).scenarios;
   const [stage, setStage] = React.useState("open");
   const [triage, setTriage] = React.useState(actScenarios[0]?.id || null);
-  const [visited, setVisited] = React.useState(() => new Set(["open"]));
   const [ctxCollapsed, setCtxCollapsed] = React.useState(false);
   const [hintsStep, setHintsStep] = React.useState(null);
   const [hintMap, setHintMap] = React.useState({});
   const [answers, setAnswers] = React.useState({});
   const [knQ, setKnQ] = React.useState(null);
 
-  const go = (s) => { setStage(s); setVisited((v) => new Set(v).add(s)); };
+  const go = (s) => setStage(s);
   const touch = () => setCtxCollapsed(true);
   const hintsFor = (step) => hintMap[step.id] || seedHints(step);
 
@@ -79,24 +78,24 @@ export default function GuidedWorkflowReviewEditor({
 
       <nav style={styles.stepper} aria-label="Workflow stages">
         {GW_STAGES.map((s, i) => {
-          const done = visited.has(s.id) && s.id !== stage;
           const active = s.id === stage;
           const count = s.id === "act" ? `${actScenarios.length} paths` : `${s.steps?.length ?? stagesWithSteps.find((x) => x.id === s.id)?.steps.length ?? 0} steps`;
           return (
-            <button key={s.id} type="button" onClick={() => go(s.id)} className="gw-focusable" style={{ ...styles.node, ...(active ? styles.nodeActive : null) }}>
-              <span style={{ ...styles.num, ...(active ? styles.numActive : done ? styles.numDone : null) }}>{done ? <Check size={13} /> : i + 1}</span>
-              <span style={styles.nodeMeta}>
-                <span style={{ ...styles.nodeName, ...(active ? styles.nodeNameActive : null) }}>{s.label}</span>
-                <span style={styles.nodeCt}>{count}</span>
-              </span>
-            </button>
+            <React.Fragment key={s.id}>
+              {i > 0 && <span style={styles.connector} aria-hidden="true" />}
+              <button type="button" onClick={() => go(s.id)} className="gw-focusable" style={{ ...styles.node, ...(active ? styles.nodeActive : null) }} aria-current={active ? "step" : undefined}>
+                <span style={{ ...styles.num, ...(active ? styles.numActive : null) }}>{i + 1}</span>
+                <span style={styles.nodeMeta}>
+                  <span style={{ ...styles.nodeName, ...(active ? styles.nodeNameActive : null) }}>{s.label}</span>
+                  <span style={styles.nodeCt}>{count}</span>
+                </span>
+              </button>
+            </React.Fragment>
           );
         })}
         <span style={styles.navDiv} aria-hidden="true" />
-        <button type="button" onClick={() => go("knowledge")} className="gw-focusable" style={{ ...styles.node, ...(stage === "knowledge" ? styles.nodeActive : null) }}>
-          <span style={{ ...styles.num, ...(stage === "knowledge" ? styles.numActive : assignedCount === GW_LIKELY_QUESTIONS.length ? styles.numDone : null) }}>
-            {assignedCount === GW_LIKELY_QUESTIONS.length ? <Check size={13} /> : <BookOpen size={13} />}
-          </span>
+        <button type="button" onClick={() => go("knowledge")} className="gw-focusable" style={{ ...styles.node, ...(stage === "knowledge" ? styles.nodeActive : null) }} aria-current={stage === "knowledge" ? "step" : undefined}>
+          <span style={{ ...styles.num, ...(stage === "knowledge" ? styles.numActive : null) }}><BookOpen size={13} /></span>
           <span style={styles.nodeMeta}>
             <span style={{ ...styles.nodeName, ...(stage === "knowledge" ? styles.nodeNameActive : null) }}>Knowledge</span>
             <span style={styles.nodeCt}>{assignedCount}/{GW_LIKELY_QUESTIONS.length} assigned</span>
@@ -407,17 +406,17 @@ const styles = {
   ctxH: { display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--color-icon-tertiary-fg)", textTransform: "uppercase", letterSpacing: "0.03em" },
   ctxP: { margin: "7px 0 0", fontSize: 13, color: "var(--color-text-medium)", lineHeight: 1.55 },
 
-  stepper: { display: "flex", alignItems: "center", gap: 2, background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 6, flexWrap: "wrap" },
-  node: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", borderRadius: 11, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
+  stepper: { display: "flex", alignItems: "center", gap: 0, background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 8, flexWrap: "wrap" },
+  connector: { alignSelf: "center", flex: "0 0 16px", height: 2, borderRadius: 2, background: "var(--color-divider-card)" },
+  node: { flex: 1, minWidth: 120, display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", borderRadius: 11, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
   nodeActive: { background: "var(--color-icon-tertiary-bg)" },
   num: { width: 24, height: 24, flexShrink: 0, borderRadius: 999, display: "inline-grid", placeItems: "center", fontSize: 12, fontWeight: 700, background: "var(--color-chip-bg)", color: "var(--color-text-tertiary)" },
   numActive: { background: "var(--color-button-primary-bg)", color: "#fff" },
-  numDone: { background: "var(--color-success-text)", color: "#fff" },
   nodeMeta: { minWidth: 0, lineHeight: 1.15 },
-  nodeName: { display: "block", fontSize: 12, fontWeight: 700, letterSpacing: "0.035em", textTransform: "uppercase", color: "var(--color-text-medium)", whiteSpace: "nowrap" },
+  nodeName: { display: "block", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.035em", textTransform: "uppercase", color: "var(--color-text-medium)", whiteSpace: "nowrap" },
   nodeNameActive: { color: "var(--color-button-primary-bg)" },
   nodeCt: { display: "block", fontSize: 10.5, color: "var(--color-text-tertiary)", fontWeight: 500, whiteSpace: "nowrap" },
-  navDiv: { flexShrink: 0, width: 1, height: 28, background: "var(--color-divider-card)", margin: "0 7px" },
+  navDiv: { flexShrink: 0, width: 1, height: 28, background: "var(--color-divider-card)", margin: "0 8px" },
 
   panel: { display: "flex", flexDirection: "column", gap: 12 },
   lead: { display: "flex", gap: 11, alignItems: "flex-start", margin: "2px 0 6px" },
