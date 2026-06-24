@@ -3,6 +3,7 @@
 import React from "react";
 import KpiSidecarTrend from "./KpiSidecarTrend";
 import { rule } from "./KpiSidecarParts";
+import DsGapDot from "./DsGapDot";
 
 const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
@@ -15,7 +16,7 @@ const PILL = {
 // Layer 2 — agent drill (Figma node 1887-70502). Identity card + This Agent /
 // Org Avg / Gap comparison, the trend chart, and a per-week table
 // (Week · Attempts · metric). Header/back owned by KpiDrillInline.
-export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek }) {
+export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek, markGaps = false }) {
   const r = rule(kpi);
   const orgAvg = kpi.campaignRate;
   const diff = +(agent.value - orgAvg).toFixed(1);
@@ -51,7 +52,8 @@ export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek }) {
       </div>
 
       {/* trend */}
-      <div style={s.chartCard}>
+      <div style={{ ...s.chartCard, position: "relative" }}>
+        {markGaps && <DsGapDot label="Trend chart — not in the 2.0 Design System; needs a DS chart component" style={{ top: 8, right: 8 }} />}
         <span style={s.sectionLabel}>Interactions</span>
         <KpiSidecarTrend data={kpi.trend} target={kpi.target} unit={kpi.unit} lowerIsBetter={!r.higherIsBetter} height={180} />
       </div>

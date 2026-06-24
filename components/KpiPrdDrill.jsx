@@ -9,7 +9,7 @@ import KpiSidecarLayer3 from "./KpiPrdLayer3";
 // Approach #3 — expand-in-place drill. One footprint hosts L1 → L2 → L3,
 // headed by a breadcrumb (`KPI ▸ Agent ▸ Week`) with a small ← arrow that
 // steps back one level (and closes at L1). State lives here.
-export default function KpiDrillInline({ kpi, onClose }) {
+export default function KpiDrillInline({ kpi, onClose, markGaps = false }) {
   const [agent, setAgent] = React.useState(null);
   const [week, setWeek] = React.useState(null);
 
@@ -47,9 +47,9 @@ export default function KpiDrillInline({ kpi, onClose }) {
       {!agent && <p style={s.subtitle}>{kpi.subtitle}</p>}
 
       {agent && week ? (
-        <KpiSidecarLayer3 kpi={kpi} agent={agent} week={week} hideBack />
+        <KpiSidecarLayer3 kpi={kpi} agent={agent} week={week} hideBack markGaps={markGaps} />
       ) : agent ? (
-        <KpiSidecarLayer2 kpi={kpi} agent={agent} hideBack onSelectWeek={setWeek} />
+        <KpiSidecarLayer2 kpi={kpi} agent={agent} hideBack onSelectWeek={setWeek} markGaps={markGaps} />
       ) : (
         <KpiSidecarLayer1 kpi={kpi} onSelectAgent={setAgent} hideHeader />
       )}
