@@ -9,7 +9,7 @@ import { Share2, Play, Pause, Target } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import PageHeader from "./PageHeader";
-import MetricSparkline from "./MetricSparkline";
+import OutcomeTrendChart from "./OutcomeTrendChart";
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -50,6 +50,11 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
 
   const stories = buildStories(outcome, good);
 
+  // Scrubbing the trend updates the headline value live (Learning Hub pattern);
+  // null = not scrubbing, so it falls back to the current value.
+  const [scrub, setScrub] = React.useState(null);
+  const shownValue = scrub ? Math.round(scrub.value) : value;
+
   return (
     <div style={d.page}>
       <div style={d.scroll}>
@@ -78,7 +83,7 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
 
             <div style={d.metricRow}>
               <div style={d.value}>
-                {value}
+                {shownValue}
                 <span style={d.unit}>%</span>
               </div>
               <div style={d.deltaCol}>
@@ -90,16 +95,12 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
             </div>
 
             <div style={d.trend}>
-              <MetricSparkline
+              <OutcomeTrendChart
                 points={trend}
-                color={accent}
-                target={target}
                 labels={labels}
-                formatValue={(v) => `${Math.round(v)}%`}
-                height={84}
-                fillTopOpacity={0.32}
-                fillBottomOpacity={0.12}
-                autoScale
+                target={target}
+                color={accent}
+                onScrub={setScrub}
               />
             </div>
 
