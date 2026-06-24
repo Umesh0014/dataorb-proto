@@ -464,12 +464,16 @@ const d = {
     color: "var(--color-text-medium)",
   },
 
+  // Sticky to the viewport bottom (the page scrolls at the body level, so a
+  // flex footer wouldn't pin). No top divider — it blends into the canvas.
   composerDock: {
     flexShrink: 0,
-    borderTop: "1px solid var(--color-divider-card)",
+    position: "sticky",
+    bottom: 0,
+    zIndex: 5,
     background: "var(--surface-canvas)",
     paddingTop: 12,
-    paddingBottom: 4,
+    paddingBottom: 8,
   },
   composerInner: {
     width: "100%",
