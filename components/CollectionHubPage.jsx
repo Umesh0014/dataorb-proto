@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp } from "lucide-react";
+import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp, X } from "lucide-react";
+import KpiDrillInline from "./KpiDrillInline";
+import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
 import CircularProgress from "./CircularProgress";
@@ -178,12 +180,32 @@ export const OUR_DISCARDED = [
 // vertical rail (segmented control) lists the active group's iterations.
 function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discarded }) {
   const isUmesh = view.startsWith("v");
-  const ours = { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 />, b8: <KpiGoalsB8 /> }[view];
+  // B8 reports its selected KPI up so the side card can render OUTSIDE the
+  // KPI's & Goals card — a separate sibling card, not an overlay panel.
+  const [drill, setDrill] = React.useState(null);
+  React.useEffect(() => { setDrill(null); }, [view]);
+  const drillKpi = drill ? { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip } : null;
+
+  const ours = view === "b8"
+    ? <KpiGoalsB8 onDrill={setDrill} drillId={drill?.id} />
+    : { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];
 
   return (
     <div style={kpiSectionStyles.wrap}>
       <div style={kpiSectionStyles.cardArea}>
-        {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
+        {!isUmesh && (
+          <div style={kpiSectionStyles.sideBySide}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>
+            </div>
+            {view === "b8" && drill && (
+              <aside style={kpiSectionStyles.sideCard}>
+                <button type="button" style={kpiSectionStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
+                <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
+              </aside>
+            )}
+          </div>
+        )}
         {view === "v0" && <KPIsV0 />}
         {view === "v1" && <KPIsV1 />}
         {view === "v2" && <KPIsV2 />}
@@ -1383,6 +1405,9 @@ const railS = {
 const kpiSectionStyles = {
   wrap: { position: "relative", width: "100%" },
   cardArea: { width: "100%" },
+  sideBySide: { display: "flex", gap: 18, alignItems: "flex-start" },
+  sideCard: { position: "sticky", top: 16, width: 440, flexShrink: 0, minWidth: 0, alignSelf: "flex-start", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "24px 24px 28px", maxHeight: "calc(100vh - 32px)", overflowY: "auto" },
+  sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
   railMount: {
     position: "absolute", top: 0, bottom: 0, left: "100%",
     marginLeft: 12, width: 48, zIndex: 30,
