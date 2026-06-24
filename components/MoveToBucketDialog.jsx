@@ -22,34 +22,12 @@ const AVATAR_COLORS = [
   "var(--chart-green)",
 ];
 const STATUS_TONE = { near_limit: "var(--color-warning)", at_cap: "var(--color-error)", on_track: "var(--color-success)" };
-const USAGE_FILTERS = [
-  { value: "all", label: "All usage" },
-  { value: "over", label: "Over cap" },
-  { value: "near", label: "Near limit" },
-  { value: "under", label: "On track" },
-];
-
 export default function MoveToBucketDialog({ open, agents, buckets, onClose, onConfirm }) {
   const [picked, setPicked] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [target, setTarget] = React.useState("");
-  // Filter the selected agents by at-cap usage band (a column filter, not tier).
-  const [filter, setFilter] = React.useState("all");
 
-  const matchesFilter = (a, f) => {
-    const st = statusOf(a.usedMin, appliedCap(a, buckets));
-    if (f === "all") return true;
-    if (f === "over") return st === "at_cap";
-    if (f === "near") return st === "near_limit";
-    return st === "on_track"; // under
-  };
-  const inFilter = agents.filter((a) => matchesFilter(a, filter));
-  const changeFilter = (f) => {
-    setFilter(f);
-    setPicked(agents.filter((a) => matchesFilter(a, f)).map((a) => a.id));
-  };
-
-  // Re-seed (all agents checked, cleared filters) each time it opens.
+  // Re-seed (all agents checked, cleared search) each time it opens.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -57,7 +35,6 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
       setPicked(agents.map((a) => a.id));
       setQuery("");
       setTarget("");
-      setFilter("all");
     }
   }
 
@@ -86,7 +63,7 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
     : 0;
 
   const q = query.trim().toLowerCase();
-  const visible = q ? inFilter.filter((a) => a.name.toLowerCase().includes(q)) : inFilter;
+  const visible = q ? agents.filter((a) => a.name.toLowerCase().includes(q)) : agents;
   const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const allOn = visible.length > 0 && visible.every((a) => picked.includes(a.id));
   const toggleAll = () => setPicked(allOn ? [] : visible.map((a) => a.id));
@@ -127,7 +104,7 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
         <div style={styles.tableHead}>
           <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all" style={styles.checkbox} disabled={visible.length === 0} />
           <span style={styles.th}>Agent</span>
-          <Select size="sm" value={filter} onChange={changeFilter} options={USAGE_FILTERS} ariaLabel="Filter by weekly usage" />
+          <span style={styles.th}>Weekly usage</span>
         </div>
 
         <div style={styles.list}>

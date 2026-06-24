@@ -26,43 +26,18 @@ const STEP_OPTIONS = [
   { value: "1", label: "Up 1 tier" },
   { value: "2", label: "Up 2 tiers" },
 ];
-const USAGE_FILTERS = [
-  { value: "all", label: "All usage" },
-  { value: "flagged", label: "Near or over" },
-  { value: "over", label: "Over cap" },
-  { value: "near", label: "Near limit" },
-  { value: "under", label: "On track" },
-];
-
 export default function OverLimitDialog({ open, agents, buckets, onClose, onMoveUp }) {
+  const flagged = agents.filter((a) => statusOf(a.usedMin, appliedCap(a, buckets)) !== "on_track");
   const [picked, setPicked] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [step, setStep] = React.useState("");
-  // Filter by at-cap usage band (not tier), so the over-limit agents from every
-  // tier mix together; "all" widens the view to the whole roster.
-  const [filter, setFilter] = React.useState("flagged");
 
-  const matchesFilter = (a, f) => {
-    const st = statusOf(a.usedMin, appliedCap(a, buckets));
-    if (f === "all") return true;
-    if (f === "over") return st === "at_cap";
-    if (f === "near") return st === "near_limit";
-    if (f === "under") return st === "on_track";
-    return st !== "on_track"; // flagged — near or over
-  };
-  const inFilter = agents.filter((a) => matchesFilter(a, filter));
-  const changeFilter = (f) => {
-    setFilter(f);
-    setPicked(agents.filter((a) => matchesFilter(a, f)).map((a) => a.id));
-  };
-
-  // Default to the near-or-over view, all checked, each time it opens.
+  // Default to all flagged agents checked each time the dialog opens.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
     if (open) {
-      setFilter("flagged");
-      setPicked(agents.filter((a) => matchesFilter(a, "flagged")).map((a) => a.id));
+      setPicked(flagged.map((a) => a.id));
       setQuery("");
       setStep("");
     }
@@ -80,7 +55,7 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
   if (!open || typeof document === "undefined") return null;
 
   const q = query.trim().toLowerCase();
-  const visible = q ? inFilter.filter((a) => a.name.toLowerCase().includes(q)) : inFilter;
+  const visible = q ? flagged.filter((a) => a.name.toLowerCase().includes(q)) : flagged;
   const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const allOn = visible.length > 0 && visible.every((a) => picked.includes(a.id));
   const toggleAll = () => setPicked(allOn ? [] : visible.map((a) => a.id));
@@ -135,7 +110,7 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
           <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all" style={styles.checkbox} disabled={visible.length === 0} />
           <span style={styles.th}>Agent</span>
           <span style={styles.th}>Tier</span>
-          <Select size="sm" value={filter} onChange={changeFilter} options={USAGE_FILTERS} ariaLabel="Filter by weekly usage" />
+          <span style={styles.th}>Weekly usage</span>
         </div>
 
         <div style={styles.list}>
@@ -183,7 +158,7 @@ function initials(name) {
   return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
-const COL_GRID = "22px minmax(180px, 1.6fr) 150px minmax(170px, 1.2fr)";
+const COL_GRID = "22px minmax(150px, 1fr) 120px minmax(260px, 2.2fr)";
 
 const styles = {
   scrim: {
