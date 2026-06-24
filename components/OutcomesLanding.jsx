@@ -280,7 +280,7 @@ const olStyles = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 20,
+    gap: 16,
   },
   // Pinned outcomes sit in their own labelled section above the rest.
   section: {
