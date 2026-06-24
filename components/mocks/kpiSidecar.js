@@ -174,6 +174,21 @@ export const KPI_CONFIGS = {
     weeks: EFFICIENCY_TREND.map((w) => w.week),
     defaultOutcomeFilter: "all",
     stubbed: false,
+    // ---- New L1 (Figma 2349-28348) summary + Week-over-Week ----------------
+    summaryKicker: "Strength",          // sub-label above the metric name
+    evaluatedPct: 50,                   // % of total interactions evaluated
+    evaluatedCount: 24910,              // count evaluated (≈ 50% of total)
+    metricCount: 20000,                 // interactions behind the headline rate
+    priorDelta: -6,                     // pp change vs the prior period
+    actions: ["Feedback Summary", "Outcome Insights"],
+    wowFilter: { label: "Strength Rate", value: "70–90%" },
+    weeklyRows: [
+      { week: "W29", range: "Jul 15–Jul 21", evaluated: 2998, metric: 76, change: -4 },
+      { week: "W27", range: "Jul 1–Jul 7", evaluated: 5678, metric: 91, change: -4 },
+      { week: "W26", range: "Jun 24–Jun 30", evaluated: 3245, metric: 85, change: -4 },
+      { week: "W24", range: "Jun 10–Jun 16", evaluated: 4876, metric: 89, change: 2 },
+      { week: "W23", range: "May 27–Jun 2", evaluated: 5432, metric: 75, change: -4 },
+    ],
   },
   // ---- Stubbed siblings — config-only, swap in data to light them up -----
   effort: { id: "effort", name: "Effort", kpiType: "C", unit: "", target: 1.5, stubbed: true },
