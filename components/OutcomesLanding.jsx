@@ -108,13 +108,14 @@ export default function OutcomesLanding({ userName = "there", composer }) {
                 </div>
                 <div style={olStyles.grid}>
                   {pinned.map((outcome) => (
-                    <OutcomeCard
-                      key={outcome.id}
-                      outcome={outcome}
-                      pinned
-                      onPin={() => togglePin(outcome.id)}
-                      onClick={() => setSelected(outcome)}
-                    />
+                    <div key={outcome.id} style={olStyles.cell}>
+                      <OutcomeCard
+                        outcome={outcome}
+                        pinned
+                        onPin={() => togglePin(outcome.id)}
+                        onClick={() => setSelected(outcome)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -122,13 +123,14 @@ export default function OutcomesLanding({ userName = "there", composer }) {
             {rest.length > 0 && (
               <div style={olStyles.grid}>
                 {rest.map((outcome) => (
-                  <OutcomeCard
-                    key={outcome.id}
-                    outcome={outcome}
-                    pinned={false}
-                    onPin={() => togglePin(outcome.id)}
-                    onClick={() => setSelected(outcome)}
-                  />
+                  <div key={outcome.id} style={olStyles.cell}>
+                    <OutcomeCard
+                      outcome={outcome}
+                      pinned={false}
+                      onPin={() => togglePin(outcome.id)}
+                      onClick={() => setSelected(outcome)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -277,10 +279,17 @@ const olStyles = {
     fontWeight: 700,
   },
 
+  // Centered flex-wrap so an incomplete last row stacks centrally.
   grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: 16,
+  },
+  cell: {
+    width: 330,
+    maxWidth: "100%",
+    display: "flex",
   },
   // Pinned outcomes sit in their own labelled section above the rest.
   section: {

@@ -12,9 +12,9 @@ import { MiraStarIcon } from "./SideNav/icons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const ARTICLE_W = 720; // white "paper" card width (content + padding)
+const ARTICLE_W = 800; // white "paper" card width (content + padding)
 const RAIL_W = 300;
-const RAIL_GAP = 32;
+const RAIL_GAP = 28;
 
 const PEOPLE = [
   { id: "pn", name: "Priya Nair", initials: "PN", color: "var(--chart-blue)" },
@@ -487,9 +487,8 @@ const s = {
     width: ARTICLE_W,
     maxWidth: "100%",
     background: "var(--surface-white)",
-    borderRadius: 20,
-    padding: "44px 48px",
-    boxShadow: "var(--shadow-8)",
+    borderRadius: 24,
+    padding: "64px 80px",
     display: "flex",
     flexDirection: "column",
     gap: 64,
