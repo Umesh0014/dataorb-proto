@@ -541,9 +541,39 @@ export const GW_SUGGESTED_STEPS = [
 // Street model: conditional tasks, not a branching tree). Steps carry a
 // `scenario` id; steps with none are always-on.
 export const GW_SCENARIOS = {
-  reboot: { label: "Reboot & optimise", trigger: "If the line is up but WiFi is weak or dropping" },
-  engineer: { label: "Engineer visit", trigger: "If the broadband light is red or no line sync is detected" },
-  outage: { label: "Area outage", trigger: "If there's a known outage in the customer's area" },
+  reboot: {
+    label: "Reboot & optimise",
+    trigger: "If the line is up but WiFi is weak or dropping",
+    triggerScenario: "Is the line in sync but the customer's WiFi is weak, intermittent, or dropping on some devices or rooms?",
+    cues: [
+      "Broadband light is steady green",
+      "Drops affect some devices or rooms, not all",
+      "Problem worsens with distance from the router",
+      "Started after moving the router or adding devices",
+    ],
+  },
+  engineer: {
+    label: "Engineer visit",
+    trigger: "If the broadband light is red or no line sync is detected",
+    triggerScenario: "Is there no broadband sync — a red or off broadband light pointing to a line fault?",
+    cues: [
+      "Broadband / DSL light is red or off",
+      "No connection on any device",
+      "A full reboot did not restore sync",
+      "Fault confirmed on the line test",
+    ],
+  },
+  outage: {
+    label: "Area outage",
+    trigger: "If there's a known outage in the customer's area",
+    triggerScenario: "Is there a known outage affecting the customer's area right now?",
+    cues: [
+      "Network status shows an outage for the postcode",
+      "Multiple customers in the area are affected",
+      "The customer's equipment shows no fault",
+      "The outage has a published restoration ETA",
+    ],
+  },
 };
 export function gwScenario(id) {
   return GW_SCENARIOS[id] || null;
@@ -561,6 +591,37 @@ export function gwGroupStage(steps) {
   });
   return { alwaysOn, scenarios: order.map((id) => byId[id]) };
 }
+
+// Review-&-publish context — the situation the workflow was mined from plus
+// the winning insight (why this call resolved). Shown in the stepper
+// direction's collapsible context panel; collapses once curation begins.
+export const GW_REVIEW_CONTEXT = {
+  situation:
+    "A customer calls because their home WiFi keeps dropping out — on every device, every few minutes. They're frustrated, have already rebooted once themselves, and want it fixed today rather than booking a visit.",
+  insight:
+    "The agent didn't jump to a reboot or an engineer. They read the router's broadband light first, split a local WiFi problem from a line fault on the spot, and only then ran the matching path — restoring the connection on the call instead of dispatching a needless truck roll.",
+};
+
+// Likely customer questions for the Knowledge stage — surfaced in the
+// customer's own voice with the intent behind them, each tied to the triage
+// path it most relates to. The TL attaches an answer card (existing or
+// AI-drafted) to each before publishing.
+export const GW_LIKELY_QUESTIONS = [
+  { id: "q-01", topic: "Drops with a green light", customerVoiced: "Why does my WiFi keep cutting out even though the light is green?", intent: "Understand why a healthy line still drops — usually WiFi range, interference or device count rather than the broadband connection itself.", relatedScenario: "reboot" },
+  { id: "q-02", topic: "Outage restoration time", customerVoiced: "There's an outage in my area — when will my internet be back?", intent: "Get a firm restoration ETA and know they'll be told when it's resolved without having to call again.", relatedScenario: "outage" },
+  { id: "q-03", topic: "Engineer visit charge", customerVoiced: "Will I be charged for an engineer to come and fix the line?", intent: "Understand whether a line-fault engineer visit is free and what happens if the fault turns out to be inside the home.", relatedScenario: "engineer" },
+  { id: "q-04", topic: "Speed after the fix", customerVoiced: "Will my speed go back to normal once this is sorted?", intent: "Know whether the fix restores full plan speed and what to do if it still feels slow afterwards.", relatedScenario: "reboot" },
+];
+
+// Knowledge-base answer cards the TL can attach to a likely question —
+// cliff-notes, not a full article. `topics` lists the question ids each card
+// answers (drives the "Suggested match" surfacing).
+export const GW_KB_CARDS = [
+  { id: "KC-201", title: "Why a healthy line still drops WiFi", topics: ["q-01"], body: "A green broadband light means the line is in sync — drops then come from WiFi: distance from the router, walls, interference, or too many devices on one band. Move the router into the open and split 2.4/5GHz before escalating." },
+  { id: "KC-202", title: "Area outages — ETA & text alerts", topics: ["q-02"], body: "When network status shows an area outage, the customer's kit is fine. Quote the published restoration ETA and register them for an automatic text when it clears — never reboot or book an engineer for a confirmed outage." },
+  { id: "KC-203", title: "Engineer visits — when they're free", topics: ["q-03"], body: "A confirmed line fault (no sync) is repaired at no charge. If the engineer finds the fault is inside the home (customer wiring or equipment), a visit charge may apply — disclose this before booking." },
+  { id: "KC-204", title: "Restoring full speed after a fix", topics: ["q-01", "q-04"], body: "Once the line is stable, a device beside the router should see full plan speed. If it's still slow, it's WiFi reach — suggest the WiFi app's per-room check or a booster rather than re-opening the line fault." },
+];
 
 // ---- meta helpers -------------------------------------------------------
 
