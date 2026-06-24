@@ -14,7 +14,7 @@ import GuidedWorkflowSectionedEditor from "./GuidedWorkflowSectionedEditor";
 import GuidedWorkflowTriageEditor from "./GuidedWorkflowTriageEditor";
 import GuidedWorkflowReviewEditor from "./GuidedWorkflowReviewEditor";
 import GuidedWorkflowStepperEditor from "./GuidedWorkflowStepperEditor";
-import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
+import { CreateOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
 import { EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
 import {
@@ -62,34 +62,21 @@ export default function GuidedWorkflowsPage() {
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [attachOpen, setAttachOpen] = React.useState(false);
   const [steps, setSteps] = React.useState(GW_STEPS);
   const [suggestions, setSuggestions] = React.useState(GW_SUGGESTED_STEPS);
-  const [attached, setAttached] = React.useState(GW_PERSONAS.filter((p) => p.attached).map((p) => p.id));
-  // Publish / save journeys (G14, INT-8): a workflow is draft or active;
-  // Publish is confirmed before it goes live; Save draft gives transient
-  // feedback. State seeds from whether this is a new or existing workflow.
+  const attached = GW_PERSONAS.filter((p) => p.attached).map((p) => p.id);
+  // Publish / archive journeys: a workflow is draft, active or archived;
+  // Publish is confirmed before it goes live.
   const [workflowState, setWorkflowState] = React.useState("active");
   const [confirmPublish, setConfirmPublish] = React.useState(false);
-  const [saved, setSaved] = React.useState(false);
-  const [justPublished, setJustPublished] = React.useState(false);
-  // The step shown in the side-curtain drawer (Checklist + Board). Studio
-  // edits in-pane, so it ignores this.
+  // The step shown in the Board's centered edit modal.
   const [openStepId, setOpenStepId] = React.useState(null);
 
   const stagesWithSteps = gwStepsByStage(steps);
   const openStep = steps.find((s) => s.id === openStepId) || null;
 
-  const saveDraft = () => {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2200);
-  };
-  const doPublish = () => {
-    setConfirmPublish(false);
-    setWorkflowState("active");
-    setJustPublished(true);
-    window.setTimeout(() => setJustPublished(false), 2600);
-  };
+  const doPublish = () => { setConfirmPublish(false); setWorkflowState("active"); };
+  const doArchive = () => setWorkflowState("archived");
 
   // Accept an AI suggestion → it folds into the checklist as a normal step
   // (keeping its grounding) and leaves the suggestions tray.
@@ -190,13 +177,9 @@ export default function GuidedWorkflowsPage() {
             <EditorChrome
               isNew={isNew}
               state={workflowState}
-              saved={saved}
-              justPublished={justPublished}
-              attachedCount={attached.length}
               onBack={() => setView("library")}
-              onAttach={() => setAttachOpen(true)}
-              onSave={saveDraft}
               onPublish={() => setConfirmPublish(true)}
+              onArchive={doArchive}
             />
             {variant === "stepper" ? (
               <GuidedWorkflowStepperEditor {...editorProps} />
@@ -228,13 +211,6 @@ export default function GuidedWorkflowsPage() {
       {createOpen && <CreateOverlay variant={variant} onClose={() => setCreateOpen(false)} onConfirm={confirmCreate} />}
       {confirmPublish && (
         <PublishOverlay attachedCount={attached.length} onClose={() => setConfirmPublish(false)} onConfirm={doPublish} />
-      )}
-      {attachOpen && (
-        <AttachOverlay
-          attached={attached}
-          onToggle={(id) => setAttached((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))}
-          onClose={() => setAttachOpen(false)}
-        />
       )}
       {/* Board edits a step in a centered modal; Checklist expands the card
           inline and Studio edits in its right pane, so neither uses this. */}
