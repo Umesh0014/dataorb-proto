@@ -6,6 +6,7 @@ import { Section } from "./CreditsUsageParts";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
 import BucketEditor from "./BucketEditor";
+import BucketEditorDialog from "./BucketEditorDialog";
 import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import ManageAgentsModal from "./ManageAgentsModal";
 
@@ -27,7 +28,9 @@ export default function CreditsUsageC5({
   onManageChange,
   onMove,
   onSave,
-  editable = false,
+  editMode,
+  bucketLayout,
+  rulesMode,
   onEditBucket,
   onAddBucket,
   onRemoveBucket,
@@ -61,18 +64,30 @@ export default function CreditsUsageC5({
       <Section
         title="Quota buckets & assignment"
         description={
-          editable
-            ? "Edit each tier's name and weekly cap, or add up to 5 tiers. Every agent draws their cap from the tier they're in."
+          editMode
+            ? `Edit each tier's name and weekly cap, or add up to ${bucketLayout === "vertical" ? 10 : 5} tiers. Every agent draws their cap from the tier they're in.`
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
         headerRight={
-          <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
-            Manage agents
-          </Button>
+          <div style={styles.headerActions}>
+            {rulesMode && <RulesPopover />}
+            <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
+              Manage agents
+            </Button>
+          </div>
         }
       >
-        {editable ? (
+        {editMode === "inline" ? (
           <BucketEditor buckets={buckets} onEdit={onEditBucket} onAdd={onAddBucket} onRemove={onRemoveBucket} />
+        ) : editMode === "dialog" ? (
+          <BucketEditorDialog
+            buckets={buckets}
+            vertical={bucketLayout === "vertical"}
+            maxBuckets={bucketLayout === "vertical" ? 10 : 5}
+            onEdit={onEditBucket}
+            onAdd={onAddBucket}
+            onRemove={onRemoveBucket}
+          />
         ) : (
           <div style={styles.bucketRow}>
             {buckets.map((b) => (
@@ -109,8 +124,31 @@ export default function CreditsUsageC5({
   );
 }
 
-// C5RulesFyi — the fixed (non-editable) practice-limit rules, rendered inside
-// the utilisation card as a read-only FYI rather than a standalone section.
+// RULES — the fixed (non-editable) practice-limit rules, shared by the in-card
+// FYI (C5 / C6) and the on-demand popover (C7).
+const RULES = [
+  {
+    lead: "Never interrupted mid-session.",
+    note: "An in-progress session finishes (e.g. 39 / 30); once over the cap, no new sessions until a manager moves the agent up a tier (45 / 60).",
+  },
+  { lead: "New agents start in Kickstart", note: "— 30 min / week by default." },
+  { lead: "Weekly reset", note: "— minutes reset every Sunday at midnight." },
+];
+
+function RulesList() {
+  return (
+    <ul style={styles.fyiList}>
+      {RULES.map((r) => (
+        <li key={r.lead} style={styles.fyiItem}>
+          <strong style={styles.fyiLead}>{r.lead}</strong> {r.note}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// C5RulesFyi — the rules rendered inside the utilisation card as a read-only
+// FYI (C5 / C6a / C6b).
 export function C5RulesFyi() {
   return (
     <div style={styles.fyi}>
@@ -119,17 +157,39 @@ export function C5RulesFyi() {
         <span style={styles.fyiTitle}>How weekly limits work</span>
         <span style={styles.fyiTag}>Fixed</span>
       </div>
-      <ul style={styles.fyiList}>
-        <li style={styles.fyiItem}>
-          <strong style={styles.fyiLead}>Never interrupted mid-session.</strong> An in-progress session finishes (e.g. 39 / 30); once over the cap, no new sessions until a manager moves the agent up a tier (45 / 60).
-        </li>
-        <li style={styles.fyiItem}>
-          <strong style={styles.fyiLead}>New agents start in Kickstart</strong> — 30 min / week by default.
-        </li>
-        <li style={styles.fyiItem}>
-          <strong style={styles.fyiLead}>Weekly reset</strong> — minutes reset every Sunday at midnight.
-        </li>
-      </ul>
+      <RulesList />
+    </div>
+  );
+}
+
+// RulesPopover — C7's alternative to the in-card FYI: a "How limits work"
+// trigger in the section header that drops a small popover with the same rules.
+function RulesPopover() {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <Button
+        variant="text"
+        uppercase={false}
+        leadingIcon={<Info size={15} />}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        How limits work
+      </Button>
+      {open && (
+        <>
+          <div style={styles.popScrim} onClick={() => setOpen(false)} aria-hidden="true" />
+          <div role="dialog" aria-label="How weekly limits work" style={styles.popPanel}>
+            <div style={styles.fyiHead}>
+              <span style={styles.fyiTitle}>How weekly limits work</span>
+              <span style={styles.fyiTag}>Fixed</span>
+            </div>
+            <RulesList />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -137,6 +197,26 @@ export function C5RulesFyi() {
 const styles = {
   bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
   saveBar: { display: "flex", justifyContent: "flex-end", paddingTop: 4 },
+  headerActions: { display: "flex", alignItems: "center", gap: 8 },
+
+  popScrim: { position: "fixed", inset: 0, background: "transparent", zIndex: 39 },
+  popPanel: {
+    position: "absolute",
+    top: "calc(100% + 8px)",
+    insetInlineEnd: 0,
+    zIndex: 40,
+    width: 320,
+    maxWidth: "calc(100vw - 48px)",
+    background: "#FFFFFF",
+    border: "1px solid var(--color-border-card-soft)",
+    borderRadius: 12,
+    boxShadow: "var(--shadow-8)",
+    padding: "14px 16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    boxSizing: "border-box",
+  },
 
   fyi: {
     display: "flex",

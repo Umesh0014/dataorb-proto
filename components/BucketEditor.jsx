@@ -5,12 +5,12 @@ import { X, Plus } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 
-// BucketEditor — the C6 editable tier strip. Each tier mirrors the read-only
-// BucketCard structure (name + note, the agent count as the headline figure,
-// the weekly cap below) but the name and cap are quiet editable fields, with a
-// remove control. An "Add tier" tile appends a new bucket up to MAX_BUCKETS.
-// The page owns the buckets state + the agent reassignment that happens on
-// remove; this is presentation over onEdit / onAdd / onRemove.
+// BucketEditor — the C6a editable tier strip (inline edit). Each tier mirrors
+// the read-only BucketCard structure (name + note, the agent count as the
+// headline figure, the weekly cap below) but the name and cap are quiet
+// editable fields, with a remove control. An "Add tier" tile appends a new
+// bucket up to MAX_BUCKETS. The page owns the buckets state + the agent
+// reassignment on remove; this is presentation over onEdit / onAdd / onRemove.
 const MAX_BUCKETS = 5;
 const FOCUS_RING = "0 0 0 2px #FFFFFF, 0 0 0 4px var(--do-brand-blue)";
 
@@ -56,7 +56,7 @@ export default function BucketEditor({ buckets, onEdit, onAdd, onRemove }) {
         </Card>
       ))}
       {buckets.length < MAX_BUCKETS && (
-        <button type="button" onClick={onAdd} style={styles.addTile}>
+        <button type="button" onClick={() => onAdd()} style={styles.addTile}>
           <Plus size={18} />
           <span style={styles.addLabel}>Add tier</span>
         </button>

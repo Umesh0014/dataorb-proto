@@ -21,18 +21,21 @@ import VersionBar from "./VersionBar";
 //        default / Momentum 45 / Sprint 60), a "Manage agents" 4-tab manager,
 //        an amber→red over-limit banner, never-block grace period, and Save
 //        moved to the bottom of the page.
-//   C6 — C5 with editable tiers: edit each bucket's name + weekly cap and add
-//        up to 5 tiers (same three-tier default + all of C5's chrome).
+//   C6a — C5 with editable tiers, edited inline on each card (add up to 5).
+//   C6b — C5 with editable tiers, edited via a dialog (click a card / Add tier).
+//   C7  — C6b's dialog editing with tiers stacked vertically (up to 10) and the
+//         rules shared through a modal instead of the in-card FYI.
 //
-// C4 is the preferred (starred) direction. A and B are kept but parked in the
-// Discarded dropdown — still selectable for comparison, just out of the main
-// row. Variant state is in-memory and resets when the session ends.
+// C4 is the preferred (starred) direction. A, B, C1 and C2 are kept but parked
+// in the Discarded dropdown — still selectable for comparison, just out of the
+// main row. Variant state is in-memory and resets when the session ends.
 const CU_VERSIONS = [
-  { id: "c2", label: "C2", iterations: [] },
   { id: "c3", label: "C3", iterations: [] },
   { id: "c4", label: "C4", iterations: [], preferred: true },
   { id: "c5", label: "C5", iterations: [] },
-  { id: "c6", label: "C6", iterations: [] },
+  { id: "c6a", label: "C6a", iterations: [] },
+  { id: "c6b", label: "C6b", iterations: [] },
+  { id: "c7", label: "C7", iterations: [] },
   // Bulk action exp — a comparison of where the bulk "move selected agents"
   // action sits. i1 floating bar · i2 inline in the toolbar · i3 footer.
   { id: "bulk", label: "Bulk action exp", iterations: ["i1", "i2", "i3"] },
@@ -41,22 +44,23 @@ const CU_DISCARDED = [
   { id: "a", label: "A" },
   { id: "b", label: "B" },
   { id: "c1", label: "C1" },
+  { id: "c2", label: "C2" },
 ];
 const CU_BASELINE = [{ id: "cu", label: "Credit & Usage" }];
 const BULK_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
 
 export default function CreditsUsageShell({ onBack }) {
-  const [sel, setSel] = React.useState({ versionId: "c2", iterationId: null });
+  const [sel, setSel] = React.useState({ versionId: "c3", iterationId: null });
   const variant = sel.versionId.toUpperCase();
   const bulkPlacement = sel.versionId === "bulk" ? BULK_PLACEMENTS[sel.iterationId || "i1"] : null;
 
   return (
     <>
-      {/* Re-key across the C4 / C5 / C6 boundaries so the page remounts with
-          the right tier dataset (four-tier / three-tier); the others share one
-          mounted instance. */}
+      {/* Re-key across the tier-dataset boundaries so the page remounts with
+          its own state (four-tier C4, three-tier C5/C6a/C6b/C7); the rest share
+          one mounted instance. */}
       <CreditsUsagePage
-        key={variant === "C4" ? "c4" : variant === "C5" ? "c5" : variant === "C6" ? "c6" : "main"}
+        key={["C4", "C5", "C6A", "C6B", "C7"].includes(variant) ? variant.toLowerCase() : "main"}
         onBack={onBack}
         assignmentMode={variant}
         bulkPlacement={bulkPlacement}

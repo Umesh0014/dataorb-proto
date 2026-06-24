@@ -41,9 +41,14 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   // boundaries (see CreditsUsageShell) so the seed data is chosen once here.
   const isC4 = assignmentMode === "C4";
   const isC5 = assignmentMode === "C5";
-  // C6 is C5 with editable + addable tiers; shares C5's three-tier seed + chrome.
-  const isC6 = assignmentMode === "C6";
-  const isC5Like = isC5 || isC6;
+  // C6a/C6b/C7 are C5 with editable + addable tiers. C6a edits inline, C6b/C7
+  // via a dialog; C7 stacks tiers vertically (up to 10) and shares rules via a
+  // modal instead of the in-card FYI. All share C5's three-tier seed + chrome.
+  const isC6a = assignmentMode === "C6A";
+  const isC6b = assignmentMode === "C6B";
+  const isC7 = assignmentMode === "C7";
+  const isC5Like = isC5 || isC6a || isC6b || isC7;
+  const editMode = isC6a ? "inline" : isC6b || isC7 ? "dialog" : undefined;
   const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5Like ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
   const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5Like ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
   // C4 uses the auto-bump cap rule; C5/C6 render their own fixed rules.
@@ -58,7 +63,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   const [pendingChange, setPendingChange] = React.useState(null);
   // C5 manager: null = closed, otherwise the tab to open on ("nearing" | id).
   const [manageTab, setManageTab] = React.useState(null);
-  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents);
+  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents, isC7 ? 10 : 5);
 
   // Swapping assignment approach resets only the approach-local selection —
   // the shared data (agents / buckets / rules) stays put. Done with the
@@ -183,7 +188,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
           consumedPct={consumedPct}
           overCap={isC5Like ? c5Alert : overCap}
           onViewAgents={isC5Like ? () => setManageTab("nearing") : scrollToAgents}
-          fyi={isC5Like ? <C5RulesFyi /> : null}
+          fyi={isC5Like && !isC7 ? <C5RulesFyi /> : null}
         />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />
@@ -235,7 +240,9 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onManageChange={setManageTab}
             onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
             onSave={() => console.log("save credits & usage")}
-            editable={isC6}
+            editMode={editMode}
+            bucketLayout={isC7 ? "vertical" : undefined}
+            rulesMode={isC7 ? "popover" : undefined}
             onEditBucket={editBucket}
             onAddBucket={addBucket}
             onRemoveBucket={removeBucket}
@@ -277,7 +284,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
 // approaches (C2–C4, bulk) fold buckets into their own card, and C5/C6 own
 // their bucket strip, so this renders nothing for those.
 function StandaloneBuckets({ mode, buckets, selectedBucketId, onSelect }) {
-  if (["C2", "C3", "C4", "BULK", "C5", "C6"].includes(mode)) return null;
+  if (["C2", "C3", "C4", "BULK", "C5", "C6A", "C6B", "C7"].includes(mode)) return null;
   return (
     <Section
       title="Quota buckets"
@@ -337,16 +344,19 @@ function c5OverAlert(agents, buckets) {
   return { tone: "amber", count: near, message: `${near} agent${near === 1 ? " is" : "s are"} nearing their weekly limit.` };
 }
 
-// useBucketEditor — C6 tier mutations over the page's buckets/agents state.
-// Edits patch a tier; add appends a blank tier (capped at 5); remove reassigns
-// the tier's agents to the first remaining tier and folds its count in.
-function useBucketEditor(buckets, setBuckets, setAgents) {
+// useBucketEditor — C6/C7 tier mutations over the page's buckets/agents state.
+// Edits patch a tier; add appends a tier (from an optional {name, capMin} spec,
+// capped at maxBuckets); remove reassigns the tier's agents to the first
+// remaining tier and folds its count in.
+function useBucketEditor(buckets, setBuckets, setAgents, maxBuckets = 5) {
   const seq = React.useRef(0);
   const editBucket = (id, patch) =>
     setBuckets((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-  const addBucket = () =>
+  const addBucket = (spec) =>
     setBuckets((prev) =>
-      prev.length >= 5 ? prev : [...prev, { id: `tier-${seq.current++}`, name: "New tier", capMin: 30, agentCount: 0 }],
+      prev.length >= maxBuckets
+        ? prev
+        : [...prev, { id: `tier-${seq.current++}`, name: spec?.name || "New tier", capMin: spec?.capMin || 30, agentCount: 0 }],
     );
   const removeBucket = (id) => {
     if (buckets.length <= 1) return;
