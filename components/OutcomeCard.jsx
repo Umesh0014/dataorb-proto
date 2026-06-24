@@ -45,10 +45,9 @@ export default function OutcomeCard({ outcome, onClick }) {
   const [hovered, setHovered] = React.useState(false);
   const { title, value, target, deltaPp, trend, invert } = outcome;
 
-  // Arrow/sign follow the raw direction; colour follows whether the move is
-  // GOOD. For most metrics up is good; for inverted metrics (e.g. Churn Risk,
-  // where lower is better) a downward move is the success case.
-  const positive = deltaPp >= 0;
+  // Colour follows whether the move is GOOD. For most metrics up is good; for
+  // inverted metrics (e.g. Churn Risk, where lower is better) a downward move
+  // is the success case.
   const good = invert ? deltaPp < 0 : deltaPp >= 0;
   const accent = good ? "var(--color-success)" : "var(--color-error)";
 
@@ -128,14 +127,6 @@ export default function OutcomeCard({ outcome, onClick }) {
               fillBottomOpacity={0.12}
               autoScale
             />
-          </div>
-
-          <div style={ocStyles.deltaBlock}>
-            <span style={ocStyles.vsLabel}>vs last period</span>
-            <span style={{ ...ocStyles.delta, color: accent }}>
-              {positive ? "+" : ""}
-              {deltaPp} pp
-            </span>
           </div>
         </div>
       </Card>
@@ -247,24 +238,5 @@ const ocStyles = {
     flex: 1,
     minWidth: 0,
     pointerEvents: "auto",
-  },
-
-  deltaBlock: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-end",
-    gap: 4,
-    flexShrink: 0,
-    textAlign: "right",
-  },
-  vsLabel: {
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--color-text-tertiary)",
-  },
-  delta: {
-    fontSize: 18,
-    fontWeight: 800,
-    fontVariantNumeric: "tabular-nums",
   },
 };
