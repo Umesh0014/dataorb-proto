@@ -156,14 +156,16 @@ const olStyles = {
     display: "flex",
     flexDirection: "column",
     fontFamily: "var(--font-sans)",
+    paddingTop: 80,
   },
+  // Widened so each bento card has room to breathe; the search field and
+  // toggle stay centered at a narrower cap so they don't stretch full-width.
   column: {
     width: "100%",
-    maxWidth: 800,
+    maxWidth: 1040,
     marginInline: "auto",
     display: "flex",
     flexDirection: "column",
-    gap: 20,
   },
 
   hero: {
@@ -171,7 +173,7 @@ const olStyles = {
     flexDirection: "column",
     alignItems: "center",
     gap: 12,
-    marginTop: 8,
+    marginBottom: 20,
   },
   greeting: {
     fontSize: 24,
@@ -182,6 +184,10 @@ const olStyles = {
   },
 
   search: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center",
+    marginBottom: 20,
     display: "flex",
     alignItems: "center",
     gap: 10,
@@ -208,6 +214,7 @@ const olStyles = {
     alignItems: "center",
     gap: 2,
     padding: 3,
+    marginBottom: 64,
     borderRadius: 10,
     border: "1px solid var(--color-divider-card)",
     background: "var(--surface-white)",
@@ -233,7 +240,7 @@ const olStyles = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 16,
+    gap: 20,
   },
 
   empty: {

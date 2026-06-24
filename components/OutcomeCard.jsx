@@ -9,21 +9,28 @@
 import React from "react";
 import { MoreHorizontal } from "lucide-react";
 import Card from "./Card";
+import MetricSparkline from "./MetricSparkline";
+
+// Period axis for the trend. Readings map 1:1 to the last twelve months; the
+// peak month is tagged in its hover tooltip ("Peak · Mar").
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 /**
  * OutcomeCard — the single metric card for the Ask Mira Pro Outcomes landing.
  *
- * Visual language is borrowed from the Transactions reference card: title +
- * kebab on top, an oversized value bottom-left, a dot-matrix bar chart of the
- * trend in the centre (with an always-on "Peak" callout naming the high
- * point — Neil's labelling rule, so the chart is never an unexplained shape),
- * and a "vs last period" delta on the right.
+ * Visual language borrowed from the Transactions reference card: title + kebab
+ * on top, an oversized value bottom-left, a sparkline area trend line of the
+ * trend across the middle, and a "vs last period" delta on the right. Hovering
+ * the sparkline reveals each month's value; the peak point reads "Peak · {mo}"
+ * so the line is never an unexplained number (Neil's labelling rule).
  *
  * Colour is driven by the delta SIGN, not by above/below target (Jun 9 rule):
- * deltaPp >= 0 → success, else danger. Both the delta and the dot-chart fill
- * read from this. Delta is labelled in `pp` (percentage points) per house
- * standard, not the mock's "pts". The dot-matrix is a stylized bar chart —
- * within the allowed chart set (bar / trend / pie / donut / ring).
+ * deltaPp >= 0 → success, else danger — applied to both the delta and the
+ * sparkline stroke. Delta is labelled in `pp` (percentage points) per house
+ * standard, not the mock's "pts".
  *
  * @param {{
  *   outcome: {
@@ -40,6 +47,13 @@ export default function OutcomeCard({ outcome, onClick }) {
   const positive = deltaPp >= 0;
   const accent = positive ? "var(--color-success)" : "var(--color-error)";
 
+  // Tag the peak point so its hover tooltip reads "Peak · {month}".
+  const peakIdx = trend.indexOf(Math.max(...trend));
+  const labels = trend.map((_, i) => {
+    const mo = MONTHS[i] ?? `P${i + 1}`;
+    return i === peakIdx ? `Peak · ${mo}` : mo;
+  });
+
   return (
     <div
       style={ocStyles.wrap}
@@ -48,8 +62,8 @@ export default function OutcomeCard({ outcome, onClick }) {
     >
       <Card
         tone="outline"
-        padX={20}
-        padY={18}
+        padX={24}
+        padY={20}
         style={{
           ...ocStyles.card,
           boxShadow: hovered ? "var(--shadow-8)" : "var(--shadow-card)",
@@ -57,7 +71,8 @@ export default function OutcomeCard({ outcome, onClick }) {
         }}
       >
         {/* Full-card drill-in target — sits beneath the content so the whole
-            card is one keyboard-focusable click, minus the kebab on top. */}
+            card is one keyboard-focusable click, minus the kebab and the
+            sparkline (which captures hover for its tooltip). */}
         <button
           type="button"
           onClick={onClick}
@@ -90,7 +105,13 @@ export default function OutcomeCard({ outcome, onClick }) {
           </div>
 
           <div style={ocStyles.chartWrap}>
-            <DotChart points={trend} color={accent} />
+            <MetricSparkline
+              points={trend}
+              color={accent}
+              target={target}
+              labels={labels}
+              formatValue={(v) => `${Math.round(v)}%`}
+            />
           </div>
 
           <div style={ocStyles.deltaBlock}>
@@ -106,54 +127,6 @@ export default function OutcomeCard({ outcome, onClick }) {
   );
 }
 
-// Period axis for the dot-matrix columns. Trend readings map 1:1 to the last
-// twelve months; the peak callout names the month of the high point.
-const PERIODS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-const ROWS = 7;
-
-// DotChart — dependency-free dot-matrix bar chart. Each column's solid-dot
-// height is proportional to that period's value; remaining dots render as a
-// faint tint of the same colour (the track). The tallest column carries an
-// always-on "Peak" tag so the shape is self-explaining.
-function DotChart({ points, color }) {
-  const n = points.length;
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const peakIdx = points.indexOf(max);
-  const track = `color-mix(in srgb, ${color} 22%, var(--surface-white))`;
-
-  const filled = (v) =>
-    max === min ? ROWS : 1 + Math.round(((v - min) / (max - min)) * (ROWS - 1));
-
-  return (
-    <div style={dotStyles.chart}>
-      <span
-        style={{ ...dotStyles.peak, left: `${((peakIdx + 0.5) / n) * 100}%` }}
-      >
-        Peak: <b style={dotStyles.peakValue}>{PERIODS[peakIdx] ?? `P${peakIdx + 1}`}</b>
-      </span>
-      <div style={dotStyles.cols}>
-        {points.map((v, i) => {
-          const on = filled(v);
-          return (
-            <div key={i} style={dotStyles.col}>
-              {Array.from({ length: ROWS }).map((_, j) => (
-                <span
-                  key={j}
-                  style={{ ...dotStyles.dot, background: j < on ? color : track }}
-                />
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 const ocStyles = {
   wrap: {
     display: "block",
@@ -165,7 +138,7 @@ const ocStyles = {
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    gap: 18,
+    gap: 20,
     height: "100%",
     transition: "box-shadow 140ms ease, transform 140ms ease",
   },
@@ -217,7 +190,7 @@ const ocStyles = {
     zIndex: 1,
     display: "flex",
     alignItems: "center",
-    gap: 16,
+    gap: 28,
     pointerEvents: "none",
   },
   valueBlock: {
@@ -230,7 +203,7 @@ const ocStyles = {
     display: "flex",
     alignItems: "baseline",
     gap: 1,
-    fontSize: 38,
+    fontSize: 40,
     fontWeight: 800,
     lineHeight: 1,
     color: "var(--color-text-deep)",
@@ -261,11 +234,12 @@ const ocStyles = {
     fontVariantNumeric: "tabular-nums",
   },
 
+  // Captures hover so the sparkline tooltip works; clicks here don't drill in
+  // (the rest of the card does). Flex-fills the widened card.
   chartWrap: {
     flex: 1,
     minWidth: 0,
-    display: "flex",
-    justifyContent: "center",
+    pointerEvents: "auto",
   },
 
   deltaBlock: {
@@ -285,51 +259,5 @@ const ocStyles = {
     fontSize: 18,
     fontWeight: 800,
     fontVariantNumeric: "tabular-nums",
-  },
-};
-
-const dotStyles = {
-  chart: {
-    position: "relative",
-    paddingTop: 20,
-    display: "inline-flex",
-    justifyContent: "center",
-  },
-  peak: {
-    position: "absolute",
-    top: 0,
-    transform: "translateX(-50%)",
-    whiteSpace: "nowrap",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 3,
-    height: 18,
-    paddingInline: 7,
-    borderRadius: 9,
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-divider-card)",
-    boxShadow: "var(--shadow-card)",
-    fontSize: 10,
-    fontWeight: 500,
-    color: "var(--color-text-tertiary)",
-  },
-  peakValue: {
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-  },
-  cols: {
-    display: "flex",
-    alignItems: "flex-end",
-    gap: 4,
-  },
-  col: {
-    display: "flex",
-    flexDirection: "column-reverse",
-    gap: 3,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: "50%",
   },
 };
