@@ -9,6 +9,7 @@ export { default as Chip } from "./Chip";
 export { default as Tabs } from "./Tabs";
 export { default as OutcomeBar } from "./OutcomeBar";
 export { default as ActivityRing } from "./ActivityRing";
+export { default as InteractionCard } from "./InteractionCard";
 
 // Existing DS-aligned primitives promoted into the library:
 export { default as Card } from "../Card";
