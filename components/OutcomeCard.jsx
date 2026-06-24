@@ -43,7 +43,7 @@ const MONTHS = [
  */
 export default function OutcomeCard({ outcome, onClick }) {
   const [hovered, setHovered] = React.useState(false);
-  const { title, value, target, goalPct, deltaPp, trend } = outcome;
+  const { title, value, target, deltaPp, trend } = outcome;
 
   const positive = deltaPp >= 0;
   const accent = positive ? "var(--color-success)" : "var(--color-error)";
@@ -109,7 +109,6 @@ export default function OutcomeCard({ outcome, onClick }) {
               {value}
               <span style={ocStyles.unit}>%</span>
             </div>
-            <span style={ocStyles.goalBadge}>{goalPct}% of goal</span>
             <span style={ocStyles.target}>target {target}%</span>
           </div>
 
@@ -123,6 +122,7 @@ export default function OutcomeCard({ outcome, onClick }) {
               height={56}
               fillTopOpacity={0.32}
               fillBottomOpacity={0.12}
+              autoScale
             />
           </div>
 
@@ -229,19 +229,6 @@ const ocStyles = {
     fontSize: 20,
     fontWeight: 700,
     color: "var(--color-text-tertiary)",
-  },
-  goalBadge: {
-    alignSelf: "flex-start",
-    display: "inline-flex",
-    alignItems: "center",
-    height: 22,
-    paddingInline: 8,
-    borderRadius: 6,
-    background: "var(--badge-amber-bg)",
-    color: "var(--badge-amber)",
-    fontSize: 12,
-    fontWeight: 700,
-    fontVariantNumeric: "tabular-nums",
   },
   target: {
     fontSize: 12,

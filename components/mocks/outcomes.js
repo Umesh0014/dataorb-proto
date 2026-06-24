@@ -25,7 +25,7 @@ export const OUTCOMES = [
     target: 85,
     goalPct: 95,
     deltaPp: -2,
-    trend: [84, 83, 84, 82, 83, 81, 82, 80, 81, 82, 80, 81],
+    trend: [96, 94, 92, 91, 89, 88, 87, 86, 85, 84, 83, 81],
   },
   {
     id: "script-adherence",
@@ -34,7 +34,7 @@ export const OUTCOMES = [
     target: 90,
     goalPct: 98,
     deltaPp: 3,
-    trend: [80, 81, 83, 82, 84, 85, 86, 85, 87, 86, 88, 88],
+    trend: [22, 28, 35, 42, 50, 58, 65, 72, 78, 83, 85, 88],
   },
   {
     id: "compliance-adherence",
@@ -43,7 +43,7 @@ export const OUTCOMES = [
     target: 82,
     goalPct: 105,
     deltaPp: -3,
-    trend: [92, 91, 90, 89, 90, 88, 87, 89, 86, 87, 85, 86],
+    trend: [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 89, 86],
   },
   {
     id: "greeting-adherence",
@@ -52,7 +52,7 @@ export const OUTCOMES = [
     target: 89,
     goalPct: 103,
     deltaPp: 1,
-    trend: [90, 91, 90, 92, 91, 93, 92, 93, 92, 93, 92, 92],
+    trend: [20, 26, 33, 42, 51, 60, 69, 77, 84, 89, 91, 92],
   },
 ];
 
@@ -64,7 +64,7 @@ export const ARCHIVED_OUTCOMES = [
     target: 80,
     goalPct: 91,
     deltaPp: -1,
-    trend: [78, 77, 76, 75, 76, 74, 75, 73, 74, 72, 73, 73],
+    trend: [90, 88, 87, 85, 84, 82, 81, 79, 77, 75, 74, 73],
   },
   {
     id: "csat-pilot",
@@ -73,7 +73,7 @@ export const ARCHIVED_OUTCOMES = [
     target: 80,
     goalPct: 105,
     deltaPp: 2,
-    trend: [76, 77, 79, 78, 80, 81, 82, 81, 83, 82, 84, 84],
+    trend: [24, 30, 38, 46, 55, 63, 70, 76, 80, 82, 82, 84],
   },
   {
     id: "onboarding-adherence",
@@ -82,6 +82,6 @@ export const ARCHIVED_OUTCOMES = [
     target: 85,
     goalPct: 93,
     deltaPp: -3,
-    trend: [85, 84, 83, 82, 83, 81, 80, 82, 79, 80, 78, 79],
+    trend: [95, 93, 92, 90, 89, 87, 86, 84, 83, 82, 82, 79],
   },
 ];

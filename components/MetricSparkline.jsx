@@ -69,6 +69,7 @@ export default function MetricSparkline({
   height = DEFAULT_HEIGHT,
   fillTopOpacity = FILL_OPACITY_TOP,
   fillBottomOpacity = FILL_OPACITY_BOTTOM,
+  autoScale = false,
 }) {
   const [containerRef, measuredWidth] = useMeasuredWidth(96);
   const width = Math.max(1, measuredWidth);
@@ -86,10 +87,17 @@ export default function MetricSparkline({
 
   const n = points.length;
   const hasTarget = typeof target === "number";
-  const max = Math.max(...points, hasTarget ? target : 0) || 1;
+  // Zero-baseline by default (magnitude reads honestly); autoScale zooms the
+  // y-domain to [min, max] of the data (and target) so high, tightly-banded
+  // series still show their shape instead of flat-lining near the top.
+  const domainMax = Math.max(...points, hasTarget ? target : 0) || 1;
+  const domainMin = autoScale
+    ? Math.min(...points, hasTarget ? target : points[0])
+    : 0;
+  const span = domainMax - domainMin || 1;
   const xAt =
     n === 1 ? () => width / 2 : (i) => PAD_X + (i / (n - 1)) * (width - 2 * PAD_X);
-  const yAt = (v) => PAD_TOP + (1 - v / max) * (height - PAD_TOP);
+  const yAt = (v) => PAD_TOP + (1 - (v - domainMin) / span) * (height - PAD_TOP);
   const xy = points.map((v, i) => [xAt(i), yAt(v)]);
 
   const linePath = monotonePath(xy);
