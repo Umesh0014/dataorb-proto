@@ -51,11 +51,11 @@ export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems,
   // B9 opens each KPI's OWN type-correct config (PRD §5). B8 keeps the single
   // Figma-2349 (Efficiency) dataset.
   const drillKpi = drill
-    ? ((kpiView === "b9" || kpiView === "b10")
+    ? ((kpiView === "b9" || kpiView === "b10" || kpiView === "b11")
         ? { ...(KPI_CONFIGS[drill.id] || KPI_CONFIGS[DEFAULT_KPI_ID]), name: drill.name }
         : { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip })
     : null;
-  const DrillCard = (kpiView === "b9" || kpiView === "b10") ? KpiPrdDrill : KpiDrillInline;
+  const DrillCard = (kpiView === "b9" || kpiView === "b10" || kpiView === "b11") ? KpiPrdDrill : KpiDrillInline;
 
   const sections = (
     <>
@@ -86,7 +86,7 @@ export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems,
             <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#5A5D72" }}>close</span>
           </Button>
         </div>
-        <DrillCard kpi={drillKpi} onClose={() => setDrill(null)} markGaps={kpiView === "b10"} />
+        <DrillCard kpi={drillKpi} onClose={() => setDrill(null)} markGaps={kpiView === "b10" || kpiView === "b11"} />
       </aside>
     </div>
   );
@@ -224,6 +224,7 @@ export const OUR_ITERATIONS = [
   { id: "b8", label: "B8", title: "Activity rings + Figma 2349 side card" },
   { id: "b9", label: "B9", title: "Activity rings + PRD v2.0 side card (agent drill, per-KPI types)" },
   { id: "b10", label: "B10", title: "Design System 2.0 — tokenised, lemon-green markers on DS gaps" },
+  { id: "b11", label: "B11", title: "Credit-Usage recreation — composed only from existing DS-aligned components" },
 ];
 
 export const OUR_DISCARDED = [
@@ -241,10 +242,10 @@ function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discard
   // B8 reports its selected KPI up to the PAGE (CollectionHubPage), which renders
   // the drill as a full-height card to the right of every section. The rail is
   // hidden while that page side card is open so they don't collide.
-  const drillOpen = (view === "b8" || view === "b9" || view === "b10") && Boolean(drillId);
+  const drillOpen = (view === "b8" || view === "b9" || view === "b10" || view === "b11") && Boolean(drillId);
 
-  const ours = view === "b10"
-    ? <KpiGoalsB10 onDrill={onDrill} drillId={drillId} />
+  const ours = (view === "b10" || view === "b11")
+    ? <KpiGoalsB10 onDrill={onDrill} drillId={drillId} creditUsage={view === "b11"} />
     : (view === "b8" || view === "b9")
     ? <KpiGoalsB8 onDrill={onDrill} drillId={drillId} />
     : { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];

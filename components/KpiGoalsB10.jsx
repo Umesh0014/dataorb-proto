@@ -15,7 +15,7 @@ const RING_COLORS = [COLORS.primary, "#6B89FF", "#A5B4FC"];
 // tokens. The ring and category list are linked: hovering / clicking either an
 // arc or a row highlights both and filters the cards. Components the DS does not
 // yet provide are flagged with a lemon-green DsGapDot (hover for details).
-export default function KpiGoalsB10({ onDrill, drillId }) {
+export default function KpiGoalsB10({ onDrill, drillId, creditUsage = false }) {
   const [page, setPage] = React.useState(0);
   const [catFilter, setCatFilter] = React.useState(null);
   const [hover, setHover] = React.useState(null);
@@ -31,9 +31,19 @@ export default function KpiGoalsB10({ onDrill, drillId }) {
 
   return (
     <div style={s.wrap}>
-      <header style={s.header}>
+      <header style={{ ...s.header, position: "relative" }}>
         <h2 style={s.title}>KPI’s and Goals</h2>
-        <p style={s.subtitle}>Activity rings + attention cards · Design System 2.0</p>
+        <p style={s.subtitle}>{creditUsage
+          ? "Credit-Usage recreation · composed only from existing DS-aligned components"
+          : "Activity rings + attention cards · Design System 2.0"}</p>
+        {creditUsage && (
+          <DsGapDot
+            component="Page Header"
+            closest="Components → Headers → Page Header"
+            why="The DS Page Header isn't available as code to pull directly (DS is a Figma library only). This reuses the existing header styling — swap in the real DS Page Header when it ships as code."
+            style={{ top: 0, right: 0 }}
+          />
+        )}
       </header>
 
       <div style={s.body}>
