@@ -72,47 +72,49 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
             }
           />
 
-          <div style={d.breadcrumb}>OUTCOME SPACE · ASK MIRA PRO</div>
-          <h1 style={d.title}>{title}</h1>
+          <Card shadow padX={28} padY={24} style={d.heroCard}>
+            <div style={d.breadcrumb}>OUTCOME SPACE · ASK MIRA PRO</div>
+            <h1 style={d.title}>{title}</h1>
 
-          <div style={d.metricRow}>
-            <div style={d.value}>
-              {value}
-              <span style={d.unit}>%</span>
+            <div style={d.metricRow}>
+              <div style={d.value}>
+                {value}
+                <span style={d.unit}>%</span>
+              </div>
+              <div style={d.deltaCol}>
+                <span style={d.vsLabel}>vs last period</span>
+                <span style={{ ...d.delta, color: accent }}>
+                  {positive ? "+" : ""}{deltaPp} pp
+                </span>
+              </div>
             </div>
-            <div style={d.deltaCol}>
-              <span style={d.vsLabel}>vs last period</span>
-              <span style={{ ...d.delta, color: accent }}>
-                {positive ? "+" : ""}{deltaPp} pp
-              </span>
+
+            <div style={d.trend}>
+              <MetricSparkline
+                points={trend}
+                color={accent}
+                target={target}
+                labels={labels}
+                formatValue={(v) => `${Math.round(v)}%`}
+                height={84}
+                fillTopOpacity={0.32}
+                fillBottomOpacity={0.12}
+                autoScale
+              />
             </div>
-          </div>
 
-          <div style={d.trendFrame}>
-            <MetricSparkline
-              points={trend}
-              color={accent}
-              target={target}
-              labels={labels}
-              formatValue={(v) => `${Math.round(v)}%`}
-              height={84}
-              fillTopOpacity={0.32}
-              fillBottomOpacity={0.12}
-              autoScale
-            />
-          </div>
+            <div style={d.stats}>
+              <StatCell label="Target" value={`${target}%`} first />
+              <StatCell label="% of goal" value={`${goalPct}%`} />
+              <StatCell
+                label="vs last period"
+                value={`${positive ? "+" : ""}${deltaPp} pp`}
+                color={accent}
+              />
+            </div>
 
-          <div style={d.stats}>
-            <Stat label="Target" value={`${target}%`} />
-            <Stat label="% of goal" value={`${goalPct}%`} />
-            <Stat
-              label="vs last period"
-              value={`${positive ? "+" : ""}${deltaPp} pp`}
-              color={accent}
-            />
-          </div>
-
-          <AudioBriefing />
+            <AudioBriefing />
+          </Card>
 
           <div style={d.storiesHead}>Stories</div>
           <div style={d.stories}>
@@ -153,12 +155,14 @@ function Facepile() {
   );
 }
 
-function Stat({ label, value, color }) {
+// StatCell — one cell of the in-card stat row. Cells after the first carry a
+// thin divider so the three read as one strip, not separate cards.
+function StatCell({ label, value, color, first }) {
   return (
-    <Card tone="outline" padX={16} padY={14} style={d.statCard}>
+    <div style={{ ...d.statCell, ...(first ? null : d.statCellDivided) }}>
       <span style={d.statLabel}>{label}</span>
       <span style={{ ...d.statValue, color: color || "var(--color-text-deep)" }}>{value}</span>
-    </Card>
+    </div>
   );
 }
 
@@ -272,8 +276,11 @@ const d = {
     marginLeft: -8,
   },
 
+  // Single white card holding the whole hero block (breadcrumb → audio).
+  heroCard: {
+    marginTop: 16,
+  },
   breadcrumb: {
-    marginTop: 20,
     textAlign: "center",
     fontSize: 12,
     fontWeight: 700,
@@ -328,23 +335,28 @@ const d = {
     fontVariantNumeric: "tabular-nums",
   },
 
-  trendFrame: {
+  // Borderless trend — sits directly inside the hero card.
+  trend: {
     marginTop: 20,
-    border: "1px solid var(--color-divider-card)",
-    borderRadius: 12,
-    padding: 16,
   },
 
   stats: {
-    marginTop: 16,
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 12,
+    marginTop: 20,
+    paddingTop: 20,
+    borderTop: "1px solid var(--color-divider-card)",
+    display: "flex",
+    alignItems: "stretch",
   },
-  statCard: {
+  statCell: {
+    flex: 1,
+    minWidth: 0,
     display: "flex",
     flexDirection: "column",
     gap: 6,
+    paddingInline: 20,
+  },
+  statCellDivided: {
+    borderInlineStart: "1px solid var(--color-divider-card)",
   },
   statLabel: {
     fontSize: 12,
