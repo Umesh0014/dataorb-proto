@@ -1,7 +1,8 @@
-/* eslint-disable no-restricted-syntax --
+/* eslint-disable no-restricted-syntax, max-lines --
    The audio-briefing play control is a single bespoke pill surface (dark pill
    + waveform), not a Button.jsx pill/icon/text shape — same precedent as the
-   composer's visibility switch. Raw <button> keeps it one accessible target. */
+   composer's visibility switch. Raw <button> keeps it one accessible target.
+   This is a feature page (detail surface), so it runs past the soft size cap. */
 "use client";
 
 import React from "react";
@@ -10,6 +11,7 @@ import Card from "./Card";
 import Button from "./Button";
 import PageHeader from "./PageHeader";
 import OutcomeTrendChart from "./OutcomeTrendChart";
+import StoryDetailPage from "./StoryDetailPage";
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -54,6 +56,11 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
   // null = not scrubbing, so it falls back to the current value.
   const [scrub, setScrub] = React.useState(null);
   const shownValue = scrub ? Math.round(scrub.value) : value;
+
+  const [openStory, setOpenStory] = React.useState(null);
+  if (openStory) {
+    return <StoryDetailPage outcome={outcome} story={openStory} onBack={() => setOpenStory(null)} />;
+  }
 
   return (
     <div style={d.page}>
@@ -119,10 +126,10 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
 
           <div style={d.storiesHead}>Stories</div>
           <div style={d.storiesLayout}>
-            <FeatureStory story={stories[0]} />
+            <FeatureStory story={stories[0]} onOpen={() => setOpenStory(stories[0])} />
             <div style={d.storiesList}>
               {stories.slice(1).map((st) => (
-                <ListStory key={st.kind} story={st} />
+                <ListStory key={st.kind} story={st} onOpen={() => setOpenStory(st)} />
               ))}
             </div>
           </div>
@@ -294,37 +301,41 @@ function buildStories(o, good) {
 }
 
 // FeatureStory — the large hero card (left), with a tone-tinted visual band.
-function FeatureStory({ story }) {
+function FeatureStory({ story, onOpen }) {
   const { kind, tone, Icon, title, body } = story;
   return (
-    <Card tone="outline" padX={0} padY={0} style={d.featureCard}>
-      <div style={{ ...d.featureVisual, background: `color-mix(in srgb, ${tone} 15%, var(--surface-white))` }}>
-        <span style={{ ...d.featureIcon, background: `color-mix(in srgb, ${tone} 22%, var(--surface-white))` }}>
-          <Icon size={30} color={tone} />
-        </span>
-      </div>
-      <div style={d.featureBody}>
-        <span style={{ ...d.storyKind, color: tone }}>{kind}</span>
-        <span style={d.featureTitle}>{title}</span>
-        <span style={d.storyBody}>{body}</span>
-      </div>
-    </Card>
+    <button type="button" onClick={onOpen} style={d.featureBtn}>
+      <Card tone="outline" padX={0} padY={0} style={d.featureCard}>
+        <div style={{ ...d.featureVisual, background: `color-mix(in srgb, ${tone} 15%, var(--surface-white))` }}>
+          <span style={{ ...d.featureIcon, background: `color-mix(in srgb, ${tone} 22%, var(--surface-white))` }}>
+            <Icon size={30} color={tone} />
+          </span>
+        </div>
+        <div style={d.featureBody}>
+          <span style={{ ...d.storyKind, color: tone }}>{kind}</span>
+          <span style={d.featureTitle}>{title}</span>
+          <span style={d.storyBody}>{body}</span>
+        </div>
+      </Card>
+    </button>
   );
 }
 
 // ListStory — compact right-column card: tone thumbnail + kicker + title.
-function ListStory({ story }) {
+function ListStory({ story, onOpen }) {
   const { kind, tone, Icon, title } = story;
   return (
-    <Card tone="outline" padX={16} padY={16} style={d.listCard}>
-      <span style={{ ...d.thumb, background: `color-mix(in srgb, ${tone} 15%, var(--surface-white))` }}>
-        <Icon size={22} color={tone} />
-      </span>
-      <div style={d.listText}>
-        <span style={{ ...d.storyKind, color: tone }}>{kind}</span>
-        <span style={d.listTitle}>{title}</span>
-      </div>
-    </Card>
+    <button type="button" onClick={onOpen} style={d.listBtn}>
+      <Card tone="outline" padX={16} padY={16} style={d.listCard}>
+        <span style={{ ...d.thumb, background: `color-mix(in srgb, ${tone} 15%, var(--surface-white))` }}>
+          <Icon size={22} color={tone} />
+        </span>
+        <div style={d.listText}>
+          <span style={{ ...d.storyKind, color: tone }}>{kind}</span>
+          <span style={d.listTitle}>{title}</span>
+        </div>
+      </Card>
+    </button>
   );
 }
 
@@ -580,9 +591,20 @@ const d = {
     alignItems: "stretch",
     gap: 20,
   },
-  featureCard: {
+  featureBtn: {
     flex: "1.1 1 0",
     minWidth: 0,
+    display: "block",
+    appearance: "none",
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    cursor: "pointer",
+    textAlign: "left",
+    fontFamily: "var(--font-sans)",
+  },
+  featureCard: {
+    height: "100%",
     borderRadius: 12,
     overflow: "hidden",
     display: "flex",
@@ -619,9 +641,21 @@ const d = {
     flexDirection: "column",
     gap: 16,
   },
-  listCard: {
+  listBtn: {
     flex: 1,
     minHeight: 0,
+    width: "100%",
+    display: "block",
+    appearance: "none",
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    cursor: "pointer",
+    textAlign: "left",
+    fontFamily: "var(--font-sans)",
+  },
+  listCard: {
+    height: "100%",
     borderRadius: 12,
     display: "flex",
     alignItems: "center",
