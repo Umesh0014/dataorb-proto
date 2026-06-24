@@ -148,6 +148,7 @@ const ocStyles = {
     flexDirection: "column",
     gap: 20,
     height: "100%",
+    borderRadius: 12,
     transition: "box-shadow 140ms ease, transform 140ms ease",
   },
   overlay: {

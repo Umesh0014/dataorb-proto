@@ -622,6 +622,7 @@ const d = {
   listCard: {
     flex: 1,
     minHeight: 0,
+    borderRadius: 12,
     display: "flex",
     alignItems: "center",
     gap: 14,
