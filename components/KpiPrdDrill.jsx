@@ -51,7 +51,7 @@ export default function KpiDrillInline({ kpi, onClose, markGaps = false }) {
       ) : agent ? (
         <KpiSidecarLayer2 kpi={kpi} agent={agent} hideBack onSelectWeek={setWeek} markGaps={markGaps} />
       ) : (
-        <KpiSidecarLayer1 kpi={kpi} onSelectAgent={setAgent} hideHeader />
+        <KpiSidecarLayer1 kpi={kpi} onSelectAgent={setAgent} hideHeader markGaps={markGaps} />
       )}
     </div>
   );

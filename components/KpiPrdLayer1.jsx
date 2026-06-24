@@ -3,6 +3,7 @@
 import React from "react";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Phone, Info } from "lucide-react";
 import { OutcomeBar, RagChip, SkeletonRows, sortAgents, statusLabelFor, rule, InfoTip } from "./KpiSidecarParts";
+import DsGapDot from "./DsGapDot";
 
 const PAGE = 20;
 const FETCH_MS = 650;
@@ -18,7 +19,7 @@ const PILL = {
 // rate + trend + outcome breakdown + segmented bar + legend) over a compact
 // agents table (avatar · interactions · metric pill · call). Header/back is
 // owned by KpiDrillInline; this is the body.
-export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
+export default function KpiSidecarLayer1({ kpi, onSelectAgent, markGaps = false }) {
   const sorted = React.useMemo(() => sortAgents(kpi), [kpi]);
   const [shown, setShown] = React.useState(PAGE);
   const [fetching, setFetching] = React.useState(false);
@@ -79,7 +80,15 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
             )}
           </div>
         </div>
-        <div style={s.sumBottom}>
+        <div style={{ ...s.sumBottom, position: "relative" }}>
+          {markGaps && (
+            <DsGapDot
+              component="Outcome breakdown bar"
+              closest="Graphs & Charts → Stacked / segmented bar"
+              why="DS ships stacked bars for charts, but not this thin inline segmented outcome bar with an inline legend. Adapt the stacked bar into a compact inline variant."
+              style={{ top: -2, right: -2 }}
+            />
+          )}
           <span style={s.sectionLabel}>Outcome breakdown</span>
           <OutcomeBar outcomes={kpi.outcomes} />
         </div>
