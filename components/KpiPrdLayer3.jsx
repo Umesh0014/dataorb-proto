@@ -3,6 +3,7 @@
 import React from "react";
 import { CheckCircle2, AlertTriangle, MinusCircle, ExternalLink } from "lucide-react";
 import { EFFICIENCY_INTERACTIONS } from "./mocks/kpiSidecar";
+import DsGapDot from "./DsGapDot";
 
 const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
@@ -16,7 +17,7 @@ const TONE = {
 // Layer 3 — interaction detail (Figma node 1887-70825). Summary line + outcome
 // filter + interaction cards (sentiment icon · id · tags · resolution · ↗) each
 // with a ✦ Mira AI snippet. Header/back owned by KpiDrillInline.
-export default function KpiSidecarLayer3({ kpi, week }) {
+export default function KpiSidecarLayer3({ kpi, week, markGaps = false }) {
   const all = (kpi.interactions || EFFICIENCY_INTERACTIONS)[week] || [];
   const outcomes = ["all", ...kpi.outcomes.map((o) => o.label)];
   const [filter, setFilter] = React.useState("all");
@@ -29,7 +30,15 @@ export default function KpiSidecarLayer3({ kpi, week }) {
         <span style={s.sumStat}><strong>{all.length}</strong> interactions · {week}</span>
       </div>
 
-      <div style={s.filterRow}>
+      <div style={{ ...s.filterRow, position: "relative" }}>
+        {markGaps && (
+          <DsGapDot
+            component="Interaction card"
+            closest="Organisms → Lists + Chips"
+            why="The card composes an ID + context chips + resolution + ✦ AI snippet — not a single DS component. Assemble from a DS List row + DS Chips + the AI-snippet pattern."
+            style={{ top: -2, right: -2 }}
+          />
+        )}
         <span style={s.filterLabel}>Interactions</span>
         <select style={s.select} value={filter} onChange={(e) => setFilter(e.target.value)}>
           {outcomes.map((o) => <option key={o} value={o}>{o === "all" ? "All outcomes" : o}</option>)}
@@ -85,7 +94,7 @@ const s = {
   cardBody: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 },
   id: { fontSize: 14, fontWeight: 400, color: "#2C2F42", letterSpacing: "0.25px", fontFamily: "var(--font-mono)" },
   tags: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  tag: { display: "inline-flex", alignItems: "center", padding: "4px 8px", borderRadius: 4, background: "#F5F5F5", color: "#424659", fontSize: 11, fontFamily: LATO },
+  tag: { display: "inline-flex", alignItems: "center", padding: "4px 8px", borderRadius: 4, background: "#F5F5F5", color: "#424659", fontSize: 11, fontWeight: 500, letterSpacing: "0.5px", fontFamily: POPPINS },
   dot: { width: 3, height: 3, borderRadius: 999, background: "#8C90A6" },
   res: { fontSize: 12, fontWeight: 500 },
   openLink: { flexShrink: 0, display: "inline-flex", marginTop: 2 },
