@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import Modal from "./Modal";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
@@ -16,22 +16,40 @@ import { Field, RingInput } from "./CreditsUsageParts";
 // onAdd / onRemove.
 const FOCUS_RING = "0 0 0 2px #FFFFFF, 0 0 0 4px var(--do-brand-blue)";
 
-export default function BucketEditorDialog({ buckets, vertical = false, maxBuckets = 5, onEdit, onAdd, onRemove }) {
+export default function BucketEditorDialog({
+  buckets,
+  vertical = false,
+  maxBuckets = 5,
+  selectedId,
+  onSelect,
+  onEdit,
+  onAdd,
+  onRemove,
+}) {
   // null = closed; otherwise { bucket } where bucket is the tier to edit or
   // null for the add flow.
   const [dialog, setDialog] = React.useState(null);
 
   return (
     <div style={vertical ? styles.col : styles.row}>
-      {buckets.map((b) =>
-        vertical ? (
-          <div key={b.id} style={styles.colItem}>
-            <BucketCard bucket={b} interactive onClick={() => setDialog({ bucket: b })} />
-          </div>
-        ) : (
-          <BucketCard key={b.id} bucket={b} interactive onClick={() => setDialog({ bucket: b })} />
-        ),
-      )}
+      {buckets.map((b) => (
+        // Clicking the card selects the tier (the table shows its agents); the
+        // pencil is the separate edit affordance.
+        <div key={b.id} style={vertical ? styles.colItem : styles.rowItem}>
+          <BucketCard bucket={b} interactive selected={b.id === selectedId} onClick={() => onSelect(b.id)} />
+          <button
+            type="button"
+            style={styles.editBtn}
+            aria-label={`Edit ${b.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDialog({ bucket: b });
+            }}
+          >
+            <Pencil size={14} />
+          </button>
+        </div>
+      ))}
       {buckets.length < maxBuckets && (
         <button type="button" onClick={() => setDialog({ bucket: null })} style={vertical ? styles.addBar : styles.addTile}>
           <Plus size={18} />
@@ -132,7 +150,25 @@ function BucketDialog({ open, bucket, canRemove, onClose, onSave, onRemove }) {
 const styles = {
   row: { display: "flex", gap: 12, alignItems: "stretch", flexWrap: "wrap" },
   col: { display: "flex", flexDirection: "column", gap: 8 },
-  colItem: { display: "flex" },
+  colItem: { position: "relative", display: "flex" },
+  rowItem: { position: "relative", display: "flex", flex: "1 1 180px", minWidth: 180 },
+  editBtn: {
+    position: "absolute",
+    bottom: 10,
+    insetInlineEnd: 10,
+    width: 26,
+    height: 26,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid var(--color-border-card-soft)",
+    borderRadius: 6,
+    background: "#FFFFFF",
+    color: "var(--color-text-tertiary)",
+    cursor: "pointer",
+    zIndex: 1,
+    transition: "color 120ms ease, border-color 120ms ease",
+  },
 
   addBar: {
     display: "flex",

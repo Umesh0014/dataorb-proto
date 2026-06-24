@@ -16,7 +16,7 @@ import AgentBucketTable, { appliedCap, statusOf } from "./AgentBucketTable";
 import LimitRuleControl from "./LimitRuleControl";
 import BucketDecisionControls from "./BucketDecisionControls";
 import CreditsUsageAdjustPanel from "./CreditsUsageAdjustPanel";
-import CreditsUsageC5, { C5RulesFyi } from "./CreditsUsageC5";
+import CreditsUsageC5, { C5RulesFyi, RulesPopover } from "./CreditsUsageC5";
 import {
   WEEKLY_QUOTA,
   QUOTA_BUCKETS,
@@ -189,6 +189,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
           overCap={isC5Like ? c5Alert : overCap}
           onViewAgents={isC5Like ? () => setManageTab("nearing") : scrollToAgents}
           fyi={isC5Like && !isC7 ? <C5RulesFyi /> : null}
+          headerRight={isC7 ? <RulesPopover /> : undefined}
         />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />
@@ -242,7 +243,6 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onSave={() => console.log("save credits & usage")}
             editMode={editMode}
             bucketLayout={isC7 ? "rail" : undefined}
-            rulesMode={isC7 ? "popover" : undefined}
             onEditBucket={editBucket}
             onAddBucket={addBucket}
             onRemoveBucket={removeBucket}

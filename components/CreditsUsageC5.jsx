@@ -30,7 +30,6 @@ export default function CreditsUsageC5({
   onSave,
   editMode,
   bucketLayout,
-  rulesMode,
   onEditBucket,
   onAddBucket,
   onRemoveBucket,
@@ -59,17 +58,27 @@ export default function CreditsUsageC5({
   };
   const sorted = [...agents].sort((a, b) => ratio(b) - ratio(a));
 
+  // Dialog editors (C6b / C7) double as a folder: clicking a tier selects it
+  // and the table shows that tier's agents (editing is the per-card pencil).
+  // The inline (C6a) and read-only (C5) tables show the whole roster.
+  const isDialog = editMode === "dialog";
+  const [selectedBucketId, setSelectedBucketId] = React.useState(buckets[0]?.id);
+  const selectedId = buckets.some((b) => b.id === selectedBucketId) ? selectedBucketId : buckets[0]?.id;
+  const tableAgents = isDialog ? sorted.filter((a) => a.bucketId === selectedId) : sorted;
+
   // C7 ("rail") stacks the editable tiers in a left rail beside the table, the
   // way C2 lays out its buckets; the others keep the strip above the table.
   const rail = bucketLayout === "rail";
   const bucketStrip =
     editMode === "inline" ? (
       <BucketEditor buckets={buckets} onEdit={onEditBucket} onAdd={onAddBucket} onRemove={onRemoveBucket} />
-    ) : editMode === "dialog" ? (
+    ) : isDialog ? (
       <BucketEditorDialog
         buckets={buckets}
         vertical={rail}
         maxBuckets={rail ? 10 : 5}
+        selectedId={selectedId}
+        onSelect={setSelectedBucketId}
         onEdit={onEditBucket}
         onAdd={onAddBucket}
         onRemove={onRemoveBucket}
@@ -83,7 +92,7 @@ export default function CreditsUsageC5({
     );
   const table = (
     <AgentBucketTable
-      agents={sorted}
+      agents={tableAgents}
       buckets={buckets}
       paginate
       showAdjust={false}
@@ -102,12 +111,9 @@ export default function CreditsUsageC5({
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
         headerRight={
-          <div style={styles.headerActions}>
-            {rulesMode && <RulesPopover />}
-            <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
-              Manage agents
-            </Button>
-          </div>
+          <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
+            Manage agents
+          </Button>
         }
       >
         {rail ? (
@@ -179,8 +185,9 @@ export function C5RulesFyi() {
 }
 
 // RulesPopover — C7's alternative to the in-card FYI: a "How limits work"
-// trigger in the section header that drops a small popover with the same rules.
-function RulesPopover() {
+// trigger (docked in the utilisation card header) that drops a small popover
+// with the same rules.
+export function RulesPopover() {
   const [open, setOpen] = React.useState(false);
   return (
     <div style={{ position: "relative" }}>
@@ -213,7 +220,6 @@ function RulesPopover() {
 const styles = {
   bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
   saveBar: { display: "flex", justifyContent: "flex-end", paddingTop: 4 },
-  headerActions: { display: "flex", alignItems: "center", gap: 8 },
 
   split: { display: "flex", gap: 24, alignItems: "flex-start" },
   railCol: { width: 200, flexShrink: 0 },
