@@ -25,8 +25,8 @@ export function EditorChrome({ isNew, state, onBack, onPublish, onArchive }) {
       }}
       actions={
         <div style={styles.chromeActions}>
-          <Button variant="text" uppercase={false} leadingIcon={<Archive size={15} />} onClick={onArchive} className="gw-focusable">Archive</Button>
-          <Button variant="primary" onClick={onPublish} className="gw-focusable">{isDraft ? "Publish" : "Update & republish"}</Button>
+          <Button variant="text" uppercase={false} leadingIcon={<Archive size={15} />} onClick={onArchive} className="gw-focusable" style={styles.actionBtn}>Archive</Button>
+          <Button variant="primary" onClick={onPublish} className="gw-focusable" style={styles.actionBtn}>{isDraft ? "Publish" : "Update & republish"}</Button>
         </div>
       }
     />
@@ -46,6 +46,7 @@ export function DirectionsHelp() {
 
 const styles = {
   chromeActions: { display: "inline-flex", alignItems: "center", gap: 12 },
+  actionBtn: { height: 32, minWidth: 0, paddingInline: 16 },
 };
 
 const vbHelp = {
