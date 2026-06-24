@@ -16,13 +16,14 @@ const RING_COLORS = ["#004BEF", "#6B89FF", "#A5B4FC"];
 export default function KpiGoalsB8({ onDrill, drillId }) {
   const [page, setPage] = React.useState(0);
   const [catFilter, setCatFilter] = React.useState(null);
-  const open = !!drillId;
 
   const attention = KPIS.filter((k) => statusOf(k).rag !== "green" && (!catFilter || k.category === catFilter));
   const pages = Math.max(1, Math.ceil(attention.length / PER_PAGE));
   const safePage = Math.min(page, pages - 1);
   const visible = attention.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
-  const cols = open ? 1 : 3;
+  // The KPI card keeps full width when the drill opens, so the tiles never
+  // reflow — always 3-across, always filled.
+  const cols = 3;
 
   const pickCat = (name) => { setCatFilter((c) => (c === name ? null : name)); setPage(0); };
   const select = (k) => onDrill?.(drillId === k.id ? null : k);
@@ -59,7 +60,7 @@ export default function KpiGoalsB8({ onDrill, drillId }) {
           <span style={s.attnLabel}>{catFilter ? `${catFilter} · needs attention` : "Needs attention"}</span>
           <div style={{ ...s.grid, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
             {visible.map((k) => (
-              <KpiTile key={k.id} k={k} fill={!open} selected={drillId === k.id} onClick={() => select(k)} />
+              <KpiTile key={k.id} k={k} fill selected={drillId === k.id} onClick={() => select(k)} />
             ))}
             {!visible.length && <p style={s.empty}>No KPIs need attention here.</p>}
           </div>

@@ -47,33 +47,52 @@ export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems,
   React.useEffect(() => { setDrill(null); }, [kpiView]);
   const drillKpi = drill ? { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip } : null;
 
+  const sections = (
+    <>
+      <CollectionHeader />
+      <HeroCard />
+      <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} discarded={kpiDiscarded} onDrill={setDrill} drillId={drill?.id} />
+      <AIArtifactsCard />
+      <ConversationFlowCard />
+      <SentimentCard />
+      <ObjectionsCard />
+      <ContactOutcomeCard />
+      <QualityAdherenceCard />
+    </>
+  );
+
+  // Closed: normal centered 1068 column. Open: the card stack KEEPS its full
+  // 1068 width and shifts left into the gutter (the row breaks out of the
+  // centered column to span the whole content area), and the side card takes
+  // the freed space on the right. No card is resized.
+  if (!drill) return <div style={pageStyles.cardsCol}>{sections}</div>;
+
   return (
-    <div style={pageStyles.row}>
-      <div style={pageStyles.cardsCol}>
-        <CollectionHeader />
-        <HeroCard />
-        <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} discarded={kpiDiscarded} onDrill={setDrill} drillId={drill?.id} />
-        <AIArtifactsCard />
-        <ConversationFlowCard />
-        <SentimentCard />
-        <ObjectionsCard />
-        <ContactOutcomeCard />
-        <QualityAdherenceCard />
-      </div>
-      {drill && (
-        <aside style={pageStyles.sideCard}>
-          <button type="button" style={pageStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
-          <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
-        </aside>
-      )}
+    <div style={pageStyles.rowOpen}>
+      <div style={pageStyles.cardsColFixed}>{sections}</div>
+      <aside style={pageStyles.sideCard}>
+        <button type="button" style={pageStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
+        <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
+      </aside>
     </div>
   );
 }
 
+// Width of the content area between the side-nav and the two page gutters.
+const AVAIL = "(100vw - var(--sidenav-width) - 2 * var(--page-gutter))";
 const pageStyles = {
-  row: { display: "flex", gap: 18, alignItems: "flex-start", width: "100%" },
-  cardsCol: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
-  sideCard: { position: "sticky", top: 16, flexShrink: 0, width: 460, height: "calc(100vh - 32px)", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto" },
+  cardsCol: { width: "100%", display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
+  // Break out of the centered 1068 column to span gutter-to-gutter, left-aligned.
+  rowOpen: {
+    width: `calc${AVAIL}`,
+    marginInline: `calc((var(--page-content-max-width) - ${AVAIL}) / 2)`,
+    display: "flex",
+    gap: 24,
+    alignItems: "flex-start",
+  },
+  // Cards keep their normal full content width — never shrink.
+  cardsColFixed: { width: "var(--page-content-max-width)", flexShrink: 0, display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
+  sideCard: { position: "sticky", top: 16, flex: 1, minWidth: 400, height: "calc(100vh - 32px)", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto" },
   sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
 };
 
