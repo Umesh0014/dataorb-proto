@@ -1,45 +1,22 @@
 "use client";
 
 import React from "react";
-import {
-  ChevronDown, ChevronUp, Plus, Trash2, X, MessageSquareQuote, BookOpen,
-  GitBranch, ArrowRight, ArrowLeft, Sparkles, ExternalLink, Search,
-} from "lucide-react";
+import { GitBranch, Plus, X, ChevronDown, ChevronUp, ExternalLink, Sparkles, Trash2, MessageSquareQuote, BookOpen, Search } from "lucide-react";
 import Button from "./Button";
+import { TypeTag, GroundingChip } from "./GuidedWorkflowBits";
+import { StepDetailBody } from "./GuidedWorkflowStepDetail";
 import { Overlay } from "./GuidedWorkflowDialogs";
-import { TypeTag, RequirementTag, GroundingChip } from "./GuidedWorkflowBits";
-import {
-  GW_STAGES, gwGroupStage, GW_SCENARIOS, GW_LIKELY_QUESTIONS, GW_KB_CARDS, GW_REVIEW_CONTEXT,
-} from "./mocks/guidedWorkflows";
+import { GW_STAGES, GW_SCENARIOS, gwGroupStage, GW_REVIEW_CONTEXT, GW_LIKELY_QUESTIONS, GW_KB_CARDS } from "./mocks/guidedWorkflows";
 
-// Review & publish · vertical stepper with progressive disclosure. One stage
-// on screen at a time, driven by a horizontal stepper (Open → Close, then a
-// Knowledge node). Act is triage: a path selector + a "run this path when"
-// decision banner with trigger cues. Step cards open a Hints drawer (say /
-// listen-for / if-then / best-practice). The Knowledge stage equips each
-// likely customer question with an answer card — attach an existing one or
-// draft one from raw knowledge. The context panel carries the winning insight
-// and steps aside the moment curation begins.
+// Stepper + sidecar. The category spine is a horizontal stepper (Open →
+// Close) plus a Knowledge node set off at the end — Knowledge isn't a process
+// stage, but it rides the same stepper bar. Selecting a category reveals its
+// steps as cards; selecting Knowledge shows the likely-question equip panel.
+// Clicking a step card opens a docked sidecar with the full detail. A
+// collapsible context panel sits above the stepper.
 
-const ORDER = [...GW_STAGES.map((s) => s.id), "knowledge"];
-const STAGE_LABEL = Object.fromEntries(GW_STAGES.map((s) => [s.id, s.label]));
-
-const HINT_META = {
-  say: { label: "Say", color: "var(--color-icon-tertiary-fg)", bg: "var(--color-icon-tertiary-bg)" },
-  listenFor: { label: "Listen for", color: "var(--color-info-text)", bg: "var(--color-info-bg)" },
-  ifThen: { label: "If / then", color: "var(--color-text-medium)", bg: "var(--color-chip-bg)" },
-  bestPractice: { label: "Best practice", color: "var(--color-success-text)", bg: "var(--color-success-bg)" },
-};
-
-// Hints are synthesised from a step's existing assets: the script reads as a
-// "say" hint, each conditional sub-step as an "if-then", the knowledge card as
-// a "best-practice". Edits live in local prototype state.
-function seedHints(step) {
-  const h = [];
-  if (step.script) h.push({ type: "say", text: step.script });
-  (step.subSteps || []).forEach((s) => h.push({ type: "ifThen", text: s.label }));
-  if (step.knowledge) h.push({ type: "bestPractice", text: step.knowledge.body });
-  return h;
+function hintCount(step) {
+  return (step.script ? 1 : 0) + (step.knowledge ? 1 : 0) + (step.subSteps?.length || 0);
 }
 
 const DRAFTS = {
@@ -49,28 +26,27 @@ const DRAFTS = {
   "q-04": { title: "Getting full speed back after the fix", body: "Once the line's stable, a device next to the router should see your full plan speed. If it still feels slow further away, that's WiFi range rather than the line — the WiFi app shows per-room signal and where a booster would help." },
 };
 
-export default function GuidedWorkflowReviewEditor({
+export default function GuidedWorkflowStepperEditor({
   stagesWithSteps, onUpdateInstruction, onCycleType, onCycleRequirement, onRemove, onAddBlank,
 }) {
-  const actScenarios = gwGroupStage((stagesWithSteps.find((s) => s.id === "act") || {}).steps || []).scenarios;
-  const [stage, setStage] = React.useState("open");
+  const actSteps = (stagesWithSteps.find((s) => s.id === "act") || {}).steps || [];
+  const actScenarios = gwGroupStage(actSteps).scenarios;
+  const [stageId, setStageId] = React.useState("open");
   const [triage, setTriage] = React.useState(actScenarios[0]?.id || null);
   const [ctxCollapsed, setCtxCollapsed] = React.useState(false);
-  const [hintsStep, setHintsStep] = React.useState(null);
-  const [hintMap, setHintMap] = React.useState({});
+  const [selId, setSelId] = React.useState(null);
   const [answers, setAnswers] = React.useState({});
   const [knQ, setKnQ] = React.useState(null);
 
-  const go = (s) => setStage(s);
-  const touch = () => setCtxCollapsed(true);
-  const hintsFor = (step) => hintMap[step.id] || seedHints(step);
+  const stage = GW_STAGES.find((s) => s.id === stageId);
+  const isAct = stageId === "act";
+  const isKnowledge = stageId === "knowledge";
+  const steps = isAct ? (actScenarios.find((sc) => sc.id === triage)?.steps || []) : (stagesWithSteps.find((s) => s.id === stageId)?.steps || []);
+  const allSteps = stagesWithSteps.flatMap((s) => s.steps);
+  const selected = allSteps.find((s) => s.id === selId) || null;
+  const assigned = Object.keys(answers).length;
 
-  const stageObj = GW_STAGES.find((s) => s.id === stage);
-  const steps = stage === "act"
-    ? (actScenarios.find((sc) => sc.id === triage)?.steps || [])
-    : (stagesWithSteps.find((s) => s.id === stage)?.steps || []);
-  const idx = ORDER.indexOf(stage);
-  const assignedCount = Object.keys(answers).length;
+  const pick = (id) => { setStageId(id); setSelId(null); };
 
   return (
     <div style={styles.wrap}>
@@ -78,203 +54,122 @@ export default function GuidedWorkflowReviewEditor({
 
       <nav style={styles.stepper} aria-label="Workflow stages">
         {GW_STAGES.map((s, i) => {
-          const active = s.id === stage;
-          const count = s.id === "act" ? `${actScenarios.length} paths` : `${s.steps?.length ?? stagesWithSteps.find((x) => x.id === s.id)?.steps.length ?? 0} steps`;
+          const active = s.id === stageId;
+          const stp = stagesWithSteps.find((x) => x.id === s.id)?.steps || [];
           return (
             <React.Fragment key={s.id}>
               {i > 0 && <span style={styles.connector} aria-hidden="true" />}
-              <button type="button" onClick={() => go(s.id)} className="gw-focusable" style={{ ...styles.node, ...(active ? styles.nodeActive : null) }} aria-current={active ? "step" : undefined}>
+              <button type="button" onClick={() => pick(s.id)} className="gw-focusable" style={{ ...styles.node, ...(active ? styles.nodeActive : null) }} aria-current={active ? "step" : undefined}>
                 <span style={{ ...styles.num, ...(active ? styles.numActive : null) }}>{i + 1}</span>
                 <span style={styles.nodeMeta}>
                   <span style={{ ...styles.nodeName, ...(active ? styles.nodeNameActive : null) }}>{s.label}</span>
-                  <span style={styles.nodeCt}>{count}</span>
+                  <span style={styles.nodeCt}>{stp.length} step{stp.length === 1 ? "" : "s"}</span>
                 </span>
               </button>
             </React.Fragment>
           );
         })}
         <span style={styles.navDiv} aria-hidden="true" />
-        <button type="button" onClick={() => go("knowledge")} className="gw-focusable" style={{ ...styles.node, ...(stage === "knowledge" ? styles.nodeActive : null) }} aria-current={stage === "knowledge" ? "step" : undefined}>
-          <span style={{ ...styles.num, ...(stage === "knowledge" ? styles.numActive : null) }}><BookOpen size={13} /></span>
+        <button type="button" onClick={() => pick("knowledge")} className="gw-focusable" style={{ ...styles.node, ...(isKnowledge ? styles.nodeActive : null) }} aria-current={isKnowledge ? "step" : undefined}>
+          <span style={{ ...styles.num, ...(isKnowledge ? styles.numActive : null) }}><BookOpen size={13} /></span>
           <span style={styles.nodeMeta}>
-            <span style={{ ...styles.nodeName, ...(stage === "knowledge" ? styles.nodeNameActive : null) }}>Knowledge</span>
-            <span style={styles.nodeCt}>{assignedCount}/{GW_LIKELY_QUESTIONS.length} assigned</span>
+            <span style={{ ...styles.nodeName, ...(isKnowledge ? styles.nodeNameActive : null) }}>Knowledge</span>
+            <span style={styles.nodeCt}>{assigned}/{GW_LIKELY_QUESTIONS.length} assigned</span>
           </span>
         </button>
       </nav>
 
-      <section style={styles.panel}>
-        {stage === "knowledge" ? (
-          <KnowledgeStage answers={answers} onOpen={(q, mode) => setKnQ({ q, mode })} onDetach={(qid) => { setAnswers((a) => { const n = { ...a }; delete n[qid]; return n; }); touch(); }} />
-        ) : (
+      <div style={styles.cols}>
+        <div style={styles.main}>
+          {isKnowledge ? (
+            <KnowledgeStage
+              answers={answers}
+              onOpen={(q, mode) => setKnQ({ q, mode })}
+              onDetach={(qid) => setAnswers((a) => { const n = { ...a }; delete n[qid]; return n; })}
+            />
+          ) : (
           <>
-            <div style={styles.lead}><span style={styles.leadBar} aria-hidden="true" /><span style={styles.leadTxt}>{stageObj.purpose}</span></div>
+          <div style={styles.lead}><span style={styles.leadBar} aria-hidden="true" /><span style={styles.leadTxt}>{stage.purpose}</span></div>
 
-            {stage === "act" && (
-              <>
-                <div style={styles.triageTabs}>
-                  {actScenarios.map((sc) => (
-                    <button key={sc.id} type="button" onClick={() => setTriage(sc.id)} className="gw-focusable" style={{ ...styles.triageTab, ...(sc.id === triage ? styles.triageTabActive : null) }}>
-                      <span style={styles.lanePill}><GitBranch size={12} color="var(--color-icon-tertiary-fg)" />{sc.label}</span>
-                      <span style={styles.triageName}>{sc.trigger}</span>
-                      <span style={styles.triageCt}>{sc.steps.length} steps · {GW_SCENARIOS[sc.id]?.cues.length || 0} cues</span>
-                    </button>
-                  ))}
+          {isAct && (
+            <>
+              <div style={styles.triageTabs}>
+                {actScenarios.map((sc) => (
+                  <button key={sc.id} type="button" onClick={() => { setTriage(sc.id); setSelId(null); }} className="gw-focusable" style={{ ...styles.triageTab, ...(sc.id === triage ? styles.triageTabActive : null) }}>
+                    <span style={styles.lanePill}><GitBranch size={12} color="var(--color-icon-tertiary-fg)" />{sc.label}</span>
+                    <span style={styles.triageCt}>{sc.steps.length} steps</span>
+                  </button>
+                ))}
+              </div>
+              {GW_SCENARIOS[triage] && (
+                <div style={styles.fork}><span style={styles.forkLbl}>Run this path when</span><span style={styles.forkQ}>{GW_SCENARIOS[triage].triggerScenario}</span></div>
+              )}
+            </>
+          )}
+
+          {steps.map((step, i) => {
+            const sel = selId === step.id;
+            const n = hintCount(step);
+            return (
+              <div
+                key={step.id} role="button" tabIndex={0} aria-pressed={sel}
+                onClick={() => setSelId(step.id)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelId(step.id); } }}
+                className="gw-focusable" style={{ ...styles.scard, ...(sel ? styles.scardSel : null) }}
+              >
+                <div style={styles.scardTop}>
+                  <span style={styles.ordPill}>{i + 1}</span>
+                  <TypeTag type={step.type} />
+                  <span style={{ flex: 1 }} />
+                  <span style={styles.scardId}>{step.id}</span>
                 </div>
-                <ForkBanner scenario={GW_SCENARIOS[triage]} />
-              </>
-            )}
+                <div style={styles.instr}>{step.instruction || "New step — describe what the agent should do."}</div>
+                <div style={styles.scardFoot}>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setSelId(step.id); }} className="gw-focusable" style={styles.hintChip}>
+                    <MessageSquareQuote size={14} /> Hints <span style={styles.hintN}>{n}</span>
+                  </button>
+                  <span style={{ flex: 1 }} />
+                  <GroundingChip grounding={step.grounding} />
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(step.id); if (sel) setSelId(null); }} className="gw-focusable" style={styles.del} aria-label="Remove step"><Trash2 size={15} color="var(--color-text-tertiary)" /></button>
+                </div>
+              </div>
+            );
+          })}
 
-            {steps.map((step, i) => (
-              <StepCard
-                key={step.id} step={step} ord={i + 1} hintCount={hintsFor(step).length}
-                onEdit={(v) => { onUpdateInstruction(step.id, v); touch(); }}
-                onType={() => { onCycleType(step.id); touch(); }}
-                onReq={() => { onCycleRequirement(step.id); touch(); }}
-                onHints={() => setHintsStep(step)}
-                onRemove={() => { onRemove(step.id); touch(); }}
-              />
-            ))}
-
-            <button type="button" onClick={() => { onAddBlank(stage === "act" ? "act" : stage); touch(); }} className="gw-focusable" style={styles.addStep}>
-              <Plus size={16} /> Add a step
-            </button>
-
-            <div style={styles.panelNav}>
-              {idx > 0 ? (
-                <Button variant="text" uppercase={false} leadingIcon={<ArrowLeft size={15} />} onClick={() => go(ORDER[idx - 1])}>
-                  {ORDER[idx - 1] === "knowledge" ? "Knowledge" : STAGE_LABEL[ORDER[idx - 1]]}
-                </Button>
-              ) : <span />}
-              <Button variant="primary" onClick={() => go(ORDER[idx + 1])}>
-                <span style={styles.nextInner}>{ORDER[idx + 1] === "knowledge" ? "Assign knowledge" : STAGE_LABEL[ORDER[idx + 1]]} <ArrowRight size={15} /></span>
-              </Button>
-            </div>
+          <button type="button" onClick={() => onAddBlank(isAct ? "act" : stageId)} className="gw-focusable" style={styles.addStep}>
+            <Plus size={16} /> Add a step
+          </button>
           </>
-        )}
-      </section>
+          )}
+        </div>
 
-      {hintsStep && (
-        <HintsDrawer
-          step={hintsStep} hints={hintsFor(hintsStep)}
-          onChange={(next) => { setHintMap((m) => ({ ...m, [hintsStep.id]: next })); touch(); }}
-          onClose={() => setHintsStep(null)}
-        />
-      )}
+        {!isKnowledge && selected && (
+          <aside style={styles.sidecar} className="gw-curtain" aria-label="Step detail">
+            <div style={styles.scInner}>
+              <header style={styles.scHead}>
+                <span style={styles.scKicker}>{STAGE_OF(selected, stagesWithSteps)} · step detail</span>
+                <button type="button" onClick={() => setSelId(null)} className="gw-focusable" style={styles.scClose} aria-label="Close detail"><X size={16} color="var(--color-text-tertiary)" /></button>
+              </header>
+              <StepDetailBody
+                step={selected}
+                onUpdateInstruction={onUpdateInstruction}
+                onCycleType={onCycleType}
+                onCycleRequirement={onCycleRequirement}
+                onRemove={(id) => { onRemove(id); setSelId(null); }}
+              />
+            </div>
+          </aside>
+        )}
+      </div>
+
       {knQ && (
         <KnowledgeDrawer
           q={knQ.q} mode={knQ.mode}
           onClose={() => setKnQ(null)}
-          onAttach={(card) => { setAnswers((a) => ({ ...a, [knQ.q.id]: card })); touch(); setKnQ(null); }}
+          onAttach={(card) => { setAnswers((a) => ({ ...a, [knQ.q.id]: card })); setKnQ(null); }}
         />
       )}
     </div>
-  );
-}
-
-function ContextPanel({ collapsed, onToggle }) {
-  return (
-    <div style={{ ...styles.ctx, ...(collapsed ? styles.ctxCollapsed : null) }}>
-      <div style={styles.ctxBar}>
-        <span style={styles.ctxLabel}>Context</span>
-        <span style={styles.ctxSrc}>Generated from interaction <b>30471</b></span>
-        <button type="button" className="gw-focusable" style={styles.ctxView}>View interaction <ExternalLink size={12} /></button>
-        <span style={{ flex: 1 }} />
-        <button type="button" onClick={onToggle} className="gw-focusable" style={styles.ctxToggle}>
-          {collapsed ? "Show context" : "Hide context"}{collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
-        </button>
-      </div>
-      {!collapsed && (
-        <div style={styles.ctxGrid}>
-          <div style={styles.ctxCol}>
-            <div style={styles.ctxH}>Customer situation</div>
-            <p style={styles.ctxP}>{GW_REVIEW_CONTEXT.situation}</p>
-          </div>
-          <div style={{ ...styles.ctxCol, ...styles.ctxColAccent }}>
-            <div style={styles.ctxH}><Sparkles size={13} color="var(--color-icon-tertiary-fg)" /> Winning insight</div>
-            <p style={styles.ctxP}>{GW_REVIEW_CONTEXT.insight}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ForkBanner({ scenario }) {
-  const [open, setOpen] = React.useState(false);
-  if (!scenario) return null;
-  return (
-    <div style={styles.fork}>
-      <div style={styles.forkTtl}><GitBranch size={13} color="var(--color-icon-tertiary-fg)" /> Decision · run this path when</div>
-      <div style={styles.forkQ}>{scenario.triggerScenario}</div>
-      <button type="button" onClick={() => setOpen((o) => !o)} className="gw-focusable" style={styles.cuesToggle}>
-        {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />} {scenario.cues.length} trigger cues
-      </button>
-      {open && (
-        <div style={styles.cues}>
-          {scenario.cues.map((c) => <div key={c} style={styles.cue}><span style={styles.cueB} aria-hidden="true">▸</span><span>{c}</span></div>)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StepCard({ step, ord, hintCount, onEdit, onType, onReq, onHints, onRemove }) {
-  return (
-    <div style={styles.scard}>
-      <div style={styles.scardTop}>
-        <span style={styles.ordPill}>{ord}</span>
-        <button type="button" onClick={onType} className="gw-focusable" style={styles.tagBtn} aria-label="Change type"><TypeTag type={step.type} /></button>
-        <span style={{ flex: 1 }} />
-        <GroundingChip grounding={step.grounding} />
-        <span style={styles.scardId}>{step.id}</span>
-      </div>
-      <div
-        contentEditable suppressContentEditableWarning spellCheck={false}
-        style={styles.instr} className="gw-focusable"
-        onBlur={(e) => { const v = e.currentTarget.textContent.trim(); if (v && v !== step.instruction) onEdit(v); }}
-      >{step.instruction || "New step — describe what the agent should do."}</div>
-      <div style={styles.scardFoot}>
-        <button type="button" onClick={onHints} className="gw-focusable" style={styles.hintChip}>
-          <MessageSquareQuote size={14} /> Hints <span style={styles.hintN}>{hintCount}</span>
-        </button>
-        <button type="button" onClick={onReq} className="gw-focusable" style={styles.tagBtn} aria-label="Change requirement"><RequirementTag requirement={step.requirement} /></button>
-        <span style={{ flex: 1 }} />
-        <button type="button" onClick={onRemove} className="gw-focusable" style={styles.del} aria-label="Remove step"><Trash2 size={15} color="var(--color-text-tertiary)" /></button>
-      </div>
-    </div>
-  );
-}
-
-function HintsDrawer({ step, hints, onChange, onClose }) {
-  const set = (next) => onChange(next);
-  return (
-    <Overlay onClose={onClose} labelledBy="gw-hints-title" title={`Coaching hints · ${step.id}`}>
-      <div style={styles.drawerBody}>
-        <p style={styles.drawerIntro}>Hints power the live navigator and the roleplay coach. Edit the wording, or remove anything not grounded in the source call.</p>
-        {hints.map((h, i) => {
-          const m = HINT_META[h.type] || HINT_META.bestPractice;
-          return (
-            <div key={i} style={styles.hintRow}>
-              <div style={styles.hintRowTop}>
-                <span style={{ ...styles.hintType, color: m.color, background: m.bg }}>{m.label}</span>
-                <span style={{ flex: 1 }} />
-                <button type="button" onClick={() => set(hints.filter((_, j) => j !== i))} className="gw-focusable" style={styles.del} aria-label="Remove hint"><Trash2 size={14} color="var(--color-text-tertiary)" /></button>
-              </div>
-              <div
-                contentEditable suppressContentEditableWarning spellCheck={false}
-                style={{ ...styles.hintText, ...(h.type === "say" ? styles.hintSay : null) }} className="gw-focusable"
-                onBlur={(e) => { const v = e.currentTarget.textContent.trim(); if (v && v !== h.text) set(hints.map((x, j) => (j === i ? { ...x, text: v } : x))); }}
-              >{h.text}</div>
-            </div>
-          );
-        })}
-        {hints.length === 0 && <p style={styles.drawerIntro}>No hints yet — add the first one.</p>}
-        <button type="button" onClick={() => set([...hints, { type: "bestPractice", text: "New best-practice hint." }])} className="gw-focusable" style={styles.addHint}>
-          <Plus size={15} /> Add hint
-        </button>
-      </div>
-    </Overlay>
   );
 }
 
@@ -331,7 +226,7 @@ function KnowledgeDrawer({ q, mode, onClose, onAttach }) {
   const [genLoading, setGenLoading] = React.useState(false);
 
   React.useEffect(() => {
-    if (tab !== "generate") return;
+    if (tab !== "generate") return undefined;
     setGen(null); setGenLoading(true);
     const t = window.setTimeout(() => { setGen(DRAFTS[q.id] || { title: "Drafted answer", body: "Grounded answer drawn from stored raw knowledge." }); setGenLoading(false); }, 1200);
     return () => window.clearTimeout(t);
@@ -390,11 +285,44 @@ function KnowledgeDrawer({ q, mode, onClose, onAttach }) {
   );
 }
 
+function ContextPanel({ collapsed, onToggle }) {
+  return (
+    <div style={{ ...styles.ctx, ...(collapsed ? styles.ctxCollapsedBox : null) }}>
+      <div style={styles.ctxBar}>
+        <span style={styles.ctxLabel}>Context</span>
+        <span style={styles.ctxSrc}>Generated from interaction <b>30471</b></span>
+        <button type="button" className="gw-focusable" style={styles.ctxView}>View interaction <ExternalLink size={12} /></button>
+        <span style={{ flex: 1 }} />
+        <button type="button" onClick={onToggle} className="gw-focusable" style={styles.ctxToggle}>
+          {collapsed ? "Show context" : "Hide context"}{collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+        </button>
+      </div>
+      {!collapsed && (
+        <div style={styles.ctxGrid}>
+          <div style={styles.ctxCol}>
+            <div style={styles.ctxH}>Customer situation</div>
+            <p style={styles.ctxP}>{GW_REVIEW_CONTEXT.situation}</p>
+          </div>
+          <div style={{ ...styles.ctxCol, ...styles.ctxColAccent }}>
+            <div style={styles.ctxH}><Sparkles size={13} color="var(--color-icon-tertiary-fg)" /> Winning insight</div>
+            <p style={styles.ctxP}>{GW_REVIEW_CONTEXT.insight}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function STAGE_OF(step, stagesWithSteps) {
+  const s = stagesWithSteps.find((x) => x.steps.some((y) => y.id === step.id));
+  return s ? s.label : "Step";
+}
+
 const styles = {
-  wrap: { display: "flex", flexDirection: "column", gap: 18 },
+  wrap: { display: "flex", flexDirection: "column", gap: 20 },
 
   ctx: { borderRadius: 14, background: "var(--color-icon-tertiary-bg)", border: "1px solid var(--color-border-tab)", overflow: "hidden" },
-  ctxCollapsed: { background: "var(--surface-dim)" },
+  ctxCollapsedBox: { background: "var(--surface-dim)" },
   ctxBar: { display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", flexWrap: "wrap" },
   ctxLabel: { fontSize: 11, fontWeight: 700, color: "var(--color-icon-tertiary-fg)", textTransform: "uppercase", letterSpacing: "0.05em" },
   ctxSrc: { fontSize: 12.5, color: "var(--color-text-medium)" },
@@ -408,62 +336,50 @@ const styles = {
 
   stepper: { display: "flex", alignItems: "center", gap: 0, background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 8, flexWrap: "wrap" },
   connector: { alignSelf: "center", flex: "0 0 16px", height: 2, borderRadius: 2, background: "var(--color-divider-card)" },
+  navDiv: { flexShrink: 0, width: 1, height: 28, background: "var(--color-divider-card)", margin: "0 8px" },
   node: { flex: 1, minWidth: 120, display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", borderRadius: 11, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
   nodeActive: { background: "var(--color-icon-tertiary-bg)" },
   num: { width: 24, height: 24, flexShrink: 0, borderRadius: 999, display: "inline-grid", placeItems: "center", fontSize: 12, fontWeight: 700, background: "var(--color-chip-bg)", color: "var(--color-text-tertiary)" },
   numActive: { background: "var(--color-button-primary-bg)", color: "#fff" },
   nodeMeta: { minWidth: 0, lineHeight: 1.15 },
-  nodeName: { display: "block", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.035em", textTransform: "uppercase", color: "var(--color-text-medium)", whiteSpace: "nowrap" },
+  nodeName: { display: "block", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--color-text-medium)", whiteSpace: "nowrap" },
   nodeNameActive: { color: "var(--color-button-primary-bg)" },
-  nodeCt: { display: "block", fontSize: 10.5, color: "var(--color-text-tertiary)", fontWeight: 500, whiteSpace: "nowrap" },
-  navDiv: { flexShrink: 0, width: 1, height: 28, background: "var(--color-divider-card)", margin: "0 8px" },
+  nodeCt: { display: "block", fontSize: 10.5, color: "var(--color-text-tertiary)", fontWeight: 500 },
 
-  panel: { display: "flex", flexDirection: "column", gap: 12 },
-  lead: { display: "flex", gap: 11, alignItems: "flex-start", margin: "2px 0 6px" },
-  leadBar: { flexShrink: 0, width: 3, alignSelf: "stretch", borderRadius: 3, background: "var(--color-button-primary-bg)", minHeight: 34 },
+  cols: { display: "flex", gap: 24, alignItems: "flex-start" },
+  main: { display: "flex", flexDirection: "column", gap: 12, flex: 1, minWidth: 0 },
+  lead: { display: "flex", gap: 11, alignItems: "flex-start", margin: "2px 0 0" },
+  leadBar: { flexShrink: 0, width: 3, alignSelf: "stretch", borderRadius: 3, background: "var(--color-button-primary-bg)", minHeight: 30 },
   leadTxt: { fontSize: 14, lineHeight: 1.55, color: "var(--color-text-medium)" },
 
   triageTabs: { display: "flex", gap: 8, flexWrap: "wrap" },
-  triageTab: { flex: 1, minWidth: 220, textAlign: "left", background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit" },
+  triageTab: { flex: 1, minWidth: 180, textAlign: "left", background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "10px 13px", cursor: "pointer", fontFamily: "inherit" },
   triageTabActive: { borderColor: "var(--color-button-primary-bg)", boxShadow: "inset 0 0 0 1px var(--color-button-primary-bg)", background: "var(--color-primary-alpha-12)" },
-  lanePill: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "var(--color-icon-tertiary-fg)" },
-  triageName: { display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.35, marginTop: 5 },
-  triageCt: { display: "block", fontSize: 11.5, color: "var(--color-text-tertiary)", marginTop: 4 },
+  lanePill: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--color-text-deep)" },
+  triageCt: { display: "block", fontSize: 11.5, color: "var(--color-text-tertiary)", marginTop: 3 },
+  fork: { display: "flex", flexDirection: "column", gap: 3, padding: "11px 14px", borderRadius: 12, background: "var(--surface-dim)", borderLeft: "3px solid var(--color-icon-tertiary-fg)" },
+  forkLbl: { fontSize: 11, fontWeight: 700, color: "var(--color-icon-tertiary-fg)", textTransform: "uppercase", letterSpacing: "0.03em" },
+  forkQ: { fontSize: 13.5, color: "var(--color-text-deep)", lineHeight: 1.5, fontWeight: 500 },
 
-  fork: { background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderLeft: "3px solid var(--color-icon-tertiary-fg)", borderRadius: 12, padding: "13px 15px" },
-  forkTtl: { display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--color-icon-tertiary-fg)", textTransform: "uppercase", letterSpacing: "0.03em" },
-  forkQ: { fontSize: 14, color: "var(--color-text-deep)", marginTop: 6, lineHeight: 1.5, fontWeight: 500 },
-  cuesToggle: { marginTop: 11, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--color-icon-tertiary-fg)", background: "var(--color-icon-tertiary-bg)", border: "1px solid var(--color-border-tab)", borderRadius: 999, padding: "5px 11px", cursor: "pointer", fontFamily: "inherit" },
-  cues: { display: "flex", flexDirection: "column", gap: 7, marginTop: 12 },
-  cue: { display: "flex", gap: 8, fontSize: 12.5, color: "var(--color-text-medium)", lineHeight: 1.45 },
-  cueB: { color: "var(--color-icon-tertiary-fg)", flexShrink: 0, fontWeight: 700 },
-
-  scard: { background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: "16px 18px" },
+  scard: { background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: "16px 18px", cursor: "pointer" },
+  scardSel: { borderColor: "var(--color-button-primary-bg)", boxShadow: "inset 0 0 0 1px var(--color-button-primary-bg)" },
   scardTop: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 },
   ordPill: { width: 24, height: 24, flexShrink: 0, borderRadius: 7, background: "var(--color-chip-bg)", color: "var(--color-text-medium)", display: "inline-grid", placeItems: "center", fontSize: 12, fontWeight: 700 },
-  tagBtn: { background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "inline-flex" },
   scardId: { fontSize: 11, color: "var(--color-text-tertiary)", fontWeight: 500, background: "var(--surface-dim)", border: "1px solid var(--color-divider-card)", borderRadius: 999, padding: "2px 9px", fontFamily: "var(--font-mono)" },
-  instr: { fontSize: 14.5, lineHeight: 1.55, color: "var(--color-text-deep)", outline: "none", borderRadius: 8, padding: "2px 4px", margin: "-2px -4px" },
+  instr: { fontSize: 14.5, lineHeight: 1.55, color: "var(--color-text-deep)", fontWeight: 600 },
   scardFoot: { display: "flex", alignItems: "center", gap: 8, marginTop: 13 },
   hintChip: { display: "inline-flex", alignItems: "center", gap: 7, background: "var(--surface-dim)", border: "1px solid var(--color-divider-card)", borderRadius: 999, padding: "5px 12px 5px 10px", fontSize: 12.5, fontWeight: 700, color: "var(--color-text-medium)", cursor: "pointer", fontFamily: "inherit" },
   hintN: { background: "var(--color-button-primary-bg)", color: "#fff", borderRadius: 999, minWidth: 17, height: 17, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, padding: "0 4px" },
   del: { background: "transparent", border: "none", cursor: "pointer", padding: 7, margin: -5, borderRadius: 8, display: "inline-flex" },
+  addStep: { width: "100%", border: "1.5px dashed var(--color-divider-card)", background: "transparent", borderRadius: 12, padding: 13, color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", fontFamily: "inherit" },
 
-  addStep: { width: "100%", border: "1.5px dashed var(--color-divider-card)", background: "transparent", borderRadius: 12, padding: 12, color: "var(--color-text-tertiary)", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", fontFamily: "inherit" },
-  panelNav: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
-  nextInner: { display: "inline-flex", alignItems: "center", gap: 7 },
+  sidecar: { width: 360, flexShrink: 0, position: "sticky", top: 16, alignSelf: "flex-start" },
+  scInner: { display: "flex", flexDirection: "column", gap: 14, padding: 16, borderRadius: 14, background: "var(--surface-white)", border: "1px solid var(--color-divider-card)", boxShadow: "var(--shadow-card)" },
+  scHead: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+  scKicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--color-text-tertiary)" },
+  scClose: { background: "transparent", border: "none", cursor: "pointer", padding: 6, margin: -6, borderRadius: 6, display: "inline-flex" },
 
-  drawerBody: { display: "flex", flexDirection: "column", gap: 11 },
-  drawerIntro: { margin: 0, fontSize: 12.5, color: "var(--color-text-tertiary)", lineHeight: 1.5 },
-  drawerFoot: { display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end", marginTop: 16 },
-  hintRow: { border: "1px solid var(--color-divider-card)", borderRadius: 12, padding: "13px 14px", background: "var(--surface-dim)" },
-  hintRowTop: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
-  hintType: { fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em", borderRadius: 999, padding: "2px 9px" },
-  hintText: { fontSize: 13.5, lineHeight: 1.55, color: "var(--color-text-deep)", outline: "none", borderRadius: 8, padding: "6px 8px", margin: "-6px -8px" },
-  hintSay: { fontStyle: "italic", color: "var(--color-text-medium)" },
-  addHint: { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, alignSelf: "flex-start", padding: "9px 14px", borderRadius: 999, border: "1px solid var(--color-divider-card)", background: "var(--surface-white)", color: "var(--color-text-medium)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 },
-
-  knProg: { display: "flex", alignItems: "center", gap: 12, margin: "0 0 6px" },
+  knProg: { display: "flex", alignItems: "center", gap: 12, margin: "0 0 2px" },
   knBar: { flex: "0 1 280px", height: 7, background: "var(--color-chip-bg)", borderRadius: 999, overflow: "hidden" },
   knBarFill: { display: "block", height: "100%", background: "var(--color-icon-tertiary-fg)", borderRadius: 999, transition: "width 300ms ease" },
   knProgTxt: { fontSize: 12.5, color: "var(--color-text-medium)", fontWeight: 600 },
@@ -474,7 +390,6 @@ const styles = {
   voiced: { fontSize: 15.5, fontWeight: 600, color: "var(--color-text-deep)", lineHeight: 1.5, paddingLeft: 13, borderLeft: "3px solid var(--color-icon-tertiary-bg)" },
   qIntent: { fontSize: 12.5, color: "var(--color-text-tertiary)", marginTop: 9, lineHeight: 1.5 },
   qFoot: { marginTop: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
-
   answerCard: { background: "var(--color-primary-alpha-12)", border: "1px solid var(--color-border-tab)", borderRadius: 12, padding: "13px 15px", marginTop: 13 },
   acTop: { display: "flex", alignItems: "center", gap: 8, marginBottom: 7, flexWrap: "wrap" },
   acSrc: { fontSize: 11, fontWeight: 700, color: "var(--color-button-primary-bg)", background: "var(--surface-white)", borderRadius: 999, padding: "2px 9px" },
@@ -483,6 +398,9 @@ const styles = {
   acActions: { marginTop: 10, display: "flex", gap: 7 },
   linkBtn: { fontSize: 12.5, fontWeight: 700, color: "var(--color-button-primary-bg)", padding: "4px 8px", borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" },
 
+  drawerBody: { display: "flex", flexDirection: "column", gap: 11 },
+  drawerIntro: { margin: 0, fontSize: 12.5, color: "var(--color-text-tertiary)", lineHeight: 1.5 },
+  drawerFoot: { display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end", marginTop: 16 },
   kbCtx: { background: "var(--color-icon-tertiary-bg)", borderRadius: 12, padding: "13px 15px" },
   kbCtxLbl: { fontSize: 11, fontWeight: 700, color: "var(--color-icon-tertiary-fg)", textTransform: "uppercase", letterSpacing: "0.03em" },
   kbVoiced: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)", marginTop: 6, lineHeight: 1.45 },

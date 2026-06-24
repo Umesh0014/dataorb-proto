@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles } from "lucide-react";
 import VersionBar from "./VersionBar";
-import Banner from "./Banner";
 import GuidedWorkflowLibrary from "./GuidedWorkflowLibrary";
 import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
@@ -15,7 +13,8 @@ import GuidedWorkflowCoauthorEditor from "./GuidedWorkflowCoauthorEditor";
 import GuidedWorkflowSectionedEditor from "./GuidedWorkflowSectionedEditor";
 import GuidedWorkflowTriageEditor from "./GuidedWorkflowTriageEditor";
 import GuidedWorkflowReviewEditor from "./GuidedWorkflowReviewEditor";
-import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
+import GuidedWorkflowStepperEditor from "./GuidedWorkflowStepperEditor";
+import { CreateOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
 import { EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
 import {
@@ -39,6 +38,7 @@ import {
 // The research-grounded simple checklist is the single primary direction;
 // every earlier exploration is kept but parked in a "Bombed ideas" dropdown.
 const DIRECTIONS = [
+  { id: "stepper", label: "Stepper + sidecar", iterations: [] },
   { id: "review", label: "Review stepper", iterations: [] },
   { id: "triage", label: "3-Column", iterations: [] },
   { id: "checklist", label: "Checklist", iterations: [] },
@@ -58,38 +58,25 @@ const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
 export default function GuidedWorkflowsPage() {
-  const [variant, setVariant] = React.useState("review");
+  const [variant, setVariant] = React.useState("stepper");
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [attachOpen, setAttachOpen] = React.useState(false);
   const [steps, setSteps] = React.useState(GW_STEPS);
   const [suggestions, setSuggestions] = React.useState(GW_SUGGESTED_STEPS);
-  const [attached, setAttached] = React.useState(GW_PERSONAS.filter((p) => p.attached).map((p) => p.id));
-  // Publish / save journeys (G14, INT-8): a workflow is draft or active;
-  // Publish is confirmed before it goes live; Save draft gives transient
-  // feedback. State seeds from whether this is a new or existing workflow.
+  const attached = GW_PERSONAS.filter((p) => p.attached).map((p) => p.id);
+  // Publish / archive journeys: a workflow is draft, active or archived;
+  // Publish is confirmed before it goes live.
   const [workflowState, setWorkflowState] = React.useState("active");
   const [confirmPublish, setConfirmPublish] = React.useState(false);
-  const [saved, setSaved] = React.useState(false);
-  const [justPublished, setJustPublished] = React.useState(false);
-  // The step shown in the side-curtain drawer (Checklist + Board). Studio
-  // edits in-pane, so it ignores this.
+  // The step shown in the Board's centered edit modal.
   const [openStepId, setOpenStepId] = React.useState(null);
 
   const stagesWithSteps = gwStepsByStage(steps);
   const openStep = steps.find((s) => s.id === openStepId) || null;
 
-  const saveDraft = () => {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2200);
-  };
-  const doPublish = () => {
-    setConfirmPublish(false);
-    setWorkflowState("active");
-    setJustPublished(true);
-    window.setTimeout(() => setJustPublished(false), 2600);
-  };
+  const doPublish = () => { setConfirmPublish(false); setWorkflowState("active"); };
+  const doArchive = () => setWorkflowState("archived");
 
   // Accept an AI suggestion → it folds into the checklist as a normal step
   // (keeping its grounding) and leaves the suggestions tray.
@@ -190,21 +177,13 @@ export default function GuidedWorkflowsPage() {
             <EditorChrome
               isNew={isNew}
               state={workflowState}
-              saved={saved}
-              justPublished={justPublished}
-              attachedCount={attached.length}
               onBack={() => setView("library")}
-              onAttach={() => setAttachOpen(true)}
-              onSave={saveDraft}
               onPublish={() => setConfirmPublish(true)}
+              onArchive={doArchive}
             />
-            <Banner
-              tone="info"
-              leading={<Sparkles size={20} color="var(--color-button-primary-bg)" style={{ flexShrink: 0 }} aria-hidden="true" />}
-              heading="AI drafted this base workflow"
-              body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
-            />
-            {variant === "review" ? (
+            {variant === "stepper" ? (
+              <GuidedWorkflowStepperEditor {...editorProps} />
+            ) : variant === "review" ? (
               <GuidedWorkflowReviewEditor {...editorProps} />
             ) : variant === "triage" ? (
               <GuidedWorkflowTriageEditor {...editorProps} />
@@ -232,13 +211,6 @@ export default function GuidedWorkflowsPage() {
       {createOpen && <CreateOverlay variant={variant} onClose={() => setCreateOpen(false)} onConfirm={confirmCreate} />}
       {confirmPublish && (
         <PublishOverlay attachedCount={attached.length} onClose={() => setConfirmPublish(false)} onConfirm={doPublish} />
-      )}
-      {attachOpen && (
-        <AttachOverlay
-          attached={attached}
-          onToggle={(id) => setAttached((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))}
-          onClose={() => setAttachOpen(false)}
-        />
       )}
       {/* Board edits a step in a centered modal; Checklist expands the card
           inline and Studio edits in its right pane, so neither uses this. */}
