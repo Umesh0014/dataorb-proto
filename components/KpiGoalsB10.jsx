@@ -1,10 +1,8 @@
 "use client";
 
 import React from "react";
-import KpiTile from "./KpiTile";
-import DsGapDot from "./DsGapDot";
 import { RagChip } from "./KpiSidecarParts";
-import { PageHeader, Pagination } from "./ds";
+import { PageHeader, Pagination, ActivityRing, KpiTile } from "./ds";
 import { KPIS, CATEGORIES, ON_TRACK_TOTAL, statusOf } from "./mocks/kpiGoals";
 import { TYPE, COLORS, RADIUS } from "./designTokens";
 
@@ -40,16 +38,8 @@ export default function KpiGoalsB10({ onDrill, drillId, creditUsage = false }) {
 
       <div style={s.body}>
         <aside style={s.left}>
-          <div style={s.ringWrap}>
-            <MultiRing categories={CATEGORIES} total={KPIS.length} onTrack={ON_TRACK_TOTAL}
-              activeName={active} onHover={setHover} onPick={pickCat} />
-            <DsGapDot
-              component="Activity ring (concentric)"
-              closest="Graphs & Charts → Donut / Progress"
-              why="DS has bar / line / donut charts, but no concentric multi-arc activity ring. Closest is the Donut — add a multi-ring variant to Graphs & Charts."
-              style={{ top: 6, right: 6 }}
-            />
-          </div>
+          <ActivityRing categories={CATEGORIES} total={KPIS.length} onTrack={ON_TRACK_TOTAL}
+            ringColors={RING_COLORS} activeName={active} onHover={setHover} onPick={pickCat} />
           <div style={s.catList}>
             {CATEGORIES.map((c, i) => {
               const on = catFilter === c.name;
@@ -78,15 +68,7 @@ export default function KpiGoalsB10({ onDrill, drillId, creditUsage = false }) {
           <span style={s.attnLabel}>{catFilter ? `${catFilter} · needs attention` : "Needs attention"}</span>
           <div style={s.grid}>
             {visible.map((k) => (
-              <div key={k.id} style={s.tileWrap}>
-                <KpiTile k={k} fill elevated selected={drillId === k.id} onClick={() => select(k)} />
-                <DsGapDot
-                  component="KPI attention tile"
-                  closest="Cards → Card (+ a sparkline)"
-                  why="DS Card exists, but not a KPI card with inline sparkline + target line + delta pill. Modify Card and add a sparkline (Graphs only ships full charts)."
-                  style={{ top: 12, right: 12 }}
-                />
-              </div>
+              <KpiTile key={k.id} k={k} fill elevated selected={drillId === k.id} onClick={() => select(k)} />
             ))}
             {!visible.length && (
               <div style={s.empty}>
@@ -100,48 +82,6 @@ export default function KpiGoalsB10({ onDrill, drillId, creditUsage = false }) {
         </div>
       </div>
     </div>
-  );
-}
-
-// Concentric activity ring. Each arc is hoverable/clickable and links to the
-// category list; the centre swaps to the hovered category's score.
-function MultiRing({ categories, total, onTrack, activeName, onHover, onPick }) {
-  const size = 132, stroke = 10, gap = 4;
-  const rings = categories.map((c, i) => {
-    const r = size / 2 - stroke / 2 - i * (stroke + gap);
-    return { r, circ: 2 * Math.PI * r, pct: c.score, color: RING_COLORS[i], cat: c };
-  });
-  const activeCat = categories.find((c) => c.name === activeName);
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      {rings.map((ring, i) => {
-        const dim = activeName && ring.cat.name !== activeName;
-        return (
-          <g key={i} style={{ cursor: "pointer", transition: "opacity .15s" }}
-            opacity={dim ? 0.3 : 1}
-            onMouseEnter={() => onHover(ring.cat.name)} onMouseLeave={() => onHover(null)}
-            onClick={() => onPick(ring.cat.name)}>
-            <title>{ring.cat.name}: {ring.cat.score}/100 · {ring.cat.status}</title>
-            <circle cx={size / 2} cy={size / 2} r={ring.r} fill="none" stroke={COLORS.divider} strokeWidth={stroke} />
-            <circle cx={size / 2} cy={size / 2} r={ring.r} fill="none" stroke={ring.color}
-              strokeWidth={ring.cat.name === activeName ? stroke + 2 : stroke}
-              strokeDasharray={`${(ring.pct / 100) * ring.circ} ${ring.circ}`} strokeLinecap="round"
-              transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-          </g>
-        );
-      })}
-      {activeCat ? (
-        <>
-          <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle" style={{ ...TYPE.displaySmall, fill: COLORS.textBody }}>{activeCat.score}</text>
-          <text x="50%" y="61%" textAnchor="middle" dominantBaseline="middle" style={{ ...TYPE.chartXSmall, fill: COLORS.textFaint }}>{activeCat.name}</text>
-        </>
-      ) : (
-        <>
-          <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle" style={{ ...TYPE.displaySmall, fill: COLORS.textBody }}>{onTrack}/{total}</text>
-          <text x="50%" y="61%" textAnchor="middle" dominantBaseline="middle" style={{ ...TYPE.chartXSmall, fill: COLORS.textFaint }}>on track</text>
-        </>
-      )}
-    </svg>
   );
 }
 

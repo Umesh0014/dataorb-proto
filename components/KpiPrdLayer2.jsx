@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import KpiSidecarTrend from "./KpiSidecarTrend";
 import { rule } from "./KpiSidecarParts";
-import DsGapDot from "./DsGapDot";
+import { TrendChart } from "./ds";
 
 const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
@@ -54,17 +53,9 @@ export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek, markGaps = 
       </div>
 
       {/* trend */}
-      <div style={{ ...s.chartCard, position: "relative" }}>
-        {markGaps && (
-          <DsGapDot
-            component="Agent vs Org trend chart"
-            closest="Graphs & Charts → Line chart"
-            why="DS Line chart exists, but not this compact multi-series (agent vs org avg vs target) variant. Modify the Line chart to add the comparison series + dashed target."
-            style={{ top: 8, right: 8 }}
-          />
-        )}
+      <div style={s.chartCard}>
         <span style={s.sectionLabel}>Interactions</span>
-        <KpiSidecarTrend data={kpi.trend} target={kpi.target} unit={kpi.unit} lowerIsBetter={!r.higherIsBetter} height={180} />
+        <TrendChart data={kpi.trend} target={kpi.target} unit={kpi.unit} lowerIsBetter={!r.higherIsBetter} height={180} />
       </div>
 
       {/* week table */}
