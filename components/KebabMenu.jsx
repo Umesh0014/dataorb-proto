@@ -22,8 +22,20 @@ const EDGE = 8;
 // Callers inside a clickable row must stop propagation on the wrapping cell
 // so opening the menu does not also fire the row's click handler.
 //
-// items: Array<{ label, onClick }>. onClick fires then the menu closes.
-export default function KebabMenu({ ariaLabel = "More actions", items }) {
+// items: Array<{ label, onClick, icon?, tone? }>. `icon` is an optional
+// leading glyph (a lucide node sized to taste — pass it uncolored so it
+// inherits the item's text color). `tone: "danger"` renders the item in the
+// error color (e.g. Delete). onClick fires then the menu closes.
+//
+// glyph / triggerStyle let a caller swap the trigger icon and restyle the
+// trigger button (e.g. a circular bordered kebab on a card) without forking
+// the menu. Both default to the table-row treatment used by existing callers.
+export default function KebabMenu({
+  ariaLabel = "More actions",
+  items,
+  glyph = <MoreVertical size={18} />,
+  triggerStyle,
+}) {
   const [open, setOpen] = React.useState(false);
   const [coords, setCoords] = React.useState(null); // { top, left } | null
   const triggerRef = React.useRef(null);
@@ -106,8 +118,9 @@ export default function KebabMenu({ ariaLabel = "More actions", items }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        style={triggerStyle}
       >
-        <MoreVertical size={18} />
+        {glyph}
       </Button>
       {open &&
         typeof document !== "undefined" &&
@@ -129,7 +142,12 @@ export default function KebabMenu({ ariaLabel = "More actions", items }) {
                   key={it.label}
                   type="button"
                   role="menuitem"
-                  style={kmStyles.item}
+                  style={{
+                    ...kmStyles.item,
+                    color: it.tone === "danger"
+                      ? "var(--color-error)"
+                      : kmStyles.item.color,
+                  }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "var(--pill-bg)";
                   }}
@@ -141,7 +159,8 @@ export default function KebabMenu({ ariaLabel = "More actions", items }) {
                     close();
                   }}
                 >
-                  {it.label}
+                  {it.icon && <span style={kmStyles.itemIcon}>{it.icon}</span>}
+                  <span>{it.label}</span>
                 </button>
               ))}
             </div>
@@ -170,7 +189,9 @@ const kmStyles = {
     zIndex: 1001,
   },
   item: {
-    display: "block",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
     width: "100%",
     padding: "8px 16px",
     background: "transparent",
@@ -181,5 +202,10 @@ const kmStyles = {
     fontWeight: 500,
     color: "var(--color-text-medium)",
     cursor: "pointer",
+  },
+  itemIcon: {
+    display: "inline-flex",
+    alignItems: "center",
+    flexShrink: 0,
   },
 };

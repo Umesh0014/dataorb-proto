@@ -13,34 +13,27 @@ import MiraConversation from "./MiraConversation";
 import MiraLandingDeck from "./MiraLandingDeck";
 import MiraKpiSpace from "./MiraKpiSpace";
 import MiraMetricDetail from "./MiraMetricDetail";
+import OutcomesLanding from "./OutcomesLanding";
 import VersionBar from "./VersionBar";
 import { LANDING_METRICS } from "./mocks/miraLandingMetrics";
-import { MiraStarIcon, ArrowUpIcon } from "./SideNav/icons";
+import { ArrowUpIcon } from "./SideNav/icons";
 
 // Named landing directions ride one VersionBar (no "v1/v2" alphabets).
 // Launchpad is the adopted ChatGPT-style home (ask box → metric pulse →
 // chats); Bento is the same shell with a mixed-size white-tile metric grid;
 // KPI Space is the outcome-space surface (KPI rail → trend + stories + chats
-// → AMP ask surface); Welcome Mat is the previous centered-greeting design.
+// → AMP ask surface); Outcomes is the outcomes-first landing (greeting →
+// search → Your outcome/Archived toggle → 2×2 OutcomeCard bento).
 const DIRECTIONS = [
   { id: "launchpad", label: "Launchpad", iterations: [] },
   { id: "bento", label: "Bento", iterations: [] },
   { id: "kpispace", label: "KPI Space", iterations: [] },
-  { id: "welcome", label: "Welcome Mat", iterations: [] },
+  { id: "welcome", label: "Outcomes", iterations: [] },
 ];
 
 // Launchpad and Bento share the input-first shell; only the metric band
-// differs. Welcome Mat is the parked centered-greeting layout.
+// differs. The "welcome" id now carries the Outcomes landing.
 const isLaunchpadDirection = (d) => d === "launchpad" || d === "bento";
-
-const SUGGESTED_QUESTIONS = [
-  "What are the top pain points reported by customers this month?",
-  "Which customer segments are most at-risk and what proactive interventions could prevent churn?",
-  "Which products generate the highest satisfaction vs. complaint volumes?",
-  "What contact reasons take longest to resolve and face the most impediments?",
-  "What educational content gaps exist based on common customer questions?",
-  "What pricing feedback appears in dissatisfied customer interactions?",
-];
 
 /**
  * AskMiraProPage — Ask Mira Pro module home route.
@@ -167,12 +160,7 @@ export default function AskMiraProPage({
           onPickSuggestion={(q) => setQuery(q)}
         />
       ) : (
-        <div style={s.readable}>
-          <div style={s.homeHero}>
-            <HomeHero userName={userName} onPickSuggestion={(q) => setQuery(q)} />
-          </div>
-          {composer}
-        </div>
+        <OutcomesLanding userName={userName} composer={composer} />
       )}
 
       <VersionBar
@@ -206,8 +194,10 @@ function MiraDirectionsHelp() {
         AMP ask surface beside it. Outcome-first, not chatbot-first.
       </p>
       <p style={vbHelp.text}>
-        <b>Welcome Mat</b> — a calm centered greeting with starter prompts and the
-        composer anchored below. The previous design, parked here.
+        <b>Outcomes</b> — the outcomes-first landing: a time-aware greeting, a
+        Search Outcomes field, a Your outcome / Archived toggle, and a 2×2 bento
+        of outcome metric cards. No composer — you land on outcomes, not a blank
+        prompt.
       </p>
       <p style={vbHelp.hint}>
         Ticket: rework Mira&apos;s front surface into a collaborative outcome space —
@@ -236,44 +226,6 @@ function ChatHeader({ onBack, onNewChat }) {
         </Button>
       </div>
     </Card>
-  );
-}
-
-function HomeHero({ userName, onPickSuggestion }) {
-  return (
-    <div style={s.heroInner}>
-      <div style={s.greetingRow}>
-        <div style={s.greetingIconWrap} aria-hidden="true">
-          <MiraStarIcon size={40} color="var(--color-button-primary-bg)" />
-        </div>
-        <div style={s.greetingText}>
-          <div style={s.greetingHeading}>Hello, {userName}!</div>
-          <div style={s.greetingSubtitle}>
-            Unlock actionable insights from every customer interaction.
-          </div>
-        </div>
-      </div>
-
-      <div style={s.grid} role="list">
-        {SUGGESTED_QUESTIONS.map((q) => (
-          <button
-            key={q}
-            type="button"
-            role="listitem"
-            onClick={() => onPickSuggestion(q)}
-            style={s.suggestionCard}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--color-card-emoji-bg)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "var(--surface-white)";
-            }}
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -401,79 +353,11 @@ const s = {
     color: "var(--color-text-deep)",
   },
 
-  homeHero: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    minHeight: 0,
-  },
-  heroInner: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 32,
-    width: "100%",
-    maxWidth: 760,
-    marginInline: "auto",
-  },
-
   chatBody: {
     flex: 1,
     minHeight: 0,
     display: "flex",
     flexDirection: "column",
-  },
-
-  greetingRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-  },
-  greetingIconWrap: {
-    width: 48,
-    height: 48,
-    display: "grid",
-    placeItems: "center",
-    flexShrink: 0,
-  },
-  greetingText: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  greetingHeading: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.3,
-  },
-  greetingSubtitle: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    lineHeight: 1.4,
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 16,
-  },
-  suggestionCard: {
-    appearance: "none",
-    textAlign: "left",
-    padding: "20px 20px",
-    minHeight: 116,
-    background: "var(--surface-white)",
-    border: "1px solid var(--color-divider-card)",
-    borderRadius: 12,
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    fontWeight: 500,
-    color: "var(--color-text-medium)",
-    lineHeight: 1.5,
-    cursor: "pointer",
-    transition: "background 120ms ease",
   },
 
   composerWrap: {
@@ -507,8 +391,8 @@ const s = {
     display: "inline-flex",
     alignItems: "center",
     gap: 2,
-    padding: 2,
-    borderRadius: 8,
+    padding: 3,
+    borderRadius: 999,
     border: "1px solid var(--color-divider-card)",
     background: "var(--surface-white)",
   },
@@ -517,8 +401,8 @@ const s = {
     alignItems: "center",
     gap: 6,
     height: 28,
-    paddingInline: 10,
-    borderRadius: 6,
+    paddingInline: 12,
+    borderRadius: 999,
     border: "none",
     background: "transparent",
     fontFamily: "var(--font-sans)",

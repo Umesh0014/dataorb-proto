@@ -288,7 +288,7 @@ export default function Page() {
   const [miraQueriesUsed, setMiraQueriesUsed] = React.useState(13);
   // Lifted so the layout can react to the active landing direction (KPI Space
   // runs full-width on the canvas surface; the others stay white at 1068).
-  const [miraDirection, setMiraDirection] = React.useState("launchpad");
+  const [miraDirection, setMiraDirection] = React.useState("welcome");
   const [appMenuOpen, setAppMenuOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
@@ -640,9 +640,13 @@ export default function Page() {
       router.push(pathForCurrentPage(page));
     };
     const onKpiSpace = isChat && miraDirection === "kpispace";
+    // The Outcomes landing + detail (direction "welcome") sit on the canvas BG,
+    // not the white chat surface. `isChat` here just means the AMP route is
+    // active (its nav id is "chat"), same gate KPI Space uses.
+    const onOutcomesHome = isChat && miraDirection === "welcome";
     moduleContent = (
       <PageLayout
-        background={onKpiSpace ? "var(--surface-canvas)" : "var(--surface-white)"}
+        background={onKpiSpace || onOutcomesHome ? "var(--surface-canvas)" : "var(--surface-white)"}
         maxWidth={onKpiSpace ? "none" : undefined}
       >
         {miraContent}
