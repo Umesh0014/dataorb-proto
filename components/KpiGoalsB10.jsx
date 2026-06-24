@@ -38,7 +38,12 @@ export default function KpiGoalsB10({ onDrill, drillId }) {
         <aside style={s.left}>
           <div style={s.ringWrap}>
             <MultiRing categories={CATEGORIES} center={`${ON_TRACK_TOTAL}/${KPIS.length}`} />
-            <DsGapDot label="Activity ring — not in the 2.0 Design System; needs a DS chart component" style={{ top: 6, right: 6 }} />
+            <DsGapDot
+              component="Activity ring (concentric)"
+              closest="Graphs & Charts → Donut / Progress"
+              why="DS has bar / line / donut charts, but no concentric multi-arc activity ring. Closest is the Donut — add a multi-ring variant to Graphs & Charts."
+              style={{ top: 6, right: 6 }}
+            />
           </div>
           <div style={s.catList}>
             {CATEGORIES.map((c, i) => {
@@ -62,7 +67,11 @@ export default function KpiGoalsB10({ onDrill, drillId }) {
             {visible.map((k) => (
               <div key={k.id} style={s.tileWrap}>
                 <KpiTile k={k} fill selected={drillId === k.id} onClick={() => select(k)} />
-                <DsGapDot label="KPI tile with inline sparkline — not in the 2.0 Design System; needs a DS card+sparkline component" />
+                <DsGapDot
+                  component="KPI attention tile"
+                  closest="Cards → Card (+ a sparkline)"
+                  why="DS Card exists, but not a KPI card with inline sparkline + target line + delta pill. Modify Card and add a sparkline (Graphs only ships full charts)."
+                />
               </div>
             ))}
             {!visible.length && <p style={s.empty}>No KPIs need attention here.</p>}

@@ -53,7 +53,14 @@ export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek, markGaps = 
 
       {/* trend */}
       <div style={{ ...s.chartCard, position: "relative" }}>
-        {markGaps && <DsGapDot label="Trend chart — not in the 2.0 Design System; needs a DS chart component" style={{ top: 8, right: 8 }} />}
+        {markGaps && (
+          <DsGapDot
+            component="Agent vs Org trend chart"
+            closest="Graphs & Charts → Line chart"
+            why="DS Line chart exists, but not this compact multi-series (agent vs org avg vs target) variant. Modify the Line chart to add the comparison series + dashed target."
+            style={{ top: 8, right: 8 }}
+          />
+        )}
         <span style={s.sectionLabel}>Interactions</span>
         <KpiSidecarTrend data={kpi.trend} target={kpi.target} unit={kpi.unit} lowerIsBetter={!r.higherIsBetter} height={180} />
       </div>
