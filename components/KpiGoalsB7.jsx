@@ -72,13 +72,11 @@ export default function KpiGoalsB7() {
         </div>
 
         <div style={s.pager}>
-          <span style={s.pagerInfo}>
-            {shown.length === 0 ? "0" : `${safePage * PER_PAGE + 1}–${Math.min(shown.length, safePage * PER_PAGE + PER_PAGE)}`} of {shown.length} KPIs
-          </span>
+          <span style={s.pagerInfo}>Total {shown.length} KPIs</span>
           <div style={s.pagerNav}>
-            <button type="button" style={{ ...s.pageBtn, ...(safePage === 0 ? s.pageBtnOff : null) }} disabled={safePage === 0} onClick={() => setPage((p) => p - 1)} aria-label="Previous"><ChevronLeft size={18} /></button>
-            <span style={s.pageNum}>Page {safePage + 1} of {pages}</span>
-            <button type="button" style={{ ...s.pageBtn, ...(safePage >= pages - 1 ? s.pageBtnOff : null) }} disabled={safePage >= pages - 1} onClick={() => setPage((p) => p + 1)} aria-label="Next"><ChevronRight size={18} /></button>
+            <button type="button" style={{ ...s.pageLink, ...(safePage === 0 ? s.pageLinkOff : null) }} disabled={safePage === 0} onClick={() => setPage((p) => p - 1)}><ChevronLeft size={16} /> Previous</button>
+            <span style={s.pageNum}>{safePage + 1}/{pages}</span>
+            <button type="button" style={{ ...s.pageLink, ...(safePage >= pages - 1 ? s.pageLinkOff : s.pageLinkOn) }} disabled={safePage >= pages - 1} onClick={() => setPage((p) => p + 1)}>Next <ChevronRight size={16} /></button>
           </div>
         </div>
       </div>
@@ -108,10 +106,11 @@ const s = {
   empty: { gridColumn: "1 / -1", padding: "24px 0", fontSize: 13, color: "#8C90A6", textAlign: "center" },
   pager: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--color-divider-card)", paddingTop: 14 },
   pagerInfo: { fontSize: 12, color: "#5B5E6F" },
-  pagerNav: { display: "flex", alignItems: "center", gap: 8 },
-  pageBtn: { width: 30, height: 30, borderRadius: 8, border: "1px solid var(--color-divider-card)", background: "#fff", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)" },
-  pageBtnOff: { opacity: 0.4, cursor: "default" },
-  pageNum: { fontSize: 12, fontWeight: 600, color: "#2C2F42", minWidth: 96, textAlign: "center" },
+  pagerNav: { display: "flex", alignItems: "center", gap: 14 },
+  pageLink: { display: "inline-flex", alignItems: "center", gap: 4, border: "none", background: "none", cursor: "pointer", padding: 0, fontSize: 14, fontWeight: 500, color: "#5A5D72", fontFamily: POPPINS, letterSpacing: "0.25px" },
+  pageLinkOn: { color: "#004BEF" },
+  pageLinkOff: { color: "#B6B9C7", cursor: "default" },
+  pageNum: { fontSize: 14, fontWeight: 500, color: "#2C2F42", textAlign: "center" },
   sideCard: { position: "sticky", top: 16, width: 440, flexShrink: 0, minWidth: 0, background: "#FFFFFF", border: "1px solid var(--color-divider-card)", borderRadius: 16, boxShadow: "0 12px 32px rgba(20,24,40,0.10)", padding: "22px 22px 28px", maxHeight: "calc(100vh - 32px)", overflowY: "auto" },
   cardX: { position: "absolute", top: 16, right: 16, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
 };

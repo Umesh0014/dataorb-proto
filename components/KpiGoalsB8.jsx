@@ -9,7 +9,6 @@ import { KPIS, CATEGORIES, ON_TRACK_TOTAL, statusOf } from "./mocks/kpiGoals";
 const PER_PAGE = 3;
 const POPPINS = "'Poppins', sans-serif";
 const RING_COLORS = ["#004BEF", "#6B89FF", "#A5B4FC"];
-const shownRange = (page, total) => total === 0 ? "0" : `${page * PER_PAGE + 1}–${Math.min(total, page * PER_PAGE + PER_PAGE)}`;
 
 // b8 — activity rings (left) + attention cards (right). Selecting a card reports
 // up via onDrill so the side card renders OUTSIDE this card (separate sibling).
@@ -65,11 +64,11 @@ export default function KpiGoalsB8({ onDrill, drillId }) {
             {!visible.length && <p style={s.empty}>No KPIs need attention here.</p>}
           </div>
           <div style={s.pager}>
-            <span style={s.pagerInfo}>{shownRange(safePage, attention.length)} of {attention.length}</span>
+            <span style={s.pagerInfo}>Total {attention.length} KPIs</span>
             <div style={s.pagerNav}>
-              <button type="button" style={{ ...s.pageBtn, ...(safePage === 0 ? s.pageBtnOff : null) }} disabled={safePage === 0} onClick={() => setPage((p) => p - 1)} aria-label="Previous"><ChevronLeft size={16} /></button>
+              <button type="button" style={{ ...s.pageLink, ...(safePage === 0 ? s.pageLinkOff : null) }} disabled={safePage === 0} onClick={() => setPage((p) => p - 1)}><ChevronLeft size={16} /> Previous</button>
               <span style={s.pageNum}>{safePage + 1}/{pages}</span>
-              <button type="button" style={{ ...s.pageBtn, ...(safePage >= pages - 1 ? s.pageBtnOff : null) }} disabled={safePage >= pages - 1} onClick={() => setPage((p) => p + 1)} aria-label="Next"><ChevronRight size={16} /></button>
+              <button type="button" style={{ ...s.pageLink, ...(safePage >= pages - 1 ? s.pageLinkOff : s.pageLinkOn) }} disabled={safePage >= pages - 1} onClick={() => setPage((p) => p + 1)}>Next <ChevronRight size={16} /></button>
             </div>
           </div>
         </div>
@@ -120,8 +119,9 @@ const s = {
   empty: { gridColumn: "1 / -1", padding: "24px 0", fontSize: 13, color: "#8C90A6", textAlign: "center" },
   pager: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--color-divider-card)", paddingTop: 12 },
   pagerInfo: { fontSize: 12, color: "#5B5E6F" },
-  pagerNav: { display: "flex", alignItems: "center", gap: 6 },
-  pageBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid var(--color-divider-card)", background: "#fff", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)" },
-  pageBtnOff: { opacity: 0.4, cursor: "default" },
-  pageNum: { fontSize: 12, fontWeight: 600, color: "#2C2F42", minWidth: 32, textAlign: "center" },
+  pagerNav: { display: "flex", alignItems: "center", gap: 14 },
+  pageLink: { display: "inline-flex", alignItems: "center", gap: 4, border: "none", background: "none", cursor: "pointer", padding: 0, fontSize: 14, fontWeight: 500, color: "#5A5D72", fontFamily: POPPINS, letterSpacing: "0.25px" },
+  pageLinkOn: { color: "#004BEF" },
+  pageLinkOff: { color: "#B6B9C7", cursor: "default" },
+  pageNum: { fontSize: 14, fontWeight: 500, color: "#2C2F42", textAlign: "center" },
 };
