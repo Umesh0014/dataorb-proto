@@ -3,6 +3,7 @@
 import React from "react";
 import { Info } from "lucide-react";
 import KpiSparkline from "./KpiSparkline";
+import { SHADOWS } from "./designTokens";
 import {
   RAG_HEX, statusOf, gapShort, targetLabel, valueLabel, deltaTone,
 } from "./mocks/kpiGoals";
@@ -14,7 +15,7 @@ import {
 const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
 
-export default function KpiTile({ k, onClick, selected = false, fill = false }) {
+export default function KpiTile({ k, onClick, selected = false, fill = false, elevated = false }) {
   const st = statusOf(k);
   const gap = gapShort(k);
   const dTone = deltaTone(k);
@@ -23,7 +24,7 @@ export default function KpiTile({ k, onClick, selected = false, fill = false }) 
     ? { bg: "#F0FDF4", fg: "#00711D" }
     : { bg: "#FEF2F2", fg: "#BA1A1A" };
   return (
-    <button type="button" onClick={onClick} style={{ ...s.card, ...(selected ? s.selected : null), ...(fill ? s.cardFill : null) }}>
+    <button type="button" onClick={onClick} style={{ ...s.card, ...(elevated ? s.elevated : null), ...(selected ? s.selected : null), ...(fill ? s.cardFill : null) }}>
       {/* header */}
       <div style={s.header}>
         <div style={s.titleRow}>
@@ -62,6 +63,7 @@ export default function KpiTile({ k, onClick, selected = false, fill = false }) 
 
 const s = {
   card: { display: "flex", flexDirection: "column", gap: 16, padding: 17, background: "#FFFFFF", border: "1px solid #EFEFFF", borderRadius: 8, cursor: "pointer", textAlign: "left", fontFamily: POPPINS, transition: "box-shadow .15s, border-color .15s" },
+  elevated: { border: "1px solid #F2F2F7", boxShadow: SHADOWS.card },
   selected: { border: "1px solid #6650A5", boxShadow: "0 0 0 1px #6650A5" },
   header: { display: "flex", flexDirection: "column", gap: 4 },
   titleRow: { display: "flex", alignItems: "center", gap: 8 },

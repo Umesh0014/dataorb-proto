@@ -64,7 +64,7 @@ export default function KpiGoalsB10({ onDrill, drillId }) {
           <div style={s.grid}>
             {visible.map((k) => (
               <div key={k.id} style={s.tileWrap}>
-                <KpiTile k={k} fill selected={drillId === k.id} onClick={() => select(k)} />
+                <KpiTile k={k} fill elevated selected={drillId === k.id} onClick={() => select(k)} />
                 <DsGapDot
                   component="KPI attention tile"
                   closest="Cards → Card (+ a sparkline)"
@@ -118,7 +118,7 @@ const s = {
   title: { ...TYPE.titleMedium, color: COLORS.textTitle, margin: 0 },
   subtitle: { ...TYPE.bodySmall, color: COLORS.textMedium, margin: 0 },
   body: { display: "flex", gap: 24, alignItems: "stretch" },
-  left: { width: 232, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14, alignItems: "center" },
+  left: { width: 216, flexShrink: 0, display: "flex", flexDirection: "column", gap: 18, alignItems: "center", justifyContent: "center" },
   ringWrap: { position: "relative", display: "inline-flex" },
   catList: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
   catRow: { width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: "1px solid transparent", borderRadius: RADIUS.md, background: "none", cursor: "pointer", textAlign: "left", fontFamily: TYPE.bodyMedium.fontFamily },
