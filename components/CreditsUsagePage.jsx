@@ -41,17 +41,18 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   // boundaries (see CreditsUsageShell) so the seed data is chosen once here.
   const isC4 = assignmentMode === "C4";
   const isC5 = assignmentMode === "C5";
-  // C6a/C6b/C7 are C5 with editable + addable tiers. C6a edits inline, C6b/C7
-  // via a dialog; C7 stacks tiers vertically (up to 10) and shares rules via a
-  // modal instead of the in-card FYI. All share C5's three-tier seed + chrome.
-  const isC6a = assignmentMode === "C6A";
-  const isC6b = assignmentMode === "C6B";
+  // C7/C8 are C5 with editable + addable tiers, dialog-edited, rules in a
+  // popover. All share C5's three-tier seed + chrome.
   const isC7 = assignmentMode === "C7";
-  // C8 is C7 + a selectable roster (move via a dialog; red banner moves up tiers).
-  const isC8 = assignmentMode === "C8";
-  const isRail = isC7 || isC8;
-  const isC5Like = isC5 || isC6a || isC6b || isC7 || isC8;
-  const editMode = isC6a ? "inline" : isC6b || isRail ? "dialog" : undefined;
+  // C8 (C6 folded in): selectable roster + dialog editing; iterations a/b are
+  // the tier-card layout — a = horizontal cards on top, b = a vertical rail.
+  const isC8a = assignmentMode === "C8A";
+  const isC8b = assignmentMode === "C8B";
+  const isC8 = isC8a || isC8b;
+  const isC7or8 = isC7 || isC8;
+  const isC5Like = isC5 || isC7 || isC8;
+  const editMode = isC7or8 ? "dialog" : undefined;
+  const bucketLayout = isC7 || isC8b ? "rail" : undefined;
   const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5Like ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
   const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5Like ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
   const [agents, setAgents] = React.useState(seedAgents);
@@ -64,7 +65,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   const [pendingChange, setPendingChange] = React.useState(null);
   // C5 manager: null = closed, otherwise the tab to open on ("nearing" | id).
   const [manageTab, setManageTab] = React.useState(null);
-  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents, isRail ? 10 : 5);
+  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents, bucketLayout === "rail" ? 10 : 5);
 
   // Swapping assignment approach resets only the approach-local selection —
   // the shared data (agents / buckets / rules) stays put. Done with the
@@ -183,8 +184,8 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
           consumedPct={consumedPct}
           overCap={isC5Like ? c5Alert : overCap}
           onViewAgents={isC5Like ? () => setManageTab("nearing") : scrollToAgents}
-          fyi={isC5Like && !isRail ? <C5RulesFyi /> : null}
-          headerRight={isRail ? <RulesPopover /> : undefined}
+          fyi={isC5Like && !isC7or8 ? <C5RulesFyi /> : null}
+          headerRight={isC7or8 ? <RulesPopover /> : undefined}
         />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />
@@ -237,7 +238,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
             onSave={() => console.log("save credits & usage")}
             editMode={editMode}
-            bucketLayout={isRail ? "rail" : undefined}
+            bucketLayout={bucketLayout}
             selectable={isC8}
             onEditBucket={editBucket}
             onAddBucket={addBucket}
@@ -280,7 +281,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
 // approaches (C2–C4, bulk) fold buckets into their own card, and C5/C6 own
 // their bucket strip, so this renders nothing for those.
 function StandaloneBuckets({ mode, buckets, selectedBucketId, onSelect }) {
-  if (["C2", "C3", "C4", "BULK", "C5", "C6A", "C6B", "C7", "C8"].includes(mode)) return null;
+  if (["C2", "C3", "C4", "BULK", "C5", "C7", "C8A", "C8B"].includes(mode)) return null;
   return (
     <Section
       title="Quota buckets"

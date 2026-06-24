@@ -5,7 +5,6 @@ import { Users, Info } from "lucide-react";
 import { Section } from "./CreditsUsageParts";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
-import BucketEditor from "./BucketEditor";
 import BucketEditorDialog from "./BucketEditorDialog";
 import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import ManageAgentsModal from "./ManageAgentsModal";
@@ -63,9 +62,9 @@ export default function CreditsUsageC5({
   };
   const sorted = [...agents].sort((a, b) => ratio(b) - ratio(a));
 
-  // Dialog editors (C6b / C7) double as a folder: clicking a tier selects it
+  // Dialog editing (C7 / C8) doubles as a folder: clicking a tier selects it
   // and the table shows that tier's agents (editing is the per-card pencil).
-  // The inline (C6a) and read-only (C5) tables show the whole roster.
+  // The read-only (C5) table shows the whole roster.
   const isDialog = editMode === "dialog";
   const [selectedBucketId, setSelectedBucketId] = React.useState(buckets[0]?.id);
   const selectedId = buckets.some((b) => b.id === selectedBucketId) ? selectedBucketId : buckets[0]?.id;
@@ -83,13 +82,11 @@ export default function CreditsUsageC5({
   const togglePick = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const togglePickAll = (ids) => setPicked((p) => (p.length === ids.length ? [] : ids));
 
-  // C7 ("rail") stacks the editable tiers in a left rail beside the table, the
-  // way C2 lays out its buckets; the others keep the strip above the table.
+  // "rail" stacks the editable tiers in a left rail beside the table (C7, C8b);
+  // otherwise the cards sit horizontally on top of the list (C8a).
   const rail = bucketLayout === "rail";
   const bucketStrip =
-    editMode === "inline" ? (
-      <BucketEditor buckets={buckets} onEdit={onEditBucket} onAdd={onAddBucket} onRemove={onRemoveBucket} />
-    ) : isDialog ? (
+    isDialog ? (
       <BucketEditorDialog
         buckets={buckets}
         vertical={rail}

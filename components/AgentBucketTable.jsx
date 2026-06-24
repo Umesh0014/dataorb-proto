@@ -65,10 +65,11 @@ export default function AgentBucketTable({
   const [query, setQuery] = React.useState("");
   const [tagFilter, setTagFilter] = React.useState("all");
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const [bucketFilter, setBucketFilter] = React.useState("all");
 
   // Searching / filtering resets to the first page so results aren't hidden
   // on a stale page index.
-  const fkey = `${query}|${tagFilter}|${statusFilter}`;
+  const fkey = `${query}|${tagFilter}|${statusFilter}|${bucketFilter}`;
   const [prevFkey, setPrevFkey] = React.useState(fkey);
   if (fkey !== prevFkey) {
     setPrevFkey(fkey);
@@ -94,11 +95,15 @@ export default function AgentBucketTable({
   // Search by name + filter by tenure tag and derived status. The data
   // tables (paginate) own this toolbar; selection / pagination operate on
   // the filtered set.
+  // Column filters: tier (Bucket), the at-cap status shared by the Used/Cap and
+  // Status columns, plus the tenure tag (toolbar) and name search.
+  const bucketOptions = [{ value: "all", label: "All tiers" }, ...buckets.map((b) => ({ value: b.id, label: b.name }))];
   const q = query.trim().toLowerCase();
   const filtered = agents.filter(
     (a) =>
       (!q || a.name.toLowerCase().includes(q)) &&
       (tagFilter === "all" || a.tag === tagFilter) &&
+      (bucketFilter === "all" || a.bucketId === bucketFilter) &&
       (statusFilter === "all" || statusOf(a.usedMin, appliedCap(a, buckets)) === statusFilter),
   );
 
@@ -120,8 +125,6 @@ export default function AgentBucketTable({
           onQuery={setQuery}
           tagFilter={tagFilter}
           onTag={setTagFilter}
-          statusFilter={statusFilter}
-          onStatus={setStatusFilter}
           showTag={showTag}
         />
       )}
@@ -139,9 +142,11 @@ export default function AgentBucketTable({
           />
         )}
         <span style={styles.th}>Agent</span>
-        {showBucketCol && <span style={styles.th}>Bucket</span>}
-        <span style={styles.th}>Used / Cap</span>
-        <span style={styles.th}>Status</span>
+        {showBucketCol && (
+          <Select size="sm" value={bucketFilter} onChange={setBucketFilter} options={bucketOptions} ariaLabel="Filter by tier" />
+        )}
+        <Select size="sm" value={statusFilter} onChange={setStatusFilter} options={USAGE_OPTIONS} ariaLabel="Filter by used / cap" />
+        <Select size="sm" value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} ariaLabel="Filter by status" />
         {showAdjust && <span style={styles.th} aria-hidden="true" />}
       </div>
 
@@ -257,13 +262,21 @@ const TAG_OPTIONS = [
   { value: "tenured", label: "Tenured" },
 ];
 const STATUS_OPTIONS = [
-  { value: "all", label: "All statuses" },
+  { value: "all", label: "Status" },
   { value: "on_track", label: "On track" },
   { value: "near_limit", label: "Near limit" },
   { value: "at_cap", label: "At cap" },
 ];
+// The Used / Cap column filters the same at-cap status, framed as usage bands;
+// its Select is synced to the Status column's via the shared statusFilter.
+const USAGE_OPTIONS = [
+  { value: "all", label: "Used / Cap" },
+  { value: "at_cap", label: "Over cap" },
+  { value: "near_limit", label: "Near" },
+  { value: "on_track", label: "On track" },
+];
 
-function TableToolbar({ bare, query, onQuery, tagFilter, onTag, statusFilter, onStatus, showTag = true }) {
+function TableToolbar({ bare, query, onQuery, tagFilter, onTag, showTag = true }) {
   return (
     <div style={bare ? styles.toolbarBare : styles.toolbar}>
       <label style={styles.searchWrap}>
@@ -277,10 +290,11 @@ function TableToolbar({ bare, query, onQuery, tagFilter, onTag, statusFilter, on
           style={styles.searchInput}
         />
       </label>
-      <div style={styles.filters}>
-        {showTag && <Select value={tagFilter} onChange={onTag} options={TAG_OPTIONS} ariaLabel="Filter by tag" />}
-        <Select value={statusFilter} onChange={onStatus} options={STATUS_OPTIONS} ariaLabel="Filter by status" />
-      </div>
+      {showTag && (
+        <div style={styles.filters}>
+          <Select value={tagFilter} onChange={onTag} options={TAG_OPTIONS} ariaLabel="Filter by tag" />
+        </div>
+      )}
     </div>
   );
 }
@@ -302,8 +316,8 @@ function Avatar({ name, index }) {
   );
 }
 
-const GRID = "minmax(160px,0.9fr) 150px minmax(260px,2fr) 110px"; // + 84px action when shown
-const GRID_BARE = "minmax(160px,0.9fr) minmax(260px,2fr) 110px"; // no Bucket column
+const GRID = "minmax(160px,0.9fr) 150px minmax(240px,2fr) 150px"; // + 84px action when shown
+const GRID_BARE = "minmax(160px,0.9fr) minmax(240px,2fr) 150px"; // no Bucket column
 const styles = {
   toolbar: {
     display: "flex",
