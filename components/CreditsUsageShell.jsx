@@ -23,24 +23,22 @@ import IterationRail from "./IterationRail";
 //        an amber→red over-limit banner, never-block grace period, and Save
 //        moved to the bottom of the page.
 //   C7  — Dialog-edited tiers stacked vertically (up to 10), rules in a popover.
-//   C8  — C7's editing + a selectable roster: checkboxes drive a card-level
-//         "Manage agents" → move-to-tier dialog, and the red banner opens an
-//         over-limit dialog that moves agents up one or two tiers. Its two
-//         iterations are the tier-card layout: a = horizontal cards on top of
-//         the list, b = a vertical rail beside it. (C6 folded in here.)
+//   C8  — "Customizable bucket": C7's editing + a selectable roster (card-level
+//         "Manage agents" → move-to-tier dialog; red banner → over-limit dialog
+//         that moves agents up tiers). Its two iterations are the tier-card
+//         layout — Horizontal (cards on top of the list) and Vertical (a rail
+//         beside it). (C6 folded in here.)
 //
-// Iterations (C8 a/b, the bulk study's i1/i2/i3) render in a vertical floating
-// IterationRail on the right; the bottom VersionBar shows versions only, so its
-// `versions` are passed with iterations stripped.
+// Iterations (C8 Horizontal/Vertical, the bulk study's i1/i2/i3) render in a
+// vertical floating IterationRail on the right; the bottom VersionBar shows
+// versions only, so its `versions` are passed with iterations stripped.
 //
-// C4 is the preferred (starred) direction. A, B, C1–C3 and the Bulk action exp
-// study are parked in the Discarded dropdown — still selectable for comparison,
-// just out of the main row. Variant state is in-memory; resets on session end.
+// The main row is C5 + Customizable bucket (C8). A, B, C1–C4, C7 and the Bulk
+// action exp study are parked in the Discarded dropdown — still selectable for
+// comparison. Variant state is in-memory; resets on session end.
 const CU_VERSIONS = [
-  { id: "c4", label: "C4", iterations: [], preferred: true },
   { id: "c5", label: "C5", iterations: [] },
-  { id: "c7", label: "C7", iterations: [] },
-  { id: "c8", label: "C8", iterations: [] },
+  { id: "c8", label: "Customizable bucket", iterations: [] },
 ];
 const CU_DISCARDED = [
   { id: "a", label: "A" },
@@ -48,6 +46,8 @@ const CU_DISCARDED = [
   { id: "c1", label: "C1" },
   { id: "c2", label: "C2" },
   { id: "c3", label: "C3" },
+  { id: "c4", label: "C4" },
+  { id: "c7", label: "C7" },
   { id: "bulk", label: "Bulk action exp" },
 ];
 const CU_BASELINE = [{ id: "cu", label: "Credit & Usage" }];
@@ -55,18 +55,18 @@ const BULK_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
 // Iterations live in the floating rail, keyed by version id (whether the version
 // sits in the main row or in Discarded). The bulk study's i1/i2/i3 pick where
 // its move action sits: i1 floating · i2 inline · i3 footer.
-const CU_ITERATIONS = { c8: ["a", "b"], bulk: ["i1", "i2", "i3"] };
+const CU_ITERATIONS = { c8: ["Horizontal", "Vertical"], bulk: ["i1", "i2", "i3"] };
 // The bottom bar shows versions only; iterations move to the IterationRail.
 const CU_BAR_VERSIONS = CU_VERSIONS.map((v) => ({ ...v, iterations: [] }));
 
 export default function CreditsUsageShell({ onBack }) {
-  const [sel, setSel] = React.useState({ versionId: "c4", iterationId: null });
+  const [sel, setSel] = React.useState({ versionId: "c8", iterationId: null });
   const iterations = CU_ITERATIONS[sel.versionId] || [];
   const activeIter = iterations.includes(sel.iterationId) ? sel.iterationId : iterations[0] || null;
-  // C8's a/b iterations map to the C8A/C8B the page knows (layout only); bulk
-  // maps to placements.
+  // C8's Horizontal/Vertical iterations map to the C8A/C8B the page knows
+  // (tier-card layout only); bulk maps to placements.
   const variant =
-    sel.versionId === "c8" ? (activeIter === "b" ? "C8B" : "C8A") : sel.versionId.toUpperCase();
+    sel.versionId === "c8" ? (activeIter === "Vertical" ? "C8B" : "C8A") : sel.versionId.toUpperCase();
   const bulkPlacement = sel.versionId === "bulk" ? BULK_PLACEMENTS[activeIter || "i1"] : null;
 
   return (
