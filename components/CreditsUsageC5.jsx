@@ -145,23 +145,21 @@ export default function CreditsUsageC5({
 // RULES — the fixed (non-editable) practice-limit rules, shared by the in-card
 // FYI (C5 / C6) and the on-demand popover (C7).
 const RULES = [
-  {
-    lead: "Never interrupted mid-session.",
-    note: "An in-progress session finishes (e.g. 39 / 30); once over the cap, no new sessions until a manager moves the agent up a tier (45 / 60).",
-  },
-  { lead: "New agents start in Kickstart", note: "— 30 min / week by default." },
-  { lead: "Weekly reset", note: "— minutes reset every Sunday at midnight." },
+  { lead: "Never interrupted mid-session", note: "Sessions in progress always finish. Past the cap, no new ones until moved up a tier." },
+  { lead: "New agents start in Kickstart", note: "30 min / week by default." },
+  { lead: "Weekly reset", note: "Minutes reset every Sunday at midnight." },
 ];
 
 function RulesList() {
   return (
-    <ul style={styles.fyiList}>
+    <div style={styles.ruleStack}>
       {RULES.map((r) => (
-        <li key={r.lead} style={styles.fyiItem}>
-          <strong style={styles.fyiLead}>{r.lead}</strong> {r.note}
-        </li>
+        <div key={r.lead} style={styles.ruleItem}>
+          <span style={styles.ruleLead}>{r.lead}</span>
+          <span style={styles.ruleNote}>{r.note}</span>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 
@@ -253,16 +251,14 @@ const styles = {
   fyiTitle: { fontSize: 12, fontWeight: 700, color: "var(--color-text-deep)", letterSpacing: "0.01em" },
   fyiTag: {
     marginInlineStart: "auto",
-    padding: "1px 8px",
-    borderRadius: 999,
-    background: "#FFFFFF",
-    color: "var(--color-icon-tertiary-fg)",
+    color: "var(--color-text-tertiary)",
     fontSize: 10,
-    fontWeight: 600,
+    fontWeight: 700,
     textTransform: "uppercase",
-    letterSpacing: "0.4px",
+    letterSpacing: "0.6px",
   },
-  fyiList: { margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 },
-  fyiItem: { fontSize: 12, fontWeight: 400, lineHeight: "18px", color: "var(--color-text-medium)" },
-  fyiLead: { fontWeight: 700, color: "var(--color-text-deep)" },
+  ruleStack: { display: "flex", flexDirection: "column", gap: 12 },
+  ruleItem: { display: "flex", flexDirection: "column", gap: 2 },
+  ruleLead: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
+  ruleNote: { fontSize: 12, fontWeight: 400, lineHeight: "18px", color: "var(--color-text-tertiary)" },
 };
