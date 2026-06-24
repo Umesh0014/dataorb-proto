@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp, X } from "lucide-react";
+import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp } from "lucide-react";
+import Button from "./Button";
 import KpiDrillInline from "./KpiDrillInline";
 import KpiPrdDrill from "./KpiPrdDrill";
 import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
@@ -79,7 +80,11 @@ export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems,
     <div style={pageStyles.rowOpen}>
       <div style={pageStyles.cardsColFixed}>{sections}</div>
       <aside style={pageStyles.sideCard}>
-        <button type="button" style={pageStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
+        <div style={pageStyles.sideCardClose}>
+          <Button variant="icon" aria-label="Close" onClick={() => setDrill(null)}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#5A5D72" }}>close</span>
+          </Button>
+        </div>
         <DrillCard kpi={drillKpi} onClose={() => setDrill(null)} />
       </aside>
     </div>
@@ -102,7 +107,7 @@ const pageStyles = {
   // make room for the fixed-width side card on narrower screens.
   cardsColFixed: { flex: 1, minWidth: 0, maxWidth: "var(--page-content-max-width)", display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
   sideCard: { position: "sticky", top: 16, width: 478, flexShrink: 0, height: "calc(100vh - 32px)", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto" },
-  sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
+  sideCardClose: { position: "absolute", top: 14, right: 14, zIndex: 2 },
 };
 
 // ---- 0. Page header -------------------------------------------------------
