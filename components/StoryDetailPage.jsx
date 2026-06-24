@@ -12,9 +12,11 @@ import { MiraStarIcon } from "./SideNav/icons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const FULL_W = 1068; // constant report width (the Learning Hub drill-landing width)
 const RAIL_W = 300;
 const RAIL_GAP = 28;
+// Constant report width, sized so report + gap + rail == the 1068 content width.
+// This lets the report slide left and the rail slide in with no cropping.
+const FULL_W = 1068 - RAIL_GAP - RAIL_W; // 740
 
 const PEOPLE = [
   { id: "pn", name: "Priya Nair", initials: "PN", color: "var(--chart-blue)" },
