@@ -23,15 +23,14 @@ const MONTHS = [
  * OutcomeCard — the single metric card for the Ask Mira Pro Outcomes landing.
  *
  * Visual language borrowed from the Transactions reference card: title + kebab
- * on top, an oversized value bottom-left, a sparkline area trend line of the
- * trend across the middle, and a "vs last period" delta on the right. Hovering
- * the sparkline reveals each month's value; the peak point reads "Peak · {mo}"
- * so the line is never an unexplained number (Neil's labelling rule).
+ * on top, an oversized value bottom-left with its target, and a sparkline area
+ * trend line filling the rest. Hovering the sparkline reveals each month's
+ * value; the peak point reads "Peak · {mo}" so the line is never an unexplained
+ * number (Neil's labelling rule).
  *
  * Colour is driven by the delta SIGN, not by above/below target (Jun 9 rule):
- * deltaPp >= 0 → success, else danger — applied to both the delta and the
- * sparkline stroke. Delta is labelled in `pp` (percentage points) per house
- * standard, not the mock's "pts".
+ * a good move → success, else danger — applied to the sparkline stroke (the
+ * `invert` flag handles lower-is-better metrics like Churn Risk).
  *
  * @param {{
  *   outcome: {
