@@ -201,6 +201,7 @@ function AudioBriefing() {
   };
 
   const progress = elapsed / AUDIO_DURATION;
+  const filledBars = Math.round(progress * VOICE_BARS.length);
 
   return (
     <div style={d.audioWrap}>
@@ -218,8 +219,19 @@ function AudioBriefing() {
 
         {playing ? (
           <>
-            <span style={d.timeline} aria-hidden="true">
-              <span style={{ ...d.timelineFill, width: `${progress * 100}%` }} />
+            <span style={d.voiceform} aria-hidden="true">
+              {VOICE_BARS.map((h, i) => (
+                <span
+                  key={i}
+                  style={{
+                    ...d.voiceBar,
+                    height: h,
+                    background: i < filledBars
+                      ? "#FFFFFF"
+                      : "color-mix(in srgb, #FFFFFF 32%, transparent)",
+                  }}
+                />
+              ))}
             </span>
             <span style={d.audioRemaining}>{fmtTime(AUDIO_DURATION - elapsed)}</span>
           </>
@@ -240,6 +252,11 @@ function AudioBriefing() {
 }
 
 const WAVE_BARS = [6, 11, 8, 14, 9, 13, 7, 12, 8, 10];
+// Siri-style voiceform — organic varying bar heights spread across the pill.
+const VOICE_BARS = [
+  5, 8, 12, 7, 14, 10, 17, 12, 9, 15, 11, 18, 13, 8, 16,
+  10, 14, 9, 17, 12, 7, 13, 16, 10, 14, 8, 11, 6, 9, 5,
+];
 
 function buildStories(o, good) {
   const dir = o.deltaPp >= 0 ? "up" : "down";
@@ -482,6 +499,8 @@ const d = {
     alignItems: "center",
     gap: 12,
     height: 52,
+    // Fixed width so idle and playing states are identical in size.
+    width: 360,
     paddingInline: 18,
     borderRadius: 999,
     background: "var(--grey-900)",
@@ -509,38 +528,43 @@ const d = {
     background: "var(--chart-green)",
   },
   audioLabel: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 14,
     fontWeight: 600,
     color: "#FFFFFF",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
   audioDuration: {
     fontSize: 13,
     fontWeight: 500,
     color: "var(--grey-500)",
+    flexShrink: 0,
   },
-  // Playing state — progress timeline + remaining time on the blue pill.
-  timeline: {
-    position: "relative",
-    width: 190,
-    height: 4,
-    borderRadius: 999,
-    background: "color-mix(in srgb, #FFFFFF 30%, transparent)",
-    overflow: "hidden",
+  // Playing state — Siri-style voiceform (translucent bars, completed → solid)
+  // spread across the pill, plus the remaining time.
+  voiceform: {
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 20,
   },
-  timelineFill: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
+  voiceBar: {
+    width: 3,
     borderRadius: 999,
-    background: "#FFFFFF",
-    transition: "width 1s linear",
+    flexShrink: 0,
+    transition: "background 200ms ease",
   },
   audioRemaining: {
     fontSize: 13,
     fontWeight: 600,
     color: "#FFFFFF",
     fontVariantNumeric: "tabular-nums",
+    flexShrink: 0,
   },
 
   storiesHead: {
