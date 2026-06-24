@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, AlertTriangle, CircleSlash, ChevronsLeft, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { CheckCircle2, AlertTriangle, CircleSlash, ChevronsLeft, ChevronLeft, ChevronRight, Search, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import Select from "./Select";
@@ -64,12 +64,12 @@ export default function AgentBucketTable({
   const [rowsPerPage, setRowsPerPage] = React.useState(pageSizeOptions[0]);
   const [query, setQuery] = React.useState("");
   const [tagFilter, setTagFilter] = React.useState("all");
-  const [statusFilter, setStatusFilter] = React.useState("all");
-  const [bucketFilter, setBucketFilter] = React.useState("all");
+  const [sortKey, setSortKey] = React.useState(null);
+  const [sortDir, setSortDir] = React.useState("asc");
 
   // Searching / filtering resets to the first page so results aren't hidden
   // on a stale page index.
-  const fkey = `${query}|${tagFilter}|${statusFilter}|${bucketFilter}`;
+  const fkey = `${query}|${tagFilter}`;
   const [prevFkey, setPrevFkey] = React.useState(fkey);
   if (fkey !== prevFkey) {
     setPrevFkey(fkey);
@@ -92,20 +92,36 @@ export default function AgentBucketTable({
   const cols = selectable ? `28px ${base}` : base;
   const grid = { display: "grid", gridTemplateColumns: cols, alignItems: "center", gap: 12 };
 
-  // Search by name + filter by tenure tag and derived status. The data
-  // tables (paginate) own this toolbar; selection / pagination operate on
-  // the filtered set.
-  // Column filters: tier (Bucket), the at-cap status shared by the Used/Cap and
-  // Status columns, plus the tenure tag (toolbar) and name search.
-  const bucketOptions = [{ value: "all", label: "All tiers" }, ...buckets.map((b) => ({ value: b.id, label: b.name }))];
+  // Toolbar owns name search + tenure tag. Columns are sortable: clicking a
+  // header sorts by it (the active column shows the direction arrow); with no
+  // header clicked the parent's order is preserved. Selection / pagination
+  // operate on the resulting list.
   const q = query.trim().toLowerCase();
-  const filtered = agents.filter(
-    (a) =>
-      (!q || a.name.toLowerCase().includes(q)) &&
-      (tagFilter === "all" || a.tag === tagFilter) &&
-      (bucketFilter === "all" || a.bucketId === bucketFilter) &&
-      (statusFilter === "all" || statusOf(a.usedMin, appliedCap(a, buckets)) === statusFilter),
+  const base = agents.filter(
+    (a) => (!q || a.name.toLowerCase().includes(q)) && (tagFilter === "all" || a.tag === tagFilter),
   );
+  const ratioOf = (a) => {
+    const cap = appliedCap(a, buckets);
+    return cap > 0 ? a.usedMin / cap : 0;
+  };
+  const SEVERITY = { on_track: 0, near_limit: 1, at_cap: 2 };
+  const sevOf = (a) => SEVERITY[statusOf(a.usedMin, appliedCap(a, buckets))];
+  const SORTERS = {
+    name: (a, b) => a.name.localeCompare(b.name),
+    bucket: (a, b) => appliedCap(a, buckets) - appliedCap(b, buckets),
+    usage: (a, b) => ratioOf(a) - ratioOf(b),
+    status: (a, b) => sevOf(a) - sevOf(b),
+  };
+  const filtered = sortKey
+    ? [...base].sort((a, b) => SORTERS[sortKey](a, b) * (sortDir === "desc" ? -1 : 1))
+    : base;
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
 
   const allSelected = selectable && filtered.length > 0 && selectedIds.length === filtered.length;
   const totalPages = paginate ? Math.max(1, Math.ceil(filtered.length / rowsPerPage)) : 1;
@@ -141,12 +157,10 @@ export default function AgentBucketTable({
             style={styles.checkbox}
           />
         )}
-        <span style={styles.th}>Agent</span>
-        {showBucketCol && (
-          <Select size="sm" value={bucketFilter} onChange={setBucketFilter} options={bucketOptions} ariaLabel="Filter by tier" />
-        )}
-        <Select size="sm" value={statusFilter} onChange={setStatusFilter} options={USAGE_OPTIONS} ariaLabel="Filter by used / cap" />
-        <Select size="sm" value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} ariaLabel="Filter by status" />
+        <SortTh label="Agent" col="name" sortKey={sortKey} dir={sortDir} onSort={toggleSort} />
+        {showBucketCol && <SortTh label="Bucket" col="bucket" sortKey={sortKey} dir={sortDir} onSort={toggleSort} />}
+        <SortTh label="Used / Cap" col="usage" sortKey={sortKey} dir={sortDir} onSort={toggleSort} />
+        <SortTh label="Status" col="status" sortKey={sortKey} dir={sortDir} onSort={toggleSort} />
         {showAdjust && <span style={styles.th} aria-hidden="true" />}
       </div>
 
@@ -261,20 +275,36 @@ const TAG_OPTIONS = [
   { value: "onboarding", label: "Onboarding" },
   { value: "tenured", label: "Tenured" },
 ];
-const STATUS_OPTIONS = [
-  { value: "all", label: "Status" },
-  { value: "on_track", label: "On track" },
-  { value: "near_limit", label: "Near limit" },
-  { value: "at_cap", label: "At cap" },
-];
-// The Used / Cap column filters the same at-cap status, framed as usage bands;
-// its Select is synced to the Status column's via the shared statusFilter.
-const USAGE_OPTIONS = [
-  { value: "all", label: "Used / Cap" },
-  { value: "at_cap", label: "Over cap" },
-  { value: "near_limit", label: "Near" },
-  { value: "on_track", label: "On track" },
-];
+// Sortable column header: label + a direction arrow. The active column shows
+// up/down; the others show a faint up-down hint. A role="button" span (not
+// <button>) keeps it clickable + keyboard-operable without the chrome a Button
+// carries. Click toggles the sort key / direction in the parent.
+function SortTh({ label, col, sortKey, dir, onSort }) {
+  const active = sortKey === col;
+  const Arrow = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ChevronsUpDown;
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={() => onSort(col)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSort(col);
+        }
+      }}
+      aria-label={`Sort by ${label}${active ? (dir === "asc" ? ", ascending" : ", descending") : ""}`}
+      style={styles.thSort}
+    >
+      {label}
+      <Arrow
+        size={13}
+        aria-hidden="true"
+        style={{ opacity: active ? 1 : 0.45, color: active ? "var(--color-text-medium)" : "var(--color-text-tertiary)" }}
+      />
+    </span>
+  );
+}
 
 function TableToolbar({ bare, query, onQuery, tagFilter, onTag, showTag = true }) {
   return (
@@ -316,8 +346,8 @@ function Avatar({ name, index }) {
   );
 }
 
-const GRID = "minmax(160px,0.9fr) 150px minmax(240px,2fr) 150px"; // + 84px action when shown
-const GRID_BARE = "minmax(160px,0.9fr) minmax(240px,2fr) 150px"; // no Bucket column
+const GRID = "minmax(160px,0.9fr) 150px minmax(260px,2fr) 120px"; // + 84px action when shown
+const GRID_BARE = "minmax(160px,0.9fr) minmax(260px,2fr) 120px"; // no Bucket column
 const styles = {
   toolbar: {
     display: "flex",
@@ -374,6 +404,19 @@ const styles = {
     color: "var(--color-text-tertiary)",
     textTransform: "uppercase",
     letterSpacing: "0.04em",
+  },
+  thSort: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "var(--color-text-tertiary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    cursor: "pointer",
+    userSelect: "none",
+    width: "fit-content",
   },
   checkbox: { width: 16, height: 16, accentColor: "var(--do-brand-blue)", cursor: "pointer" },
   identity: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
