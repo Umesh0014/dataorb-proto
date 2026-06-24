@@ -354,7 +354,7 @@ const d = {
   },
   inner: {
     width: "100%",
-    maxWidth: 800,
+    maxWidth: 1068,
     marginInline: "auto",
     paddingTop: 16,
     paddingBottom: 24,
@@ -706,7 +706,7 @@ const d = {
   },
   composerInner: {
     width: "100%",
-    maxWidth: 800,
+    maxWidth: 1068,
     marginInline: "auto",
   },
 };
