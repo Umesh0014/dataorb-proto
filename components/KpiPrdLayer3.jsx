@@ -4,6 +4,7 @@ import React from "react";
 import { CheckCircle2, AlertTriangle, MinusCircle, ExternalLink } from "lucide-react";
 import { EFFICIENCY_INTERACTIONS } from "./mocks/kpiSidecar";
 import DsGapDot from "./DsGapDot";
+import { Chip } from "./ds";
 
 const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
@@ -56,8 +57,8 @@ export default function KpiSidecarLayer3({ kpi, week, markGaps = false }) {
                 <div style={s.cardBody}>
                   <span style={s.id}>{it.id}</span>
                   <div style={s.tags}>
-                    {it.tags.map((tag) => <span key={tag} style={s.tag}>{tag}</span>)}
-                    {it.extraTags > 0 && <span style={s.tag}>+{it.extraTags}</span>}
+                    {it.tags.map((tag) => <Chip key={tag}>{tag}</Chip>)}
+                    {it.extraTags > 0 && <Chip>+{it.extraTags}</Chip>}
                     <span style={s.dot} />
                     <span style={{ ...s.res, color: t.fg }}>{it.outcome}</span>
                   </div>

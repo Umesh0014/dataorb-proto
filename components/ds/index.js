@@ -3,3 +3,6 @@
 // so screens use the design system directly instead of bespoke markup.
 export { default as PageHeader } from "./PageHeader";
 export { default as Pagination } from "./Pagination";
+export { default as Chip } from "./Chip";
+export { default as Tabs } from "./Tabs";
+export { default as OutcomeBar } from "./OutcomeBar";

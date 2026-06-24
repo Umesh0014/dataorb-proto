@@ -2,8 +2,8 @@
 
 import React from "react";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Phone, Info } from "lucide-react";
-import { OutcomeBar, RagChip, SkeletonRows, sortAgents, statusLabelFor, rule, InfoTip } from "./KpiSidecarParts";
-import DsGapDot from "./DsGapDot";
+import { RagChip, SkeletonRows, sortAgents, statusLabelFor, rule, InfoTip } from "./KpiSidecarParts";
+import { OutcomeBar } from "./ds";
 
 const PAGE = 20;
 const FETCH_MS = 650;
@@ -80,15 +80,7 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent, markGaps = false 
             )}
           </div>
         </div>
-        <div style={{ ...s.sumBottom, position: "relative" }}>
-          {markGaps && (
-            <DsGapDot
-              component="Outcome breakdown bar"
-              closest="Graphs & Charts → Stacked / segmented bar"
-              why="DS ships stacked bars for charts, but not this thin inline segmented outcome bar with an inline legend. Adapt the stacked bar into a compact inline variant."
-              style={{ top: -2, right: -2 }}
-            />
-          )}
+        <div style={s.sumBottom}>
           <span style={s.sectionLabel}>Outcome breakdown</span>
           <OutcomeBar outcomes={kpi.outcomes} />
         </div>
