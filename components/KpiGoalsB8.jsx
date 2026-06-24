@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import KpiTile from "./KpiTile";
 import KpiDrillInline from "./KpiDrillInline";
 import { RagChip } from "./KpiSidecarParts";
@@ -9,7 +9,7 @@ import { KPIS, CATEGORIES, ON_TRACK_TOTAL, statusOf } from "./mocks/kpiGoals";
 import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
 
 const DRAWER = 468;
-const PER_PAGE = 6;
+const PER_PAGE = 3;
 const POPPINS = "'Poppins', sans-serif";
 const RING_COLORS = ["#004BEF", "#6B89FF", "#A5B4FC"];
 
@@ -18,11 +18,12 @@ const RING_COLORS = ["#004BEF", "#6B89FF", "#A5B4FC"];
 // horizontally aligned. Selecting a card opens its drill in a side drawer.
 export default function KpiGoalsB8() {
   const [sel, setSel] = React.useState(null);
-  const [showAll, setShowAll] = React.useState(false);
+  const [page, setPage] = React.useState(0);
 
   const attention = KPIS.filter((k) => statusOf(k).rag !== "green");
-  const visible = showAll ? attention : attention.slice(0, PER_PAGE);
-  const more = attention.length - PER_PAGE;
+  const pages = Math.max(1, Math.ceil(attention.length / PER_PAGE));
+  const safePage = Math.min(page, pages - 1);
+  const visible = attention.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
   const drillKpi = sel ? { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: sel.name, subtitle: sel.tip } : null;
 
   return (
@@ -49,17 +50,21 @@ export default function KpiGoalsB8() {
           </div>
         </aside>
 
-        {/* right: attention KPI cards */}
+        {/* right: 3 attention KPI cards in a row */}
         <div style={s.right}>
-          <span style={s.attnLabel}>Needs attention</span>
-          <div style={{ ...s.grid, gridTemplateColumns: `repeat(${sel ? 1 : 2}, minmax(0, 1fr))` }}>
+          <div style={s.rightHead}>
+            <span style={s.attnLabel}>Needs attention</span>
+            <div style={s.pagerNav}>
+              <button type="button" style={{ ...s.pageBtn, ...(safePage === 0 ? s.pageBtnOff : null) }} disabled={safePage === 0} onClick={() => setPage((p) => p - 1)} aria-label="Previous"><ChevronLeft size={16} /></button>
+              <span style={s.pageNum}>{safePage + 1}/{pages}</span>
+              <button type="button" style={{ ...s.pageBtn, ...(safePage >= pages - 1 ? s.pageBtnOff : null) }} disabled={safePage >= pages - 1} onClick={() => setPage((p) => p + 1)} aria-label="Next"><ChevronRight size={16} /></button>
+            </div>
+          </div>
+          <div style={{ ...s.grid, gridTemplateColumns: `repeat(${sel ? 1 : 3}, minmax(0, 1fr))` }}>
             {visible.map((k) => (
               <KpiTile key={k.id} k={k} selected={sel?.id === k.id} onClick={() => setSel(sel?.id === k.id ? null : k)} />
             ))}
           </div>
-          {more > 0 && !showAll && (
-            <button type="button" style={s.showMore} onClick={() => setShowAll(true)}>Show more ({more})</button>
-          )}
         </div>
       </div>
 
@@ -111,9 +116,13 @@ const s = {
   catName: { fontSize: 13, fontWeight: 600, color: "#2C2F42", whiteSpace: "nowrap" },
   catScore: { flex: 1, fontSize: 12, color: "#8C90A6" },
   right: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 },
+  rightHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   attnLabel: { fontSize: 13, fontWeight: 800, color: "#2C2F42", textTransform: "uppercase", letterSpacing: "0.04em" },
   grid: { display: "grid", gap: 14 },
-  showMore: { alignSelf: "flex-start", border: "1px solid var(--color-divider-card)", background: "#fff", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", cursor: "pointer", fontFamily: POPPINS },
+  pagerNav: { display: "flex", alignItems: "center", gap: 6 },
+  pageBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid var(--color-divider-card)", background: "#fff", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)" },
+  pageBtnOff: { opacity: 0.4, cursor: "default" },
+  pageNum: { fontSize: 12, fontWeight: 600, color: "#2C2F42", minWidth: 32, textAlign: "center" },
   drawer: { position: "fixed", top: 0, right: 0, height: "100vh", width: DRAWER, background: "#FFFFFF", boxShadow: "-14px 0 36px rgba(20,24,40,0.12)", padding: "24px 24px 40px", overflowY: "auto", zIndex: 50 },
   drawerX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
 };
