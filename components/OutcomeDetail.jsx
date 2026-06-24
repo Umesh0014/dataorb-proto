@@ -5,7 +5,7 @@
 "use client";
 
 import React from "react";
-import { Share2, Play, Pause, Target } from "lucide-react";
+import { Share2, Play, Pause, Target, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import PageHeader from "./PageHeader";
@@ -118,14 +118,13 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
           </Card>
 
           <div style={d.storiesHead}>Stories</div>
-          <div style={d.stories}>
-            {stories.map((st) => (
-              <Card key={st.kind} tone="outline" padX={18} padY={16} style={d.storyCard}>
-                <span style={{ ...d.storyKind, color: st.tone }}>{st.kind}</span>
-                <span style={d.storyTitle}>{st.title}</span>
-                <span style={d.storyBody}>{st.body}</span>
-              </Card>
-            ))}
+          <div style={d.storiesLayout}>
+            <FeatureStory story={stories[0]} />
+            <div style={d.storiesList}>
+              {stories.slice(1).map((st) => (
+                <ListStory key={st.kind} story={st} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -203,22 +202,60 @@ function buildStories(o, good) {
     {
       kind: "WHAT MOVED",
       tone: "var(--color-success)",
+      Icon: TrendingUp,
       title: `${o.title} is ${good ? "improving" : "slipping"}`,
       body: `${o.title} moved to ${o.value}% this period — ${dir} ${Math.abs(o.deltaPp)} pp versus last period, now ${vsTarget} the ${o.target}% target.`,
     },
     {
       kind: "WHAT'S AT RISK",
       tone: "var(--color-warning)",
+      Icon: AlertTriangle,
       title: `Holding the ${o.target}% target`,
       body: `The recent swing is concentrated in a few cohorts. If it continues, ${o.title.toLowerCase()} drifts ${vsTarget === "above" ? "back below" : "further from"} target within two cycles.`,
     },
     {
       kind: "THE DECISION",
       tone: "var(--color-button-primary-bg)",
+      Icon: CheckCircle2,
       title: "Approve the next play",
       body: `Run the recommended intervention and re-check ${o.title.toLowerCase()} next week. Ask Mira Pro below to simulate the impact before committing.`,
     },
   ];
+}
+
+// FeatureStory — the large hero card (left), with a tone-tinted visual band.
+function FeatureStory({ story }) {
+  const { kind, tone, Icon, title, body } = story;
+  return (
+    <Card tone="outline" padX={0} padY={0} style={d.featureCard}>
+      <div style={{ ...d.featureVisual, background: `color-mix(in srgb, ${tone} 15%, var(--surface-white))` }}>
+        <span style={{ ...d.featureIcon, background: `color-mix(in srgb, ${tone} 22%, var(--surface-white))` }}>
+          <Icon size={30} color={tone} />
+        </span>
+      </div>
+      <div style={d.featureBody}>
+        <span style={{ ...d.storyKind, color: tone }}>{kind}</span>
+        <span style={d.featureTitle}>{title}</span>
+        <span style={d.storyBody}>{body}</span>
+      </div>
+    </Card>
+  );
+}
+
+// ListStory — compact right-column card: tone thumbnail + kicker + title.
+function ListStory({ story }) {
+  const { kind, tone, Icon, title } = story;
+  return (
+    <Card tone="outline" padX={16} padY={16} style={d.listCard}>
+      <span style={{ ...d.thumb, background: `color-mix(in srgb, ${tone} 15%, var(--surface-white))` }}>
+        <Icon size={22} color={tone} />
+      </span>
+      <div style={d.listText}>
+        <span style={{ ...d.storyKind, color: tone }}>{kind}</span>
+        <span style={d.listTitle}>{title}</span>
+      </div>
+    </Card>
+  );
 }
 
 const d = {
@@ -436,26 +473,80 @@ const d = {
     fontWeight: 700,
     color: "var(--color-text-deep)",
   },
-  stories: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 16,
+  // Featured layout: one large hero story (left) + a list of compact cards.
+  storiesLayout: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 20,
   },
-  storyCard: {
+  featureCard: {
+    flex: "1.1 1 0",
+    minWidth: 0,
+    borderRadius: 12,
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+  },
+  featureVisual: {
+    height: 200,
+    display: "grid",
+    placeItems: "center",
+  },
+  featureIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    display: "grid",
+    placeItems: "center",
+  },
+  featureBody: {
+    padding: 20,
     display: "flex",
     flexDirection: "column",
     gap: 8,
+  },
+  featureTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.3,
+  },
+  storiesList: {
+    flex: "1 1 0",
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
+  listCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+  },
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    display: "grid",
+    placeItems: "center",
+    flexShrink: 0,
+  },
+  listText: {
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  },
+  listTitle: {
+    fontSize: 15,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+    lineHeight: 1.35,
   },
   storyKind: {
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: "0.08em",
-  },
-  storyTitle: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: "var(--color-text-deep)",
-    lineHeight: 1.3,
   },
   storyBody: {
     fontSize: 13,
