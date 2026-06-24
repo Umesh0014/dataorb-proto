@@ -22,11 +22,32 @@ const AVATAR_COLORS = [
   "var(--chart-green)",
 ];
 const STATUS_TONE = { near_limit: "var(--color-warning)", at_cap: "var(--color-error)", on_track: "var(--color-success)" };
+const USAGE_FILTERS = [
+  { value: "all", label: "All usage" },
+  { value: "over", label: "Over cap" },
+  { value: "near", label: "Near limit" },
+  { value: "under", label: "On track" },
+];
 
 export default function MoveToBucketDialog({ open, agents, buckets, onClose, onConfirm }) {
   const [picked, setPicked] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [target, setTarget] = React.useState("");
+  // Filter the selected agents by at-cap usage band (a column filter, not tier).
+  const [filter, setFilter] = React.useState("all");
+
+  const matchesFilter = (a, f) => {
+    const st = statusOf(a.usedMin, appliedCap(a, buckets));
+    if (f === "all") return true;
+    if (f === "over") return st === "at_cap";
+    if (f === "near") return st === "near_limit";
+    return st === "on_track"; // under
+  };
+  const inFilter = agents.filter((a) => matchesFilter(a, filter));
+  const changeFilter = (f) => {
+    setFilter(f);
+    setPicked(agents.filter((a) => matchesFilter(a, f)).map((a) => a.id));
+  };
 
   // Re-seed (all agents checked, cleared filters) each time it opens.
   const [prevOpen, setPrevOpen] = React.useState(open);
@@ -36,6 +57,7 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
       setPicked(agents.map((a) => a.id));
       setQuery("");
       setTarget("");
+      setFilter("all");
     }
   }
 
@@ -64,7 +86,7 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
     : 0;
 
   const q = query.trim().toLowerCase();
-  const visible = q ? agents.filter((a) => a.name.toLowerCase().includes(q)) : agents;
+  const visible = q ? inFilter.filter((a) => a.name.toLowerCase().includes(q)) : inFilter;
   const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const allOn = visible.length > 0 && visible.every((a) => picked.includes(a.id));
   const toggleAll = () => setPicked(allOn ? [] : visible.map((a) => a.id));
@@ -105,8 +127,7 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
         <div style={styles.tableHead}>
           <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all" style={styles.checkbox} disabled={visible.length === 0} />
           <span style={styles.th}>Agent</span>
-          <span style={styles.th}>Tier</span>
-          <span style={styles.th}>Weekly usage</span>
+          <Select size="sm" value={filter} onChange={changeFilter} options={USAGE_FILTERS} ariaLabel="Filter by weekly usage" />
         </div>
 
         <div style={styles.list}>
@@ -114,7 +135,6 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
           {visible.map((a) => {
             const cap = appliedCap(a, buckets);
             const status = statusOf(a.usedMin, cap);
-            const bucket = buckets.find((b) => b.id === a.bucketId);
             const checked = picked.includes(a.id);
             return (
               <label key={a.id} style={{ ...styles.row, background: checked ? "var(--color-icon-tertiary-bg)" : "transparent" }}>
@@ -123,7 +143,6 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
                   <span style={{ ...styles.avatar, background: AVATAR_COLORS[a.id % AVATAR_COLORS.length] }}>{initials(a.name)}</span>
                   <span style={styles.name}>{a.name}</span>
                 </span>
-                <span style={styles.tier}>{bucket ? `${bucket.name} (${bucket.capMin})` : "—"}</span>
                 <span style={styles.usageCell}>
                   <span style={styles.usageBar}><CapacityBar used={a.usedMin} total={cap} height={6} /></span>
                   <span style={{ ...styles.usageVal, color: STATUS_TONE[status] }}>{a.usedMin} / {cap}</span>
@@ -158,7 +177,7 @@ function initials(name) {
   return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
-const COL_GRID = "22px minmax(180px, 1.6fr) 150px minmax(170px, 1.2fr)";
+const COL_GRID = "22px minmax(200px, 1.4fr) minmax(260px, 1.9fr)";
 
 const styles = {
   scrim: {
@@ -238,7 +257,6 @@ const styles = {
     flexShrink: 0,
   },
   name: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  tier: { fontSize: 12, fontWeight: 500, color: "var(--color-text-medium)", whiteSpace: "nowrap" },
   usageCell: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
   usageBar: { flex: 1, minWidth: 0 },
   usageVal: { fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" },

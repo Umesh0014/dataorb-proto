@@ -27,10 +27,11 @@ const STEP_OPTIONS = [
   { value: "2", label: "Up 2 tiers" },
 ];
 const USAGE_FILTERS = [
+  { value: "all", label: "All usage" },
   { value: "flagged", label: "Near or over" },
-  { value: "over", label: "Over cap (100%)" },
-  { value: "near", label: "Near (90–99%)" },
-  { value: "all", label: "All agents" },
+  { value: "over", label: "Over cap" },
+  { value: "near", label: "Near limit" },
+  { value: "under", label: "On track" },
 ];
 
 export default function OverLimitDialog({ open, agents, buckets, onClose, onMoveUp }) {
@@ -46,6 +47,7 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
     if (f === "all") return true;
     if (f === "over") return st === "at_cap";
     if (f === "near") return st === "near_limit";
+    if (f === "under") return st === "on_track";
     return st !== "on_track"; // flagged — near or over
   };
   const inFilter = agents.filter((a) => matchesFilter(a, filter));
@@ -126,7 +128,6 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
               style={styles.searchInput}
             />
           </label>
-          <Select value={filter} onChange={changeFilter} ariaLabel="Filter by usage" options={USAGE_FILTERS} />
           <Select value={step} onChange={setStep} placeholder="Move up by…" ariaLabel="Tiers to move up" options={STEP_OPTIONS} />
         </div>
 
@@ -134,7 +135,7 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
           <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all" style={styles.checkbox} disabled={visible.length === 0} />
           <span style={styles.th}>Agent</span>
           <span style={styles.th}>Tier</span>
-          <span style={styles.th}>Weekly usage</span>
+          <Select size="sm" value={filter} onChange={changeFilter} options={USAGE_FILTERS} ariaLabel="Filter by weekly usage" />
         </div>
 
         <div style={styles.list}>
