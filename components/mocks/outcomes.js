@@ -54,6 +54,36 @@ export const OUTCOMES = [
     deltaPp: 1,
     trend: [20, 26, 33, 42, 51, 60, 69, 77, 84, 89, 91, 92],
   },
+  {
+    id: "customer-sentiments",
+    title: "Customer Sentiments",
+    value: 84,
+    target: 80,
+    goalPct: 105,
+    deltaPp: 2,
+    trend: [22, 29, 37, 45, 54, 62, 70, 76, 80, 82, 82, 84],
+  },
+  {
+    id: "resolution-rate",
+    title: "Resolution Rate",
+    value: 82,
+    target: 86,
+    goalPct: 95,
+    deltaPp: -2,
+    trend: [96, 95, 93, 92, 90, 89, 88, 87, 86, 85, 84, 82],
+  },
+  {
+    // Churn Risk is inverted: lower is better, so a falling trend is the
+    // success (green) case and `target` is a ceiling the risk should stay under.
+    id: "churn-risk",
+    title: "Churn Risk",
+    value: 9,
+    target: 12,
+    goalPct: 75,
+    deltaPp: -3,
+    invert: true,
+    trend: [28, 25, 23, 21, 19, 17, 15, 14, 12, 11, 10, 9],
+  },
 ];
 
 export const ARCHIVED_OUTCOMES = [

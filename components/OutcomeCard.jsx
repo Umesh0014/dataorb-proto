@@ -43,10 +43,14 @@ const MONTHS = [
  */
 export default function OutcomeCard({ outcome, onClick }) {
   const [hovered, setHovered] = React.useState(false);
-  const { title, value, target, deltaPp, trend } = outcome;
+  const { title, value, target, deltaPp, trend, invert } = outcome;
 
+  // Arrow/sign follow the raw direction; colour follows whether the move is
+  // GOOD. For most metrics up is good; for inverted metrics (e.g. Churn Risk,
+  // where lower is better) a downward move is the success case.
   const positive = deltaPp >= 0;
-  const accent = positive ? "var(--color-success)" : "var(--color-error)";
+  const good = invert ? deltaPp < 0 : deltaPp >= 0;
+  const accent = good ? "var(--color-success)" : "var(--color-error)";
 
   // Tag the peak point so its hover tooltip reads "Peak · {month}".
   const peakIdx = trend.indexOf(Math.max(...trend));
