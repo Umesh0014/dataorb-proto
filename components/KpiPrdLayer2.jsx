@@ -21,6 +21,8 @@ export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek, markGaps = 
   const orgAvg = kpi.campaignRate;
   const diff = +(agent.value - orgAvg).toFixed(1);
   const gapTone = (r.higherIsBetter ? diff >= 0 : diff <= 0) ? "green" : "red";
+  // Gap unit: "pp" for percentages, the metric's own unit otherwise (e.g. " calls").
+  const gapUnit = kpi.unit === "%" ? "pp" : ((kpi.unit || "").trim() ? ` ${kpi.unit.trim()}` : "");
 
   // Per-week rows synthesised from the agent + the KPI trend (no backend).
   const weeks = kpi.trend.map((w, i) => {
@@ -48,7 +50,7 @@ export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek, markGaps = 
       <div style={s.compare}>
         <Stat label="This Agent" value={`${agent.value}${kpi.unit}`} />
         <Stat label="Organization Avg" value={`${orgAvg}${kpi.unit}`} />
-        <Stat label="Gap" value={`${diff >= 0 ? "+" : ""}${diff}pp`} tone={gapTone} />
+        <Stat label="Gap" value={`${diff >= 0 ? "+" : ""}${diff}${gapUnit}`} tone={gapTone} />
       </div>
 
       {/* trend */}
