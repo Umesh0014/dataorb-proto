@@ -4,7 +4,7 @@ import React from "react";
 import { CheckCircle2, AlertTriangle, MinusCircle, ExternalLink } from "lucide-react";
 import { EFFICIENCY_INTERACTIONS } from "./mocks/kpiSidecar";
 
-const POPPINS = "var(--font-sans)";
+const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
 // Sentiment / outcome icon + tint per tone.
 const TONE = {

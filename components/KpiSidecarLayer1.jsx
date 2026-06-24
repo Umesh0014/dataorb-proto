@@ -3,7 +3,7 @@
 import React from "react";
 import { ChevronDown, ChevronRight, Rocket, Settings2 } from "lucide-react";
 
-const POPPINS = "var(--font-sans)";
+const POPPINS = "'Poppins', sans-serif";
 // %Change pill tints (Figma 2349-28348): a down move is the "bad" red, an up
 // move the "good" green — independent of the metric's own RAG.
 const DELTA = {

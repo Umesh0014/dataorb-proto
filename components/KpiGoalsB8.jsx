@@ -7,7 +7,7 @@ import { RagChip } from "./KpiSidecarParts";
 import { KPIS, CATEGORIES, ON_TRACK_TOTAL, statusOf } from "./mocks/kpiGoals";
 
 const PER_PAGE = 3;
-const POPPINS = "var(--font-sans)";
+const POPPINS = "'Poppins', sans-serif";
 const RING_COLORS = ["#004BEF", "#6B89FF", "#A5B4FC"];
 
 // b8 — activity rings (left) + attention cards (right). Selecting a card reports

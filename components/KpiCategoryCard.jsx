@@ -7,7 +7,7 @@ import { RagChip } from "./KpiSidecarParts";
 // Reach / Recovery / Quality category card — replica of the Figma reference:
 // RAG ring (score centred) · title + description · status chip + "X of 3 on
 // track" · chevron.
-const POPPINS = "var(--font-sans)";
+const POPPINS = "'Poppins', sans-serif";
 
 export default function KpiCategoryCard({ cat, onClick, selected = false, flat = false }) {
   return (

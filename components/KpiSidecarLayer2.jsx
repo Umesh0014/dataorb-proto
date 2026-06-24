@@ -5,7 +5,7 @@ import { Settings2 } from "lucide-react";
 import KpiInteractionsList from "./KpiInteractionsList";
 import { INTERACTION_GROUPS } from "./mocks/kpiSidecar";
 
-const POPPINS = "var(--font-sans)";
+const POPPINS = "'Poppins', sans-serif";
 const DELTA = {
   up: { bg: "#F0FDF4", fg: "#00711D", arrow: "↑" },
   down: { bg: "#FEF2F2", fg: "#BA1A1A", arrow: "↓" },

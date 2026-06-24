@@ -4,7 +4,7 @@ import React from "react";
 import KpiSidecarTrend from "./KpiSidecarTrend";
 import { rule } from "./KpiSidecarParts";
 
-const POPPINS = "var(--font-sans)";
+const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
 const PILL = {
   green: { bg: "#F1FEF5", fg: "#00711D" },
