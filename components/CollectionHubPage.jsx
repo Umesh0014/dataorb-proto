@@ -194,17 +194,17 @@ function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discard
     <div style={kpiSectionStyles.wrap}>
       <div style={kpiSectionStyles.cardArea}>
         {!isUmesh && (
-          <div style={kpiSectionStyles.sideBySide}>
-            <div style={view === "b8" && drill ? kpiSectionStyles.mainCompact : kpiSectionStyles.mainFull}>
-              <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>
-            </div>
-            {view === "b8" && drill && (
+          view === "b8" && drill ? (
+            <div style={kpiSectionStyles.sideBySide}>
+              <Card padX={28} padY={24} style={{ ...chStyles.sectionCard, height: "100%" }}>{ours}</Card>
               <aside style={kpiSectionStyles.sideCard}>
                 <button type="button" style={kpiSectionStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
                 <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
               </aside>
-            )}
-          </div>
+            </div>
+          ) : (
+            <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>
+          )
         )}
         {view === "v0" && <KPIsV0 />}
         {view === "v1" && <KPIsV1 />}
@@ -1405,10 +1405,8 @@ const railS = {
 const kpiSectionStyles = {
   wrap: { position: "relative", width: "100%" },
   cardArea: { width: "100%" },
-  sideBySide: { display: "flex", gap: 18, alignItems: "stretch" },
-  mainFull: { flex: 1, minWidth: 0 },
-  mainCompact: { width: 452, flexShrink: 0, minWidth: 0 },
-  sideCard: { position: "relative", flex: 1, minWidth: 0, background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto", maxHeight: "calc(100vh - 32px)" },
+  sideBySide: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) 480px", gap: 18, alignItems: "stretch" },
+  sideCard: { position: "relative", minWidth: 0, background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto", maxHeight: "calc(100vh - 32px)" },
   sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
   railMount: {
     position: "absolute", top: 0, bottom: 0, left: "100%",
