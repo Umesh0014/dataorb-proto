@@ -7,9 +7,10 @@
 "use client";
 
 import React from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Pin, Archive, Trash2 } from "lucide-react";
 import Card from "./Card";
 import MetricSparkline from "./MetricSparkline";
+import KebabMenu from "./KebabMenu";
 
 // Period axis for the trend. Readings map 1:1 to the last twelve months; the
 // peak month is tagged in its hover tooltip ("Peak · Mar").
@@ -82,16 +83,24 @@ export default function OutcomeCard({ outcome, onClick }) {
 
         <div style={ocStyles.head}>
           <span style={ocStyles.title}>{title}</span>
-          <button
-            type="button"
-            onClick={() => {
-              // TODO: outcome card menu (next ticket)
-            }}
-            aria-label={`${title} outcome options`}
-            style={ocStyles.kebab}
-          >
-            <MoreHorizontal size={16} color="var(--color-text-tertiary)" />
-          </button>
+          <span style={ocStyles.kebabSlot}>
+            <KebabMenu
+              ariaLabel={`${title} outcome options`}
+              glyph={<MoreHorizontal size={16} />}
+              triggerStyle={ocStyles.kebabTrigger}
+              items={[
+                { label: "Pin", icon: <Pin size={16} />, onClick: () => {
+                  // TODO: pin outcome (next ticket)
+                } },
+                { label: "Archive", icon: <Archive size={16} />, onClick: () => {
+                  // TODO: archive outcome (next ticket)
+                } },
+                { label: "Delete", icon: <Trash2 size={16} />, tone: "danger", onClick: () => {
+                  // TODO: delete outcome (next ticket)
+                } },
+              ]}
+            />
+          </span>
         </div>
 
         <div style={ocStyles.body}>
@@ -171,18 +180,22 @@ const ocStyles = {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
-  kebab: {
+  // Re-enables pointer events for the menu trigger inside the (otherwise
+  // click-through) head, so it works without firing the card's drill-in.
+  kebabSlot: {
     pointerEvents: "auto",
     display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
+    flexShrink: 0,
+  },
+  // Restyles KebabMenu's trigger to the reference's circular bordered kebab.
+  kebabTrigger: {
     width: 28,
     height: 28,
+    padding: 0,
     borderRadius: 999,
     border: "1px solid var(--color-divider-card)",
     background: "var(--surface-white)",
-    cursor: "pointer",
-    flexShrink: 0,
+    color: "var(--color-text-tertiary)",
   },
 
   body: {
