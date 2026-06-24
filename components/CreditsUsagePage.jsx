@@ -241,7 +241,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
             onSave={() => console.log("save credits & usage")}
             editMode={editMode}
-            bucketLayout={isC7 ? "vertical" : undefined}
+            bucketLayout={isC7 ? "rail" : undefined}
             rulesMode={isC7 ? "popover" : undefined}
             onEditBucket={editBucket}
             onAddBucket={addBucket}

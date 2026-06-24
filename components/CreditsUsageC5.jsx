@@ -59,13 +59,46 @@ export default function CreditsUsageC5({
   };
   const sorted = [...agents].sort((a, b) => ratio(b) - ratio(a));
 
+  // C7 ("rail") stacks the editable tiers in a left rail beside the table, the
+  // way C2 lays out its buckets; the others keep the strip above the table.
+  const rail = bucketLayout === "rail";
+  const bucketStrip =
+    editMode === "inline" ? (
+      <BucketEditor buckets={buckets} onEdit={onEditBucket} onAdd={onAddBucket} onRemove={onRemoveBucket} />
+    ) : editMode === "dialog" ? (
+      <BucketEditorDialog
+        buckets={buckets}
+        vertical={rail}
+        maxBuckets={rail ? 10 : 5}
+        onEdit={onEditBucket}
+        onAdd={onAddBucket}
+        onRemove={onRemoveBucket}
+      />
+    ) : (
+      <div style={styles.bucketRow}>
+        {buckets.map((b) => (
+          <BucketCard key={b.id} bucket={b} />
+        ))}
+      </div>
+    );
+  const table = (
+    <AgentBucketTable
+      agents={sorted}
+      buckets={buckets}
+      paginate
+      showAdjust={false}
+      showTag={false}
+      emptyLabel="No agents yet — agents appear here once your tenant is provisioned."
+    />
+  );
+
   return (
     <>
       <Section
         title="Quota buckets & assignment"
         description={
           editMode
-            ? `Edit each tier's name and weekly cap, or add up to ${bucketLayout === "vertical" ? 10 : 5} tiers. Every agent draws their cap from the tier they're in.`
+            ? `Edit each tier's name and weekly cap, or add up to ${rail ? 10 : 5} tiers. Every agent draws their cap from the tier they're in.`
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
         headerRight={
@@ -77,32 +110,17 @@ export default function CreditsUsageC5({
           </div>
         }
       >
-        {editMode === "inline" ? (
-          <BucketEditor buckets={buckets} onEdit={onEditBucket} onAdd={onAddBucket} onRemove={onRemoveBucket} />
-        ) : editMode === "dialog" ? (
-          <BucketEditorDialog
-            buckets={buckets}
-            vertical={bucketLayout === "vertical"}
-            maxBuckets={bucketLayout === "vertical" ? 10 : 5}
-            onEdit={onEditBucket}
-            onAdd={onAddBucket}
-            onRemove={onRemoveBucket}
-          />
-        ) : (
-          <div style={styles.bucketRow}>
-            {buckets.map((b) => (
-              <BucketCard key={b.id} bucket={b} />
-            ))}
+        {rail ? (
+          <div style={styles.split}>
+            <div style={styles.railCol}>{bucketStrip}</div>
+            <div style={styles.main}>{table}</div>
           </div>
+        ) : (
+          <>
+            {bucketStrip}
+            {table}
+          </>
         )}
-        <AgentBucketTable
-          agents={sorted}
-          buckets={buckets}
-          paginate
-          showAdjust={false}
-          showTag={false}
-          emptyLabel="No agents yet — agents appear here once your tenant is provisioned."
-        />
       </Section>
 
       <div style={styles.saveBar}>
@@ -198,6 +216,10 @@ const styles = {
   bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
   saveBar: { display: "flex", justifyContent: "flex-end", paddingTop: 4 },
   headerActions: { display: "flex", alignItems: "center", gap: 8 },
+
+  split: { display: "flex", gap: 24, alignItems: "flex-start" },
+  railCol: { width: 200, flexShrink: 0 },
+  main: { flex: 1, minWidth: 0 },
 
   popScrim: { position: "fixed", inset: 0, background: "transparent", zIndex: 39 },
   popPanel: {
