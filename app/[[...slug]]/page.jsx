@@ -640,9 +640,12 @@ export default function Page() {
       router.push(pathForCurrentPage(page));
     };
     const onKpiSpace = isChat && miraDirection === "kpispace";
+    // The Outcomes landing + detail (direction "welcome") sit on the canvas BG,
+    // not the white chat surface.
+    const onOutcomesHome = !isChat && miraDirection === "welcome";
     moduleContent = (
       <PageLayout
-        background={onKpiSpace ? "var(--surface-canvas)" : "var(--surface-white)"}
+        background={onKpiSpace || onOutcomesHome ? "var(--surface-canvas)" : "var(--surface-white)"}
         maxWidth={onKpiSpace ? "none" : undefined}
       >
         {miraContent}
