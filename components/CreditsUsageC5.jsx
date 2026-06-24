@@ -223,8 +223,7 @@ export function C5RulesFyi() {
     <div style={styles.fyi}>
       <div style={styles.fyiHead}>
         <Info size={14} color="var(--color-icon-tertiary-fg)" style={{ flexShrink: 0 }} aria-hidden="true" />
-        <span style={styles.fyiTitle}>How weekly limits work</span>
-        <span style={styles.fyiTag}>Fixed</span>
+        <span style={styles.fyiTitle}>How weekly limits work <span style={styles.fyiFixed}>(Fixed)</span></span>
       </div>
       <RulesList />
     </div>
@@ -253,8 +252,7 @@ export function RulesPopover() {
           <div style={styles.popScrim} onClick={() => setOpen(false)} aria-hidden="true" />
           <div role="dialog" aria-label="How weekly limits work" style={styles.popPanel}>
             <div style={styles.fyiHead}>
-              <span style={styles.fyiTitle}>How weekly limits work</span>
-              <span style={styles.fyiTag}>Fixed</span>
+              <span style={styles.fyiTitle}>How weekly limits work <span style={styles.fyiFixed}>(Fixed)</span></span>
             </div>
             <RulesList />
           </div>
@@ -301,17 +299,10 @@ const styles = {
     border: "1px solid rgba(102, 80, 165, 0.12)",
   },
   fyiHead: { display: "flex", alignItems: "center", gap: 8 },
-  fyiTitle: { fontSize: 12, fontWeight: 700, color: "var(--color-text-deep)", letterSpacing: "0.01em" },
-  fyiTag: {
-    marginInlineStart: "auto",
-    color: "var(--color-text-tertiary)",
-    fontSize: 10,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.6px",
-  },
+  fyiTitle: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)", letterSpacing: "-0.01em" },
+  fyiFixed: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)" },
   ruleStack: { display: "flex", flexDirection: "column", gap: 12 },
   ruleItem: { display: "flex", flexDirection: "column", gap: 2 },
-  ruleLead: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
+  ruleLead: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
   ruleNote: { fontSize: 12, fontWeight: 400, lineHeight: "18px", color: "var(--color-text-tertiary)" },
 };
