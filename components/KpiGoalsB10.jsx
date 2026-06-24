@@ -52,9 +52,7 @@ export default function KpiGoalsB10({ onDrill, drillId }) {
                 <button key={c.id} type="button" onClick={() => pickCat(c.name)} style={{ ...s.catRow, ...(on ? s.catRowOn : null) }}>
                   <span style={{ ...s.catDot, background: RING_COLORS[i] }} />
                   <span style={s.catName}>{c.name}</span>
-                  <span style={s.catScore}>{c.score}/100</span>
                   <RagChip rag={c.rag} label={c.status} />
-                  <ChevronRight size={16} color={on ? COLORS.primary : COLORS.textFaint} />
                 </button>
               );
             })}
@@ -71,6 +69,7 @@ export default function KpiGoalsB10({ onDrill, drillId }) {
                   component="KPI attention tile"
                   closest="Cards → Card (+ a sparkline)"
                   why="DS Card exists, but not a KPI card with inline sparkline + target line + delta pill. Modify Card and add a sparkline (Graphs only ships full charts)."
+                  style={{ top: 12, right: 12 }}
                 />
               </div>
             ))}
@@ -122,15 +121,14 @@ const s = {
   left: { width: 232, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14, alignItems: "center" },
   ringWrap: { position: "relative", display: "inline-flex" },
   catList: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
-  catRow: { width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid transparent", borderRadius: RADIUS.lg, background: "none", cursor: "pointer", textAlign: "left", fontFamily: TYPE.bodyMedium.fontFamily },
+  catRow: { width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: "1px solid transparent", borderRadius: RADIUS.md, background: "none", cursor: "pointer", textAlign: "left", fontFamily: TYPE.bodyMedium.fontFamily },
   catRowOn: { borderColor: "#C9D6FF", background: "#F5F7FF" },
-  catDot: { width: 10, height: 10, borderRadius: RADIUS.pill, flexShrink: 0 },
-  catName: { ...TYPE.labelLarge, fontWeight: 600, color: COLORS.textBody, whiteSpace: "nowrap" },
-  catScore: { ...TYPE.bodySmall, flex: 1, color: COLORS.textFaint },
+  catDot: { width: 8, height: 8, borderRadius: RADIUS.pill, flexShrink: 0 },
+  catName: { ...TYPE.labelLarge, flex: 1, fontWeight: 600, color: COLORS.textBody, whiteSpace: "nowrap" },
   right: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 },
   attnLabel: { ...TYPE.labelSmall, color: COLORS.textMedium, textTransform: "uppercase" },
-  grid: { display: "grid", gap: 14, flex: 1, alignItems: "stretch", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" },
-  tileWrap: { position: "relative", display: "flex" },
+  grid: { display: "grid", gap: 16, flex: 1, alignItems: "stretch", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" },
+  tileWrap: { position: "relative", display: "flex", minWidth: 0 },
   empty: { ...TYPE.bodySmall, gridColumn: "1 / -1", padding: "24px 0", color: COLORS.textFaint, textAlign: "center" },
   pager: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: `1px solid ${COLORS.divider}`, paddingTop: 12 },
   pagerInfo: { ...TYPE.bodySmall, color: COLORS.textMedium },
