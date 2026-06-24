@@ -16,6 +16,7 @@
 import React from "react";
 import { Search } from "lucide-react";
 import OutcomeCard from "./OutcomeCard";
+import OutcomeDetail from "./OutcomeDetail";
 import { OUTCOMES, ARCHIVED_OUTCOMES } from "./mocks/outcomes";
 import { MiraStarIcon } from "./SideNav/icons";
 
@@ -27,14 +28,15 @@ import { MiraStarIcon } from "./SideNav/icons";
  * A time-aware greeting tops a centered column; a Search Outcomes field
  * filters the active set by title; a segmented toggle switches between the
  * live ("Your outcome") and archived sets, and search applies to whichever
- * set is showing. No composer lives here — the card → outcome-detail / chat
- * drill-in is a separate ticket, stubbed below.
+ * set is showing. Clicking a card opens its OutcomeDetail drill-in (with the
+ * Ask Mira Pro composer docked sticky at the bottom).
  *
- * @param {{ userName?: string }} props
+ * @param {{ userName?: string, composer?: React.ReactNode }} props
  */
-export default function OutcomesLanding({ userName = "there" }) {
+export default function OutcomesLanding({ userName = "there", composer }) {
   const [tab, setTab] = React.useState("active");
   const [query, setQuery] = React.useState("");
+  const [selected, setSelected] = React.useState(null);
   // Period is computed client-side only: server and client time zones differ,
   // so deriving it during render would risk a hydration mismatch. Setting it
   // once on mount is the intended pattern here despite the lint rule.
@@ -52,10 +54,15 @@ export default function OutcomesLanding({ userName = "there" }) {
     ? set.filter((o) => o.title.toLowerCase().includes(q))
     : set;
 
-  // Drill-in is the next ticket; the card is clickable but goes nowhere yet.
-  const openOutcome = () => {
-    // TODO: outcome detail (next ticket)
-  };
+  if (selected) {
+    return (
+      <OutcomeDetail
+        outcome={selected}
+        composer={composer}
+        onBack={() => setSelected(null)}
+      />
+    );
+  }
 
   return (
     <div style={olStyles.page}>
@@ -87,7 +94,7 @@ export default function OutcomesLanding({ userName = "there" }) {
               <OutcomeCard
                 key={outcome.id}
                 outcome={outcome}
-                onClick={openOutcome}
+                onClick={() => setSelected(outcome)}
               />
             ))}
           </div>

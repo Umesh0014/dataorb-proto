@@ -160,7 +160,7 @@ export default function AskMiraProPage({
           onPickSuggestion={(q) => setQuery(q)}
         />
       ) : (
-        <OutcomesLanding userName={userName} />
+        <OutcomesLanding userName={userName} composer={composer} />
       )}
 
       <VersionBar
