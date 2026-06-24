@@ -12,6 +12,7 @@ const DRAWER = 468;
 const PER_PAGE = 3;
 const POPPINS = "'Poppins', sans-serif";
 const RING_COLORS = ["#004BEF", "#6B89FF", "#A5B4FC"];
+const shownRange = (page, total) => total === 0 ? "0" : `${page * PER_PAGE + 1}–${Math.min(total, page * PER_PAGE + PER_PAGE)}`;
 
 // b8 — activity rings replace the parent cards. Left: a concentric ring chart
 // (overall on-track) + the category list. Right: the needs-attention KPI cards,
@@ -50,20 +51,21 @@ export default function KpiGoalsB8() {
           </div>
         </aside>
 
-        {/* right: 3 attention KPI cards in a row */}
+        {/* right: 3 attention KPI cards in a row, filling the donut's height */}
         <div style={s.right}>
-          <div style={s.rightHead}>
-            <span style={s.attnLabel}>Needs attention</span>
+          <span style={s.attnLabel}>Needs attention</span>
+          <div style={{ ...s.grid, gridTemplateColumns: `repeat(${sel ? 1 : 3}, minmax(0, 1fr))` }}>
+            {visible.map((k) => (
+              <KpiTile key={k.id} k={k} fill selected={sel?.id === k.id} onClick={() => setSel(sel?.id === k.id ? null : k)} />
+            ))}
+          </div>
+          <div style={s.pager}>
+            <span style={s.pagerInfo}>{shownRange(safePage, attention.length)} of {attention.length}</span>
             <div style={s.pagerNav}>
               <button type="button" style={{ ...s.pageBtn, ...(safePage === 0 ? s.pageBtnOff : null) }} disabled={safePage === 0} onClick={() => setPage((p) => p - 1)} aria-label="Previous"><ChevronLeft size={16} /></button>
               <span style={s.pageNum}>{safePage + 1}/{pages}</span>
               <button type="button" style={{ ...s.pageBtn, ...(safePage >= pages - 1 ? s.pageBtnOff : null) }} disabled={safePage >= pages - 1} onClick={() => setPage((p) => p + 1)} aria-label="Next"><ChevronRight size={16} /></button>
             </div>
-          </div>
-          <div style={{ ...s.grid, gridTemplateColumns: `repeat(${sel ? 1 : 3}, minmax(0, 1fr))` }}>
-            {visible.map((k) => (
-              <KpiTile key={k.id} k={k} selected={sel?.id === k.id} onClick={() => setSel(sel?.id === k.id ? null : k)} />
-            ))}
           </div>
         </div>
       </div>
@@ -80,7 +82,7 @@ export default function KpiGoalsB8() {
 
 // Concentric activity rings — one arc per category, decreasing radius.
 function MultiRing({ categories, center }) {
-  const size = 180, stroke = 13, gap = 5;
+  const size = 132, stroke = 10, gap = 4;
   const rings = categories.map((c, i) => {
     const r = size / 2 - stroke / 2 - i * (stroke + gap);
     const circ = 2 * Math.PI * r;
@@ -108,17 +110,18 @@ const s = {
   header: { display: "flex", flexDirection: "column", gap: 4 },
   title: { fontSize: 16, fontWeight: 500, color: "#171B2C", margin: 0, letterSpacing: "0.1px" },
   subtitle: { fontSize: 14, color: "#5B5E6F", margin: 0, letterSpacing: "0.25px" },
-  body: { display: "flex", gap: 24, alignItems: "flex-start" },
-  left: { width: 300, flexShrink: 0, display: "flex", flexDirection: "column", gap: 16, alignItems: "center" },
+  body: { display: "flex", gap: 24, alignItems: "stretch" },
+  left: { width: 232, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14, alignItems: "center" },
   catList: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
   catRow: { width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid transparent", borderRadius: 10, background: "none", cursor: "pointer", textAlign: "left", fontFamily: POPPINS },
   catDot: { width: 10, height: 10, borderRadius: 999, flexShrink: 0 },
   catName: { fontSize: 13, fontWeight: 600, color: "#2C2F42", whiteSpace: "nowrap" },
   catScore: { flex: 1, fontSize: 12, color: "#8C90A6" },
   right: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 },
-  rightHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   attnLabel: { fontSize: 13, fontWeight: 800, color: "#2C2F42", textTransform: "uppercase", letterSpacing: "0.04em" },
-  grid: { display: "grid", gap: 14 },
+  grid: { display: "grid", gap: 14, flex: 1, alignItems: "stretch" },
+  pager: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--color-divider-card)", paddingTop: 12 },
+  pagerInfo: { fontSize: 12, color: "#5B5E6F" },
   pagerNav: { display: "flex", alignItems: "center", gap: 6 },
   pageBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid var(--color-divider-card)", background: "#fff", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)" },
   pageBtnOff: { opacity: 0.4, cursor: "default" },

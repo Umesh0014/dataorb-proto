@@ -14,7 +14,7 @@ import {
 const POPPINS = "'Poppins', sans-serif";
 const LATO = "'Lato', sans-serif";
 
-export default function KpiTile({ k, onClick, selected = false }) {
+export default function KpiTile({ k, onClick, selected = false, fill = false }) {
   const st = statusOf(k);
   const gap = gapShort(k);
   const dTone = deltaTone(k);
@@ -23,7 +23,7 @@ export default function KpiTile({ k, onClick, selected = false }) {
     ? { bg: "#F0FDF4", fg: "#00711D" }
     : { bg: "#FEF2F2", fg: "#BA1A1A" };
   return (
-    <button type="button" onClick={onClick} style={{ ...s.card, ...(selected ? s.selected : null) }}>
+    <button type="button" onClick={onClick} style={{ ...s.card, ...(selected ? s.selected : null), ...(fill ? s.cardFill : null) }}>
       {/* header */}
       <div style={s.header}>
         <div style={s.titleRow}>
@@ -40,7 +40,7 @@ export default function KpiTile({ k, onClick, selected = false }) {
       </div>
 
       {/* sparkline */}
-      <div style={s.spark}><KpiSparkline trend={k.trend} target={k.target} rag={st.rag} height={40} /></div>
+      <div style={fill ? s.sparkFill : s.spark}><KpiSparkline trend={k.trend} target={k.target} rag={st.rag} height={40} fill={fill} /></div>
 
       {/* footer */}
       <div style={s.footer}>
@@ -72,6 +72,8 @@ const s = {
   suffix: { flex: 1, minWidth: 0, fontFamily: POPPINS, fontWeight: 400, fontSize: 12, lineHeight: "18px", letterSpacing: "0.4px", color: "#5B5E6F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   pill: { display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 4px", borderRadius: 4, fontFamily: POPPINS, fontWeight: 600, fontSize: 11, lineHeight: "18px", letterSpacing: "0.5px", whiteSpace: "nowrap", flexShrink: 0 },
   spark: { width: "100%", height: 40 },
+  cardFill: { height: "100%" },
+  sparkFill: { width: "100%", flex: 1, minHeight: 56, display: "flex" },
   footer: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, rowGap: 4, flexWrap: "wrap", borderTop: "1px solid #EFEFFF", paddingTop: 8 },
   status: { fontFamily: LATO, fontWeight: 400, fontSize: 11, lineHeight: "14px", letterSpacing: "0.4px", whiteSpace: "nowrap" },
   legend: { display: "flex", alignItems: "flex-end", gap: 8 },

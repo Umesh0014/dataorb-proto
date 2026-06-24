@@ -5,7 +5,7 @@ import { RAG_HEX } from "./mocks/kpiGoals";
 
 // Compact card sparkline matching the Figma KPIRow: a smooth (quadratic)
 // area curve in the RAG colour + a dashed grey target line. Pure SVG.
-export default function KpiSparkline({ trend, target, rag = "grey", width = 280, height = 40 }) {
+export default function KpiSparkline({ trend, target, rag = "grey", width = 280, height = 40, fill = false }) {
   const id = React.useId().replace(/:/g, "");
   const lo = Math.min(...trend, target ?? Infinity);
   const hi = Math.max(...trend, target ?? -Infinity);
@@ -27,7 +27,7 @@ export default function KpiSparkline({ trend, target, rag = "grey", width = 280,
   const ty = target != null ? y(target) : null;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none" aria-hidden="true">
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={fill ? "100%" : height} style={fill ? { display: "block" } : undefined} preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id={`g${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={c.line} stopOpacity={0.22} />
