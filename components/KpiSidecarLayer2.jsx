@@ -1,117 +1,61 @@
 "use client";
 
 import React from "react";
-import KpiSidecarTrend from "./KpiSidecarTrend";
-import { rule } from "./KpiSidecarParts";
+import { Settings2 } from "lucide-react";
+import KpiInteractionsList from "./KpiInteractionsList";
+import { INTERACTION_GROUPS } from "./mocks/kpiSidecar";
 
 const POPPINS = "'Poppins', sans-serif";
-const LATO = "'Lato', sans-serif";
-const PILL = {
-  green: { bg: "#F1FEF5", fg: "#00711D" },
-  amber: { bg: "#FFFBF5", fg: "#8C620E" },
-  red: { bg: "#FEF2F2", fg: "#BA1A1A" },
+const DELTA = {
+  up: { bg: "#F0FDF4", fg: "#00711D", arrow: "↑" },
+  down: { bg: "#FEF2F2", fg: "#BA1A1A", arrow: "↓" },
 };
 
-// Layer 2 — agent drill (Figma node 1887-70502). Identity card + This Agent /
-// Org Avg / Gap comparison, the trend chart, and a per-week table
-// (Week · Attempts · metric). Header/back owned by KpiDrillInline.
-export default function KpiSidecarLayer2({ kpi, agent, onSelectWeek }) {
-  const r = rule(kpi);
-  const orgAvg = kpi.campaignRate;
-  const diff = +(agent.value - orgAvg).toFixed(1);
-  const gapTone = (r.higherIsBetter ? diff >= 0 : diff <= 0) ? "green" : "red";
-
-  // Per-week rows synthesised from the agent + the KPI trend (no backend).
-  const weeks = kpi.trend.map((w, i) => {
-    const value = +(w.agent + (agent.value - orgAvg) * 0.6).toFixed(0);
-    const attempts = Math.round((agent.interactions / kpi.trend.length) * (0.7 + ((i * 7) % 5) * 0.12));
-    const rag = value >= kpi.target ? "green" : value >= kpi.target * 0.9 ? "amber" : "red";
-    return { week: w.week, attempts, value, rag };
-  });
+// Layer 2 — week detail (Figma node 2349-28544). Reached by selecting a
+// Week-over-Week row in L1. A compact summary (metric rate for the week +
+// delta + one action button) over the dated Interactions list.
+export default function KpiSidecarLayer2({ kpi, agent: week }) {
+  const rate = week?.metric ?? kpi.campaignRate;
+  const count = week?.evaluated ?? kpi.metricCount ?? kpi.total;
+  const change = week?.change ?? kpi.priorDelta ?? 0;
+  const tone = change >= 0 ? "up" : "down";
+  const dt = DELTA[tone];
 
   return (
     <div style={s.wrap}>
-      {/* identity card */}
-      <div style={s.idCard}>
-        <div style={s.idTop}>
-          <span style={s.avatar} aria-hidden="true">{agent.initials}</span>
-          <span style={s.name}>{agent.name}</span>
+      <div style={s.summary}>
+        <span style={s.kicker}>{kpi.summaryKicker || "Performance"} Rate</span>
+        <span style={s.metricName}>{kpi.name}</span>
+        <span style={s.metricRate}>
+          {rate}{kpi.unit}
+          <span style={s.metricCount}> ({count.toLocaleString()} interactions)</span>
+        </span>
+        <span style={s.deltaRow}>
+          <span style={{ ...s.deltaPill, background: dt.bg, color: dt.fg }}>{dt.arrow} {Math.abs(change)}%</span>
+          <span style={s.deltaText}>compared to prior period</span>
+        </span>
+        <div style={s.actions}>
+          <button type="button" style={s.actionBtn}><Settings2 size={15} color="#004BEF" /> Feedback Summary</button>
         </div>
-        <div style={s.idMeta}>
-          <span style={s.metaLabel}>{kpi.name}</span>
-          <span style={s.metaVal}><strong>{agent.interactions.toLocaleString()}</strong> interactions</span>
-        </div>
       </div>
 
-      {/* comparison */}
-      <div style={s.compare}>
-        <Stat label="This Agent" value={`${agent.value}${kpi.unit}`} />
-        <Stat label="Organization Avg" value={`${orgAvg}${kpi.unit}`} />
-        <Stat label="Gap" value={`${diff >= 0 ? "+" : ""}${diff}pp`} tone={gapTone} />
-      </div>
-
-      {/* trend */}
-      <div style={s.chartCard}>
-        <span style={s.sectionLabel}>Interactions</span>
-        <KpiSidecarTrend data={kpi.trend} target={kpi.target} unit={kpi.unit} lowerIsBetter={!r.higherIsBetter} height={180} />
-      </div>
-
-      {/* week table */}
-      <div style={s.table}>
-        <div style={s.thead}>
-          <span style={s.th}>Week</span>
-          <span style={s.thNum}>Attempts</span>
-          <span style={s.thNum}>{kpi.name}</span>
-        </div>
-        {weeks.map((w) => {
-          const pill = PILL[w.rag];
-          return (
-            <button key={w.week} type="button" style={s.row} onClick={() => onSelectWeek(w.week)}>
-              <span style={s.tdWeek}>{w.week}</span>
-              <span style={s.tdNum}>{w.attempts}</span>
-              <span style={s.tdMetric}>
-                <span style={{ ...s.pill, background: pill.bg, color: pill.fg }}>{w.value}{kpi.unit}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, tone }) {
-  const color = tone === "green" ? "#00711D" : tone === "red" ? "#BA1A1A" : "#2C2F42";
-  return (
-    <div style={s.stat}>
-      <span style={s.statLabel}>{label}</span>
-      <span style={{ ...s.statValue, color }}>{value}</span>
+      <span style={s.interactionsLabel}>Interactions</span>
+      <KpiInteractionsList groups={INTERACTION_GROUPS} />
     </div>
   );
 }
 
 const s = {
-  wrap: { display: "flex", flexDirection: "column", gap: 16, fontFamily: POPPINS },
-  idCard: { background: "#FCFBFF", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8 },
-  idTop: { display: "flex", alignItems: "center", gap: 10 },
-  avatar: { width: 28, height: 28, borderRadius: 999, background: "#DDE1FF", color: "#6650A5", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: LATO, fontSize: 12 },
-  name: { fontSize: 16, fontWeight: 600, color: "#2C2F42" },
-  idMeta: { display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#5B5E6F", letterSpacing: "0.4px" },
-  metaLabel: { color: "#5B5E6F" },
-  metaVal: { color: "#5B5E6F" },
-  compare: { display: "flex", gap: 12 },
-  stat: { flex: 1, display: "flex", flexDirection: "column", gap: 4, padding: "12px 14px", background: "#FCFBFF", borderRadius: 10 },
-  statLabel: { fontSize: 12, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px" },
-  statValue: { fontSize: 18, fontWeight: 800 },
-  chartCard: { border: "1px solid #EFEFFF", borderRadius: 12, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 6 },
-  sectionLabel: { fontSize: 14, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.1px", paddingLeft: 4 },
-  table: { border: "1px solid #EFEFFF", borderRadius: 8, overflow: "hidden" },
-  thead: { display: "grid", gridTemplateColumns: "1fr 100px 100px", height: 40, alignItems: "center", background: "#FCFBFF" },
-  th: { padding: "0 12px", fontSize: 11, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px" },
-  thNum: { padding: "0 12px", fontSize: 11, fontWeight: 600, color: "#5B5E6F", letterSpacing: "0.5px", textAlign: "right" },
-  row: { width: "100%", display: "grid", gridTemplateColumns: "1fr 100px 100px", alignItems: "center", background: "#fff", border: "none", borderTop: "1px solid #F4F4FB", cursor: "pointer", textAlign: "left", fontFamily: POPPINS },
-  tdWeek: { padding: "14px 12px", fontSize: 13, fontWeight: 600, color: "#2C2F42" },
-  tdNum: { padding: "14px 12px", fontSize: 14, fontWeight: 600, color: "#2C2F42", textAlign: "right" },
-  tdMetric: { padding: "14px 12px", display: "flex", justifyContent: "flex-end" },
-  pill: { display: "inline-flex", alignItems: "center", height: 24, padding: "0 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, letterSpacing: "0.5px" },
+  wrap: { display: "flex", flexDirection: "column", gap: 18, fontFamily: POPPINS },
+  summary: { background: "#FCFBFF", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 8 },
+  kicker: { fontSize: 12, fontWeight: 500, color: "#5B5E6F", letterSpacing: "0.25px" },
+  metricName: { fontSize: 18, fontWeight: 700, color: "#171B2C", letterSpacing: "0.1px" },
+  metricRate: { fontSize: 18, fontWeight: 700, color: "#171B2C" },
+  metricCount: { fontSize: 13, fontWeight: 400, color: "#8C90A6" },
+  deltaRow: { display: "flex", alignItems: "center", gap: 10, marginTop: 2 },
+  deltaPill: { display: "inline-flex", alignItems: "center", gap: 3, height: 24, padding: "0 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 },
+  deltaText: { fontSize: 13, color: "#5B5E6F" },
+  actions: { display: "flex", gap: 12, marginTop: 12 },
+  actionBtn: { display: "inline-flex", alignItems: "center", gap: 8, height: 38, padding: "0 16px", borderRadius: 8, border: "1px solid #D7DBF5", background: "#fff", cursor: "pointer", fontFamily: POPPINS, fontSize: 13, fontWeight: 600, color: "#2C2F42" },
+  interactionsLabel: { fontSize: 14, fontWeight: 600, color: "#171B2C", letterSpacing: "0.1px" },
 };

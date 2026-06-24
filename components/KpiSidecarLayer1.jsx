@@ -15,7 +15,7 @@ const ACTION_ICON = { "Feedback Summary": Settings2, "Outcome Insights": Rocket,
 // Layer 1 — sidecar overview (Figma node 2349-28348). A summary card
 // (Interaction Data → metric headline + delta + action buttons) over a
 // Week-over-Week Trend table. Header/back is owned by KpiDrillInline.
-export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
+export default function KpiSidecarLayer1({ kpi, onSelectAgent, onAction }) {
   const rows = kpi.weeklyRows || [];
   const deltaTone = (kpi.priorDelta ?? 0) >= 0 ? "up" : "down";
   const dt = DELTA[deltaTone];
@@ -48,7 +48,7 @@ export default function KpiSidecarLayer1({ kpi, onSelectAgent }) {
             {(kpi.actions || []).map((label) => {
               const Icon = ACTION_ICON[label] || Settings2;
               return (
-                <button key={label} type="button" style={s.actionBtn}>
+                <button key={label} type="button" style={s.actionBtn} onClick={() => onAction?.(label)}>
                   <Icon size={15} color="#004BEF" />
                   {label}
                 </button>

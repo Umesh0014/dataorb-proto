@@ -152,6 +152,49 @@ function buildInteractions(weekId, n) {
   });
 }
 
+// ---- Interactions list (Figma 2349-28544 / 28635) ------------------------
+// Dated groups of interaction cards: sentiment face + title + resolution +
+// emoji reactions + ✦ AI insight + a "See more" CTA (some open in a new tab).
+export const INTERACTION_GROUPS = [
+  {
+    date: "Jun 30, 2025",
+    items: [
+      { id: "int-1", title: "Resolve Billing Issue", sentiment: "neutral", resolution: "Unresolved", reactions: ["👎", "⚠️"], insight: "The agent should follow up more effectively and provide additional information about the product.", cta: "See more", link: true },
+      { id: "int-2", title: "Provide Technical Support", sentiment: "positive", resolution: "Unresolved", reactions: ["🤔", "🔔"], insight: "The customer needs an update on the status of their repair request.", cta: "See updates" },
+    ],
+  },
+  {
+    date: "Jun 28, 2025",
+    items: [
+      { id: "int-3", title: "Customer contacted: Sales Department", sentiment: "positive", resolution: "Resolved", reactions: ["🥇", "🎉"], insight: "The customer expressed satisfaction with the service and recommended the product to a colleague.", cta: "See more", link: true },
+      { id: "int-4", title: "Account verification call", sentiment: "negative", resolution: "Unresolved", reactions: ["👎", "⏱️"], insight: "Identity verification took too long; the agent should use the streamlined flow next time.", cta: "See more" },
+    ],
+  },
+];
+
+// ---- Outcome Insights (Figma 2349-29143) ---------------------------------
+// This Agent / Top Performer / Gap tiles, the multi-line distribution trend,
+// and the horizontal impact bars split into Strength / Meets / Needs.
+export const OUTCOME_INSIGHTS = {
+  thisAgent: 25,
+  topPerformer: { value: 81, id: "45F321" },
+  gap: 20,
+  trend: [
+    { x: "Mar 26", agent: 42, top: 30 },
+    { x: "Apr 12", agent: 52, top: 48 },
+    { x: "Apr 28", agent: 58, top: 56 },
+    { x: "May 10", agent: 62, top: 64 },
+    { x: "May 28", agent: 68, top: 78 },
+    { x: "Jun 24", agent: 79, top: 93 },
+  ],
+  target: 80,
+  impact: [
+    { key: "resolution", label: "Resolution rate", icon: "✅", strength: 62, meets: 50, needs: 78 },
+    { key: "sentiment", label: "Positive sentiment", icon: "🙂", strength: 55, meets: 48, needs: 70 },
+    { key: "offer", label: "Accepted offer", icon: "🤝", strength: 60, meets: 82, needs: 56 },
+  ],
+};
+
 // ---- The KPI registry ----------------------------------------------------
 const efficiencyAgents = buildEfficiencyAgents();
 

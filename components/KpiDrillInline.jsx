@@ -10,16 +10,18 @@ import KpiSidecarLayer3 from "./KpiSidecarLayer3";
 // headed by a breadcrumb (`KPI ▸ Agent ▸ Week`) with a small ← arrow that
 // steps back one level (and closes at L1). State lives here.
 export default function KpiDrillInline({ kpi, onClose }) {
-  const [agent, setAgent] = React.useState(null);
+  // Two drill paths off L1: a Week-over-Week row → week detail (L2), or the
+  // "Outcome Insights" action → outcome insights (L3).
   const [week, setWeek] = React.useState(null);
+  const [action, setAction] = React.useState(null);
 
-  const crumbs = [{ label: kpi.name, go: () => { setAgent(null); setWeek(null); } }];
-  if (agent) crumbs.push({ label: agent.name, go: () => setWeek(null) });
-  if (week) crumbs.push({ label: week, go: () => {} });
+  const crumbs = [{ label: kpi.name, go: () => { setWeek(null); setAction(null); } }];
+  if (week) crumbs.push({ label: week.name, go: () => {} });
+  if (action) crumbs.push({ label: action, go: () => {} });
 
   const goBack = () => {
     if (week) setWeek(null);
-    else if (agent) setAgent(null);
+    else if (action) setAction(null);
     else onClose?.();
   };
 
@@ -44,14 +46,14 @@ export default function KpiDrillInline({ kpi, onClose }) {
           })}
         </nav>
       </div>
-      {!agent && <p style={s.subtitle}>{kpi.subtitle}</p>}
+      {!week && !action && <p style={s.subtitle}>{kpi.subtitle}</p>}
 
-      {agent && week ? (
-        <KpiSidecarLayer3 kpi={kpi} agent={agent} week={week} hideBack />
-      ) : agent ? (
-        <KpiSidecarLayer2 kpi={kpi} agent={agent} hideBack onSelectWeek={setWeek} />
+      {week ? (
+        <KpiSidecarLayer2 kpi={kpi} agent={week} />
+      ) : action === "Outcome Insights" ? (
+        <KpiSidecarLayer3 kpi={kpi} />
       ) : (
-        <KpiSidecarLayer1 kpi={kpi} onSelectAgent={setAgent} hideHeader />
+        <KpiSidecarLayer1 kpi={kpi} onSelectAgent={setWeek} onAction={setAction} />
       )}
     </div>
   );
