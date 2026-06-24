@@ -40,20 +40,42 @@ import {
 //   8. Quality Adherence — trend line chart
 
 export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems, kpiDiscarded }) {
+  // KPI drill lives at the page level so the side card can sit to the RIGHT of
+  // every section (header, hero, KPIs, artifacts…) at full screen height — the
+  // whole card stack shifts left while it's open. Only B8 reports up here.
+  const [drill, setDrill] = React.useState(null);
+  React.useEffect(() => { setDrill(null); }, [kpiView]);
+  const drillKpi = drill ? { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip } : null;
+
   return (
-    <>
-      <CollectionHeader />
-      <HeroCard />
-      <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} discarded={kpiDiscarded} />
-      <AIArtifactsCard />
-      <ConversationFlowCard />
-      <SentimentCard />
-      <ObjectionsCard />
-      <ContactOutcomeCard />
-      <QualityAdherenceCard />
-    </>
+    <div style={pageStyles.row}>
+      <div style={pageStyles.cardsCol}>
+        <CollectionHeader />
+        <HeroCard />
+        <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} discarded={kpiDiscarded} onDrill={setDrill} drillId={drill?.id} />
+        <AIArtifactsCard />
+        <ConversationFlowCard />
+        <SentimentCard />
+        <ObjectionsCard />
+        <ContactOutcomeCard />
+        <QualityAdherenceCard />
+      </div>
+      {drill && (
+        <aside style={pageStyles.sideCard}>
+          <button type="button" style={pageStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
+          <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
+        </aside>
+      )}
+    </div>
   );
 }
+
+const pageStyles = {
+  row: { display: "flex", gap: 18, alignItems: "flex-start", width: "100%" },
+  cardsCol: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
+  sideCard: { position: "sticky", top: 16, flexShrink: 0, width: 460, height: "calc(100vh - 32px)", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto" },
+  sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
+};
 
 // ---- 0. Page header -------------------------------------------------------
 
@@ -178,47 +200,36 @@ export const OUR_DISCARDED = [
 
 // Controlled: `view` + the group's `items` come from InsightsHubPage. The
 // vertical rail (segmented control) lists the active group's iterations.
-function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discarded }) {
+function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discarded, onDrill, drillId }) {
   const isUmesh = view.startsWith("v");
-  // B8 reports its selected KPI up so the side card can render OUTSIDE the
-  // KPI's & Goals card — a separate sibling card, not an overlay panel.
-  const [drill, setDrill] = React.useState(null);
-  React.useEffect(() => { setDrill(null); }, [view]);
-  const drillKpi = drill ? { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip } : null;
+  // B8 reports its selected KPI up to the PAGE (CollectionHubPage), which renders
+  // the drill as a full-height card to the right of every section. The rail is
+  // hidden while that page side card is open so they don't collide.
+  const drillOpen = view === "b8" && Boolean(drillId);
 
   const ours = view === "b8"
-    ? <KpiGoalsB8 onDrill={setDrill} drillId={drill?.id} />
+    ? <KpiGoalsB8 onDrill={onDrill} drillId={drillId} />
     : { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];
 
   return (
     <div style={kpiSectionStyles.wrap}>
       <div style={kpiSectionStyles.cardArea}>
-        {!isUmesh && (
-          view === "b8" && drill ? (
-            <div style={kpiSectionStyles.sideBySide}>
-              <Card padX={28} padY={24} style={{ ...chStyles.sectionCard, height: "100%" }}>{ours}</Card>
-              <aside style={kpiSectionStyles.sideCard}>
-                <button type="button" style={kpiSectionStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
-                <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
-              </aside>
-            </div>
-          ) : (
-            <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>
-          )
-        )}
+        {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
         {view === "v0" && <KPIsV0 />}
         {view === "v1" && <KPIsV1 />}
         {view === "v2" && <KPIsV2 />}
         {view === "v3" && <KPIsV3 />}
       </div>
-      <div style={kpiSectionStyles.railMount}>
-        <div style={{ ...kpiSectionStyles.railSticky, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          <KpiRail label={isUmesh ? "V" : "✦"} items={items} value={view} onChange={onView} />
-          {discarded && discarded.length > 0 && (
-            <ExplorationsDropdown label="Discarded" items={discarded} value={view} onChange={onView} />
-          )}
+      {!drillOpen && (
+        <div style={kpiSectionStyles.railMount}>
+          <div style={{ ...kpiSectionStyles.railSticky, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <KpiRail label={isUmesh ? "V" : "✦"} items={items} value={view} onChange={onView} />
+            {discarded && discarded.length > 0 && (
+              <ExplorationsDropdown label="Discarded" items={discarded} value={view} onChange={onView} />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1405,9 +1416,6 @@ const railS = {
 const kpiSectionStyles = {
   wrap: { position: "relative", width: "100%" },
   cardArea: { width: "100%" },
-  sideBySide: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) 480px", gap: 18, alignItems: "stretch" },
-  sideCard: { position: "relative", minWidth: 0, background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto", maxHeight: "calc(100vh - 32px)" },
-  sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
   railMount: {
     position: "absolute", top: 0, bottom: 0, left: "100%",
     marginLeft: 12, width: 48, zIndex: 30,
