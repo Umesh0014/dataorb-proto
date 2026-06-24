@@ -515,7 +515,7 @@ const s = {
 
   section: {},
   block: {},
-  sectionHead: { fontSize: 18, fontWeight: 700, color: "var(--color-text-deep)" },
+  sectionHead: { fontSize: 40, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.15, letterSpacing: "-0.01em" },
   sectionBody: { marginTop: 8, fontSize: 15, lineHeight: 1.7, color: "var(--color-text-medium)" },
 
   // Infographic cards — green tint + a stacked-paper shadow, like the reference.
