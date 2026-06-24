@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import KpiTile from "./KpiTile";
 import DsGapDot from "./DsGapDot";
 import { RagChip } from "./KpiSidecarParts";
+import { PageHeader, Pagination } from "./ds";
 import { KPIS, CATEGORIES, ON_TRACK_TOTAL, statusOf } from "./mocks/kpiGoals";
 import { TYPE, COLORS, RADIUS } from "./designTokens";
 
@@ -31,20 +31,12 @@ export default function KpiGoalsB10({ onDrill, drillId, creditUsage = false }) {
 
   return (
     <div style={s.wrap}>
-      <header style={{ ...s.header, position: "relative" }}>
-        <h2 style={s.title}>KPI’s and Goals</h2>
-        <p style={s.subtitle}>{creditUsage
-          ? "Credit-Usage recreation · composed only from existing DS-aligned components"
-          : "Activity rings + attention cards · Design System 2.0"}</p>
-        {creditUsage && (
-          <DsGapDot
-            component="Page Header"
-            closest="Components → Headers → Page Header"
-            why="The DS Page Header isn't available as code to pull directly (DS is a Figma library only). This reuses the existing header styling — swap in the real DS Page Header when it ships as code."
-            style={{ top: 0, right: 0 }}
-          />
-        )}
-      </header>
+      <PageHeader
+        title="KPI’s and Goals"
+        subtitle={creditUsage
+          ? "Credit-Usage recreation · built from the components/ds library"
+          : "Activity rings + attention cards · Design System 2.0"}
+      />
 
       <div style={s.body}>
         <aside style={s.left}>
@@ -103,14 +95,8 @@ export default function KpiGoalsB10({ onDrill, drillId, creditUsage = false }) {
               </div>
             )}
           </div>
-          <div style={s.pager}>
-            <span style={s.pagerInfo}>Total {attention.length} KPIs</span>
-            <div style={s.pagerNav}>
-              <button type="button" style={{ ...s.pageLink, ...(safePage === 0 ? s.pageLinkOff : null) }} disabled={safePage === 0} onClick={() => setPage((p) => p - 1)}><ChevronLeft size={16} /> Previous</button>
-              <span style={s.pageNum}>{safePage + 1}/{pages}</span>
-              <button type="button" style={{ ...s.pageLink, ...(safePage >= pages - 1 ? s.pageLinkOff : s.pageLinkOn) }} disabled={safePage >= pages - 1} onClick={() => setPage((p) => p + 1)}>Next <ChevronRight size={16} /></button>
-            </div>
-          </div>
+          <Pagination total={attention.length} unit="KPIs" page={safePage + 1} pages={pages}
+            onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
         </div>
       </div>
     </div>
