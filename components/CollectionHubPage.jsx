@@ -92,7 +92,7 @@ const pageStyles = {
   },
   // Cards keep their normal full content width — never shrink.
   cardsColFixed: { width: "var(--page-content-max-width)", flexShrink: 0, display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
-  sideCard: { position: "sticky", top: 16, flex: 1, minWidth: 400, height: "calc(100vh - 32px)", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto" },
+  sideCard: { position: "sticky", top: 16, flex: "1 1 460px", minWidth: 0, height: "calc(100vh - 32px)", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto" },
   sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
 };
 
