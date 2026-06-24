@@ -1,17 +1,13 @@
 "use client";
 
 import React from "react";
-import { Info } from "lucide-react";
+import { Info, AlertTriangle } from "lucide-react";
 import Card from "./Card";
-import { CADENCES } from "./mocks/creditsUsage";
+import Button from "./Button";
 
-// CreditsUsageParts — shared primitives for the Credits & Usage surface
-// (CreditsUsagePage + CreditsUsageHero). The reusable atoms + their chrome
-// live here; layout/composition lives in the page.
-
-export function cadenceShort(id) {
-  return (CADENCES.find((c) => c.id === id) || CADENCES[1]).short;
-}
+// CreditsUsageParts — shared primitives for the Credits & Usage surface.
+// The reusable atoms + their chrome live here; layout/composition lives in
+// the page and its bucket sub-components.
 
 // Contract-terms banner — the legal framing that opens the page.
 export function InfoBanner() {
@@ -160,6 +156,40 @@ export function MetricTile({ label, value, sub, chipLabel }) {
   );
 }
 
+// CapAlertBanner — over-cap notice docked at the bottom of the utilisation
+// card. `tone` colours it: neutral (the paused-practice default) or the
+// amber / red codes the C5 direction uses (amber = agents nearing the cap,
+// red = agents over it). `message` overrides the default copy for the
+// never-block variants. Count + reset day are derived; the View agents CTA
+// is supplied by the page. Hidden when no agent needs attention.
+const ALERT_TONES = {
+  neutral: { bg: "#FFFFFF", border: "var(--color-border-card-soft)", fg: "var(--color-warning)", text: "var(--color-text-tertiary)" },
+  amber: { bg: "var(--color-warning-bg)", border: "rgba(239, 108, 0, 0.18)", fg: "var(--color-warning)", text: "var(--color-warning-text)" },
+  red: { bg: "var(--color-error-bg)", border: "rgba(211, 47, 47, 0.18)", fg: "var(--color-error)", text: "var(--color-error)" },
+};
+
+export function CapAlertBanner({ count, resetDay, onViewAgents, tone = "neutral", message }) {
+  const t = ALERT_TONES[tone] || ALERT_TONES.neutral;
+  return (
+    <div style={{ ...partStyles.capAlert, background: t.bg, borderColor: t.border }}>
+      <AlertTriangle size={16} color={t.fg} style={{ flexShrink: 0 }} aria-hidden="true" />
+      <p style={{ ...partStyles.capAlertText, color: t.text }}>
+        {message || (
+          <>
+            <strong style={partStyles.capAlertLead}>
+              {count} agent{count === 1 ? "" : "s"} {count === 1 ? "has" : "have"}
+            </strong>{" "}
+            hit their weekly cap — practice is paused for them until {resetDay}.
+          </>
+        )}
+      </p>
+      <Button variant="text" uppercase={false} onClick={onViewAgents} style={{ flexShrink: 0, ...(tone !== "neutral" ? { color: t.fg } : {}) }}>
+        View agents
+      </Button>
+    </div>
+  );
+}
+
 // CapacityBar — used / total progress. Goes amber past 80%, red at 100%.
 export function CapacityBar({ used, total, height = 8 }) {
   const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
@@ -173,102 +203,6 @@ export function CapacityBar({ used, total, height = 8 }) {
     <div style={{ ...partStyles.barTrack, height }} aria-hidden="true">
       <div style={{ ...partStyles.barFill, width: `${pct}%`, background: color }} />
     </div>
-  );
-}
-
-// Composition badge — Tenured / New / Mixed team make-up.
-export function CompositionBadge({ composition }) {
-  const tone = COMPOSITION_TONES[composition] || COMPOSITION_TONES.Mixed;
-  return (
-    <span style={{ ...partStyles.compBadge, background: tone.bg, color: tone.fg }}>
-      {composition}
-    </span>
-  );
-}
-
-const COMPOSITION_TONES = {
-  New: { bg: "var(--tile-blue-bg)", fg: "var(--tile-blue-fg)" },
-  Tenured: { bg: "var(--tile-emerald-bg)", fg: "var(--tile-emerald-fg)" },
-  Mixed: { bg: "var(--color-icon-tertiary-bg)", fg: "var(--color-icon-tertiary-fg)" },
-};
-
-// AdditionalUsageChoice — the Jun 11 billing reframe: either cap spend
-// (hard stop) or allow additional minutes, but also capped. Deliberately
-// avoids the word "overage".
-export function AdditionalUsageChoice({ mode, onMode, additionalCap, onAdditionalCap }) {
-  return (
-    <div style={partStyles.choiceWrap}>
-      <SegmentedOption
-        selected={mode === "cap"}
-        onClick={() => onMode("cap")}
-        label="Cap spend"
-        description="Hard stop once committed minutes are used. No additional usage."
-      />
-      <SegmentedOption
-        selected={mode === "additional"}
-        onClick={() => onMode("additional")}
-        label="Allow additional — capped"
-        description="Continue past the commitment, up to an additional cap you set."
-      />
-      {mode === "additional" && (
-        <div style={partStyles.additionalCapRow}>
-          <Field label="Additional cap">
-            <NumberInput
-              value={additionalCap}
-              onChange={onAdditionalCap}
-              suffix="min on top of commitment"
-              ariaLabel="Additional usage cap minutes"
-            />
-          </Field>
-          <FieldNote>
-            Going past a team quota raises an approval request before any
-            additional minutes are consumed.
-          </FieldNote>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SegmentedOption({ selected, onClick, label, description }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      style={{
-        ...partStyles.segOption,
-        borderColor: selected ? "var(--color-icon-tertiary-fg)" : "var(--color-border-card-soft)",
-        background: selected ? "var(--color-icon-tertiary-bg)" : "#FFFFFF",
-      }}
-    >
-      <span style={partStyles.segDot}>{selected && <span style={partStyles.segDotInner} />}</span>
-      <div style={partStyles.segText}>
-        <span style={partStyles.segLabel}>{label}</span>
-        <span style={partStyles.segDesc}>{description}</span>
-      </div>
-    </button>
-  );
-}
-
-export function RequestRoutingField({ value, onChange, error }) {
-  const errorId = "cu-routing-error";
-  return (
-    <Field label="Route requests to">
-      <EmailInput
-        value={value}
-        onChange={onChange}
-        placeholder="admin@yourcompany.example"
-        ariaLabel="Request routing email address"
-        hasError={Boolean(error)}
-        describedBy={error ? errorId : undefined}
-      />
-      {error && <InlineError id={errorId} message={error} />}
-      <FieldNote>
-        Teams are inherited from the Contact Center hierarchy — once mapped,
-        requests route to the relevant team lead automatically.
-      </FieldNote>
-    </Field>
   );
 }
 
@@ -286,49 +220,6 @@ export function AgentBannerPreview() {
         from your admin — your quota resets Monday.
       </p>
       <span style={partStyles.agentBannerCta}>Request more minutes</span>
-    </div>
-  );
-}
-
-export function UsageTrendChart({ data }) {
-  const W = 600;
-  const H = 72;
-  const PAD_L = 24;
-  const PAD_R = 24;
-  const PAD_T = 8;
-  const PAD_B = 16;
-  const chartW = W - PAD_L - PAD_R;
-  const chartH = H - PAD_T - PAD_B;
-  const maxVal = Math.max(...data.map((d) => d.value));
-
-  const points = data.map((d, i) => ({
-    x: PAD_L + (i / (data.length - 1)) * chartW,
-    y: PAD_T + chartH - (d.value / maxVal) * chartH * 0.9,
-  }));
-
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${PAD_T + chartH} L ${PAD_L} ${PAD_T + chartH} Z`;
-
-  return (
-    <div style={partStyles.trendWrap}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={partStyles.trendSvg} aria-label="Usage trend chart">
-        <defs>
-          <linearGradient id="cuTrendFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-icon-tertiary-fg)" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="var(--color-icon-tertiary-fg)" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill="url(#cuTrendFill)" />
-        <path d={linePath} fill="none" stroke="var(--color-icon-tertiary-fg)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={2.5} fill="#fff" stroke="var(--color-icon-tertiary-fg)" strokeWidth="1.5" />
-        ))}
-        {data.map((d, i) => (
-          <text key={i} x={points[i].x} y={H - 1} textAnchor="middle" style={{ fontSize: 7, fill: "var(--color-text-tertiary)", fontFamily: "var(--font-sans)" }}>
-            {d.label}
-          </text>
-        ))}
-      </svg>
     </div>
   );
 }
@@ -417,6 +308,25 @@ const partStyles = {
     letterSpacing: "0.2px",
   },
 
+  capAlert: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px 16px",
+    borderRadius: 10,
+    background: "#FFFFFF",
+    border: "1px solid var(--color-border-card-soft)",
+  },
+  capAlertText: {
+    flex: 1,
+    margin: 0,
+    fontSize: 13,
+    fontWeight: 500,
+    lineHeight: "20px",
+    color: "var(--color-text-tertiary)",
+  },
+  capAlertLead: { fontWeight: 700, color: "var(--color-text-deep)" },
+
   barTrack: {
     width: "100%",
     borderRadius: 999,
@@ -424,15 +334,6 @@ const partStyles = {
     overflow: "hidden",
   },
   barFill: { height: "100%", borderRadius: 999, transition: "width 200ms ease" },
-
-  compBadge: {
-    padding: "2px 8px",
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: "0.2px",
-    whiteSpace: "nowrap",
-  },
 
   field: { display: "flex", flexDirection: "column", gap: 10 },
   fieldLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
@@ -516,45 +417,6 @@ const partStyles = {
     lineHeight: "18px",
   },
 
-  // Additional-usage choice
-  choiceWrap: { display: "flex", flexDirection: "column", gap: 10 },
-  additionalCapRow: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    padding: "14px 16px",
-    borderRadius: 10,
-    background: "var(--color-card-emoji-bg)",
-  },
-  segOption: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: "14px 16px",
-    borderRadius: 10,
-    border: "1.5px solid",
-    cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "inherit",
-    width: "100%",
-    transition: "border-color 120ms ease, background 120ms ease",
-  },
-  segDot: {
-    width: 18,
-    height: 18,
-    borderRadius: "50%",
-    border: "2px solid var(--color-icon-tertiary-fg)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    marginTop: 1,
-  },
-  segDotInner: { width: 9, height: 9, borderRadius: "50%", background: "var(--color-icon-tertiary-fg)" },
-  segText: { display: "flex", flexDirection: "column", gap: 2 },
-  segLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
-  segDesc: { fontSize: 12, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: "18px" },
-
   // Agent out-of-quota banner preview
   agentBanner: {
     display: "flex",
@@ -587,8 +449,4 @@ const partStyles = {
     fontSize: 12,
     fontWeight: 600,
   },
-
-  // Trend chart
-  trendWrap: { width: "100%", borderRadius: 8, overflow: "hidden" },
-  trendSvg: { width: "100%", height: "auto", display: "block" },
 };

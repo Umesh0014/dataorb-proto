@@ -1,404 +1,349 @@
 "use client";
 
 import React from "react";
-import { Gauge, ChevronDown, ChevronRight } from "lucide-react";
+import { Gauge } from "lucide-react";
 import PageHeader from "./PageHeader";
-import TenantCapacityHero from "./CreditsUsageHero";
+import PageLayout from "./PageLayout";
+import { Section } from "./CreditsUsageParts";
+import CreditUtilisationCard from "./CreditUtilisationCard";
+import BucketCard from "./BucketCard";
+import EstimatedImpactBanner from "./EstimatedImpactBanner";
+import BucketAssignmentRegion from "./BucketAssignmentRegion";
+import BucketFolderPanel from "./BucketFolderPanel";
+import BucketFolderMerged from "./BucketFolderMerged";
+import BulkMoveBar from "./BulkMoveBar";
+import AgentBucketTable, { appliedCap, statusOf } from "./AgentBucketTable";
+import LimitRuleControl from "./LimitRuleControl";
+import BucketDecisionControls from "./BucketDecisionControls";
+import CreditsUsageAdjustPanel from "./CreditsUsageAdjustPanel";
+import CreditsUsageC5, { C5RulesFyi } from "./CreditsUsageC5";
 import {
-  InfoBanner,
-  Section,
-  CapacityBar,
-  CompositionBadge,
-  AdditionalUsageChoice,
-  RequestRoutingField,
-  AgentBannerPreview,
-  cadenceShort,
-} from "./CreditsUsageParts";
-import { TENANT_SAMPLE, TEAMS_SAMPLE, AGENTS_SAMPLE, CADENCES, EMAIL_RE } from "./mocks/creditsUsage";
+  WEEKLY_QUOTA,
+  QUOTA_BUCKETS,
+  QUOTA_BUCKETS_4,
+  QUOTA_BUCKETS_3,
+  AGENT_BUCKET_SAMPLE,
+  AGENT_BUCKET_SAMPLE_4,
+  AGENT_BUCKET_SAMPLE_3,
+  RULE_DEFAULTS,
+  estimateMonthlyDelta,
+} from "./mocks/creditsUsage";
 
-// CreditsUsagePage — Credits & Usage admin surface.
-//
-// Team-level quota model: credit is committed at the tenant, quota is
-// distributed per team, and cadence (daily/weekly/monthly) is a per-team
-// variable because tenured and new agents consume very differently. Teams
-// are divider-separated rows under a prominent committed-capacity hero;
-// opening a team reveals its agents with agent-level usage and a plain
-// per-agent quota box (agents inherit the team cadence). When capacity runs
-// out the tenant either caps spend or allows capped additional usage; an
-// out-of-quota agent raises a routed request. All sample data is mock.
+// CreditsUsagePage — the Credit & Usage admin surface (bucket / folding
+// model). The weekly cap belongs to the agent; a bucket is a fixed-cap
+// folding you sort agents into. This page owns all state and the right-
+// panel; the VersionBar (in CreditsUsageShell) swaps only the Assignment
+// region between approaches A/B/C — table, buckets, utilisation and rules
+// stay mounted. All data is mock.
+export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPlacement = null }) {
+  // C4 (four-tier) and C5 (three-tier, feedback-incorporated) each carry
+  // their own bucket ladder + roster; the page is remounted across those
+  // boundaries (see CreditsUsageShell) so the seed data is chosen once here.
+  const isC4 = assignmentMode === "C4";
+  const isC5 = assignmentMode === "C5";
+  const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5 ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
+  const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5 ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
+  // C4 uses the bucket-model cap rule (auto-bump default); the others keep
+  // the legacy minute-based rule (hard-stop default). C5 never blocks, and
+  // renders its own fixed rules, so the page-level rule state is unused there.
+  const seedRules = isC4 ? { ...RULE_DEFAULTS, limitBehavior: "auto_bump" } : RULE_DEFAULTS;
 
-const AVATAR_COLORS = [
-  "var(--chart-blue)",
-  "var(--chart-teal)",
-  "var(--chart-lavender)",
-  "var(--chart-orange)",
-  "var(--chart-pink)",
-  "var(--chart-green)",
-];
+  const [agents, setAgents] = React.useState(seedAgents);
+  const [buckets, setBuckets] = React.useState(seedBuckets);
+  const [rules, setRules] = React.useState(seedRules);
+  const [selectedIds, setSelectedIds] = React.useState([]);
+  const [selectedBucketId, setSelectedBucketId] = React.useState(seedBuckets[0].id);
+  const [adjustAgent, setAdjustAgent] = React.useState(null);
+  const [pendingChange, setPendingChange] = React.useState(null);
+  // C5 manager: null = closed, otherwise the tab to open on ("nearing" | id).
+  const [manageTab, setManageTab] = React.useState(null);
 
-export default function CreditsUsagePage({ onBack }) {
-  const allocatedCap = TENANT_SAMPLE.allocatedCap;
-  const [usageMode, setUsageMode] = React.useState("additional"); // "cap" | "additional"
-  const [additionalCap, setAdditionalCap] = React.useState(TENANT_SAMPLE.additionalCap);
-  const [teams, setTeams] = React.useState(TEAMS_SAMPLE);
-  const [agents, setAgents] = React.useState(AGENTS_SAMPLE);
-  const [routingEmail, setRoutingEmail] = React.useState("");
-  const [openTeams, setOpenTeams] = React.useState(() => new Set());
+  // Swapping assignment approach resets only the approach-local selection —
+  // the shared data (agents / buckets / rules) stays put. Done with the
+  // documented "adjust state during render on prop change" pattern rather
+  // than an effect (no cascading render).
+  const [prevMode, setPrevMode] = React.useState(assignmentMode);
+  if (assignmentMode !== prevMode) {
+    setPrevMode(assignmentMode);
+    setSelectedIds([]);
+  }
 
-  const emailError =
-    routingEmail.trim() && !EMAIL_RE.test(routingEmail.trim())
-      ? "Enter a valid email address."
-      : null;
+  // Switching the open bucket (folder views) clears any in-flight selection
+  // so checked agents never leak across buckets.
+  const [prevBucket, setPrevBucket] = React.useState(selectedBucketId);
+  if (selectedBucketId !== prevBucket) {
+    setPrevBucket(selectedBucketId);
+    setSelectedIds([]);
+  }
 
-  const toggleTeam = (id) =>
-    setOpenTeams((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  const agentsRef = React.useRef(null);
+  const scrollToAgents = () => agentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const setRule = (key, value) => setRules((prev) => ({ ...prev, [key]: value }));
+
+  // moveAgents — fold a set of agents into a bucket, optionally with a
+  // manual cap override. Adjusts tenant bucket counts and recomputes the
+  // bill-impact forecast.
+  const moveAgents = (ids, toBucketId, overrideCap = null) => {
+    const idSet = new Set(ids);
+    const moving = agents.filter((a) => idSet.has(a.id));
+    const target = buckets.find((b) => b.id === toBucketId);
+    if (!target) return;
+
+    setAgents((prev) =>
+      prev.map((a) =>
+        idSet.has(a.id)
+          ? { ...a, bucketId: toBucketId, override: overrideCap != null ? { capMin: overrideCap } : null }
+          : a,
+      ),
+    );
+
+    setBuckets((prev) => {
+      const fromCounts = {};
+      let into = 0;
+      moving.forEach((a) => {
+        if (a.bucketId !== toBucketId) {
+          fromCounts[a.bucketId] = (fromCounts[a.bucketId] || 0) + 1;
+          into += 1;
+        }
+      });
+      return prev.map((b) => {
+        let c = b.agentCount;
+        if (fromCounts[b.id]) c -= fromCounts[b.id];
+        if (b.id === toBucketId) c += into;
+        return { ...b, agentCount: c };
+      });
     });
 
-  const setTeamCadence = (id, cadence) =>
-    setTeams((prev) => prev.map((t) => (t.id === id ? { ...t, cadence } : t)));
-
-  const setTeamPerAgent = (id, perAgent) =>
-    setTeams((prev) => prev.map((t) => (t.id === id ? { ...t, perAgent } : t)));
-
-  // Editing an agent's quota inline also marks them as overriding the team
-  // default.
-  const setAgentQuota = (id, limit) =>
-    setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, limit, hasCustom: true } : a)));
-
-  const agentsByTeam = React.useMemo(() => {
-    const map = {};
-    agents.forEach((a) => {
-      (map[a.team] = map[a.team] || []).push(a);
-    });
-    return map;
-  }, [agents]);
-
-  const handleSave = () => {
-    if (emailError) return;
-    console.log("save credits & usage settings");
+    const capMin = overrideCap ?? target.capMin;
+    const count = ids.length;
+    setPendingChange({ count, bucketName: target.name, capMin, estDelta: estimateMonthlyDelta(count, capMin) });
   };
 
-  return (
-    <div style={styles.column}>
-      <PageHeader
-        back={onBack}
-        identifier={{
-          icon: <Gauge size={16} color="var(--color-icon-tertiary-fg)" />,
-          label: "Credits & Usage",
-          iconBg: "var(--color-icon-tertiary-bg)",
-          iconColor: "var(--color-icon-tertiary-fg)",
-        }}
-        subtitle="Manage practice capacity, team quotas, and usage visibility for your tenant."
-      />
+  const handleSaveAdjust = (agentId, { bucketId, manualCap }) => moveAgents([agentId], bucketId, manualCap);
+  const handleBulkMove = (toBucketId) => {
+    moveAgents(selectedIds, toBucketId);
+    setSelectedIds([]);
+  };
 
-      <InfoBanner />
+  const toggleSelect = (id) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  // Select-all toggles every id in the table that called it (the full
+  // roster for A/B, the open bucket's members for the folder views).
+  const toggleSelectAll = (ids) =>
+    setSelectedIds((prev) => (prev.length === ids.length ? [] : ids));
 
-      <TenantCapacityHero
-        allocatedCap={allocatedCap}
-        usageMode={usageMode}
-        additionalCap={additionalCap}
-        onSave={handleSave}
-        saveDisabled={Boolean(emailError)}
-      />
+  // Over-cap consequence only applies when the rule actually pauses practice
+  // — i.e. not when it lets the agent continue automatically (legacy
+  // "allow_additional" or C4 "auto_bump").
+  const capContinues = rules.limitBehavior === "allow_additional" || rules.limitBehavior === "auto_bump";
+  const overCapCount = agents.filter((a) => a.usedMin >= appliedCap(a, buckets)).length;
+  const overCap =
+    !capContinues && overCapCount > 0
+      ? { count: overCapCount, resetDay: WEEKLY_QUOTA.resetDay }
+      : null;
 
-      <Section
-        title="Teams & agents"
-        description="Quota is distributed per team. Open a team to adjust its agents."
-        headerRight={<span style={styles.teamCount}>{teams.length} teams</span>}
-      >
-        <div style={styles.teamList}>
-          {teams.map((team, idx) => (
-            <TeamRow
-              key={team.id}
-              team={team}
-              agents={agentsByTeam[team.id] || []}
-              open={openTeams.has(team.id)}
-              last={idx === teams.length - 1}
-              onToggleOpen={() => toggleTeam(team.id)}
-              onCadence={setTeamCadence}
-              onPerAgent={setTeamPerAgent}
-              onSetAgentQuota={setAgentQuota}
-            />
-          ))}
-        </div>
-      </Section>
+  // C5 never blocks, so its docked alert is the amber/red over-limit notice
+  // (amber while agents only near the cap, red once any is over) whose View
+  // agents opens the manager on the Nearing-limit tab.
+  const c5Alert = isC5 ? c5OverAlert(agents, buckets) : null;
 
-      <div style={styles.pairRow}>
-        <Section
-          title="When capacity runs out"
-          description="Cap spend, or allow capped additional usage."
-          style={styles.pairCard}
-        >
-          <AdditionalUsageChoice
-            mode={usageMode}
-            onMode={setUsageMode}
-            additionalCap={additionalCap}
-            onAdditionalCap={setAdditionalCap}
-          />
-        </Section>
-        <Section
-          title="Quota-exceeded requests"
-          description="Routing plus the agent-facing banner."
-          style={styles.pairCard}
-        >
-          <RequestRoutingField value={routingEmail} onChange={setRoutingEmail} error={emailError} />
-          <AgentBannerPreview />
-        </Section>
-      </div>
-    </div>
-  );
-}
+  const consumedPct = Math.round((WEEKLY_QUOTA.consumedMin / WEEKLY_QUOTA.totalMin) * 100);
 
-// ---- Team row + drill-down ------------------------------------------------
-
-function TeamRow({ team, agents, open, last, onToggleOpen, onCadence, onPerAgent, onSetAgentQuota }) {
-  const pct = team.allocated > 0 ? Math.round((team.used / team.allocated) * 100) : 0;
-  const cad = cadenceShort(team.cadence);
+  const adjustPanel = adjustAgent ? (
+    <CreditsUsageAdjustPanel
+      agent={adjustAgent}
+      buckets={buckets}
+      onClose={() => setAdjustAgent(null)}
+      onSave={handleSaveAdjust}
+    />
+  ) : null;
 
   return (
-    <div style={{ ...styles.team, borderBottom: last ? "none" : "1px solid var(--color-border-card-soft)" }}>
-      <div style={styles.row}>
-        <button type="button" onClick={onToggleOpen} aria-expanded={open} style={styles.identity}>
-          <span style={styles.chevron}>
-            {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </span>
-          <span style={styles.identityText}>
-            <span style={styles.teamTitleRow}>
-              <span style={styles.teamName}>{team.name}</span>
-              <CompositionBadge composition={team.composition} />
-            </span>
-            <span style={styles.teamAgentCount}>{agents.length} agents</span>
-          </span>
-        </button>
+    <PageLayout rightPanel={adjustPanel} onPanelClose={() => setAdjustAgent(null)}>
+      <div style={styles.column}>
+        <PageHeader
+          back={onBack}
+          identifier={{
+            icon: <Gauge size={16} color="var(--color-icon-tertiary-fg)" />,
+            label: "Credit & Usage",
+            iconBg: "var(--color-icon-tertiary-bg)",
+            iconColor: "var(--color-icon-tertiary-fg)",
+          }}
+          subtitle="Set weekly practice limits and track how your tenant's quota is used."
+          primaryAction={
+            isC5 ? undefined : { label: "Save changes", size: "lg", onClick: () => console.log("save credits & usage") }
+          }
+        />
 
-        <div style={styles.usage}>
-          <CapacityBar used={team.used} total={team.allocated} height={10} />
-          <span style={styles.usageVal}>
-            {team.used.toLocaleString()} / {team.allocated.toLocaleString()} min · {pct}%
-          </span>
-        </div>
+        {/* Tenant utilisation — shared header. C5 docks the amber/red
+            over-limit notice here and routes View agents into the manager. */}
+        <CreditUtilisationCard
+          quota={WEEKLY_QUOTA}
+          consumedPct={consumedPct}
+          overCap={isC5 ? c5Alert : overCap}
+          onViewAgents={isC5 ? () => setManageTab("nearing") : scrollToAgents}
+          fyi={isC5 ? <C5RulesFyi /> : null}
+        />
 
-        <div style={styles.quota}>
-          <CadenceDropdown
-            value={team.cadence}
-            onChange={(v) => onCadence(team.id, v)}
-            ariaLabel={`Quota cadence for ${team.name}`}
-          />
-          <QuotaInput
-            value={team.perAgent}
-            onChange={(v) => onPerAgent(team.id, v)}
-            suffix="min"
-            ariaLabel={`Per-agent quota for ${team.name}`}
-          />
-        </div>
-      </div>
+        <EstimatedImpactBanner pendingChange={pendingChange} />
 
-      {open && (
-        <div style={styles.agentPanel}>
-          {agents.map((agent, i) => {
-            const quota = agent.hasCustom ? agent.limit : team.perAgent;
-            const aPct = quota > 0 ? Math.round((agent.used / quota) * 100) : 0;
-            return (
-              <div key={agent.id} style={styles.agentRow}>
-                <span style={styles.agentIdentity}>
-                  <Avatar name={agent.name} index={i} />
-                  <span style={styles.agentName}>{agent.name}</span>
-                </span>
-                <div style={styles.agentUsage}>
-                  <CapacityBar used={agent.used} total={quota} height={6} />
-                  <span style={styles.agentUsageVal}>
-                    {agent.used} / {quota} min{cad} · {aPct}%
-                  </span>
-                </div>
-                <QuotaInput
-                  value={quota}
-                  onChange={(v) => onSetAgentQuota(agent.id, v)}
-                  suffix={`min${cad}`}
-                  ariaLabel={`Quota for ${agent.name}`}
+        {/* Fixed quota buckets — the merged approaches (C2 / C3 / C4 / the
+            bulk-action study) fold these into their card, and C5 shows its own
+            bucket cards, so the standalone section is for the others only. */}
+        {assignmentMode !== "C2" && assignmentMode !== "C3" && assignmentMode !== "C4" && assignmentMode !== "BULK" && assignmentMode !== "C5" && (
+          <Section
+            title="Quota buckets"
+            description="Each agent gets a weekly cap from one bucket. Buckets are fixed — move agents between them; the values don't change."
+          >
+            <div style={styles.bucketRow}>
+              {buckets.map((b) => (
+                <BucketCard
+                  key={b.id}
+                  bucket={b}
+                  interactive={assignmentMode === "C1"}
+                  selected={assignmentMode === "C1" && selectedBucketId === b.id}
+                  onClick={() => setSelectedBucketId(b.id)}
                 />
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Assignment fork — A/B: region + standalone table; C1: inline
+            bucket-folder; C2: merged buckets-and-folder card. */}
+        {assignmentMode === "C1" && (
+          <BucketFolderPanel
+            bucket={buckets.find((b) => b.id === selectedBucketId) || null}
+            agents={agents}
+            buckets={buckets}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+            onBulkMove={handleBulkMove}
+            onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
+            onAdjust={setAdjustAgent}
+          />
+        )}
+        {(assignmentMode === "C2" || assignmentMode === "C3" || assignmentMode === "C4" || assignmentMode === "BULK") && (
+          <BucketFolderMerged
+            layout={assignmentMode === "C2" ? "rail" : assignmentMode === "C4" ? "attached" : "top"}
+            bulkPlacement={assignmentMode === "BULK" ? (bulkPlacement || "floating") : "top"}
+            buckets={buckets}
+            agents={agents}
+            selectedBucketId={selectedBucketId}
+            onSelectBucket={setSelectedBucketId}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+            onBulkMove={handleBulkMove}
+            onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
+          />
+        )}
+        {isC5 && (
+          <CreditsUsageC5
+            agents={agents}
+            buckets={buckets}
+            manageTab={manageTab}
+            onManageChange={setManageTab}
+            onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
+            onSave={() => console.log("save credits & usage")}
+          />
+        )}
+        {(assignmentMode === "A" || assignmentMode === "B") && (
+          <>
+            <BucketAssignmentRegion mode={assignmentMode} buckets={buckets} />
+
+            <div ref={agentsRef} style={styles.tableHead}>
+              <span style={styles.tableTitle}>Agent usage</span>
+              <span style={styles.count}>{agents.length} shown</span>
+            </div>
+            {selectedIds.length > 0 && (
+              <BulkMoveBar count={selectedIds.length} buckets={buckets} onApply={handleBulkMove} />
+            )}
+            <AgentBucketTable
+              agents={agents}
+              buckets={buckets}
+              paginate
+              selectable
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              onAdjust={setAdjustAgent}
+            />
+          </>
+        )}
+
+        {/* Rules + decisions to confirm. C5 owns its own fixed (never-block)
+            rules, so the shared controls are skipped there. */}
+        {!isC5 && <RulesSection rules={rules} isC4={isC4} onRule={setRule} />}
+      </div>
+    </PageLayout>
+  );
+}
+
+// RulesSection — the two shared rule cards (limit behaviour + decisions to
+// confirm). Same in every approach except C5, which renders its own fixed
+// rules; kept out of the page body so the page function stays in budget.
+function RulesSection({ rules, isC4, onRule }) {
+  return (
+    <Section title="Rules">
+      <div style={styles.rulesGrid}>
+        <div style={styles.rulesPanel}>
+          <LimitRuleControl
+            variant={isC4 ? "bucket" : "legacy"}
+            value={rules.limitBehavior}
+            onChange={(v) => onRule("limitBehavior", v)}
+            additionalCapMin={rules.additionalCapMin}
+            onAdditionalCapMin={(v) => onRule("additionalCapMin", v)}
+            bumpScope={rules.bumpScope}
+            onBumpScope={(v) => onRule("bumpScope", v)}
+          />
         </div>
-      )}
-    </div>
+        <div style={styles.rulesPanel}>
+          <BucketDecisionControls variant={isC4 ? "bucket" : "legacy"} rules={rules} onRuleChange={onRule} />
+        </div>
+      </div>
+    </Section>
   );
 }
 
-// QuotaInput — number field with a visible focus ring (the documented 2px
-// white + brand-blue ring) so the team/agent quota edits stay keyboard-
-// discoverable (WCAG-3). Mirrors the styling of the original inline input.
-function QuotaInput({ value, onChange, suffix, ariaLabel }) {
-  const [focus, setFocus] = React.useState(false);
-  return (
-    <label
-      style={{
-        ...styles.quotaInput,
-        boxShadow: focus ? "0 0 0 2px #FFFFFF, 0 0 0 4px var(--do-brand-blue)" : "none",
-        borderColor: focus ? "var(--do-brand-blue)" : "var(--color-border-card-soft)",
-      }}
-    >
-      <input
-        type="number"
-        min={1}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
-        aria-label={ariaLabel}
-        style={styles.quotaInputField}
-      />
-      <span style={styles.quotaSuffix}>{suffix}</span>
-    </label>
-  );
-}
-
-function CadenceDropdown({ value, onChange, ariaLabel }) {
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={ariaLabel} style={styles.select}>
-      {CADENCES.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.adjective}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function Avatar({ name, index }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
-  return (
-    <span style={{ ...styles.avatar, background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}>
-      {initials}
-    </span>
-  );
+// c5OverAlert — the docked over-limit notice for C5: amber while agents are
+// only nearing their weekly cap, red once any is over it, null when everyone
+// is on track. C5 never blocks, so the copy says practice continues.
+function c5OverAlert(agents, buckets) {
+  const over = agents.filter((a) => statusOf(a.usedMin, appliedCap(a, buckets)) === "at_cap").length;
+  const near = agents.filter((a) => statusOf(a.usedMin, appliedCap(a, buckets)) === "near_limit").length;
+  if (!over && !near) return null;
+  if (over) {
+    return { tone: "red", count: over, message: `${over} agent${over === 1 ? " is" : "s are"} over their weekly limit — they keep practising; review and upgrade their tier.` };
+  }
+  return { tone: "amber", count: near, message: `${near} agent${near === 1 ? " is" : "s are"} nearing their weekly limit.` };
 }
 
 const styles = {
-  column: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    width: "100%",
-    fontFamily: "var(--font-sans)",
-  },
-
-  teamCount: {
+  column: { display: "flex", flexDirection: "column", gap: 16, width: "100%", fontFamily: "var(--font-sans)" },
+  bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
+  tableHead: { display: "flex", alignItems: "center", gap: 12, marginTop: 8 },
+  tableTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-deep)" },
+  count: {
     padding: "3px 10px",
     borderRadius: 999,
-    background: "#F3F4F6",
+    background: "var(--color-card-emoji-bg)",
     fontSize: 11,
     fontWeight: 600,
     color: "var(--color-text-tertiary)",
-    whiteSpace: "nowrap",
   },
-
-  teamList: { display: "flex", flexDirection: "column" },
-  team: { display: "flex", flexDirection: "column" },
-  row: { display: "flex", alignItems: "center", gap: 20, padding: "18px 4px" },
-
-  identity: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 10,
-    width: 240,
-    flexShrink: 0,
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "inherit",
-    padding: 0,
+  rulesGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 16,
+    alignItems: "start",
   },
-  chevron: { display: "flex", color: "var(--color-text-tertiary)", flexShrink: 0, marginTop: 2 },
-  identityText: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
-  teamTitleRow: { display: "flex", alignItems: "center", gap: 8 },
-  teamName: { fontSize: 15, fontWeight: 600, color: "var(--color-text-deep)" },
-  teamAgentCount: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)" },
-
-  usage: { display: "flex", flexDirection: "column", gap: 7, flex: 1, minWidth: 0 },
-  usageVal: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
-
-  quota: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
-  quotaInput: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "8px 12px",
-    border: "1px solid var(--color-border-card-soft)",
-    borderRadius: 8,
-    background: "#FFFFFF",
-    transition: "box-shadow 120ms ease, border-color 120ms ease",
-  },
-  quotaInputField: {
-    width: 44,
-    border: "none",
-    outline: "none",
-    fontFamily: "inherit",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--color-text-deep)",
-    background: "transparent",
-    appearance: "textfield",
-  },
-  quotaSuffix: { fontSize: 11, color: "var(--color-text-tertiary)", whiteSpace: "nowrap" },
-  select: {
-    height: 36,
-    padding: "0 10px",
-    borderRadius: 8,
+  rulesPanel: {
+    padding: 16,
+    borderRadius: 12,
     border: "1px solid var(--color-border-card-soft)",
     background: "#FFFFFF",
-    fontFamily: "inherit",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--color-text-medium)",
-    cursor: "pointer",
-    appearance: "auto",
   },
-
-  avatar: {
-    width: 26,
-    height: 26,
-    borderRadius: "50%",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: "0.2px",
-    flexShrink: 0,
-  },
-
-  agentPanel: {
-    display: "flex",
-    flexDirection: "column",
-    padding: "4px 8px 12px 46px",
-    background: "var(--color-card-emoji-bg)",
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  agentRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 20,
-    padding: "12px 8px",
-    borderBottom: "1px solid #ECECF4",
-  },
-  agentIdentity: { display: "flex", alignItems: "center", gap: 10, width: 220, flexShrink: 0 },
-  agentName: { fontSize: 13, fontWeight: 500, color: "var(--color-text-medium)" },
-  agentUsage: { display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 },
-  agentUsageVal: { fontSize: 11, fontWeight: 500, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" },
-
-  pairRow: { display: "flex", gap: 16, alignItems: "stretch" },
-  pairCard: { flex: 1, minWidth: 0 },
 };
