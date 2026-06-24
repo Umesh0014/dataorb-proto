@@ -167,27 +167,73 @@ function StatCell({ label, value, color, first }) {
 }
 
 // AudioBriefing — dark "this week's briefing" pill with a play/pause toggle
-// and a decorative waveform. Playback is mocked (toggles the glyph only).
+// and a decorative waveform. Mocked playback: hitting play turns the pill blue
+// and swaps the label/waveform for a progress timeline + remaining time that
+// tick down once a second.
+const AUDIO_DURATION = 120; // "2 min"
+
+function fmtTime(s) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 function AudioBriefing() {
   const [playing, setPlaying] = React.useState(false);
+  const [elapsed, setElapsed] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!playing) return undefined;
+    const id = setInterval(() => {
+      setElapsed((e) => Math.min(e + 1, AUDIO_DURATION));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [playing]);
+
+  React.useEffect(() => {
+    if (playing && elapsed >= AUDIO_DURATION) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPlaying(false);
+    }
+  }, [playing, elapsed]);
+
+  const toggle = () => {
+    if (!playing && elapsed >= AUDIO_DURATION) setElapsed(0);
+    setPlaying((p) => !p);
+  };
+
+  const progress = elapsed / AUDIO_DURATION;
+
   return (
     <div style={d.audioWrap}>
       <button
         type="button"
-        onClick={() => setPlaying((p) => !p)}
+        onClick={toggle}
         aria-label={playing ? "Pause briefing" : "Play briefing"}
-        style={d.audioPill}
+        style={{ ...d.audioPill, background: playing ? "var(--color-button-primary-bg)" : "var(--grey-900)" }}
       >
-        <span style={d.audioIcon}>
-          {playing ? <Pause size={15} color="#FFFFFF" /> : <Play size={15} color="#FFFFFF" />}
+        <span style={{ ...d.audioIcon, background: playing ? "#FFFFFF" : "var(--color-button-primary-bg)" }}>
+          {playing
+            ? <Pause size={15} color="var(--color-button-primary-bg)" />
+            : <Play size={15} color="#FFFFFF" />}
         </span>
-        <span style={d.waveform} aria-hidden="true">
-          {WAVE_BARS.map((h, i) => (
-            <span key={i} style={{ ...d.waveBar, height: h }} />
-          ))}
-        </span>
-        <span style={d.audioLabel}>This week&apos;s briefing</span>
-        <span style={d.audioDuration}>2 min</span>
+
+        {playing ? (
+          <>
+            <span style={d.timeline} aria-hidden="true">
+              <span style={{ ...d.timelineFill, width: `${progress * 100}%` }} />
+            </span>
+            <span style={d.audioRemaining}>{fmtTime(AUDIO_DURATION - elapsed)}</span>
+          </>
+        ) : (
+          <>
+            <span style={d.waveform} aria-hidden="true">
+              {WAVE_BARS.map((h, i) => (
+                <span key={i} style={{ ...d.waveBar, height: h }} />
+              ))}
+            </span>
+            <span style={d.audioLabel}>This week&apos;s briefing</span>
+            <span style={d.audioDuration}>2 min</span>
+          </>
+        )}
       </button>
     </div>
   );
@@ -471,6 +517,30 @@ const d = {
     fontSize: 13,
     fontWeight: 500,
     color: "var(--grey-500)",
+  },
+  // Playing state — progress timeline + remaining time on the blue pill.
+  timeline: {
+    position: "relative",
+    width: 190,
+    height: 4,
+    borderRadius: 999,
+    background: "color-mix(in srgb, #FFFFFF 30%, transparent)",
+    overflow: "hidden",
+  },
+  timelineFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 999,
+    background: "#FFFFFF",
+    transition: "width 1s linear",
+  },
+  audioRemaining: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#FFFFFF",
+    fontVariantNumeric: "tabular-nums",
   },
 
   storiesHead: {
