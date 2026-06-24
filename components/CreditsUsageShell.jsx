@@ -26,11 +26,10 @@ import VersionBar from "./VersionBar";
 //   C7  — C6b's dialog editing with tiers stacked vertically (up to 10) and the
 //         rules shared through a modal instead of the in-card FYI.
 //
-// C4 is the preferred (starred) direction. A, B, C1 and C2 are kept but parked
-// in the Discarded dropdown — still selectable for comparison, just out of the
-// main row. Variant state is in-memory and resets when the session ends.
+// C4 is the preferred (starred) direction. A, B, C1, C2 and C3 are kept but
+// parked in the Discarded dropdown — still selectable for comparison, just out
+// of the main row. Variant state is in-memory and resets when the session ends.
 const CU_VERSIONS = [
-  { id: "c3", label: "C3", iterations: [] },
   { id: "c4", label: "C4", iterations: [], preferred: true },
   { id: "c5", label: "C5", iterations: [] },
   { id: "c6a", label: "C6a", iterations: [] },
@@ -45,12 +44,13 @@ const CU_DISCARDED = [
   { id: "b", label: "B" },
   { id: "c1", label: "C1" },
   { id: "c2", label: "C2" },
+  { id: "c3", label: "C3" },
 ];
 const CU_BASELINE = [{ id: "cu", label: "Credit & Usage" }];
 const BULK_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
 
 export default function CreditsUsageShell({ onBack }) {
-  const [sel, setSel] = React.useState({ versionId: "c3", iterationId: null });
+  const [sel, setSel] = React.useState({ versionId: "c4", iterationId: null });
   const variant = sel.versionId.toUpperCase();
   const bulkPlacement = sel.versionId === "bulk" ? BULK_PLACEMENTS[sel.iterationId || "i1"] : null;
 
