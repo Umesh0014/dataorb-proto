@@ -483,7 +483,7 @@ const d = {
   // Featured layout: one large hero story (left) + a list of compact cards.
   storiesLayout: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "stretch",
     gap: 20,
   },
   featureCard: {
@@ -526,6 +526,8 @@ const d = {
     gap: 16,
   },
   listCard: {
+    flex: 1,
+    minHeight: 0,
     display: "flex",
     alignItems: "center",
     gap: 14,
