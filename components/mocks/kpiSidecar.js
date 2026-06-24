@@ -195,6 +195,84 @@ export const OUTCOME_INSIGHTS = {
   ],
 };
 
+// ---- Per-KPI generator (PRD §5) — real-ish data for every KPI ------------
+// Spread agents around the target with type-correct values + RAG, an 8-week
+// trend, and per-week interaction lists, so each KPI opens its own sidecar.
+function buildAgentsFor(type, target, rate) {
+  const higher = (TYPE_RULES[type] || TYPE_RULES.A).higherIsBetter;
+  const base = target ?? rate;
+  const list = NAMES.slice(0, 24).map((name, i) => {
+    const spread = (i - 11.5) / 11.5; // -1 … +1
+    let value;
+    if (type === "C") value = Math.max(1, +(base * (1 + spread * 0.7)).toFixed(1));
+    else value = Math.max(1, Math.min(type === "D" ? 100 : 99, Math.round(base + spread * base * 0.45)));
+    return {
+      id: `${type}-agent-${i + 1}`, name, initials: initialsOf(name),
+      interactions: 120 + ((i * 37) % 260), value,
+      rag: target == null ? "amber" : ragFor(value, target, higher),
+    };
+  });
+  list.push({ id: `${type}-z1`, name: NAMES[24], initials: initialsOf(NAMES[24]), interactions: 0, value: 0, rag: null });
+  list.push({ id: `${type}-z2`, name: NAMES[25], initials: initialsOf(NAMES[25]), interactions: 0, value: 0, rag: null });
+  return list;
+}
+const buildTrendFor = (rate) => Array.from({ length: 8 }, (_, i) => ({
+  week: `W${23 + i}`, agent: Math.max(1, +(rate + (i - 4) * 1.4).toFixed(1)), orgAvg: +rate.toFixed(1),
+}));
+function makeConfig(seed) {
+  const trend = buildTrendFor(seed.campaignRate);
+  return {
+    id: seed.id, name: seed.name, kpiType: seed.type, subtitle: seed.subtitle,
+    unit: seed.unit ?? "%", dateRange: "1–30 Jun 2026", total: seed.total,
+    campaignRate: seed.campaignRate, target: seed.target,
+    interactionsTip: seed.interactionsTip || "", metricTip: seed.metricTip || "",
+    outcomes: seed.outcomes, agents: buildAgentsFor(seed.type, seed.target, seed.campaignRate),
+    trend, weeks: trend.map((w) => w.week),
+    interactions: Object.fromEntries(trend.map((w, i) => [w.week, buildInteractions(w.week, 5 + (i % 4))])),
+    defaultOutcomeFilter: seed.defaultOutcomeFilter || "all", stubbed: false,
+  };
+}
+
+// Outcome bucket sets per KPI (PRD §5.2 — Tab 2 column).
+const OC_PAYMENT = [
+  { key: "secured", label: "Payment Secured", color: "#34D399", pct: 42 },
+  { key: "pipeline", label: "Pipeline", color: "#60A5FA", pct: 18 },
+  { key: "refused", label: "Refused", color: "#FB7185", pct: 34 },
+  { key: "failed", label: "Contact Failed", color: "#CBD5E1", pct: 6 },
+];
+const OC_CONTACT = [
+  { key: "made", label: "Contact Made", color: "#34D399", pct: 58 },
+  { key: "failed", label: "Contact Failed", color: "#CBD5E1", pct: 42 },
+];
+const OC_COMPLIANCE = [
+  { key: "compliant", label: "Compliant", color: "#34D399", pct: 92 },
+  { key: "non", label: "Non-Compliant", color: "#FB7185", pct: 8 },
+];
+const OC_EFFORT = [
+  { key: "productive", label: "Productive Contacts", color: "#34D399", pct: 64 },
+  { key: "failed", label: "Failed Contacts", color: "#CBD5E1", pct: 36 },
+];
+const OC_FAILED = [
+  { key: "refusal", label: "Refusal", color: "#FB7185", pct: 38 },
+  { key: "disconnect", label: "Hard Disconnect", color: "#BE123C", pct: 30 },
+  { key: "wrong", label: "Wrong Person", color: "#CBD5E1", pct: 22 },
+  { key: "other", label: "Other", color: "#E2E8F0", pct: 10 },
+];
+
+// Seeds for the 8 non-Efficiency Collections KPIs (Efficiency keeps its rich
+// hand-authored config below). Types corrected to the PRD (Appendix A):
+// Compliance = A (100% target), Failed Communication = E (no target).
+const KPI_SEEDS = [
+  { id: "contactability", name: "Contactability", type: "A", unit: "%", subtitle: "of total dials", total: 50000, campaignRate: 42, target: 55, outcomes: OC_CONTACT, interactionsTip: "Total outbound dials placed by this agent in the selected period — all calls regardless of outcome.", metricTip: "Percentage of total dials where the agent confirmed the debtor's identity. Target: 55%. Higher is better." },
+  { id: "effort", name: "Effort", type: "C", unit: " calls", subtitle: "calls per positive contact", total: 50000, campaignRate: 19.8, target: 15, outcomes: OC_EFFORT, interactionsTip: "Total outbound dials placed by this agent — used to calculate dials per productive outcome.", metricTip: "Average dials to reach one verified contact. Target: < 15. Lower is better." },
+  { id: "negotiation", name: "Negotiation", type: "A", unit: "%", subtitle: "of verified contacts", total: 28000, campaignRate: 48, target: 25, outcomes: OC_PAYMENT, metricTip: "Percentage of verified contacts where the agent navigated the negotiation stage. Target: 25%." },
+  { id: "rescheduled", name: "Rescheduled Call Success Rate", type: "A", unit: "%", subtitle: "of rescheduled callbacks", total: 9000, campaignRate: 38, target: 40, outcomes: OC_PAYMENT, metricTip: "Percentage of rescheduled callbacks that converted to a payment. Target: 40%." },
+  { id: "point-of-sale", name: "Point of Sale", type: "A", unit: "%", subtitle: "of recoveries", total: 12000, campaignRate: 44, target: 40, outcomes: OC_PAYMENT, metricTip: "Percentage of recoveries collected via instant POS payment. Target: 40%." },
+  { id: "compliance", name: "Compliance Score", type: "A", unit: "%", subtitle: "of verified contacts", total: 47000, campaignRate: 98, target: 100, outcomes: OC_COMPLIANCE, defaultOutcomeFilter: "Non-Compliant", metricTip: "Percentage of verified contacts where both security protocol steps were completed. Target: 100%." },
+  { id: "effective-comms", name: "Effective Communication Rate", type: "A", unit: "%", subtitle: "of verified contacts", total: 46000, campaignRate: 88, target: 95, outcomes: OC_PAYMENT, metricTip: "Percentage of verified contacts that reached the Debt Communication stage. Target: 95%." },
+  { id: "failed-comms", name: "Failed Communication Rate", type: "E", unit: "%", subtitle: "Explore negative contact patterns", total: 15000, campaignRate: 24, target: null, outcomes: OC_FAILED, metricTip: "Percentage of useful contacts that ended with no progress. No target — use for pattern exploration." },
+];
+
 // ---- The KPI registry ----------------------------------------------------
 const efficiencyAgents = buildEfficiencyAgents();
 
@@ -233,10 +311,8 @@ export const KPI_CONFIGS = {
       { week: "W23", range: "May 27–Jun 2", evaluated: 5432, metric: 75, change: -4 },
     ],
   },
-  // ---- Stubbed siblings — config-only, swap in data to light them up -----
-  effort: { id: "effort", name: "Effort", kpiType: "C", unit: "", target: 1.5, stubbed: true },
-  quality: { id: "quality", name: "Quality Score", kpiType: "D", unit: "pts", target: 80, stubbed: true },
-  "handled-volume": { id: "handled-volume", name: "Handled Volume", kpiType: "E", unit: "", target: null, stubbed: true },
+  // ---- Generated per-KPI configs (PRD §5) — each opens its own data -------
+  ...Object.fromEntries(KPI_SEEDS.map((s) => [s.id, makeConfig(s)])),
 };
 
 // Per-week interaction lookup for Efficiency (Layer 3).

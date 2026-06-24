@@ -3,6 +3,7 @@
 import React from "react";
 import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp, X } from "lucide-react";
 import KpiDrillInline from "./KpiDrillInline";
+import KpiPrdDrill from "./KpiPrdDrill";
 import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
@@ -45,7 +46,14 @@ export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems,
   // whole card stack shifts left while it's open. Only B8 reports up here.
   const [drill, setDrill] = React.useState(null);
   React.useEffect(() => { setDrill(null); }, [kpiView]);
-  const drillKpi = drill ? { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip } : null;
+  // B9 opens each KPI's OWN type-correct config (PRD §5). B8 keeps the single
+  // Figma-2349 (Efficiency) dataset.
+  const drillKpi = drill
+    ? (kpiView === "b9"
+        ? { ...(KPI_CONFIGS[drill.id] || KPI_CONFIGS[DEFAULT_KPI_ID]), name: drill.name }
+        : { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip })
+    : null;
+  const DrillCard = kpiView === "b9" ? KpiPrdDrill : KpiDrillInline;
 
   const sections = (
     <>
@@ -72,7 +80,7 @@ export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems,
       <div style={pageStyles.cardsColFixed}>{sections}</div>
       <aside style={pageStyles.sideCard}>
         <button type="button" style={pageStyles.sideCardX} onClick={() => setDrill(null)} aria-label="Close"><X size={18} /></button>
-        <KpiDrillInline kpi={drillKpi} onClose={() => setDrill(null)} />
+        <DrillCard kpi={drillKpi} onClose={() => setDrill(null)} />
       </aside>
     </div>
   );
@@ -207,7 +215,8 @@ const KPI_ITERATIONS = [
 // a "Discarded" dropdown.
 export const OUR_ITERATIONS = [
   { id: "b7", label: "B7", title: "Filtered grid, 3 across + pagination + side card" },
-  { id: "b8", label: "B8", title: "Activity rings (left) + attention cards (right)" },
+  { id: "b8", label: "B8", title: "Activity rings + Figma 2349 side card" },
+  { id: "b9", label: "B9", title: "Activity rings + PRD v2.0 side card (agent drill, per-KPI types)" },
 ];
 
 export const OUR_DISCARDED = [
@@ -225,9 +234,9 @@ function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discard
   // B8 reports its selected KPI up to the PAGE (CollectionHubPage), which renders
   // the drill as a full-height card to the right of every section. The rail is
   // hidden while that page side card is open so they don't collide.
-  const drillOpen = view === "b8" && Boolean(drillId);
+  const drillOpen = (view === "b8" || view === "b9") && Boolean(drillId);
 
-  const ours = view === "b8"
+  const ours = (view === "b8" || view === "b9")
     ? <KpiGoalsB8 onDrill={onDrill} drillId={drillId} />
     : { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];
 
