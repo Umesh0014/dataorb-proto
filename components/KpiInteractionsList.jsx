@@ -3,7 +3,7 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
 
-const POPPINS = "'Poppins', sans-serif";
+const POPPINS = "var(--font-sans)";
 // Sentiment face tints (Figma 2349-28544 interaction cards).
 const FACE = {
   positive: { bg: "#E7F8EE", emoji: "🙂" },

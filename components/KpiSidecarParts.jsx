@@ -110,7 +110,7 @@ export const sortAgents = (kpi) => [...kpi.agents].sort((a, b) => {
   return rule(kpi).sort(a, b);
 });
 
-const POPPINS = "'Poppins', sans-serif";
+const POPPINS = "var(--font-sans)";
 const s = {
   chip: {
     display: "inline-flex", alignItems: "center", padding: "3px 9px", borderRadius: 6,

@@ -9,7 +9,7 @@ import { KPIS, CATEGORIES, statusOf } from "./mocks/kpiGoals";
 import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
 
 const PER_PAGE = 3;
-const POPPINS = "'Poppins', sans-serif";
+const POPPINS = "var(--font-sans)";
 const FACETS = [
   { id: "above", label: "Above Target", bg: "#FBFEFC", border: "#B0F0C0", fg: "#00711D" },
   { id: "below", label: "Below Target", bg: "#FFFBFF", border: "#FFDAD6", fg: "#BA1A1A" },

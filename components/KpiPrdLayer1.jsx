@@ -6,7 +6,7 @@ import { OutcomeBar, RagChip, SkeletonRows, sortAgents, statusLabelFor, rule, In
 
 const PAGE = 20;
 const FETCH_MS = 650;
-const POPPINS = "'Poppins', sans-serif";
+const POPPINS = "var(--font-sans)";
 // Metric pill tints per RAG (matches the Figma sidecar table).
 const PILL = {
   green: { bg: "#F1FEF5", fg: "#00711D" },

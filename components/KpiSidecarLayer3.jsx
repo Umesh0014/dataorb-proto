@@ -4,7 +4,7 @@ import React from "react";
 import { Gauge, Trophy } from "lucide-react";
 import { OUTCOME_INSIGHTS } from "./mocks/kpiSidecar";
 
-const POPPINS = "'Poppins', sans-serif";
+const POPPINS = "var(--font-sans)";
 const BAND = { strength: "#86EFAC", meets: "#FCD34D", needs: "#FCA5A5" };
 
 // Layer 3 — Outcome Insights (Figma node 2349-29143). Reached from the L1

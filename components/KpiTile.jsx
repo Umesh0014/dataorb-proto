@@ -11,7 +11,7 @@ import {
 // Type: Poppins (title/value/suffix/legend) + Lato (status). Exact tokens:
 // border #EFEFFF · title #5A5D72/14 · value #2C2F42/16 bold · suffix #5B5E6F/12
 // · legend #424659/11 · status = RAG colour/Lato 11 · padding 17 · gap 16.
-const POPPINS = "'Poppins', sans-serif";
+const POPPINS = "var(--font-sans)";
 const LATO = "'Lato', sans-serif";
 
 export default function KpiTile({ k, onClick, selected = false, fill = false }) {
