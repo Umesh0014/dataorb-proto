@@ -120,6 +120,9 @@ export default function OutcomeCard({ outcome, onClick }) {
               target={target}
               labels={labels}
               formatValue={(v) => `${Math.round(v)}%`}
+              height={56}
+              fillTopOpacity={0.32}
+              fillBottomOpacity={0.12}
             />
           </div>
 

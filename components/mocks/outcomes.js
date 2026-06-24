@@ -8,6 +8,15 @@
 // card can render without recomputing. The three "… Adherence" outcomes are
 // intentionally distinct titles/ids so the Search Outcomes field is testable.
 
+// The four cards intentionally span every combination of trend direction
+// (delta sign) × target attainment (value vs target), so the landing shows
+// all cases at once:
+//   Interactions        — trending down, below target
+//   Script Adherence     — trending up,   below target
+//   Compliance Adherence — trending down, above target
+//   Greeting Adherence   — trending up,   above target
+// Line/area colour follows the trend sign (success up / danger down); the
+// dashed target line shows whether the trend sits above or below target.
 export const OUTCOMES = [
   {
     id: "interactions",
@@ -16,7 +25,7 @@ export const OUTCOMES = [
     target: 85,
     goalPct: 95,
     deltaPp: -2,
-    trend: [85, 84, 86, 83, 82, 84, 83, 81, 82, 80, 82, 81],
+    trend: [84, 83, 84, 82, 83, 81, 82, 80, 81, 82, 80, 81],
   },
   {
     id: "script-adherence",
@@ -30,20 +39,20 @@ export const OUTCOMES = [
   {
     id: "compliance-adherence",
     title: "Compliance Adherence",
-    value: 76,
-    target: 85,
-    goalPct: 89,
-    deltaPp: -4,
-    trend: [84, 83, 82, 80, 81, 79, 78, 80, 77, 78, 76, 76],
+    value: 86,
+    target: 82,
+    goalPct: 105,
+    deltaPp: -3,
+    trend: [92, 91, 90, 89, 90, 88, 87, 89, 86, 87, 85, 86],
   },
   {
     id: "greeting-adherence",
     title: "Greeting Adherence",
     value: 92,
-    target: 90,
-    goalPct: 102,
+    target: 89,
+    goalPct: 103,
     deltaPp: 1,
-    trend: [88, 89, 90, 91, 90, 92, 91, 93, 92, 91, 92, 92],
+    trend: [90, 91, 90, 92, 91, 93, 92, 93, 92, 93, 92, 92],
   },
 ];
 

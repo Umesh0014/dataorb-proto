@@ -5,14 +5,16 @@ import useMeasuredWidth from "./useMeasuredWidth";
 
 // MetricSparkline — filled-area line-chart glyph for a metric cell. The
 // component stretches to fill its container's width; the parent sizes
-// the slot. Height stays fixed at 24px. One monotone-cubic line through
-// the aggregation buckets with a soft gradient fill underneath. No axes,
-// no labels, no default dots. Hovering a vertical hit strip emphasises a
-// dot at the underlying value and shows a dark tooltip with the point
+// the slot. Height defaults to 24px (the table-cell glyph) but a taller
+// `height` can be passed for card-scale charts. One monotone-cubic line
+// through the aggregation buckets with a soft gradient fill underneath. No
+// axes, no labels, no default dots. Hovering a vertical hit strip emphasises
+// a dot at the underlying value and shows a dark tooltip with the point
 // value (and an optional interval label). The parent aggregates and
 // supplies `formatValue` to render values in the metric's primary format
-// (`81%`, `16/20`).
-const HEIGHT = 24;
+// (`81%`, `16/20`). `fillTopOpacity` / `fillBottomOpacity` tune the gradient
+// — raise the bottom stop to keep the fill visible all the way down.
+const DEFAULT_HEIGHT = 24;
 const PAD_X = 1.5;
 const PAD_TOP = 2;
 const STROKE_WIDTH = 1.5;
@@ -64,6 +66,9 @@ export default function MetricSparkline({
   formatValue,
   labels,
   target,
+  height = DEFAULT_HEIGHT,
+  fillTopOpacity = FILL_OPACITY_TOP,
+  fillBottomOpacity = FILL_OPACITY_BOTTOM,
 }) {
   const [containerRef, measuredWidth] = useMeasuredWidth(96);
   const width = Math.max(1, measuredWidth);
@@ -76,7 +81,7 @@ export default function MetricSparkline({
   }, []);
 
   if (!points || points.length === 0) {
-    return <span ref={containerRef} style={{ ...sparkStyles.wrap, height: HEIGHT }} />;
+    return <span ref={containerRef} style={{ ...sparkStyles.wrap, height }} />;
   }
 
   const n = points.length;
@@ -84,12 +89,12 @@ export default function MetricSparkline({
   const max = Math.max(...points, hasTarget ? target : 0) || 1;
   const xAt =
     n === 1 ? () => width / 2 : (i) => PAD_X + (i / (n - 1)) * (width - 2 * PAD_X);
-  const yAt = (v) => PAD_TOP + (1 - v / max) * (HEIGHT - PAD_TOP);
+  const yAt = (v) => PAD_TOP + (1 - v / max) * (height - PAD_TOP);
   const xy = points.map((v, i) => [xAt(i), yAt(v)]);
 
   const linePath = monotonePath(xy);
   const areaPath =
-    n < 2 ? "" : `${linePath} L${xy[n - 1][0]},${HEIGHT} L${xy[0][0]},${HEIGHT} Z`;
+    n < 2 ? "" : `${linePath} L${xy[n - 1][0]},${height} L${xy[0][0]},${height} Z`;
 
   const stripWidth = n > 1 ? width / n : width;
 
@@ -108,19 +113,19 @@ export default function MetricSparkline({
   const labelText = hoverIdx != null && labels ? labels[hoverIdx] : null;
 
   return (
-    <span ref={containerRef} style={{ ...sparkStyles.wrap, height: HEIGHT }}>
+    <span ref={containerRef} style={{ ...sparkStyles.wrap, height }}>
       <svg
         width="100%"
-        height={HEIGHT}
-        viewBox={`0 0 ${width} ${HEIGHT}`}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         style={sparkStyles.svg}
         onMouseLeave={() => setHoverIdx(null)}
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={FILL_OPACITY_TOP} />
-            <stop offset="100%" stopColor={color} stopOpacity={FILL_OPACITY_BOTTOM} />
+            <stop offset="0%" stopColor={color} stopOpacity={fillTopOpacity} />
+            <stop offset="100%" stopColor={color} stopOpacity={fillBottomOpacity} />
           </linearGradient>
         </defs>
 
@@ -164,7 +169,7 @@ export default function MetricSparkline({
               x1={pt[0]}
               y1={pt[1]}
               x2={pt[0]}
-              y2={HEIGHT}
+              y2={height}
               stroke={color}
               strokeOpacity={GUIDE_OPACITY}
               strokeWidth={1}
@@ -186,7 +191,7 @@ export default function MetricSparkline({
             x={pt[0] - stripWidth / 2}
             y={0}
             width={stripWidth}
-            height={HEIGHT}
+            height={height}
             fill="transparent"
             style={sparkStyles.hitStrip}
             onMouseEnter={() => setHoverIdx(i)}
