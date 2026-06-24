@@ -65,10 +65,10 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
 export function DirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>3-Column — triage canvas + sidecar</span>
-      <p style={vbHelp.text}>The Jun-18 layout: linear stages (Open/Verify/Discover/Close) are plain checklists; <b>Act is triage</b> — one “field card” <b>column per symptom</b>, side by side.</p>
-      <p style={vbHelp.text}>Each item is <b>2 lines</b> (type pill + text, hint counter); selecting one opens the <b>right sidecar</b> with its hints (say / best-practice / if-then), type, attribution and a link-an-answer-card slot.</p>
-      <p style={vbHelp.hint}>Parallel columns, not a decision tree — the minimalist-checklist target. <b>Checklist</b> (stacked “If” scenarios) is retained as a version; earlier explorations sit in the “Bombed ideas” dropdown.</p>
+      <span style={vbHelp.title}>Review stepper — one stage at a time</span>
+      <p style={vbHelp.text}>Progressive disclosure: a horizontal <b>stepper</b> (Open→Close, then a <b>Knowledge</b> node) shows one stage at a time. <b>Act is triage</b> — a path selector + a “run this path when” <b>decision banner</b> with trigger cues.</p>
+      <p style={vbHelp.text}>Step cards open a <b>Hints drawer</b> (say / listen-for / if-then / best-practice). The Knowledge stage equips each likely customer question with an <b>answer card</b> — attach an existing one or draft from raw knowledge. A context panel carries the winning insight.</p>
+      <p style={vbHelp.hint}><b>3-Column</b> (triage canvas + sidecar) and <b>Checklist</b> (stacked “If” scenarios) are retained as versions; earlier explorations sit in the “Bombed ideas” dropdown.</p>
     </div>
   );
 }

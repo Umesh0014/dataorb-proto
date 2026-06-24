@@ -14,6 +14,7 @@ import GuidedWorkflowTableEditor from "./GuidedWorkflowTableEditor";
 import GuidedWorkflowCoauthorEditor from "./GuidedWorkflowCoauthorEditor";
 import GuidedWorkflowSectionedEditor from "./GuidedWorkflowSectionedEditor";
 import GuidedWorkflowTriageEditor from "./GuidedWorkflowTriageEditor";
+import GuidedWorkflowReviewEditor from "./GuidedWorkflowReviewEditor";
 import { CreateOverlay, AttachOverlay, PublishOverlay } from "./GuidedWorkflowDialogs";
 import { StepModal } from "./GuidedWorkflowStepDetail";
 import { EditorChrome, DirectionsHelp } from "./GuidedWorkflowChrome";
@@ -38,6 +39,7 @@ import {
 // The research-grounded simple checklist is the single primary direction;
 // every earlier exploration is kept but parked in a "Bombed ideas" dropdown.
 const DIRECTIONS = [
+  { id: "review", label: "Review stepper", iterations: [] },
   { id: "triage", label: "3-Column", iterations: [] },
   { id: "checklist", label: "Checklist", iterations: [] },
 ];
@@ -56,7 +58,7 @@ const TYPE_CYCLE = ["action", "compliance", "decision"];
 const VALID_STAGES = new Set(GW_STAGES.map((s) => s.id));
 
 export default function GuidedWorkflowsPage() {
-  const [variant, setVariant] = React.useState("triage");
+  const [variant, setVariant] = React.useState("review");
   const [view, setView] = React.useState("library"); // library | editor
   const [isNew, setIsNew] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -202,7 +204,9 @@ export default function GuidedWorkflowsPage() {
               heading="AI drafted this base workflow"
               body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
             />
-            {variant === "triage" ? (
+            {variant === "review" ? (
+              <GuidedWorkflowReviewEditor {...editorProps} />
+            ) : variant === "triage" ? (
               <GuidedWorkflowTriageEditor {...editorProps} />
             ) : variant === "checklist" ? (
               <GuidedWorkflowSectionedEditor {...editorProps} />
