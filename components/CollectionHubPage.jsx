@@ -195,7 +195,7 @@ function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discard
       <div style={kpiSectionStyles.cardArea}>
         {!isUmesh && (
           <div style={kpiSectionStyles.sideBySide}>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={view === "b8" && drill ? kpiSectionStyles.mainCompact : kpiSectionStyles.mainFull}>
               <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>
             </div>
             {view === "b8" && drill && (
@@ -1405,8 +1405,10 @@ const railS = {
 const kpiSectionStyles = {
   wrap: { position: "relative", width: "100%" },
   cardArea: { width: "100%" },
-  sideBySide: { display: "flex", gap: 18, alignItems: "flex-start" },
-  sideCard: { position: "sticky", top: 16, width: 440, flexShrink: 0, minWidth: 0, alignSelf: "flex-start", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "24px 24px 28px", maxHeight: "calc(100vh - 32px)", overflowY: "auto" },
+  sideBySide: { display: "flex", gap: 18, alignItems: "stretch" },
+  mainFull: { flex: 1, minWidth: 0 },
+  mainCompact: { width: 452, flexShrink: 0, minWidth: 0 },
+  sideCard: { position: "relative", flex: 1, minWidth: 0, background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto", maxHeight: "calc(100vh - 32px)" },
   sideCardX: { position: "absolute", top: 18, right: 18, width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-alt)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-medium)", zIndex: 1 },
   railMount: {
     position: "absolute", top: 0, bottom: 0, left: "100%",
