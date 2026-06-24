@@ -187,14 +187,15 @@ export default function StoryDetailPage({ outcome, story, onBack }) {
           style={{ ...s.wrap, width: commentsActive ? ARTICLE_W + RAIL_GAP + RAIL_W : ARTICLE_W }}
         >
           <div ref={articleRef} style={s.article} onMouseUp={onMouseUp} onClick={onArticleClick}>
-            <button type="button" onClick={onBack} style={s.back}>
-              <ArrowLeft size={16} color="var(--color-text-tertiary)" />
-              BACK
-            </button>
+            <div style={s.header}>
+              <button type="button" onClick={onBack} style={s.back}>
+                <ArrowLeft size={16} color="var(--color-text-tertiary)" />
+                BACK
+              </button>
 
-            <h1 style={s.title}>{doc.title}</h1>
+              <h1 style={s.title}>{doc.title}</h1>
 
-            <div style={s.byline}>
+              <div style={s.byline}>
               <MiraStarIcon size={18} />
               <span style={s.bylineName}>Mira</span>
               <span style={s.dot}>·</span>
@@ -204,6 +205,7 @@ export default function StoryDetailPage({ outcome, story, onBack }) {
               <span style={s.bylineMeta}>Public</span>
               <div style={{ flex: 1 }} />
               <Facepile />
+              </div>
             </div>
 
             <Card tone="muted" padX={20} padY={18} style={s.tldr}>
@@ -223,31 +225,35 @@ export default function StoryDetailPage({ outcome, story, onBack }) {
             <Section sec={doc.sections[2]} />
             <HighlightInfographic highlight={doc.highlight} />
 
-            <h2 style={s.sectionHead}>Pinned insights</h2>
-            <div style={s.pinnedList}>
-              {doc.pinned.map((p) => (
-                <div key={p.text} style={s.pinnedCard}>
-                  <Pin size={15} color="var(--color-button-primary-bg)" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <div>
-                    <div style={s.pinnedText}>{p.text}</div>
-                    <div style={s.pinnedBy}>Pinned by {p.by}</div>
+            <div style={s.block}>
+              <h2 style={s.sectionHead}>Pinned insights</h2>
+              <div style={s.pinnedList}>
+                {doc.pinned.map((p) => (
+                  <div key={p.text} style={s.pinnedCard}>
+                    <Pin size={15} color="var(--color-button-primary-bg)" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <div style={s.pinnedText}>{p.text}</div>
+                      <div style={s.pinnedBy}>Pinned by {p.by}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <h2 style={s.sectionHead}>Contributors</h2>
-            <div style={s.authors}>
-              {doc.contributors.map((c) => (
-                <div key={c.name} style={s.authorRow}>
-                  <div>
-                    <div style={s.authorName}>{c.name}</div>
-                    <div style={s.authorRole}>{c.role}</div>
-                    <div style={s.authorOrg}>{c.org}</div>
+            <div style={s.block}>
+              <h2 style={s.sectionHead}>Contributors</h2>
+              <div style={s.authors}>
+                {doc.contributors.map((c) => (
+                  <div key={c.name} style={s.authorRow}>
+                    <div>
+                      <div style={s.authorName}>{c.name}</div>
+                      <div style={s.authorRole}>{c.role}</div>
+                      <div style={s.authorOrg}>{c.org}</div>
+                    </div>
+                    <span style={s.authorAvatar} aria-hidden="true">{c.initials}</span>
                   </div>
-                  <span style={s.authorAvatar} aria-hidden="true">{c.initials}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
@@ -468,17 +474,19 @@ function renderMentions(text) {
   return out;
 }
 
-const GREEN = "color-mix(in srgb, var(--color-success) 13%, var(--surface-white))";
-const GREEN_DEEP = "color-mix(in srgb, var(--color-success) 22%, var(--surface-white))";
+const GREEN = "color-mix(in srgb, var(--color-button-primary-bg) 9%, var(--surface-white))";
+const GREEN_DEEP = "color-mix(in srgb, var(--color-button-primary-bg) 16%, var(--surface-white))";
 
 const s = {
-  page: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" },
-  scroll: { flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 48 },
-  wrap: { position: "relative", marginInline: "auto", paddingTop: 16, transition: "width 260ms cubic-bezier(.2,.7,.2,1)" },
-  article: { width: ARTICLE_W, maxWidth: "100%" },
+  page: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)", background: "var(--surface-white)" },
+  scroll: { flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 64 },
+  wrap: { position: "relative", marginInline: "auto", paddingTop: 24, transition: "width 260ms cubic-bezier(.2,.7,.2,1)" },
+  // 64px vertical rhythm between every top-level section.
+  article: { width: ARTICLE_W, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 64 },
+  header: {},
 
   back: { display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", color: "var(--color-text-tertiary)" },
-  title: { marginTop: 16, fontSize: 30, fontWeight: 800, color: "var(--color-text-deep)", lineHeight: 1.2 },
+  title: { marginTop: 20, fontSize: 80, fontWeight: 500, color: "var(--color-text-deep)", lineHeight: 1.06, letterSpacing: "-0.02em" },
   byline: { display: "flex", alignItems: "center", gap: 8, marginTop: 14 },
   bylineName: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
   bylineMeta: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
@@ -488,20 +496,20 @@ const s = {
   avatar: { width: 28, height: 28, borderRadius: 999, border: "2px solid var(--surface-white)", color: "#FFFFFF", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center", flexShrink: 0 },
   avatarSm: { width: 24, height: 24, border: "none", fontSize: 9 },
 
-  tldr: { display: "flex", flexDirection: "column", gap: 8, marginTop: 20 },
+  tldr: { display: "flex", flexDirection: "column", gap: 8 },
   tldrKicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "var(--color-button-primary-bg)" },
   tldrText: { fontSize: 15, lineHeight: 1.6, color: "var(--color-text-medium)" },
 
-  chartFrame: { marginTop: 24, display: "flex", flexDirection: "column", gap: 8 },
+  chartFrame: { display: "flex", flexDirection: "column", gap: 8 },
   chartLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)" },
 
-  section: { marginTop: 24 },
-  sectionHead: { marginTop: 28, fontSize: 18, fontWeight: 700, color: "var(--color-text-deep)" },
+  section: {},
+  block: {},
+  sectionHead: { fontSize: 18, fontWeight: 700, color: "var(--color-text-deep)" },
   sectionBody: { marginTop: 8, fontSize: 15, lineHeight: 1.7, color: "var(--color-text-medium)" },
 
   // Infographic cards — green tint + a stacked-paper shadow, like the reference.
   infoCard: {
-    marginTop: 28,
     background: GREEN,
     borderRadius: 16,
     padding: 24,
@@ -510,7 +518,7 @@ const s = {
   infoTitle: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.4, marginBottom: 16, maxWidth: 480 },
   resultsHead: { display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", alignItems: "center", marginBottom: 6 },
   resultsCol: { textAlign: "center", fontSize: 13, fontWeight: 700, color: "#FFFFFF", background: "var(--grey-900)", borderRadius: 8, padding: "6px 4px", marginInline: 4 },
-  resultsRow: { display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", alignItems: "center", padding: "14px 0", borderTop: "1px solid color-mix(in srgb, var(--color-success) 22%, transparent)" },
+  resultsRow: { display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", alignItems: "center", padding: "14px 0", borderTop: "1px solid color-mix(in srgb, var(--color-button-primary-bg) 18%, transparent)" },
   resultsLabel: { fontSize: 13, fontWeight: 600, color: "var(--color-text-medium)" },
   resultsValue: { textAlign: "center", fontSize: 28, fontWeight: 800, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums" },
 
@@ -523,7 +531,7 @@ const s = {
 
   highlightCard: { display: "flex", alignItems: "center", gap: 20 },
   highlightPhoto: { width: 120, height: 90, borderRadius: 12, background: GREEN_DEEP, flexShrink: 0 },
-  highlightStat: { fontSize: 44, fontWeight: 800, color: "var(--color-success)", lineHeight: 1 },
+  highlightStat: { fontSize: 44, fontWeight: 800, color: "var(--color-button-primary-bg)", lineHeight: 1 },
   highlightText: { marginTop: 6, fontSize: 14, lineHeight: 1.5, color: "var(--color-text-medium)" },
 
   pinnedList: { marginTop: 12, display: "flex", flexDirection: "column", gap: 12 },
