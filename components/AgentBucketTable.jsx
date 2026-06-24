@@ -97,7 +97,7 @@ export default function AgentBucketTable({
   // header clicked the parent's order is preserved. Selection / pagination
   // operate on the resulting list.
   const q = query.trim().toLowerCase();
-  const base = agents.filter(
+  const matched = agents.filter(
     (a) => (!q || a.name.toLowerCase().includes(q)) && (tagFilter === "all" || a.tag === tagFilter),
   );
   const ratioOf = (a) => {
@@ -113,8 +113,8 @@ export default function AgentBucketTable({
     status: (a, b) => sevOf(a) - sevOf(b),
   };
   const filtered = sortKey
-    ? [...base].sort((a, b) => SORTERS[sortKey](a, b) * (sortDir === "desc" ? -1 : 1))
-    : base;
+    ? [...matched].sort((a, b) => SORTERS[sortKey](a, b) * (sortDir === "desc" ? -1 : 1))
+    : matched;
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
