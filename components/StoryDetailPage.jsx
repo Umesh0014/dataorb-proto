@@ -12,7 +12,7 @@ import { MiraStarIcon } from "./SideNav/icons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const ARTICLE_W = 680;
+const ARTICLE_W = 720; // white "paper" card width (content + padding)
 const RAIL_W = 300;
 const RAIL_GAP = 32;
 
@@ -478,11 +478,22 @@ const GREEN = "color-mix(in srgb, var(--color-button-primary-bg) 9%, var(--surfa
 const GREEN_DEEP = "color-mix(in srgb, var(--color-button-primary-bg) 16%, var(--surface-white))";
 
 const s = {
-  page: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)", background: "var(--surface-white)" },
+  // Screen stays on the canvas; the report is a white "paper" card on top.
+  page: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" },
   scroll: { flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 64 },
-  wrap: { position: "relative", marginInline: "auto", paddingTop: 24, transition: "width 260ms cubic-bezier(.2,.7,.2,1)" },
-  // 64px vertical rhythm between every top-level section.
-  article: { width: ARTICLE_W, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 64 },
+  wrap: { position: "relative", marginInline: "auto", paddingTop: 8, transition: "width 260ms cubic-bezier(.2,.7,.2,1)" },
+  // White paper card; 64px vertical rhythm between every top-level section.
+  article: {
+    width: ARTICLE_W,
+    maxWidth: "100%",
+    background: "var(--surface-white)",
+    borderRadius: 20,
+    padding: "44px 48px",
+    boxShadow: "var(--shadow-8)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 64,
+  },
   header: {},
 
   back: { display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", color: "var(--color-text-tertiary)" },
