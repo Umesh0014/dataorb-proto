@@ -13,6 +13,7 @@ import MiraConversation from "./MiraConversation";
 import MiraLandingDeck from "./MiraLandingDeck";
 import MiraKpiSpace from "./MiraKpiSpace";
 import MiraMetricDetail from "./MiraMetricDetail";
+import OutcomesLanding from "./bento/OutcomesLanding";
 import VersionBar from "./VersionBar";
 import { LANDING_METRICS } from "./mocks/miraLandingMetrics";
 import { MiraStarIcon, ArrowUpIcon } from "./SideNav/icons";
@@ -25,6 +26,7 @@ import { MiraStarIcon, ArrowUpIcon } from "./SideNav/icons";
 const DIRECTIONS = [
   { id: "launchpad", label: "Launchpad", iterations: [] },
   { id: "bento", label: "Bento", iterations: [] },
+  { id: "outcomes", label: "Outcomes", iterations: [] },
   { id: "kpispace", label: "KPI Space", iterations: [] },
   { id: "welcome", label: "Welcome Mat", iterations: [] },
 ];
@@ -158,6 +160,8 @@ export default function AskMiraProPage({
           onOpenConversation={onOpenConversation}
           variant={direction === "bento" ? "bento" : "grid"}
         />
+      ) : direction === "outcomes" ? (
+        <OutcomesLanding userName={userName} />
       ) : direction === "kpispace" ? (
         <MiraKpiSpace
           userName={userName}
@@ -190,7 +194,7 @@ export default function AskMiraProPage({
 function MiraDirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Four landing directions</span>
+      <span style={vbHelp.title}>Five landing directions</span>
       <p style={vbHelp.text}>
         <b>Launchpad</b> — ask box up top, a pulse of every metric category (each
         with a trend vs target), then your recent chats. Open a card for the full
@@ -199,6 +203,11 @@ function MiraDirectionsHelp() {
       <p style={vbHelp.text}>
         <b>Bento</b> — same shell, fewer metrics in a mixed-size grid of white
         tiles: one feature tile, change pills, and bolder numbers. Scan-first.
+      </p>
+      <p style={vbHelp.text}>
+        <b>Outcomes</b> — metrics-first landing: a greeting + Search Outcomes, a
+        Your outcome / Archived filter, then a bento grid of outcome tiles, each
+        a metric + sparkline with a kebab to pin, archive, or delete.
       </p>
       <p style={vbHelp.text}>
         <b>KPI Space</b> — the outcome-space surface from the ticket: an outcome-KPI
