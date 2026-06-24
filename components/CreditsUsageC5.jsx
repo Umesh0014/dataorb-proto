@@ -166,11 +166,11 @@ export default function CreditsUsageC5({
         <>
           <MoveToBucketDialog
             open={moveOpen}
-            count={picked.length}
+            agents={agents.filter((a) => picked.includes(a.id))}
             buckets={buckets}
             onClose={() => setMoveOpen(false)}
-            onConfirm={(bucketId) => {
-              onMove(picked, bucketId);
+            onConfirm={(bucketId, ids) => {
+              onMove(ids, bucketId);
               setPicked([]);
             }}
           />

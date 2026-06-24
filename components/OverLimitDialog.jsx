@@ -2,15 +2,17 @@
 
 import React from "react";
 import { createPortal } from "react-dom";
-import { X, ArrowUpCircle } from "lucide-react";
+import { X, Search } from "lucide-react";
 import Button from "./Button";
+import Select from "./Select";
 import { CapacityBar } from "./CreditsUsageParts";
 import { appliedCap, statusOf } from "./AgentBucketTable";
 
 // OverLimitDialog — C8's red-banner "View agents" flow. The agents over (or
 // near) their weekly limit span multiple tiers, so there's no single target
-// bucket; instead you move the checked agents up by one or two tiers. A Tier
-// column shows where each currently sits.
+// bucket; instead you pick how many tiers to move the checked agents up (1 or
+// 2). Mirrors the manager's layout: search + a "move up by" selector on top, a
+// Tier column in the list, and a single Move CTA at the bottom.
 const AVATAR_COLORS = [
   "var(--chart-blue)",
   "var(--chart-teal)",
@@ -20,16 +22,26 @@ const AVATAR_COLORS = [
   "var(--chart-green)",
 ];
 const STATUS_TONE = { near_limit: "var(--color-warning)", at_cap: "var(--color-error)", on_track: "var(--color-success)" };
+const STEP_OPTIONS = [
+  { value: "1", label: "Up 1 tier" },
+  { value: "2", label: "Up 2 tiers" },
+];
 
 export default function OverLimitDialog({ open, agents, buckets, onClose, onMoveUp }) {
   const flagged = agents.filter((a) => statusOf(a.usedMin, appliedCap(a, buckets)) !== "on_track");
   const [picked, setPicked] = React.useState([]);
+  const [query, setQuery] = React.useState("");
+  const [step, setStep] = React.useState("");
 
   // Default to all flagged agents checked each time the dialog opens.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
-    if (open) setPicked(flagged.map((a) => a.id));
+    if (open) {
+      setPicked(flagged.map((a) => a.id));
+      setQuery("");
+      setStep("");
+    }
   }
 
   React.useEffect(() => {
@@ -43,12 +55,14 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
 
   if (!open || typeof document === "undefined") return null;
 
+  const q = query.trim().toLowerCase();
+  const visible = q ? flagged.filter((a) => a.name.toLowerCase().includes(q)) : flagged;
   const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  const allOn = flagged.length > 0 && picked.length === flagged.length;
-  const toggleAll = () => setPicked(allOn ? [] : flagged.map((a) => a.id));
-  const moveUp = (tiers) => {
-    if (!picked.length) return;
-    onMoveUp(picked, tiers);
+  const allOn = visible.length > 0 && visible.every((a) => picked.includes(a.id));
+  const toggleAll = () => setPicked(allOn ? [] : visible.map((a) => a.id));
+  const move = () => {
+    if (!picked.length || !step) return;
+    onMoveUp(picked, Number(step));
     onClose();
   };
 
@@ -65,16 +79,31 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
           </Button>
         </header>
 
+        <div style={styles.toolbar}>
+          <label style={styles.searchWrap}>
+            <Search size={16} color="var(--color-text-tertiary)" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search agents by name"
+              aria-label="Search agents by name"
+              style={styles.searchInput}
+            />
+          </label>
+          <Select value={step} onChange={setStep} placeholder="Move up by…" ariaLabel="Tiers to move up" options={STEP_OPTIONS} />
+        </div>
+
         <div style={styles.tableHead}>
-          <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all" style={styles.checkbox} disabled={flagged.length === 0} />
+          <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all" style={styles.checkbox} disabled={visible.length === 0} />
           <span style={styles.th}>Agent</span>
           <span style={styles.th}>Tier</span>
           <span style={styles.th}>Weekly usage</span>
         </div>
 
         <div style={styles.list}>
-          {flagged.length === 0 && <p style={styles.empty}>No agents are near or over their weekly limit.</p>}
-          {flagged.map((a) => {
+          {visible.length === 0 && <p style={styles.empty}>No agents match your search.</p>}
+          {visible.map((a) => {
             const cap = appliedCap(a, buckets);
             const status = statusOf(a.usedMin, cap);
             const bucket = buckets.find((b) => b.id === a.bucketId);
@@ -100,14 +129,9 @@ export default function OverLimitDialog({ open, agents, buckets, onClose, onMove
           <span style={styles.footLead}>
             <strong style={styles.footCount}>{picked.length}</strong> selected
           </span>
-          <div style={styles.footActions}>
-            <Button variant="text" uppercase={false} leadingIcon={<ArrowUpCircle size={16} />} disabled={picked.length === 0} onClick={() => moveUp(1)}>
-              Move up 1 tier
-            </Button>
-            <Button variant="primary" disabled={picked.length === 0} onClick={() => moveUp(2)} style={{ height: 40, paddingInline: 20 }}>
-              Move up 2 tiers
-            </Button>
-          </div>
+          <Button variant="primary" disabled={!picked.length || !step} onClick={move} style={{ height: 40, paddingInline: 22 }}>
+            {step ? `Move up ${step} tier${step === "1" ? "" : "s"}` : "Move"}
+          </Button>
         </footer>
       </div>
     </div>,
@@ -147,6 +171,20 @@ const styles = {
   headText: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0 },
   title: { margin: 0, fontSize: 18, fontWeight: 700, color: "var(--color-text-deep)", lineHeight: 1.3, letterSpacing: "-0.01em" },
   sub: { margin: 0, fontSize: 13, fontWeight: 400, color: "var(--color-text-tertiary)", lineHeight: "18px" },
+
+  toolbar: { display: "flex", alignItems: "center", gap: 12, padding: "4px 28px 14px" },
+  searchWrap: {
+    flex: 1,
+    minWidth: 200,
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "9px 14px",
+    border: "1px solid var(--color-border-card-soft)",
+    borderRadius: "var(--radius-md)",
+    background: "#FFFFFF",
+  },
+  searchInput: { border: "none", outline: "none", fontFamily: "inherit", fontSize: 13, color: "var(--color-text-deep)", background: "transparent", width: "100%" },
 
   tableHead: {
     display: "grid",
@@ -201,5 +239,4 @@ const styles = {
   },
   footLead: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
   footCount: { fontWeight: 700, color: "var(--color-text-deep)" },
-  footActions: { display: "flex", alignItems: "center", gap: 12 },
 };
