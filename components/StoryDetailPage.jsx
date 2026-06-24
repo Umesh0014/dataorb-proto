@@ -500,7 +500,7 @@ const s = {
   header: {},
 
   back: { display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", color: "var(--color-text-tertiary)" },
-  title: { marginTop: 20, fontSize: 80, fontWeight: 500, color: "var(--color-text-deep)", lineHeight: 1.06, letterSpacing: "-0.02em" },
+  title: { marginTop: 20, fontSize: 64, fontWeight: 500, color: "var(--color-text-deep)", lineHeight: 1.08, letterSpacing: "-0.02em" },
   byline: { display: "flex", alignItems: "center", gap: 8, marginTop: 14 },
   bylineName: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
   bylineMeta: { fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" },
