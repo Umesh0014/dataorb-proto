@@ -288,7 +288,7 @@ export default function Page() {
   const [miraQueriesUsed, setMiraQueriesUsed] = React.useState(13);
   // Lifted so the layout can react to the active landing direction (KPI Space
   // runs full-width on the canvas surface; the others stay white at 1068).
-  const [miraDirection, setMiraDirection] = React.useState("launchpad");
+  const [miraDirection, setMiraDirection] = React.useState("welcome");
   const [appMenuOpen, setAppMenuOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 

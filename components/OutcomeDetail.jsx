@@ -276,9 +276,13 @@ const d = {
     marginLeft: -8,
   },
 
-  // Single white card holding the whole hero block (breadcrumb → audio).
+  // Single white card holding the whole hero block (breadcrumb → audio). The
+  // audio pill is absolutely anchored to the bottom edge, so the card is
+  // position: relative and carries extra bottom padding to clear it.
   heroCard: {
+    position: "relative",
     marginTop: 16,
+    paddingBottom: 40,
   },
   breadcrumb: {
     textAlign: "center",
@@ -369,10 +373,14 @@ const d = {
     fontVariantNumeric: "tabular-nums",
   },
 
+  // Straddles the hero card's bottom edge — centered, pulled down so half the
+  // pill sits outside the card (heroCard is position: relative, padded at the
+  // bottom so the pill's top half clears the stat row).
   audioWrap: {
-    marginTop: 24,
-    display: "flex",
-    justifyContent: "center",
+    position: "absolute",
+    left: "50%",
+    bottom: 0,
+    transform: "translate(-50%, 50%)",
   },
   audioPill: {
     appearance: "none",
@@ -420,7 +428,7 @@ const d = {
   },
 
   storiesHead: {
-    marginTop: 28,
+    marginTop: 48,
     marginBottom: 12,
     fontSize: 16,
     fontWeight: 700,

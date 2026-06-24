@@ -14,7 +14,7 @@
 "use client";
 
 import React from "react";
-import { Search } from "lucide-react";
+import { Search, Pin } from "lucide-react";
 import OutcomeCard from "./OutcomeCard";
 import OutcomeDetail from "./OutcomeDetail";
 import { OUTCOMES, ARCHIVED_OUTCOMES } from "./mocks/outcomes";
@@ -37,6 +37,11 @@ export default function OutcomesLanding({ userName = "there", composer }) {
   const [tab, setTab] = React.useState("active");
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState(null);
+  const [pinnedIds, setPinnedIds] = React.useState([]);
+  const togglePin = (id) =>
+    setPinnedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   // Period is computed client-side only: server and client time zones differ,
   // so deriving it during render would risk a hydration mismatch. Setting it
   // once on mount is the intended pattern here despite the lint rule.
@@ -53,6 +58,8 @@ export default function OutcomesLanding({ userName = "there", composer }) {
   const filtered = q
     ? set.filter((o) => o.title.toLowerCase().includes(q))
     : set;
+  const pinned = filtered.filter((o) => pinnedIds.includes(o.id));
+  const rest = filtered.filter((o) => !pinnedIds.includes(o.id));
 
   if (selected) {
     return (
@@ -88,18 +95,44 @@ export default function OutcomesLanding({ userName = "there", composer }) {
 
         <SegmentedToggle value={tab} onChange={setTab} />
 
-        {filtered.length > 0 ? (
-          <div style={olStyles.grid}>
-            {filtered.map((outcome) => (
-              <OutcomeCard
-                key={outcome.id}
-                outcome={outcome}
-                onClick={() => setSelected(outcome)}
-              />
-            ))}
-          </div>
-        ) : (
+        {filtered.length === 0 ? (
           <EmptyState />
+        ) : (
+          <>
+            {pinned.length > 0 && (
+              <div style={olStyles.section}>
+                <div style={olStyles.sectionHead}>
+                  <Pin size={15} color="var(--color-text-tertiary)" />
+                  <span>Pinned</span>
+                  <span style={olStyles.sectionCount}>{pinned.length}</span>
+                </div>
+                <div style={olStyles.grid}>
+                  {pinned.map((outcome) => (
+                    <OutcomeCard
+                      key={outcome.id}
+                      outcome={outcome}
+                      pinned
+                      onPin={() => togglePin(outcome.id)}
+                      onClick={() => setSelected(outcome)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {rest.length > 0 && (
+              <div style={olStyles.grid}>
+                {rest.map((outcome) => (
+                  <OutcomeCard
+                    key={outcome.id}
+                    outcome={outcome}
+                    pinned={false}
+                    onPin={() => togglePin(outcome.id)}
+                    onClick={() => setSelected(outcome)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -248,6 +281,32 @@ const olStyles = {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: 20,
+  },
+  // Pinned outcomes sit in their own labelled section above the rest.
+  section: {
+    marginBottom: 28,
+  },
+  sectionHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+    fontSize: 14,
+    fontWeight: 700,
+    color: "var(--color-text-deep)",
+  },
+  sectionCount: {
+    minWidth: 20,
+    height: 20,
+    paddingInline: 6,
+    borderRadius: 10,
+    background: "var(--color-primary-alpha-12)",
+    color: "var(--color-button-primary-bg)",
+    fontSize: 11,
+    fontWeight: 700,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   empty: {

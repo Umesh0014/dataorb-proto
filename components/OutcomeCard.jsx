@@ -7,7 +7,7 @@
 "use client";
 
 import React from "react";
-import { MoreHorizontal, Pin, Archive, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pin, PinOff, Archive, Trash2 } from "lucide-react";
 import Card from "./Card";
 import MetricSparkline from "./MetricSparkline";
 import KebabMenu from "./KebabMenu";
@@ -40,7 +40,7 @@ const MONTHS = [
  *   onClick?: () => void,
  * }} props
  */
-export default function OutcomeCard({ outcome, onClick }) {
+export default function OutcomeCard({ outcome, onClick, pinned = false, onPin }) {
   const [hovered, setHovered] = React.useState(false);
   const { title, value, target, deltaPp, trend, invert } = outcome;
 
@@ -91,9 +91,11 @@ export default function OutcomeCard({ outcome, onClick }) {
               glyph={<MoreHorizontal size={16} />}
               triggerStyle={ocStyles.kebabTrigger}
               items={[
-                { label: "Pin", icon: <Pin size={16} />, onClick: () => {
-                  // TODO: pin outcome (next ticket)
-                } },
+                {
+                  label: pinned ? "Unpin" : "Pin",
+                  icon: pinned ? <PinOff size={16} /> : <Pin size={16} />,
+                  onClick: () => onPin?.(),
+                },
                 { label: "Archive", icon: <Archive size={16} />, onClick: () => {
                   // TODO: archive outcome (next ticket)
                 } },
