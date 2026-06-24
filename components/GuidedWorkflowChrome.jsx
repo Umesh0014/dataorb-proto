@@ -65,10 +65,10 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
 export function DirectionsHelp() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={vbHelp.title}>Review stepper — one stage at a time</span>
-      <p style={vbHelp.text}>Progressive disclosure: a horizontal <b>stepper</b> (Open→Close, then a <b>Knowledge</b> node) shows one stage at a time. <b>Act is triage</b> — a path selector + a “run this path when” <b>decision banner</b> with trigger cues.</p>
-      <p style={vbHelp.text}>Step cards open a <b>Hints drawer</b> (say / listen-for / if-then / best-practice). The Knowledge stage equips each likely customer question with an <b>answer card</b> — attach an existing one or draft from raw knowledge. A context panel carries the winning insight.</p>
-      <p style={vbHelp.hint}><b>3-Column</b> (triage canvas + sidecar) and <b>Checklist</b> (stacked “If” scenarios) are retained as versions; earlier explorations sit in the “Bombed ideas” dropdown.</p>
+      <span style={vbHelp.title}>Stepper + sidecar — pick stage, read steps, open one</span>
+      <p style={vbHelp.text}>A horizontal <b>stepper</b> of categories (Open→Close) with each stage's steps <b>marked as type-coloured pips</b>. <b>Click a category</b> → it's selected and its steps show below (Act offers a triage-path selector first).</p>
+      <p style={vbHelp.text}><b>Click a step</b> → a docked <b>sidecar slides in</b> with the full detail (instruction, type, requirement, script, knowledge, evidence). One click per level: stage → step → detail.</p>
+      <p style={vbHelp.hint}><b>Review stepper</b>, <b>3-Column</b> and <b>Checklist</b> are retained as versions; earlier explorations sit in the “Bombed ideas” dropdown.</p>
     </div>
   );
 }
