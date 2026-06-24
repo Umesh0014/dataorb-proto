@@ -5,7 +5,7 @@
 "use client";
 
 import React from "react";
-import { Share2, Play, Pause, Target, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Share2, Play, Pause, Target, TrendingUp, AlertTriangle, CheckCircle2, BarChart3 } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import PageHeader from "./PageHeader";
@@ -219,6 +219,13 @@ function buildStories(o, good) {
       Icon: CheckCircle2,
       title: "Approve the next play",
       body: `Run the recommended intervention and re-check ${o.title.toLowerCase()} next week. Ask Mira Pro below to simulate the impact before committing.`,
+    },
+    {
+      kind: "BENCHMARK",
+      tone: "var(--color-info)",
+      Icon: BarChart3,
+      title: `${o.value}% vs the ${o.target}% cohort average`,
+      body: `Against comparable teams, ${o.title.toLowerCase()} is tracking ${o.value >= o.target ? "ahead of" : "behind"} the cohort — a useful frame for how aggressive the next play should be.`,
     },
   ];
 }
