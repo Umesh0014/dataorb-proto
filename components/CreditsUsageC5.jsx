@@ -5,6 +5,7 @@ import { Users, Info } from "lucide-react";
 import { Section } from "./CreditsUsageParts";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
+import BucketEditor from "./BucketEditor";
 import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import ManageAgentsModal from "./ManageAgentsModal";
 
@@ -19,7 +20,18 @@ import ManageAgentsModal from "./ManageAgentsModal";
 //   • Save moved to the very bottom of the page.
 // The fixed (non-editable) rules now ride along in the utilisation card as an
 // FYI — see C5RulesFyi below. The page owns shared state + the manager's tab.
-export default function CreditsUsageC5({ agents, buckets, manageTab, onManageChange, onMove, onSave }) {
+export default function CreditsUsageC5({
+  agents,
+  buckets,
+  manageTab,
+  onManageChange,
+  onMove,
+  onSave,
+  editable = false,
+  onEditBucket,
+  onAddBucket,
+  onRemoveBucket,
+}) {
   // Bump each agent one tier up the fixed ladder (Kickstart → Momentum →
   // Sprint); already-top agents stay. Grouped by destination so each target
   // is a single move and the bucket counts stay correct.
@@ -48,18 +60,26 @@ export default function CreditsUsageC5({ agents, buckets, manageTab, onManageCha
     <>
       <Section
         title="Quota buckets & assignment"
-        description="Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
+        description={
+          editable
+            ? "Edit each tier's name and weekly cap, or add up to 5 tiers. Every agent draws their cap from the tier they're in."
+            : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
+        }
         headerRight={
           <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
             Manage agents
           </Button>
         }
       >
-        <div style={styles.bucketRow}>
-          {buckets.map((b) => (
-            <BucketCard key={b.id} bucket={b} />
-          ))}
-        </div>
+        {editable ? (
+          <BucketEditor buckets={buckets} onEdit={onEditBucket} onAdd={onAddBucket} onRemove={onRemoveBucket} />
+        ) : (
+          <div style={styles.bucketRow}>
+            {buckets.map((b) => (
+              <BucketCard key={b.id} bucket={b} />
+            ))}
+          </div>
+        )}
         <AgentBucketTable
           agents={sorted}
           buckets={buckets}

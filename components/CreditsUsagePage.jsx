@@ -41,11 +41,12 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   // boundaries (see CreditsUsageShell) so the seed data is chosen once here.
   const isC4 = assignmentMode === "C4";
   const isC5 = assignmentMode === "C5";
-  const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5 ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
-  const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5 ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
-  // C4 uses the bucket-model cap rule (auto-bump default); the others keep
-  // the legacy minute-based rule (hard-stop default). C5 never blocks, and
-  // renders its own fixed rules, so the page-level rule state is unused there.
+  // C6 is C5 with editable + addable tiers; shares C5's three-tier seed + chrome.
+  const isC6 = assignmentMode === "C6";
+  const isC5Like = isC5 || isC6;
+  const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5Like ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
+  const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5Like ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
+  // C4 uses the auto-bump cap rule; C5/C6 render their own fixed rules.
   const seedRules = isC4 ? { ...RULE_DEFAULTS, limitBehavior: "auto_bump" } : RULE_DEFAULTS;
 
   const [agents, setAgents] = React.useState(seedAgents);
@@ -57,6 +58,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   const [pendingChange, setPendingChange] = React.useState(null);
   // C5 manager: null = closed, otherwise the tab to open on ("nearing" | id).
   const [manageTab, setManageTab] = React.useState(null);
+  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents);
 
   // Swapping assignment approach resets only the approach-local selection —
   // the shared data (agents / buckets / rules) stays put. Done with the
@@ -143,10 +145,8 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
       ? { count: overCapCount, resetDay: WEEKLY_QUOTA.resetDay }
       : null;
 
-  // C5 never blocks, so its docked alert is the amber/red over-limit notice
-  // (amber while agents only near the cap, red once any is over) whose View
-  // agents opens the manager on the Nearing-limit tab.
-  const c5Alert = isC5 ? c5OverAlert(agents, buckets) : null;
+  // C5/C6 docked alert: the amber/red over-limit notice; View agents opens the manager.
+  const c5Alert = isC5Like ? c5OverAlert(agents, buckets) : null;
 
   const consumedPct = Math.round((WEEKLY_QUOTA.consumedMin / WEEKLY_QUOTA.totalMin) * 100);
 
@@ -172,7 +172,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
           }}
           subtitle="Set weekly practice limits and track how your tenant's quota is used."
           primaryAction={
-            isC5 ? undefined : { label: "Save changes", size: "lg", onClick: () => console.log("save credits & usage") }
+            isC5Like ? undefined : { label: "Save changes", size: "lg", onClick: () => console.log("save credits & usage") }
           }
         />
 
@@ -181,34 +181,21 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
         <CreditUtilisationCard
           quota={WEEKLY_QUOTA}
           consumedPct={consumedPct}
-          overCap={isC5 ? c5Alert : overCap}
-          onViewAgents={isC5 ? () => setManageTab("nearing") : scrollToAgents}
-          fyi={isC5 ? <C5RulesFyi /> : null}
+          overCap={isC5Like ? c5Alert : overCap}
+          onViewAgents={isC5Like ? () => setManageTab("nearing") : scrollToAgents}
+          fyi={isC5Like ? <C5RulesFyi /> : null}
         />
 
         <EstimatedImpactBanner pendingChange={pendingChange} />
 
-        {/* Fixed quota buckets — the merged approaches (C2 / C3 / C4 / the
-            bulk-action study) fold these into their card, and C5 shows its own
-            bucket cards, so the standalone section is for the others only. */}
-        {assignmentMode !== "C2" && assignmentMode !== "C3" && assignmentMode !== "C4" && assignmentMode !== "BULK" && assignmentMode !== "C5" && (
-          <Section
-            title="Quota buckets"
-            description="Each agent gets a weekly cap from one bucket. Buckets are fixed — move agents between them; the values don't change."
-          >
-            <div style={styles.bucketRow}>
-              {buckets.map((b) => (
-                <BucketCard
-                  key={b.id}
-                  bucket={b}
-                  interactive={assignmentMode === "C1"}
-                  selected={assignmentMode === "C1" && selectedBucketId === b.id}
-                  onClick={() => setSelectedBucketId(b.id)}
-                />
-              ))}
-            </div>
-          </Section>
-        )}
+        {/* Standalone quota buckets — the merged approaches fold these in, and
+            C5/C6 own their bucket strip, so this is for A/B/C1 only. */}
+        <StandaloneBuckets
+          mode={assignmentMode}
+          buckets={buckets}
+          selectedBucketId={selectedBucketId}
+          onSelect={setSelectedBucketId}
+        />
 
         {/* Assignment fork — A/B: region + standalone table; C1: inline
             bucket-folder; C2: merged buckets-and-folder card. */}
@@ -240,7 +227,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onAssign={(ids, bucketId) => moveAgents(ids, bucketId)}
           />
         )}
-        {isC5 && (
+        {isC5Like && (
           <CreditsUsageC5
             agents={agents}
             buckets={buckets}
@@ -248,6 +235,10 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onManageChange={setManageTab}
             onMove={(ids, bucketId) => moveAgents(ids, bucketId)}
             onSave={() => console.log("save credits & usage")}
+            editable={isC6}
+            onEditBucket={editBucket}
+            onAddBucket={addBucket}
+            onRemoveBucket={removeBucket}
           />
         )}
         {(assignmentMode === "A" || assignmentMode === "B") && (
@@ -276,14 +267,39 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
 
         {/* Rules + decisions to confirm. C5 owns its own fixed (never-block)
             rules, so the shared controls are skipped there. */}
-        {!isC5 && <RulesSection rules={rules} isC4={isC4} onRule={setRule} />}
+        {!isC5Like && <RulesSection rules={rules} isC4={isC4} onRule={setRule} />}
       </div>
     </PageLayout>
   );
 }
 
+// StandaloneBuckets — the fixed quota-bucket cards for A/B/C1. The merged
+// approaches (C2–C4, bulk) fold buckets into their own card, and C5/C6 own
+// their bucket strip, so this renders nothing for those.
+function StandaloneBuckets({ mode, buckets, selectedBucketId, onSelect }) {
+  if (["C2", "C3", "C4", "BULK", "C5", "C6"].includes(mode)) return null;
+  return (
+    <Section
+      title="Quota buckets"
+      description="Each agent gets a weekly cap from one bucket. Buckets are fixed — move agents between them; the values don't change."
+    >
+      <div style={styles.bucketRow}>
+        {buckets.map((b) => (
+          <BucketCard
+            key={b.id}
+            bucket={b}
+            interactive={mode === "C1"}
+            selected={mode === "C1" && selectedBucketId === b.id}
+            onClick={() => onSelect(b.id)}
+          />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 // RulesSection — the two shared rule cards (limit behaviour + decisions to
-// confirm). Same in every approach except C5, which renders its own fixed
+// confirm). Same in every approach except C5/C6, which render their own fixed
 // rules; kept out of the page body so the page function stays in budget.
 function RulesSection({ rules, isC4, onRule }) {
   return (
@@ -319,6 +335,32 @@ function c5OverAlert(agents, buckets) {
     return { tone: "red", count: over, message: `${over} agent${over === 1 ? " is" : "s are"} over their weekly limit — they keep practising; review and upgrade their tier.` };
   }
   return { tone: "amber", count: near, message: `${near} agent${near === 1 ? " is" : "s are"} nearing their weekly limit.` };
+}
+
+// useBucketEditor — C6 tier mutations over the page's buckets/agents state.
+// Edits patch a tier; add appends a blank tier (capped at 5); remove reassigns
+// the tier's agents to the first remaining tier and folds its count in.
+function useBucketEditor(buckets, setBuckets, setAgents) {
+  const seq = React.useRef(0);
+  const editBucket = (id, patch) =>
+    setBuckets((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  const addBucket = () =>
+    setBuckets((prev) =>
+      prev.length >= 5 ? prev : [...prev, { id: `tier-${seq.current++}`, name: "New tier", capMin: 30, agentCount: 0 }],
+    );
+  const removeBucket = (id) => {
+    if (buckets.length <= 1) return;
+    const removed = buckets.find((b) => b.id === id);
+    const fallback = buckets.find((b) => b.id !== id);
+    if (!fallback) return;
+    setAgents((prev) => prev.map((a) => (a.bucketId === id ? { ...a, bucketId: fallback.id } : a)));
+    setBuckets((prev) =>
+      prev
+        .filter((b) => b.id !== id)
+        .map((b) => (b.id === fallback.id ? { ...b, agentCount: b.agentCount + (removed?.agentCount || 0) } : b)),
+    );
+  };
+  return { editBucket, addBucket, removeBucket };
 }
 
 const styles = {

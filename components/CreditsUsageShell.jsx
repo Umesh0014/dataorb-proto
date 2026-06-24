@@ -21,6 +21,8 @@ import VersionBar from "./VersionBar";
 //        default / Momentum 45 / Sprint 60), a "Manage agents" 4-tab manager,
 //        an amber→red over-limit banner, never-block grace period, and Save
 //        moved to the bottom of the page.
+//   C6 — C5 with editable tiers: edit each bucket's name + weekly cap and add
+//        up to 5 tiers (same three-tier default + all of C5's chrome).
 //
 // C4 is the preferred (starred) direction. A and B are kept but parked in the
 // Discarded dropdown — still selectable for comparison, just out of the main
@@ -30,6 +32,7 @@ const CU_VERSIONS = [
   { id: "c3", label: "C3", iterations: [] },
   { id: "c4", label: "C4", iterations: [], preferred: true },
   { id: "c5", label: "C5", iterations: [] },
+  { id: "c6", label: "C6", iterations: [] },
   // Bulk action exp — a comparison of where the bulk "move selected agents"
   // action sits. i1 floating bar · i2 inline in the toolbar · i3 footer.
   { id: "bulk", label: "Bulk action exp", iterations: ["i1", "i2", "i3"] },
@@ -49,11 +52,11 @@ export default function CreditsUsageShell({ onBack }) {
 
   return (
     <>
-      {/* Re-key across the C4 and C5 boundaries so the page remounts with the
-          right tier dataset (four-tier / three-tier); the others share one
+      {/* Re-key across the C4 / C5 / C6 boundaries so the page remounts with
+          the right tier dataset (four-tier / three-tier); the others share one
           mounted instance. */}
       <CreditsUsagePage
-        key={variant === "C4" ? "c4" : variant === "C5" ? "c5" : "main"}
+        key={variant === "C4" ? "c4" : variant === "C5" ? "c5" : variant === "C6" ? "c6" : "main"}
         onBack={onBack}
         assignmentMode={variant}
         bulkPlacement={bulkPlacement}
