@@ -114,6 +114,7 @@ export default function CreditsUsageC5({
       paginate
       showAdjust={false}
       showTag={false}
+      showBucket={!isDialog}
       selectable={selectable}
       selectedIds={selectable ? picked : []}
       onToggleSelect={togglePick}

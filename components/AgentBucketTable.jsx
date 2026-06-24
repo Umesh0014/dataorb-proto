@@ -49,6 +49,7 @@ export default function AgentBucketTable({
   onAdjust,
   showAdjust = true,
   showTag = true,
+  showBucket,
   paginate = false,
   pageSizeOptions = [10, 20, 30, 50],
   bare = false,
@@ -81,10 +82,11 @@ export default function AgentBucketTable({
     );
   }
 
-  // The folder views (bare) list a single bucket, so the per-row Bucket
-  // column is redundant there and dropped; A/B keep it (agents span buckets).
-  const showBucket = !bare;
-  let base = bare ? GRID_BARE : GRID;
+  // The per-row Bucket column is dropped for the folder views (bare) and
+  // whenever a caller filters to one tier (showBucket=false); A/B keep it
+  // since their agents span buckets. Defaults to !bare when unspecified.
+  const showBucketCol = showBucket ?? !bare;
+  let base = showBucketCol ? GRID : GRID_BARE;
   if (showAdjust) base += " 84px";
   const cols = selectable ? `28px ${base}` : base;
   const grid = { display: "grid", gridTemplateColumns: cols, alignItems: "center", gap: 12 };
@@ -137,7 +139,7 @@ export default function AgentBucketTable({
           />
         )}
         <span style={styles.th}>Agent</span>
-        {showBucket && <span style={styles.th}>Bucket</span>}
+        {showBucketCol && <span style={styles.th}>Bucket</span>}
         <span style={styles.th}>Used / Cap</span>
         <span style={styles.th}>Status</span>
         {showAdjust && <span style={styles.th} aria-hidden="true" />}
@@ -168,7 +170,7 @@ export default function AgentBucketTable({
                 {showTag && <span style={{ ...styles.tag, background: tag.bg, color: tag.fg }}>{tag.label}</span>}
               </span>
             </span>
-            {showBucket && (
+            {showBucketCol && (
               <span style={styles.bucket}>
                 {bucket ? `${bucket.name} (${bucket.capMin})` : "—"}
                 {agent.override && <span style={styles.override}>custom</span>}
