@@ -283,7 +283,8 @@ const d = {
   heroCard: {
     position: "relative",
     marginTop: 16,
-    paddingBottom: 40,
+    paddingTop: 40,
+    paddingBottom: 64,
   },
   breadcrumb: {
     textAlign: "center",
