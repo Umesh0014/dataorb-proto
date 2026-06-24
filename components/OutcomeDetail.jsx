@@ -5,9 +5,10 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Share2, Play, Pause } from "lucide-react";
+import { Share2, Play, Pause, Target } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
+import PageHeader from "./PageHeader";
 import MetricSparkline from "./MetricSparkline";
 
 const MONTHS = [
@@ -53,22 +54,23 @@ export default function OutcomeDetail({ outcome, composer, onBack }) {
     <div style={d.page}>
       <div style={d.scroll}>
         <div style={d.inner}>
-          <div style={d.topbar}>
-            <Button variant="text" uppercase={false} leadingIcon={<ArrowLeft size={16} />} onClick={onBack}>
-              Outcomes
-            </Button>
-            <div style={d.topRight}>
-              <Facepile />
-              <Button
-                variant="text"
-                uppercase={false}
-                leadingIcon={<Share2 size={15} />}
-                style={d.shareBtn}
-              >
-                Share
-              </Button>
-            </div>
-          </div>
+          <PageHeader
+            back={onBack}
+            identifier={{ icon: <Target size={18} />, label: "Outcomes" }}
+            actions={
+              <div style={d.headerActions}>
+                <Facepile />
+                <Button
+                  variant="text"
+                  uppercase={false}
+                  leadingIcon={<Share2 size={15} />}
+                  style={d.shareBtn}
+                >
+                  Share
+                </Button>
+              </div>
+            }
+          />
 
           <div style={d.breadcrumb}>OUTCOME SPACE · ASK MIRA PRO</div>
           <h1 style={d.title}>{title}</h1>
@@ -237,13 +239,7 @@ const d = {
     flexDirection: "column",
   },
 
-  topbar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  topRight: {
+  headerActions: {
     display: "flex",
     alignItems: "center",
     gap: 14,
