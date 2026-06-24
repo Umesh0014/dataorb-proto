@@ -210,7 +210,7 @@ const ocStyles = {
     zIndex: 1,
     display: "flex",
     alignItems: "center",
-    gap: 28,
+    gap: 16,
     pointerEvents: "none",
   },
   valueBlock: {
