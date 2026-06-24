@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles } from "lucide-react";
 import VersionBar from "./VersionBar";
-import Banner from "./Banner";
 import GuidedWorkflowLibrary from "./GuidedWorkflowLibrary";
 import GuidedWorkflowChecklistEditor from "./GuidedWorkflowChecklistEditor";
 import GuidedWorkflowBoardEditor from "./GuidedWorkflowBoardEditor";
@@ -199,12 +197,6 @@ export default function GuidedWorkflowsPage() {
               onAttach={() => setAttachOpen(true)}
               onSave={saveDraft}
               onPublish={() => setConfirmPublish(true)}
-            />
-            <Banner
-              tone="info"
-              leading={<Sparkles size={20} color="var(--color-button-primary-bg)" style={{ flexShrink: 0 }} aria-hidden="true" />}
-              heading="AI drafted this base workflow"
-              body={`From ${isNew ? 3 : 12} interactions, grounded in real calls — edit any step, change what's required, or accept a suggested step below. Each carries its success rate and the phrasing agents used.`}
             />
             {variant === "stepper" ? (
               <GuidedWorkflowStepperEditor {...editorProps} />

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Link2, Check, ListChecks } from "lucide-react";
+import { Link2, Check, ListChecks, Globe, Clock } from "lucide-react";
 import Button from "./Button";
 import StatusBadge from "./StatusBadge";
 import PageHeader from "./PageHeader";
@@ -24,27 +24,30 @@ export function EditorChrome({ isNew, state, saved, justPublished, attachedCount
       </div>
       <PageHeader
         back={onBack}
+        breadcrumb={[{ label: "Guided Workflow · Review & publish" }]}
         identifier={{
           icon: <ListChecks size={16} color="var(--color-icon-tertiary-fg)" />,
           label: isNew ? "Untitled guided workflow" : meta.title,
           iconBg: "var(--color-icon-tertiary-bg)",
           iconColor: "var(--color-icon-tertiary-fg)",
+          withDropdown: true,
+          onClick: () => {},
         }}
         subtitle={meta.jobToBeDone}
         meta={
-          <span style={styles.metaRow}>
-            <StatusBadge tone={isDraft ? "info" : "success"}>{isDraft ? "Draft" : "Active"}</StatusBadge>
-            <AiMark label={isNew ? "Drafted from 3 interactions" : "AI-generated · last edited by María Ruiz today"} />
-            {!isDraft && (
-              <>
-                <span style={styles.auditDot} aria-hidden="true" />
-                <span style={styles.liveNote}>
-                  <Check size={13} color="var(--color-success-text)" aria-hidden="true" />
-                  Live to {attachedCount} persona{attachedCount === 1 ? "" : "s"}
-                </span>
-              </>
-            )}
-          </span>
+          <div style={styles.metaRow}>
+            <div style={styles.metaLeft}>
+              <AiMark label="AI-generated" />
+              <StatusBadge tone={isDraft ? "info" : "success"}>{isDraft ? "Draft" : "Active"}</StatusBadge>
+              <span style={styles.metaSep} aria-hidden="true" />
+              {meta.outcomes.map((o) => (
+                <span key={o} style={styles.outcomePill}><Check size={12} aria-hidden="true" />{o}</span>
+              ))}
+              <span style={styles.metaSep} aria-hidden="true" />
+              <span style={styles.localeChip}><Globe size={12} color="var(--color-text-tertiary)" aria-hidden="true" />{meta.locale}</span>
+            </div>
+            <span style={styles.genText}><Clock size={12} color="var(--color-text-tertiary)" aria-hidden="true" />{isNew ? "Drafting" : "Generated"} · {meta.generatedAt}</span>
+          </div>
         }
         actions={
           <div style={styles.chromeActions}>
@@ -74,10 +77,13 @@ export function DirectionsHelp() {
 }
 
 const styles = {
-  liveNote: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--color-success-text)" },
   chromeActions: { display: "inline-flex", alignItems: "center", gap: 16 },
-  metaRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  auditDot: { width: 3, height: 3, borderRadius: 999, background: "var(--color-text-tertiary)" },
+  metaRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", width: "100%" },
+  metaLeft: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  metaSep: { width: 1, height: 14, background: "var(--color-divider-card)" },
+  outcomePill: { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--color-success-text)", background: "var(--color-success-bg)", borderRadius: 999, padding: "2px 9px" },
+  localeChip: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)", background: "var(--color-chip-bg)", borderRadius: 999, padding: "3px 9px" },
+  genText: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", marginLeft: "auto" },
   srOnly: { position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 },
 };
 

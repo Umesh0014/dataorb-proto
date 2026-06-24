@@ -147,6 +147,9 @@ export const GW_FLAGSHIP_META = {
   jobToBeDone: "Find what's breaking the connection, fix it on the call or book the right follow-up, confirm they're back online.",
   successMetric: "Customer back online (or engineer booked) with the cause recorded; no repeat call within 7 days.",
   triggers: ["“my wifi keeps dropping”", "“there's no internet”", "“the router light is red”"],
+  outcomes: ["Back online", "First-contact fix"],
+  locale: "en-GB",
+  generatedAt: "Jun 24, 2026",
 };
 
 // The flat checklist. One row per step; stage groups them. Each step is
