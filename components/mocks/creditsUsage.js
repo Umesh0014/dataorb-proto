@@ -42,6 +42,16 @@ export const QUOTA_BUCKETS_4 = [
   { id: "sprint4", name: "Sprint", capMin: 60, agentCount: 100 },
 ];
 
+// Three-tier variant (approach C5 — the feedback-incorporated direction).
+// Exactly the three buckets the product feedback locks: Kickstart 30 (the
+// standard default every new agent starts in), Momentum 45, Sprint 60.
+// Ordered low → high so "upgrade to the next tier" is the next entry.
+export const QUOTA_BUCKETS_3 = [
+  { id: "kickstart3", name: "Kickstart", capMin: 30, agentCount: 430, note: "Default" },
+  { id: "momentum3", name: "Momentum", capMin: 45, agentCount: 240 },
+  { id: "sprint3", name: "Sprint", capMin: 60, agentCount: 100 },
+];
+
 // Tenure tag presentation. Tags are surfaced now; filtering by tag is a
 // later version. Tones reuse the Settings pastel tile tokens.
 export const TAG_META = {
@@ -70,9 +80,13 @@ const LAST_NAMES = [
 const TENURE_TAGS = ["new", "onboarding", "tenured"];
 const LAST_ACTIVE = ["just now", "2h ago", "5h ago", "1d ago", "2d ago", "3d ago", "1w ago"];
 
-function buildRoster(bucketList) {
+// includeUnassigned — append the 12-strong "active pool" tail (A/B/C1–C4).
+// C5 leaves it off: every agent already sits in a bucket. grace — push the
+// over-cap agents meaningfully past their cap (≈20–40%) so the never-block
+// grace period reads clearly (e.g. 39/30) instead of a single minute over.
+function buildRoster(bucketList, { includeUnassigned = true, grace = false } = {}) {
   const plan = bucketList.map((b) => [b.id, b.agentCount, b.capMin]);
-  plan.push([null, 12, 0]); // unassigned / active pool
+  if (includeUnassigned) plan.push([null, 12, 0]); // unassigned / active pool
   const out = [];
   let id = 1;
   for (const [bucketId, count, cap] of plan) {
@@ -82,7 +96,10 @@ function buildRoster(bucketList) {
       const spread = (id * 37) % 100; // 0–99, deterministic
       let usedMin = 0;
       if (bucketId) {
-        usedMin = spread >= 98 ? cap + (id % 3) + 1 : Math.round((cap * spread) / 100);
+        const over = grace
+          ? Math.round(cap * (1.2 + ((id % 5) * 0.05)))
+          : cap + (id % 3) + 1;
+        usedMin = spread >= 98 ? over : Math.round((cap * spread) / 100);
       }
       out.push({
         id,
@@ -101,6 +118,31 @@ function buildRoster(bucketList) {
 
 export const AGENT_BUCKET_SAMPLE = buildRoster(QUOTA_BUCKETS);
 export const AGENT_BUCKET_SAMPLE_4 = buildRoster(QUOTA_BUCKETS_4);
+export const AGENT_BUCKET_SAMPLE_3 = buildRoster(QUOTA_BUCKETS_3, { includeUnassigned: false, grace: true });
+
+// ── Usage Governance spec V1.1 (C100) ──────────────────────────────────────
+// The three-tier model: a DataOrb-set tenant ceiling (monthly allowance +
+// overage buffer), four fixed Usage Groups (Level 1–4, weekly per-learner
+// allowance, one default), and learners who inherit their group's allowance.
+// Minutes only; "Learner" not "agent"; usedThisMonth is set to ~82% to show
+// the 80% threshold banner.
+export const GOV_PLAN = {
+  monthlyAllowanceMin: 24000,
+  overageBufferMin: 3600,
+  usedThisMonthMin: 19800,
+  resetLabel: "1 Jul",
+};
+// capMin = the group's weekly per-learner allowance; null = "Not set" (dormant,
+// no pacing). Level 4 ships unset + empty to show that state. id is the stable
+// internal group_n; label is the renameable display string.
+export const GOV_GROUPS = [
+  { id: "group_1", name: "Level 1", capMin: 25, agentCount: 142, isDefault: true },
+  { id: "group_2", name: "Level 2", capMin: 35, agentCount: 88, isDefault: false },
+  { id: "group_3", name: "Level 3", capMin: 50, agentCount: 40, isDefault: false },
+  { id: "group_4", name: "Level 4", capMin: null, agentCount: 0, isDefault: false },
+];
+export const GOV_LEARNERS = buildRoster(GOV_GROUPS, { includeUnassigned: false, grace: true });
+export const AVG_WEEKS_PER_MONTH = 4.33;
 
 // "What happens when an agent reaches their weekly cap." The legacy set
 // (A/B/C1/C2/C3) is the original minute-based model; `allow_additional`

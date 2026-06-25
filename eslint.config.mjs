@@ -196,6 +196,7 @@ export default [
   {
     files: [
       "components/BucketCard.jsx",
+      "components/BucketEditorDialog.jsx",
       "components/LimitRuleControl.jsx",
       "components/BucketDecisionControls.jsx",
       "components/BucketFolderMerged.jsx",

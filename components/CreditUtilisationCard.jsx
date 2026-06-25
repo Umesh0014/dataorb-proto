@@ -9,11 +9,12 @@ import { Section, CapacityBar, CapAlertBanner } from "./CreditsUsageParts";
 // three pool/consumed/remaining tiles, with the over-cap alert docked at the
 // bottom when agents are paused. Pure presentation; figures come from the
 // quota mock and the derived overCap.
-export default function CreditUtilisationCard({ quota, consumedPct, overCap, onViewAgents }) {
+export default function CreditUtilisationCard({ quota, consumedPct, overCap, onViewAgents, fyi, headerRight }) {
   return (
     <Section
       title="Credit utilisation"
       description={`${quota.consumedMin.toLocaleString()} of ${quota.totalMin.toLocaleString()} committed min used · ${quota.periodLabel}`}
+      headerRight={headerRight}
     >
       <div style={styles.consumedLine}>
         <span style={styles.consumedPct}>{consumedPct}%</span>
@@ -26,8 +27,15 @@ export default function CreditUtilisationCard({ quota, consumedPct, overCap, onV
         <StatCard size="md" labelStyle="uppercase" label="Remaining" value={`${quota.remainingMin.toLocaleString()} min`} sublabel={quota.remainingSub} />
       </div>
       {overCap && (
-        <CapAlertBanner count={overCap.count} resetDay={overCap.resetDay} onViewAgents={onViewAgents} />
+        <CapAlertBanner
+          count={overCap.count}
+          resetDay={overCap.resetDay}
+          tone={overCap.tone}
+          message={overCap.message}
+          onViewAgents={onViewAgents}
+        />
       )}
+      {fyi}
     </Section>
   );
 }
