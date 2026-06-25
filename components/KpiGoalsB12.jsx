@@ -79,7 +79,7 @@ function CompactCategoryCard({ cat, selected, onClick }) {
 const s = {
   wrap: { display: "flex", flexDirection: "column", gap: 16, fontFamily: TYPE.bodyMedium.fontFamily },
   body: { display: "flex", gap: 24, alignItems: "stretch" },
-  left: { width: 264, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14, justifyContent: "space-between" },
+  left: { width: 264, flexShrink: 0, alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 12 },
   right: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 },
   attnLabel: { ...TYPE.labelSmall, color: COLORS.textMedium, textTransform: "uppercase" },
   grid: { display: "grid", gap: 16, flex: 1, alignItems: "stretch", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" },
