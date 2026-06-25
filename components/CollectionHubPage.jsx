@@ -2,9 +2,22 @@
 
 import React from "react";
 import { ChevronRight, ChevronDown, Info, ArrowUp, ArrowDown, Download, RefreshCw, AlertTriangle, MoreHorizontal, Target, TrendingUp } from "lucide-react";
+import Button from "./Button";
+import KpiDrillInline from "./KpiDrillInline";
+import KpiPrdDrill from "./KpiPrdDrill";
+import { KPI_CONFIGS, DEFAULT_KPI_ID } from "./mocks/kpiSidecar";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
 import CircularProgress from "./CircularProgress";
+import KpiGoalsB2 from "./KpiGoalsB2";
+import KpiGoalsB3 from "./KpiGoalsB3";
+import KpiGoalsB4 from "./KpiGoalsB4";
+import KpiGoalsB5 from "./KpiGoalsB5";
+import KpiGoalsB6 from "./KpiGoalsB6";
+import KpiGoalsB7 from "./KpiGoalsB7";
+import KpiGoalsB8 from "./KpiGoalsB8";
+import KpiGoalsB10 from "./KpiGoalsB10";
+import KpiGoalsB12 from "./KpiGoalsB12";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
@@ -30,12 +43,26 @@ import {
 //   7. Contact Outcome — donut + breakdown table
 //   8. Quality Adherence — trend line chart
 
-export default function CollectionHubPage() {
-  return (
+export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems, kpiDiscarded }) {
+  // KPI drill lives at the page level so the side card can sit to the RIGHT of
+  // every section (header, hero, KPIs, artifacts…) at full screen height — the
+  // whole card stack shifts left while it's open. Only B8 reports up here.
+  const [drill, setDrill] = React.useState(null);
+  React.useEffect(() => { setDrill(null); }, [kpiView]);
+  // B9 opens each KPI's OWN type-correct config (PRD §5). B8 keeps the single
+  // Figma-2349 (Efficiency) dataset.
+  const drillKpi = drill
+    ? ((kpiView === "b9" || kpiView === "b10" || kpiView === "b11" || kpiView === "b12")
+        ? { ...(KPI_CONFIGS[drill.id] || KPI_CONFIGS[DEFAULT_KPI_ID]), name: drill.name }
+        : { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip })
+    : null;
+  const DrillCard = (kpiView === "b9" || kpiView === "b10" || kpiView === "b11" || kpiView === "b12") ? KpiPrdDrill : KpiDrillInline;
+
+  const sections = (
     <>
       <CollectionHeader />
       <HeroCard />
-      <KPIsAndGoalsCard />
+      <KPIsAndGoalsCard view={kpiView} onView={onKpiView} items={kpiItems} discarded={kpiDiscarded} onDrill={setDrill} drillId={drill?.id} />
       <AIArtifactsCard />
       <ConversationFlowCard />
       <SentimentCard />
@@ -44,7 +71,46 @@ export default function CollectionHubPage() {
       <QualityAdherenceCard />
     </>
   );
+
+  // Closed: normal centered 1068 column. Open: the card stack KEEPS its full
+  // 1068 width and shifts left into the gutter (the row breaks out of the
+  // centered column to span the whole content area), and the side card takes
+  // the freed space on the right. No card is resized.
+  if (!drill) return <div style={pageStyles.cardsCol}>{sections}</div>;
+
+  return (
+    <div style={pageStyles.rowOpen}>
+      <div style={pageStyles.cardsColFixed}>{sections}</div>
+      <aside style={pageStyles.sideCard}>
+        <div style={pageStyles.sideCardClose}>
+          <Button variant="icon" aria-label="Close" onClick={() => setDrill(null)}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#5A5D72" }}>close</span>
+          </Button>
+        </div>
+        <DrillCard kpi={drillKpi} onClose={() => setDrill(null)} markGaps={kpiView === "b10" || kpiView === "b11"} />
+      </aside>
+    </div>
+  );
 }
+
+// Width of the content area between the side-nav and the two page gutters.
+const AVAIL = "(100vw - var(--sidenav-width) - 2 * var(--page-gutter))";
+const pageStyles = {
+  cardsCol: { width: "100%", display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
+  // Break out of the centered 1068 column to span gutter-to-gutter, left-aligned.
+  rowOpen: {
+    width: `calc${AVAIL}`,
+    marginInline: `calc((var(--page-content-max-width) - ${AVAIL}) / 2)`,
+    display: "flex",
+    gap: 24,
+    alignItems: "flex-start",
+  },
+  // Cards take the remaining space (up to the normal 1068 width) and shrink to
+  // make room for the fixed-width side card on narrower screens.
+  cardsColFixed: { flex: 1, minWidth: 0, maxWidth: "var(--page-content-max-width)", display: "flex", flexDirection: "column", gap: "var(--page-card-gap)" },
+  sideCard: { position: "sticky", top: 16, width: 478, flexShrink: 0, height: "calc(100vh - 32px)", background: "#FFFFFF", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: "26px 30px 30px", overflowY: "auto" },
+  sideCardClose: { position: "absolute", top: 14, right: 14, zIndex: 2 },
+};
 
 // ---- 0. Page header -------------------------------------------------------
 
@@ -132,7 +198,7 @@ function MiniSparkline({ data, width, height, color }) {
 // pill, yellow active chip, info icon. Separate component because
 // MilestoneSideRail has hardcoded milestone data; flag for Umesh.
 
-const KPI_VERSIONS = [
+export const KPI_VERSIONS = [
   { id: "v0", label: "V0", title: "Current — paginated KPI tiles" },
   { id: "v1", label: "V1", title: "Master KPI grouping view" },
   { id: "v2", label: "V2", title: "Attention-ranked triage" },
@@ -146,37 +212,119 @@ const KPI_ITERATIONS = [
   { id: "i2", label: "I2", title: "V3 — full-width KPI wall" },
 ];
 
-function KPIsAndGoalsCard() {
-  const [version, setVersion] = React.useState("v0");
-  // Iteration switcher state — only meaningful when version === "v3".
-  // Resets to "i1" each time the user enters V3. In-memory only.
-  const [iteration, setIteration] = React.useState("i1");
-  const handleVersionChange = (v) => {
-    setVersion(v);
-    if (v === "v3") setIteration("i1");
-  };
+// Our explorations drive the primary rail; Umesh's original V0–V3 are
+// tucked into a secondary "Umesh explorations" dropdown. Each of our views
+// renders a self-contained section (own header + drill), wrapped in a Card
+// so it reads like the other hub sections.
+// Ajinkya's explorations (B2–B6) and Umesh's (V0–V3, KPI_VERSIONS) are both
+// exported so the bottom-bar switcher in InsightsHubPage can drive `view`.
+// The current exploration on the rail. Earlier ones are kept reachable under
+// a "Discarded" dropdown.
+export const OUR_ITERATIONS = [
+  { id: "b7", label: "Cards", title: "Filtered grid, 3 across + pagination + side card" },
+  { id: "b11", label: "Donut chart", title: "Credit-Usage recreation — composed only from existing DS-aligned components" },
+  { id: "b12", label: "Vertical cards", title: "Reach/Recovery/Quality cards stacked vertically (segmented) in place of the donut" },
+];
+
+export const OUR_DISCARDED = [
+  { id: "b2", label: "B2", title: "Select category → KPIs populate below" },
+  { id: "b3", label: "B3", title: "Cards + side sidecar" },
+  { id: "b4", label: "B4", title: "Category tree (left) + KPI sidecar" },
+  { id: "b5", label: "B5", title: "Parents on top, children below + side sidecar" },
+  { id: "b6", label: "B6", title: "Select category → KPI opens in a dialog" },
+  { id: "b8", label: "B8", title: "Activity rings + Figma 2349 side card" },
+  { id: "b9", label: "B9", title: "Activity rings + PRD v2.0 side card (agent drill, per-KPI types)" },
+  { id: "b10", label: "B10", title: "Design System 2.0 — tokenised, lemon-green markers on DS gaps" },
+];
+
+// Controlled: `view` + the group's `items` come from InsightsHubPage. The
+// vertical rail (segmented control) lists the active group's iterations.
+function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discarded, onDrill, drillId }) {
+  const isUmesh = view.startsWith("v");
+  // B8 reports its selected KPI up to the PAGE (CollectionHubPage), which renders
+  // the drill as a full-height card to the right of every section. The rail is
+  // hidden while that page side card is open so they don't collide.
+  const drillOpen = (view === "b8" || view === "b9" || view === "b10" || view === "b11" || view === "b12") && Boolean(drillId);
+
+  const ours = view === "b12"
+    ? <KpiGoalsB12 onDrill={onDrill} drillId={drillId} />
+    : (view === "b10" || view === "b11")
+    ? <KpiGoalsB10 onDrill={onDrill} drillId={drillId} creditUsage={view === "b11"} />
+    : (view === "b8" || view === "b9")
+    ? <KpiGoalsB8 onDrill={onDrill} drillId={drillId} />
+    : { b2: <KpiGoalsB2 />, b3: <KpiGoalsB3 />, b4: <KpiGoalsB4 />, b5: <KpiGoalsB5 />, b6: <KpiGoalsB6 />, b7: <KpiGoalsB7 /> }[view];
+
   return (
     <div style={kpiSectionStyles.wrap}>
       <div style={kpiSectionStyles.cardArea}>
-        {version === "v0" && <KPIsV0 />}
-        {version === "v1" && <KPIsV1 />}
-        {version === "v2" && <KPIsV2 />}
-        {version === "v3" && iteration === "i1" && <KPIsV3 />}
-        {version === "v3" && iteration === "i2" && <KPIsV3I2 />}
+        {!isUmesh && <Card padX={28} padY={24} style={chStyles.sectionCard}>{ours}</Card>}
+        {view === "v0" && <KPIsV0 />}
+        {view === "v1" && <KPIsV1 />}
+        {view === "v2" && <KPIsV2 />}
+        {view === "v3" && <KPIsV3 />}
       </div>
-      <div style={kpiSectionStyles.railMount}>
-        <div style={kpiSectionStyles.railSticky}>
-          {version === "v3" && (
-            <div style={kpiSectionStyles.iRailWrap}>
-              <KpiIterationRail value={iteration} onChange={setIteration} />
-            </div>
-          )}
-          <KpiVersionRail value={version} onChange={handleVersionChange} />
+      {!drillOpen && (
+        <div style={kpiSectionStyles.railMount}>
+          <div style={{ ...kpiSectionStyles.railSticky, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <KpiRail label={isUmesh ? "V" : "✦"} items={items} value={view} onChange={onView} />
+            {discarded && discarded.length > 0 && (
+              <ExplorationsDropdown label="Discarded" items={discarded} value={view} onChange={onView} />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
+
+// Secondary switcher: a collapsed dropdown for explorations kept off the rail
+// (e.g. "Discarded" B2–B6). Reachable without crowding the primary rail.
+function ExplorationsDropdown({ label, items, value, onChange }) {
+  const [open, setOpen] = React.useState(false);
+  const active = items.find((v) => v.id === value);
+  return (
+    <div style={umeshS.wrap}>
+      <button type="button" style={umeshS.trigger} onClick={() => setOpen((o) => !o)}>
+        <span style={umeshS.triggerLabel}>{active ? `${label} · ${active.label}` : label}</span>
+        <ChevronDown size={14} color="#A3A3A3" />
+      </button>
+      {open && (
+        <div style={umeshS.menu}>
+          {items.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              style={{ ...umeshS.item, ...(value === v.id ? umeshS.itemActive : null) }}
+              onClick={() => { onChange(v.id); setOpen(false); }}
+            >
+              <span style={umeshS.itemLabel}>{v.label}</span>
+              <span style={umeshS.itemTitle}>{v.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const umeshS = {
+  wrap: { position: "relative", width: 156, display: "flex", justifyContent: "center" },
+  trigger: {
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 38, padding: "9px 14px",
+    background: "#262626", border: "1px solid #404040", borderRadius: 8, cursor: "pointer", color: "#F5F5F5",
+    fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
+  },
+  triggerLabel: { fontSize: 13, fontWeight: 700, lineHeight: 1.2, letterSpacing: "0.02em" },
+  menu: {
+    position: "absolute", right: 64, top: 0, width: 230, background: "#FFFFFF", borderRadius: 10,
+    border: "1px solid var(--color-divider-card)", boxShadow: "var(--shadow-card)", padding: 6, zIndex: 30,
+    display: "flex", flexDirection: "column", gap: 2,
+  },
+  item: { display: "flex", flexDirection: "column", gap: 1, padding: "8px 10px", border: "none", background: "none", borderRadius: 8, cursor: "pointer", textAlign: "left", fontFamily: "var(--font-sans)" },
+  itemActive: { background: "var(--surface-alt)" },
+  itemLabel: { fontSize: 12, fontWeight: 800, color: "var(--color-text-deep)" },
+  itemTitle: { fontSize: 11, color: "var(--color-text-tertiary)" },
+};
 
 // V0 — untouched original
 function KPIsV0() {
@@ -1176,6 +1324,37 @@ const v3S = {
   },
 };
 
+// KpiRail — generalized dark vertical rail (same visuals as KpiVersionRail)
+// driven by a passed `items` list + `label`. Used for our explorations.
+function KpiRail({ label, items, value, onChange }) {
+  const [hovered, setHovered] = React.useState(null);
+  return (
+    <div style={railS.rail}>
+      <span style={railS.railLabel}>{label}</span>
+      <span style={railS.railDivider} />
+      <div style={railS.btnGroup}>
+        {items.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            title={b.title}
+            aria-pressed={value === b.id}
+            onClick={() => onChange(b.id)}
+            onMouseEnter={() => setHovered(b.id)}
+            onMouseLeave={() => setHovered(null)}
+            style={kpiRailBtnStyle(value === b.id, hovered === b.id)}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <div style={railS.infoBtn}>
+        <Info size={14} />
+      </div>
+    </div>
+  );
+}
+
 // KpiVersionRail — dark vertical rail matching MilestoneSideRail visuals.
 // Uses same dimensions, colors, radius, shadow, and chip sizing.
 // Cannot reuse MilestoneSideRail directly (hardcoded milestone data).
@@ -1252,21 +1431,21 @@ function kpiRailBtnStyle(active, isHover) {
 // Rail styles — mirrors MilestoneSideRail railStyles exactly
 const railS = {
   rail: {
-    position: "relative", flexShrink: 0, width: 48,
+    position: "relative", flexShrink: 0, width: 156,
     display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-    padding: "8px 0", background: "#171717", border: "1px solid #404040",
-    borderRadius: 10, boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
+    padding: "10px 10px", background: "#171717", border: "1px solid #404040",
+    borderRadius: 14, boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
   },
   railLabel: {
     fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
     letterSpacing: "0.12em", color: "#737373",
   },
-  railDivider: { width: 24, height: 1, background: "#262626" },
-  btnGroup: { display: "flex", flexDirection: "column", gap: 4 },
+  railDivider: { width: "100%", height: 1, background: "#262626" },
+  btnGroup: { display: "flex", flexDirection: "column", gap: 6, width: "100%" },
   btn: {
-    width: 36, height: 36, display: "inline-flex", alignItems: "center",
-    justifyContent: "center", padding: 0, borderRadius: 6,
-    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
+    width: "100%", minHeight: 38, display: "inline-flex", alignItems: "center",
+    justifyContent: "center", padding: "9px 14px", borderRadius: 8,
+    fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
     cursor: "pointer", transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
   },
   infoBtn: {
@@ -1282,7 +1461,7 @@ const kpiSectionStyles = {
   cardArea: { width: "100%" },
   railMount: {
     position: "absolute", top: 0, bottom: 0, left: "100%",
-    marginLeft: 12, width: 48, zIndex: 30,
+    marginLeft: 12, width: 156, zIndex: 30,
   },
   railSticky: { position: "sticky", top: "50vh", transform: "translateY(-50%)" },
   // I-pill placement: sits flush to the RIGHT of the V-pill with an 8px gap.
