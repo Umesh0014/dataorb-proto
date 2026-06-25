@@ -76,6 +76,16 @@ const IconX = ({ size }) => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </Svg>
 );
+const IconList = ({ size }) => (
+  <Svg size={size}>
+    <line x1="8" y1="6" x2="21" y2="6" />
+    <line x1="8" y1="12" x2="21" y2="12" />
+    <line x1="8" y1="18" x2="21" y2="18" />
+    <line x1="3" y1="6" x2="3.01" y2="6" />
+    <line x1="3" y1="12" x2="3.01" y2="12" />
+    <line x1="3" y1="18" x2="3.01" y2="18" />
+  </Svg>
+);
 
 export default function CommentLayer() {
   const path = useLocationPath();
@@ -86,6 +96,7 @@ export default function CommentLayer() {
   const [drag, setDrag] = React.useState(null); // live marquee while dragging { x0, y0, x1, y1 }
   const [openId, setOpenId] = React.useState(null);
   const [text, setText] = React.useState("");
+  const [panelOpen, setPanelOpen] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -149,6 +160,10 @@ export default function CommentLayer() {
     setComments((cs) => cs.map((c) => (c.id === id ? { ...c, resolved: !c.resolved } : c)));
     setOpenId(null);
   };
+  const jump = (c) => {
+    setOpenId(c.id);
+    window.scrollTo({ top: Math.max(0, c.y - 140), behavior: "smooth" });
+  };
   const open = onPage.find((c) => c.id === openId) || null;
 
   return (
@@ -157,7 +172,7 @@ export default function CommentLayer() {
 
       {createPortal(
         <div style={styles.pinLayer}>
-          {visible.map((c, i) => (
+          {mode && visible.map((c, i) => (
             <React.Fragment key={c.id}>
               {c.w > 0 && c.h > 0 && <Area x={c.x} y={c.y} w={c.w} h={c.h} active={openId === c.id} />}
               <Pin
@@ -194,24 +209,41 @@ export default function CommentLayer() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => {
-          setMode((m) => !m);
-          setDraft(null);
-          setOpenId(null);
-        }}
-        aria-pressed={mode}
-        aria-label="Toggle comment mode"
-        style={{ ...styles.fab, ...(mode ? styles.fabActive : null) }}
-      >
-        <span style={{ ...styles.track, ...(mode ? styles.trackOn : null) }}>
-          <span style={{ ...styles.knob, ...(mode ? styles.knobOn : null) }} />
-        </span>
-        <IconComment size={16} />
-        <span>Comments</span>
-        {visible.length > 0 && <span style={styles.badge}>{visible.length}</span>}
-      </button>
+      <div style={styles.dock}>
+        <button
+          type="button"
+          onClick={() => {
+            setMode((m) => !m);
+            setDraft(null);
+            setOpenId(null);
+            setPanelOpen(false);
+          }}
+          aria-pressed={mode}
+          aria-label="Toggle comment mode"
+          style={{ ...styles.fab, ...(mode ? styles.fabActive : null) }}
+        >
+          <span style={{ ...styles.track, ...(mode ? styles.trackOn : null) }}>
+            <span style={{ ...styles.knob, ...(mode ? styles.knobOn : null) }} />
+          </span>
+          <IconComment size={16} />
+          <span>Comments</span>
+          {visible.length > 0 && <span style={styles.badge}>{visible.length}</span>}
+        </button>
+        {mode && (
+          <button type="button" onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} style={{ ...styles.notesBtn, ...(panelOpen ? styles.notesBtnOn : null) }}>
+            <IconList size={15} />
+            <span>Notes</span>
+          </button>
+        )}
+      </div>
+
+      {mode &&
+        panelOpen &&
+        createPortal(
+          <SidePanel comments={visible} onClose={() => setPanelOpen(false)} onJump={jump} onResolve={toggleResolve} onDelete={remove} />,
+          document.body,
+        )}
+
       <EscClose active={mode} onEsc={() => setMode(false)} />
     </>
   );
@@ -299,6 +331,45 @@ function Thread({ c, onClose, onResolve, onDelete }) {
   );
 }
 
+// Side panel listing every open comment on the page; clicking one scrolls to
+// and opens it. Rendered as a fixed overlay drawer so it never reflows the app.
+function SidePanel({ comments, onClose, onJump, onResolve, onDelete }) {
+  return (
+    <div style={styles.panel} role="dialog" aria-label="Comments">
+      <div style={styles.panelHead}>
+        <span style={styles.panelTitle}>
+          Comments<span style={styles.panelCount}>{comments.length}</span>
+        </span>
+        <button type="button" onClick={onClose} style={styles.iconBtn} aria-label="Close notes">
+          <IconX size={16} />
+        </button>
+      </div>
+      <div style={styles.panelList}>
+        {comments.length === 0 && <p style={styles.panelEmpty}>No comments on this page yet. Drag to select an area and add one.</p>}
+        {comments.map((c, i) => (
+          <div key={c.id} style={styles.note}>
+            <button type="button" onClick={() => onJump(c)} style={styles.noteMain}>
+              <span style={styles.noteNum}>{i + 1}</span>
+              <span style={styles.noteBody}>
+                <span style={styles.noteText}>{c.text}</span>
+                <span style={styles.noteMeta}>{c.createdAt}</span>
+              </span>
+            </button>
+            <div style={styles.noteActions}>
+              <button type="button" onClick={() => onResolve(c.id)} style={styles.iconBtn} aria-label="Resolve">
+                <IconCheck size={14} />
+              </button>
+              <button type="button" onClick={() => onDelete(c.id)} style={styles.iconBtn} aria-label="Delete">
+                <IconTrash size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 const styles = {
   capture: { position: "fixed", inset: 0, zIndex: 9980, cursor: "crosshair", background: "rgba(37,99,235,0.05)", userSelect: "none" },
@@ -360,11 +431,8 @@ const styles = {
   threadMeta: { fontSize: 11, fontWeight: 600, color: MUTED },
   iconBtn: { border: "none", background: "transparent", color: MUTED, cursor: "pointer", display: "inline-flex", padding: 2 },
   threadText: { margin: 0, fontSize: 13, lineHeight: "19px", color: INK, whiteSpace: "pre-wrap" },
+  dock: { position: "fixed", left: 24, bottom: 24, zIndex: 9996, display: "flex", alignItems: "center", gap: 8 },
   fab: {
-    position: "fixed",
-    left: 24,
-    bottom: 24,
-    zIndex: 9996,
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
@@ -381,6 +449,49 @@ const styles = {
     boxShadow: "0 14px 34px -14px rgba(17,17,26,0.45)",
   },
   fabActive: { borderColor: BLUE, boxShadow: "0 0 0 3px rgba(37,99,235,0.18), 0 14px 34px -14px rgba(17,17,26,0.45)" },
+  notesBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    height: 40,
+    paddingInline: 14,
+    borderRadius: 999,
+    border: `1px solid ${BORDER}`,
+    background: "#FFFFFF",
+    color: INK,
+    fontFamily: FONT,
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 14px 34px -14px rgba(17,17,26,0.45)",
+  },
+  notesBtnOn: { background: INK, color: "#FFFFFF", border: "1px solid transparent" },
+  panel: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    height: "100%",
+    width: 320,
+    zIndex: 9997,
+    background: "#FFFFFF",
+    borderLeft: `1px solid ${BORDER}`,
+    boxShadow: "-18px 0 48px -24px rgba(17,17,26,0.4)",
+    display: "flex",
+    flexDirection: "column",
+    fontFamily: FONT,
+  },
+  panelHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 14px 12px 18px", borderBottom: `1px solid ${BORDER}` },
+  panelTitle: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: INK },
+  panelCount: { minWidth: 20, height: 20, paddingInline: 6, borderRadius: 999, background: BLUE, color: "#FFFFFF", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  panelList: { flex: 1, overflowY: "auto", padding: 8 },
+  panelEmpty: { margin: 0, padding: "24px 12px", fontSize: 13, color: MUTED, lineHeight: "19px" },
+  note: { display: "flex", alignItems: "flex-start", gap: 4, padding: 2, borderRadius: 10 },
+  noteMain: { flex: 1, minWidth: 0, display: "flex", alignItems: "flex-start", gap: 10, border: "none", background: "transparent", cursor: "pointer", textAlign: "left", padding: 8, borderRadius: 8, fontFamily: FONT },
+  noteNum: { flexShrink: 0, width: 22, height: 22, borderRadius: "50% 50% 50% 2px", background: BLUE, color: "#FFFFFF", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  noteBody: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
+  noteText: { fontSize: 13, color: INK, lineHeight: "18px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" },
+  noteMeta: { fontSize: 11, fontWeight: 600, color: MUTED },
+  noteActions: { display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 },
   track: { width: 32, height: 18, borderRadius: 999, background: DIVIDER, position: "relative", flexShrink: 0, transition: "background 120ms ease" },
   trackOn: { background: BLUE },
   knob: { position: "absolute", top: 2, left: 2, width: 14, height: 14, borderRadius: "50%", background: "#FFFFFF", boxShadow: "0 1px 2px rgba(0,0,0,0.35)", transition: "left 120ms ease" },
