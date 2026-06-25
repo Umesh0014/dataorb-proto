@@ -308,13 +308,13 @@ function ExplorationsDropdown({ label, items, value, onChange }) {
 }
 
 const umeshS = {
-  wrap: { position: "relative", width: 56, display: "flex", justifyContent: "center" },
+  wrap: { position: "relative", width: 156, display: "flex", justifyContent: "center" },
   trigger: {
-    display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: 56, padding: "8px 4px",
-    background: "#262626", border: "none", borderRadius: 12, cursor: "pointer", color: "#F5F5F5",
-    fontFamily: "var(--font-sans)",
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", minHeight: 38, padding: "9px 14px",
+    background: "#262626", border: "1px solid #404040", borderRadius: 8, cursor: "pointer", color: "#F5F5F5",
+    fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
   },
-  triggerLabel: { fontSize: 8.5, fontWeight: 700, lineHeight: 1.2, textAlign: "center", letterSpacing: "0.02em" },
+  triggerLabel: { fontSize: 13, fontWeight: 700, lineHeight: 1.2, letterSpacing: "0.02em" },
   menu: {
     position: "absolute", right: 64, top: 0, width: 230, background: "#FFFFFF", borderRadius: 10,
     border: "1px solid var(--color-divider-card)", boxShadow: "var(--shadow-card)", padding: 6, zIndex: 30,
