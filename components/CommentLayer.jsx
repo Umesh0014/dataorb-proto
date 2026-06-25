@@ -88,15 +88,32 @@ export default function CommentLayer() {
   const [openId, setOpenId] = React.useState(null);
   const [text, setText] = React.useState("");
   const [panelOpen, setPanelOpen] = React.useState(false);
+  const syncedRef = React.useRef(false);
 
   React.useEffect(() => {
     setMounted(true);
+    let cancelled = false;
     try {
       const raw = window.localStorage.getItem(STORE_KEY);
       if (raw) setComments(JSON.parse(raw));
     } catch {
       /* ignore corrupt store */
     }
+    // Pull the shared list (Vercel KV / Upstash); the server is source of truth.
+    fetch("/api/comments", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && d && d.ok && Array.isArray(d.comments)) setComments(d.comments);
+      })
+      .catch(() => {
+        /* offline or store not provisioned — keep the localStorage cache */
+      })
+      .finally(() => {
+        syncedRef.current = true;
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   React.useEffect(() => {
     if (!mounted) return;
@@ -105,6 +122,16 @@ export default function CommentLayer() {
     } catch {
       /* ignore quota */
     }
+    // Only push to the shared store AFTER we've pulled it, so the initial empty
+    // or cached state never overwrites everyone else's comments.
+    if (!syncedRef.current) return;
+    fetch("/api/comments", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(comments),
+    }).catch(() => {
+      /* offline or no store — localStorage still holds it */
+    });
   }, [comments, mounted]);
 
   if (!mounted) return null;
