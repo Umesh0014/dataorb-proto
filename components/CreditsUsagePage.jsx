@@ -398,7 +398,7 @@ function useBucketEditor(buckets, setBuckets, setAgents, maxBuckets = 5) {
       built.map((b, i) => ({
         ...b,
         agentCount: b.id === fallback.id ? b.agentCount + orphan : b.agentCount,
-        note: i === defaultIndex ? "Standard default" : undefined,
+        note: i === defaultIndex ? "Default" : undefined,
       })),
     );
   };

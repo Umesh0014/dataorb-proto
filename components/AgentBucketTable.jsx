@@ -59,6 +59,9 @@ export default function AgentBucketTable({
   // pinned above it. Other placements (top / floating) are owned by parents.
   bulkBar = null,
   bulkPlacement = null,
+  // Optional action rendered on the right of the toolbar, beside the search
+  // (e.g. the page's "Manage agents" button).
+  toolbarAction = null,
 }) {
   const [page, setPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(pageSizeOptions[0]);
@@ -142,6 +145,7 @@ export default function AgentBucketTable({
           tagFilter={tagFilter}
           onTag={setTagFilter}
           showTag={showTag}
+          toolbarAction={toolbarAction}
         />
       )}
       {bulkPlacement === "inline" && bulkBar && (
@@ -306,7 +310,7 @@ function SortTh({ label, col, sortKey, dir, onSort }) {
   );
 }
 
-function TableToolbar({ bare, query, onQuery, tagFilter, onTag, showTag = true }) {
+function TableToolbar({ bare, query, onQuery, tagFilter, onTag, showTag = true, toolbarAction = null }) {
   return (
     <div style={bare ? styles.toolbarBare : styles.toolbar}>
       <label style={styles.searchWrap}>
@@ -320,9 +324,10 @@ function TableToolbar({ bare, query, onQuery, tagFilter, onTag, showTag = true }
           style={styles.searchInput}
         />
       </label>
-      {showTag && (
+      {(showTag || toolbarAction) && (
         <div style={styles.filters}>
-          <Select value={tagFilter} onChange={onTag} options={TAG_OPTIONS} ariaLabel="Filter by tag" />
+          {showTag && <Select value={tagFilter} onChange={onTag} options={TAG_OPTIONS} ariaLabel="Filter by tag" />}
+          {toolbarAction}
         </div>
       )}
     </div>

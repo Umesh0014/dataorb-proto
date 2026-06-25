@@ -38,7 +38,7 @@ import IterationRail from "./IterationRail";
 // action exp study are parked in the Discarded dropdown — still selectable for
 // comparison. Variant state is in-memory; resets on session end.
 const CU_VERSIONS = [
-  { id: "c5", label: "C5", iterations: [] },
+  { id: "c5", label: "Fixed buckets", iterations: [] },
   { id: "c8", label: "Customizable bucket", iterations: [] },
 ];
 const CU_DISCARDED = [

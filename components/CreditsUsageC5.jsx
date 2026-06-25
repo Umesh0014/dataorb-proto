@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users, Info, Plus, Lightbulb } from "lucide-react";
+import { Users, Info, Plus, Lightbulb, SlidersHorizontal } from "lucide-react";
 import { Section, CapAlertBanner } from "./CreditsUsageParts";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
@@ -108,7 +108,7 @@ export default function CreditsUsageC5({
   const suggestCap = topBucket ? topBucket.capMin + 15 : 60;
   const showRec = scroll && atLimitTop.length > 0;
   const bucketStrip = scroll ? (
-    <ScrollStrip buckets={buckets} selectedId={selectedId} onSelect={setSelectedBucketId} onAdd={() => openManager(null)} />
+    <ScrollStrip buckets={buckets} selectedId={selectedId} onSelect={setSelectedBucketId} />
   ) : isDialog ? (
     <BucketEditorDialog
       buckets={buckets}
@@ -127,6 +127,14 @@ export default function CreditsUsageC5({
       ))}
     </div>
   );
+  // The selectable "Manage agents" button. Scrollable parks it in the table
+  // toolbar (the section header carries "Manage tiers" instead); the other
+  // selectable layouts keep it in the section header, unchanged.
+  const manageAgentsBtn = selectable ? (
+    <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} disabled={picked.length === 0} onClick={() => setMoveOpen(true)}>
+      Manage agents
+    </Button>
+  ) : null;
   const table = (
     <AgentBucketTable
       agents={tableAgents}
@@ -139,6 +147,7 @@ export default function CreditsUsageC5({
       selectedIds={selectable ? picked : []}
       onToggleSelect={togglePick}
       onToggleSelectAll={togglePickAll}
+      toolbarAction={scroll ? manageAgentsBtn : null}
       emptyLabel="No agents yet — agents appear here once your tenant is provisioned."
     />
   );
@@ -153,10 +162,12 @@ export default function CreditsUsageC5({
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
         headerRight={
-          selectable ? (
-            <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} disabled={picked.length === 0} onClick={() => setMoveOpen(true)}>
-              Manage agents
+          scroll ? (
+            <Button variant="primary" size="sm" leadingIcon={<SlidersHorizontal size={15} />} onClick={() => openManager(null)}>
+              Manage tiers
             </Button>
+          ) : selectable ? (
+            manageAgentsBtn
           ) : (
             <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
               Manage agents
@@ -166,26 +177,17 @@ export default function CreditsUsageC5({
       >
         {rail ? (
           <div style={styles.split}>
-            <div style={styles.railCol}>{bucketStrip}</div>
+            <div style={styles.railCol}>
+              <div style={styles.railFill}>{bucketStrip}</div>
+            </div>
             <div style={styles.main}>{table}</div>
           </div>
         ) : (
           <>
-            {scroll && overAlert && (
-              <CapAlertBanner
-                count={overAlert.count}
-                resetDay={overAlert.resetDay}
-                tone={overAlert.tone}
-                message={overAlert.message}
-                onViewAgents={() => onManageChange("nearing")}
-              />
-            )}
-            {showRec && (
-              <RecommendationBanner
-                count={atLimitTop.length}
-                tierName={topBucket.name}
-                capMin={topBucket.capMin}
-                suggestCap={suggestCap}
+            {scroll && (
+              <ScrollBanners
+                overAlert={overAlert}
+                rec={showRec ? { count: atLimitTop.length, tierName: topBucket.name, capMin: topBucket.capMin, suggestCap } : null}
                 onView={() => onManageChange("nearing")}
                 onCreate={() => openManager(suggestCap)}
               />
@@ -248,30 +250,14 @@ export default function CreditsUsageC5({
   );
 }
 
-// ScrollStrip — Scrollable's horizontal tier rail: a sticky "Add" tile that
-// floats over the cards as they scroll under it, then the interactive tier
-// cards (click selects the tier the table filters to). Editing lives in the
-// tier manager the Add tile opens, so the cards carry no pencil.
-function ScrollStrip({ buckets, selectedId, onSelect, onAdd }) {
+// ScrollStrip — Scrollable's horizontal tier rail: the interactive tier cards
+// (click selects the tier the table filters to) in a horizontal scroller.
+// Editing/adding lives in the tier manager the header "Manage tiers" button
+// opens, so the cards carry no pencil.
+function ScrollStrip({ buckets, selectedId, onSelect }) {
   return (
     <div style={styles.scrollWrap}>
       <div style={styles.scrollInner}>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={onAdd}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onAdd();
-            }
-          }}
-          aria-label="Manage tiers"
-          style={styles.scrollAdd}
-        >
-          <Plus size={18} />
-          <span style={styles.scrollAddLabel}>Add</span>
-        </div>
         {buckets.map((b) => (
           <div key={b.id} style={styles.scrollCard}>
             <BucketCard bucket={b} interactive selected={b.id === selectedId} onClick={() => onSelect(b.id)} />
@@ -279,6 +265,21 @@ function ScrollStrip({ buckets, selectedId, onSelect, onAdd }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// ScrollBanners — the two notices Scrollable docks below the section title: the
+// moved over-limit "View agents" banner, then the capped-top-tier recommendation.
+function ScrollBanners({ overAlert, rec, onView, onCreate }) {
+  return (
+    <>
+      {overAlert && (
+        <CapAlertBanner count={overAlert.count} resetDay={overAlert.resetDay} tone={overAlert.tone} message={overAlert.message} onViewAgents={onView} />
+      )}
+      {rec && (
+        <RecommendationBanner count={rec.count} tierName={rec.tierName} capMin={rec.capMin} suggestCap={rec.suggestCap} onView={onView} onCreate={onCreate} />
+      )}
+    </>
   );
 }
 
@@ -381,33 +382,14 @@ const styles = {
   bucketRow: { display: "flex", gap: 12, alignItems: "stretch" },
   saveBar: { display: "flex", justifyContent: "flex-end", paddingTop: 4 },
 
-  split: { display: "flex", gap: 24, alignItems: "flex-start" },
-  railCol: { width: 200, flexShrink: 0 },
+  split: { display: "flex", gap: 24, alignItems: "stretch" },
+  railCol: { width: 200, flexShrink: 0, position: "relative", minHeight: 0 },
+  railFill: { position: "absolute", inset: 0 },
   main: { flex: 1, minWidth: 0 },
 
-  // Scrollable strip: a horizontal scroller whose first child (Add) is sticky
-  // to the left so it floats over the cards as they scroll under it.
+  // Scrollable strip: a horizontal scroller of fixed-width tier cards.
   scrollWrap: { overflowX: "auto", overflowY: "hidden", paddingBottom: 4 },
   scrollInner: { display: "flex", gap: 12, alignItems: "stretch", width: "max-content" },
-  scrollAdd: {
-    position: "sticky",
-    left: 0,
-    zIndex: 2,
-    flexShrink: 0,
-    width: 52,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    borderRadius: 8,
-    border: "1.5px dashed var(--color-divider-card)",
-    background: "#FFFFFF",
-    color: "var(--color-text-tertiary)",
-    cursor: "pointer",
-    transition: "border-color 120ms ease, color 120ms ease",
-  },
-  scrollAddLabel: { fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" },
   scrollCard: { width: 172, flexShrink: 0, display: "flex" },
 
   recBanner: {

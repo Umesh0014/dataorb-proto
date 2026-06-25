@@ -47,7 +47,7 @@ export const QUOTA_BUCKETS_4 = [
 // standard default every new agent starts in), Momentum 45, Sprint 60.
 // Ordered low → high so "upgrade to the next tier" is the next entry.
 export const QUOTA_BUCKETS_3 = [
-  { id: "kickstart3", name: "Kickstart", capMin: 30, agentCount: 430, note: "Standard default" },
+  { id: "kickstart3", name: "Kickstart", capMin: 30, agentCount: 430, note: "Default" },
   { id: "momentum3", name: "Momentum", capMin: 45, agentCount: 240 },
   { id: "sprint3", name: "Sprint", capMin: 60, agentCount: 100 },
 ];

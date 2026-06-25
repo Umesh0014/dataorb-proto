@@ -30,31 +30,46 @@ export default function BucketEditorDialog({
   // null for the add flow.
   const [dialog, setDialog] = React.useState(null);
 
+  // Clicking a card selects the tier (the table shows its agents); the pencil is
+  // the separate edit affordance.
+  const cards = buckets.map((b) => (
+    <div key={b.id} style={vertical ? styles.colItem : styles.rowItem}>
+      <BucketCard bucket={b} interactive selected={b.id === selectedId} onClick={() => onSelect(b.id)} />
+      <button
+        type="button"
+        style={styles.editBtn}
+        aria-label={`Edit ${b.name}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setDialog({ bucket: b });
+        }}
+      >
+        <Pencil size={14} />
+      </button>
+    </div>
+  ));
+  const addControl =
+    buckets.length < maxBuckets ? (
+      <button type="button" onClick={() => setDialog({ bucket: null })} style={vertical ? styles.addBar : styles.addTile}>
+        <Plus size={18} />
+        <span style={styles.addLabel}>Add tier</span>
+      </button>
+    ) : null;
+
+  // Vertical (rail) caps to the agent-list height: cards scroll, the Add bar
+  // floats pinned at the bottom. The wrapping row keeps everything inline.
   return (
     <div style={vertical ? styles.col : styles.row}>
-      {buckets.map((b) => (
-        // Clicking the card selects the tier (the table shows its agents); the
-        // pencil is the separate edit affordance.
-        <div key={b.id} style={vertical ? styles.colItem : styles.rowItem}>
-          <BucketCard bucket={b} interactive selected={b.id === selectedId} onClick={() => onSelect(b.id)} />
-          <button
-            type="button"
-            style={styles.editBtn}
-            aria-label={`Edit ${b.name}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setDialog({ bucket: b });
-            }}
-          >
-            <Pencil size={14} />
-          </button>
-        </div>
-      ))}
-      {buckets.length < maxBuckets && (
-        <button type="button" onClick={() => setDialog({ bucket: null })} style={vertical ? styles.addBar : styles.addTile}>
-          <Plus size={18} />
-          <span style={styles.addLabel}>Add tier</span>
-        </button>
+      {vertical ? (
+        <>
+          <div style={styles.colScroll}>{cards}</div>
+          {addControl}
+        </>
+      ) : (
+        <>
+          {cards}
+          {addControl}
+        </>
       )}
 
       <BucketDialog
@@ -149,7 +164,8 @@ function BucketDialog({ open, bucket, canRemove, onClose, onSave, onRemove }) {
 
 const styles = {
   row: { display: "flex", gap: 12, alignItems: "stretch", flexWrap: "wrap" },
-  col: { display: "flex", flexDirection: "column", gap: 8 },
+  col: { display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 },
+  colScroll: { display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 },
   colItem: { position: "relative", display: "flex" },
   rowItem: { position: "relative", display: "flex", flex: "1 1 180px", minWidth: 180 },
   editBtn: {
@@ -176,6 +192,7 @@ const styles = {
     justifyContent: "center",
     gap: 8,
     width: "100%",
+    flexShrink: 0,
     padding: "12px 16px",
     border: "1.5px dashed var(--color-divider-card)",
     borderRadius: 12,
