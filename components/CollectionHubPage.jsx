@@ -17,6 +17,7 @@ import KpiGoalsB6 from "./KpiGoalsB6";
 import KpiGoalsB7 from "./KpiGoalsB7";
 import KpiGoalsB8 from "./KpiGoalsB8";
 import KpiGoalsB10 from "./KpiGoalsB10";
+import KpiGoalsB12 from "./KpiGoalsB12";
 import {
   HERO, KPIS, KPI_PAGINATION, AI_ARTIFACTS,
   CONVERSATION_FLOW, INTERACTION_EVENTS, COACHING_PRIORITY,
@@ -51,11 +52,11 @@ export default function CollectionHubPage({ kpiView = "b7", onKpiView, kpiItems,
   // B9 opens each KPI's OWN type-correct config (PRD §5). B8 keeps the single
   // Figma-2349 (Efficiency) dataset.
   const drillKpi = drill
-    ? ((kpiView === "b9" || kpiView === "b10" || kpiView === "b11")
+    ? ((kpiView === "b9" || kpiView === "b10" || kpiView === "b11" || kpiView === "b12")
         ? { ...(KPI_CONFIGS[drill.id] || KPI_CONFIGS[DEFAULT_KPI_ID]), name: drill.name }
         : { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: drill.name, subtitle: drill.tip })
     : null;
-  const DrillCard = (kpiView === "b9" || kpiView === "b10" || kpiView === "b11") ? KpiPrdDrill : KpiDrillInline;
+  const DrillCard = (kpiView === "b9" || kpiView === "b10" || kpiView === "b11" || kpiView === "b12") ? KpiPrdDrill : KpiDrillInline;
 
   const sections = (
     <>
@@ -222,6 +223,7 @@ const KPI_ITERATIONS = [
 export const OUR_ITERATIONS = [
   { id: "b7", label: "Cards", title: "Filtered grid, 3 across + pagination + side card" },
   { id: "b11", label: "Donut chart", title: "Credit-Usage recreation — composed only from existing DS-aligned components" },
+  { id: "b12", label: "Vertical cards", title: "Reach/Recovery/Quality cards stacked vertically (segmented) in place of the donut" },
 ];
 
 export const OUR_DISCARDED = [
@@ -242,9 +244,11 @@ function KPIsAndGoalsCard({ view = "b7", onView, items = OUR_ITERATIONS, discard
   // B8 reports its selected KPI up to the PAGE (CollectionHubPage), which renders
   // the drill as a full-height card to the right of every section. The rail is
   // hidden while that page side card is open so they don't collide.
-  const drillOpen = (view === "b8" || view === "b9" || view === "b10" || view === "b11") && Boolean(drillId);
+  const drillOpen = (view === "b8" || view === "b9" || view === "b10" || view === "b11" || view === "b12") && Boolean(drillId);
 
-  const ours = (view === "b10" || view === "b11")
+  const ours = view === "b12"
+    ? <KpiGoalsB12 onDrill={onDrill} drillId={drillId} />
+    : (view === "b10" || view === "b11")
     ? <KpiGoalsB10 onDrill={onDrill} drillId={drillId} creditUsage={view === "b11"} />
     : (view === "b8" || view === "b9")
     ? <KpiGoalsB8 onDrill={onDrill} drillId={drillId} />
