@@ -82,7 +82,8 @@ export default function CommentLayer() {
   const [mounted, setMounted] = React.useState(false);
   const [comments, setComments] = React.useState([]);
   const [mode, setMode] = React.useState(false);
-  const [draft, setDraft] = React.useState(null); // { x, y } for a new pin
+  const [draft, setDraft] = React.useState(null); // finalized selection { x, y, w, h }
+  const [drag, setDrag] = React.useState(null); // live marquee while dragging { x0, y0, x1, y1 }
   const [openId, setOpenId] = React.useState(null);
   const [text, setText] = React.useState("");
 
@@ -109,15 +110,34 @@ export default function CommentLayer() {
   const onPage = comments.filter((c) => c.path === path);
   const visible = onPage.filter((c) => !c.resolved);
 
-  const place = (e) => {
+  // Drag to draw a selection rectangle (marquee shows live); a tiny drag is
+  // treated as a click → a point comment. Document coords so it scrolls along.
+  const startDrag = (e) => {
+    e.preventDefault();
+    const x0 = e.clientX + window.scrollX;
+    const y0 = e.clientY + window.scrollY;
     setOpenId(null);
-    setDraft({ x: e.clientX + window.scrollX, y: e.clientY + window.scrollY });
-    setText("");
+    setDraft(null);
+    setDrag({ x0, y0, x1: x0, y1: y0 });
+    const onMove = (ev) => setDrag({ x0, y0, x1: ev.clientX + window.scrollX, y1: ev.clientY + window.scrollY });
+    const onUp = (ev) => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      const x1 = ev.clientX + window.scrollX;
+      const y1 = ev.clientY + window.scrollY;
+      const w = Math.abs(x1 - x0);
+      const h = Math.abs(y1 - y0);
+      setDrag(null);
+      setDraft(w < 6 && h < 6 ? { x: x0, y: y0, w: 0, h: 0 } : { x: Math.min(x0, x1), y: Math.min(y0, y1), w, h });
+      setText("");
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   };
   const post = () => {
     const t = text.trim();
     if (!t || !draft) return;
-    setComments((cs) => [...cs, { id: `c-${cs.length}-${Math.round(draft.x)}x${Math.round(draft.y)}`, path, x: draft.x, y: draft.y, text: t, createdAt: stamp(), resolved: false }]);
+    setComments((cs) => [...cs, { id: `c-${cs.length}-${Math.round(draft.x)}x${Math.round(draft.y)}`, path, x: draft.x, y: draft.y, w: draft.w, h: draft.h, text: t, createdAt: stamp(), resolved: false }]);
     setDraft(null);
     setText("");
   };
@@ -133,24 +153,28 @@ export default function CommentLayer() {
 
   return (
     <>
-      {mode && <div style={styles.capture} onClick={place} aria-hidden="true" />}
+      {mode && <div style={styles.capture} onMouseDown={startDrag} aria-hidden="true" />}
 
       {createPortal(
         <div style={styles.pinLayer}>
           {visible.map((c, i) => (
-            <Pin
-              key={c.id}
-              n={i + 1}
-              x={c.x}
-              y={c.y}
-              active={openId === c.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                setDraft(null);
-                setOpenId(openId === c.id ? null : c.id);
-              }}
-            />
+            <React.Fragment key={c.id}>
+              {c.w > 0 && c.h > 0 && <Area x={c.x} y={c.y} w={c.w} h={c.h} active={openId === c.id} />}
+              <Pin
+                n={i + 1}
+                x={c.x}
+                y={c.y}
+                active={openId === c.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDraft(null);
+                  setOpenId(openId === c.id ? null : c.id);
+                }}
+              />
+            </React.Fragment>
           ))}
+          {drag && <Marquee drag={drag} />}
+          {draft && draft.w > 0 && draft.h > 0 && <Area x={draft.x} y={draft.y} w={draft.w} h={draft.h} draft />}
           {draft && (
             <span style={{ ...styles.draftPin, left: draft.x, top: draft.y }} aria-hidden="true">
               <span style={styles.draftRing} />
@@ -165,7 +189,7 @@ export default function CommentLayer() {
       {mode && (
         <div style={styles.modeBar}>
           <span style={styles.modeDot} />
-          <span>Comment mode — click anywhere to add a comment</span>
+          <span>Comment mode — drag to select an area, or click a spot</span>
           <button type="button" onClick={() => setMode(false)} style={styles.exitBtn}>Exit · Esc</button>
         </div>
       )}
@@ -210,6 +234,23 @@ function Pin({ n, x, y, active, onClick }) {
     <button type="button" onClick={onClick} aria-label={`Comment ${n}`} style={{ ...styles.pin, left: x, top: y, ...(active ? styles.pinActive : null) }}>
       {n}
     </button>
+  );
+}
+
+// The selection rectangle: a saved comment's area, the in-progress draft, or
+// the live marquee while dragging. Purely visual (pointer-events none) so it
+// never blocks a new drag started over it.
+function Area({ x, y, w, h, active = false, draft = false }) {
+  const tone = draft ? styles.areaDraft : active ? styles.areaActive : styles.areaSaved;
+  return <div style={{ ...styles.area, ...tone, left: x, top: y, width: w, height: h }} aria-hidden="true" />;
+}
+
+function Marquee({ drag }) {
+  return (
+    <div
+      style={{ ...styles.area, ...styles.areaMarquee, left: Math.min(drag.x0, drag.x1), top: Math.min(drag.y0, drag.y1), width: Math.abs(drag.x1 - drag.x0), height: Math.abs(drag.y1 - drag.y0) }}
+      aria-hidden="true"
+    />
   );
 }
 
@@ -260,7 +301,7 @@ function Thread({ c, onClose, onResolve, onDelete }) {
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 const styles = {
-  capture: { position: "fixed", inset: 0, zIndex: 9980, cursor: "crosshair", background: "rgba(37,99,235,0.05)" },
+  capture: { position: "fixed", inset: 0, zIndex: 9980, cursor: "crosshair", background: "rgba(37,99,235,0.05)", userSelect: "none" },
   pinLayer: { position: "absolute", top: 0, left: 0, zIndex: 9990, pointerEvents: "none" },
   pin: {
     position: "absolute",
@@ -381,4 +422,9 @@ const styles = {
     pointerEvents: "none",
   },
   draftRing: { width: 8, height: 8, borderRadius: "50%", background: "#FFFFFF" },
+  area: { position: "absolute", pointerEvents: "none", borderRadius: 4, boxSizing: "border-box" },
+  areaSaved: { border: `2px solid ${BLUE}`, background: "rgba(37,99,235,0.07)" },
+  areaActive: { border: `2px solid ${INK}`, background: "rgba(37,99,235,0.10)" },
+  areaDraft: { border: `2px solid ${BLUE}`, background: "rgba(37,99,235,0.10)" },
+  areaMarquee: { border: `2px dashed ${BLUE}`, background: "rgba(37,99,235,0.10)" },
 };
