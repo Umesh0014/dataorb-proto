@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users, Info, Plus, Lightbulb, SlidersHorizontal } from "lucide-react";
+import { Users, Info, Plus, Lightbulb } from "lucide-react";
 import { Section, CapAlertBanner } from "./CreditsUsageParts";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
@@ -108,7 +108,7 @@ export default function CreditsUsageC5({
   const suggestCap = topBucket ? topBucket.capMin + 15 : 60;
   const showRec = scroll && atLimitTop.length > 0;
   const bucketStrip = scroll ? (
-    <ScrollStrip buckets={buckets} selectedId={selectedId} onSelect={setSelectedBucketId} />
+    <ScrollStrip buckets={buckets} selectedId={selectedId} onSelect={setSelectedBucketId} onAdd={() => openManager(null)} />
   ) : isDialog ? (
     <BucketEditorDialog
       buckets={buckets}
@@ -162,11 +162,7 @@ export default function CreditsUsageC5({
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
         headerRight={
-          scroll ? (
-            <Button variant="primary" size="sm" leadingIcon={<SlidersHorizontal size={15} />} onClick={() => openManager(null)}>
-              Manage tiers
-            </Button>
-          ) : selectable ? (
+          scroll ? undefined : selectable ? (
             manageAgentsBtn
           ) : (
             <Button variant="primary" size="sm" leadingIcon={<Users size={15} />} onClick={() => onManageChange("nearing")}>
@@ -251,10 +247,10 @@ export default function CreditsUsageC5({
 }
 
 // ScrollStrip — Scrollable's horizontal tier rail: the interactive tier cards
-// (click selects the tier the table filters to) in a horizontal scroller.
-// Editing/adding lives in the tier manager the header "Manage tiers" button
-// opens, so the cards carry no pencil.
-function ScrollStrip({ buckets, selectedId, onSelect }) {
+// (click selects the tier the table filters to), then a primary Add tile that
+// floats pinned to the right as the cards scroll under it. Add opens the tier
+// manager (add + edit), so the cards carry no pencil.
+function ScrollStrip({ buckets, selectedId, onSelect, onAdd }) {
   return (
     <div style={styles.scrollWrap}>
       <div style={styles.scrollInner}>
@@ -263,6 +259,22 @@ function ScrollStrip({ buckets, selectedId, onSelect }) {
             <BucketCard bucket={b} interactive selected={b.id === selectedId} onClick={() => onSelect(b.id)} />
           </div>
         ))}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onAdd}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onAdd();
+            }
+          }}
+          aria-label="Manage tiers"
+          style={styles.scrollAdd}
+        >
+          <Plus size={18} />
+          <span style={styles.scrollAddLabel}>Add</span>
+        </div>
       </div>
     </div>
   );
@@ -387,10 +399,30 @@ const styles = {
   railFill: { position: "absolute", inset: 0 },
   main: { flex: 1, minWidth: 0 },
 
-  // Scrollable strip: a horizontal scroller of fixed-width tier cards.
+  // Scrollable strip: fixed-width tier cards in a horizontal scroller, plus a
+  // primary Add tile pinned (sticky) to the right edge so it always shows.
   scrollWrap: { overflowX: "auto", overflowY: "hidden", paddingBottom: 4 },
   scrollInner: { display: "flex", gap: 12, alignItems: "stretch", width: "max-content" },
   scrollCard: { width: 172, flexShrink: 0, display: "flex" },
+  scrollAdd: {
+    position: "sticky",
+    right: 0,
+    zIndex: 2,
+    flexShrink: 0,
+    width: 60,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 8,
+    border: "none",
+    background: "var(--color-button-primary-bg)",
+    color: "var(--color-button-primary-fg)",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  },
+  scrollAddLabel: { fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" },
 
   recBanner: {
     display: "flex",
