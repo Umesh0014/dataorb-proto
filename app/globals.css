@@ -366,7 +366,8 @@ body {
 }
 
 .skills-search::placeholder,
-.tasks-search::placeholder {
+.tasks-search::placeholder,
+.gw-search-input::placeholder {
   color: var(--color-text-placeholder);
 }
 

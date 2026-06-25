@@ -230,4 +230,24 @@ export default [
       ],
     },
   },
+  // Guided Workflow browse surface. Button.jsx has no variant for a
+  // full-card clickable tile (DriverCard), a clickable list row
+  // (WorkflowRow), a breadcrumb crumb-link, a segmented source switch,
+  // a filter chip, or a searchable combobox trigger / listbox option
+  // (CreateWorkflowModal) — same posture as CommandCenter / BucketCard.
+  // Promote when shared SegmentedControl / Combobox / PillGroup primitives
+  // land. Kept as warn so the raw <button> stays visible in lint.
+  {
+    files: ["components/guided-workflow/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXOpeningElement[name.name='button']",
+          message:
+            "Migrate to <Button variant='…'> (or shared SegmentedControl / Combobox / PillGroup) when this component is next touched.",
+        },
+      ],
+    },
+  },
 ];

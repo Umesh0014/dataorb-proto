@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Workflow } from "lucide-react";
 
 // All icons share the Material Symbols 960×960 viewBox so sizing/centering
 // is identical across module configs. Single fill color, set by parent.
@@ -193,6 +194,14 @@ export const MissionsIcon = ({ size = 22, color = "currentColor" }) => (
       fill={color}
     />
   </svg>
+);
+
+// Guided Workflow (Learning Hub) — lucide `Workflow` branch glyph, the
+// nav entry to the team-lead browse surface. Accepts the same size/color
+// contract as the Material rail icons (color sets the stroke). Per ticket:
+// lucide-react Workflow glyph.
+export const GuidedWorkflowIcon = ({ size = 22, color = "currentColor" }) => (
+  <Workflow size={size} color={color} aria-hidden="true" focusable="false" />
 );
 
 // === Ask Mira Pro module icons ===

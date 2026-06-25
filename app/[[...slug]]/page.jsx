@@ -30,6 +30,10 @@ import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
 import GuidedWorkflowsPage from "../../components/GuidedWorkflowsPage";
+import GuidedWorkflowLandingPage from "../../components/guided-workflow/GuidedWorkflowLandingPage";
+import DriverDetailPage from "../../components/guided-workflow/DriverDetailPage";
+import ContactReasonsPage from "../../components/guided-workflow/ContactReasonsPage";
+import { gwDriver } from "../../components/mocks/guidedWorkflowDrivers";
 import ReplayPage from "../../components/ReplayPage";
 import MobileLearningHubShell from "../../components/MobileLearningHubShell";
 import CreateGuideWizardPage, {
@@ -146,6 +150,8 @@ const DEFAULT_NAV = {
   miraNav: "chat",
   missionDetailId: null,
   settingsSubpage: null,
+  guidedWorkflowDriverId: null,
+  guidedWorkflowView: null,
 };
 
 // deriveNav — pathname → { currentPage, insightsNav, learningNav, miraNav }.
@@ -179,6 +185,13 @@ function deriveNav(pathname) {
     // 2 (Dense table) and 3 (Kanban).
     if (segs[1] === "missions" && segs.length >= 3) {
       next.missionDetailId = segs[2];
+    }
+    // /learning/guided-workflow/{driverId}[/reasons] — capture the driver
+    // and optional sub-view so the catch-all resolver can mount the driver
+    // detail or the contact-reason view (no file-based routes here).
+    if (segs[1] === "guided-workflow" && segs.length >= 3) {
+      next.guidedWorkflowDriverId = segs[2];
+      next.guidedWorkflowView = segs[3] || null;
     }
   } else if (segs[0] === "mira") {
     next.currentPage = "mira";
@@ -232,7 +245,7 @@ export default function Page() {
   // URL is the source of truth for module + sub-section. Derive the four
   // nav ids on every render from the pathname; nav-driving setState calls
   // are replaced with router.push() against the same URL schema.
-  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId, settingsSubpage } = React.useMemo(
+  const { currentPage, insightsNav, learningNav, miraNav, missionDetailId, settingsSubpage, guidedWorkflowDriverId, guidedWorkflowView } = React.useMemo(
     () => deriveNav(pathname),
     [pathname],
   );
@@ -657,6 +670,10 @@ export default function Page() {
     const onDrill = learningNav === "drill";
     const onGuidedDrill = learningNav === "guided-drill";
     const onGuidedWorkflows = learningNav === "guided-workflows";
+    // Team-lead Guided Workflow *browse* surface (singular id) — landing /
+    // driver detail / contact-reason view. Distinct from the plural
+    // "guided-workflows" authoring library reached via Drill.
+    const onGuidedWorkflowBrowse = learningNav === "guided-workflow";
     const isAgentDrill = drillPersona === "agent";
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
@@ -811,6 +828,37 @@ export default function Page() {
           <GuidedWorkflowsPage onBack={() => router.push("/learning/drill")} />
         </PageLayout>
       );
+    } else if (onGuidedWorkflowBrowse) {
+      // Browse surface: drivers landing → driver detail → contact reasons.
+      // The driver id + sub-view come from the URL (deriveNav); navigation
+      // is router.push against the same path schema. Create-modal state is
+      // owned inside each page (in-memory).
+      const gwDriverObj = guidedWorkflowDriverId ? gwDriver(guidedWorkflowDriverId) : null;
+      let gwContent;
+      if (!gwDriverObj) {
+        gwContent = (
+          <GuidedWorkflowLandingPage
+            onOpenDriver={(id) => router.push(`/learning/guided-workflow/${id}`)}
+          />
+        );
+      } else if (guidedWorkflowView === "reasons") {
+        gwContent = (
+          <ContactReasonsPage
+            driver={gwDriverObj}
+            onBack={() => router.push(`/learning/guided-workflow/${gwDriverObj.id}`)}
+            onBackToLanding={() => router.push("/learning/guided-workflow")}
+          />
+        );
+      } else {
+        gwContent = (
+          <DriverDetailPage
+            driver={gwDriverObj}
+            onBack={() => router.push("/learning/guided-workflow")}
+            onOpenReasons={() => router.push(`/learning/guided-workflow/${gwDriverObj.id}/reasons`)}
+          />
+        );
+      }
+      moduleContent = <PageLayout>{gwContent}</PageLayout>;
     } else if (onGuide && guideSessionId && !guideWizardStep) {
       // Guide session bypasses PageLayout — owns its own 32px outer
       // gutter so the chrome diverges from other module pages (spec §3).
