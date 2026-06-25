@@ -220,11 +220,8 @@ const KPI_ITERATIONS = [
 // The current exploration on the rail. Earlier ones are kept reachable under
 // a "Discarded" dropdown.
 export const OUR_ITERATIONS = [
-  { id: "b7", label: "B7", title: "Filtered grid, 3 across + pagination + side card" },
-  { id: "b8", label: "B8", title: "Activity rings + Figma 2349 side card" },
-  { id: "b9", label: "B9", title: "Activity rings + PRD v2.0 side card (agent drill, per-KPI types)" },
-  { id: "b10", label: "B10", title: "Design System 2.0 — tokenised, lemon-green markers on DS gaps" },
-  { id: "b11", label: "B11", title: "Credit-Usage recreation — composed only from existing DS-aligned components" },
+  { id: "b7", label: "Cards", title: "Filtered grid, 3 across + pagination + side card" },
+  { id: "b11", label: "Donut chart", title: "Credit-Usage recreation — composed only from existing DS-aligned components" },
 ];
 
 export const OUR_DISCARDED = [
@@ -233,6 +230,9 @@ export const OUR_DISCARDED = [
   { id: "b4", label: "B4", title: "Category tree (left) + KPI sidecar" },
   { id: "b5", label: "B5", title: "Parents on top, children below + side sidecar" },
   { id: "b6", label: "B6", title: "Select category → KPI opens in a dialog" },
+  { id: "b8", label: "B8", title: "Activity rings + Figma 2349 side card" },
+  { id: "b9", label: "B9", title: "Activity rings + PRD v2.0 side card (agent drill, per-KPI types)" },
+  { id: "b10", label: "B10", title: "Design System 2.0 — tokenised, lemon-green markers on DS gaps" },
 ];
 
 // Controlled: `view` + the group's `items` come from InsightsHubPage. The
