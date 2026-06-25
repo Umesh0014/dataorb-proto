@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
-import { Users, Info } from "lucide-react";
-import { Section } from "./CreditsUsageParts";
+import { Users, Info, Plus, Lightbulb } from "lucide-react";
+import { Section, CapAlertBanner } from "./CreditsUsageParts";
 import Button from "./Button";
 import BucketCard from "./BucketCard";
 import BucketEditorDialog from "./BucketEditorDialog";
+import BucketsManagerDialog from "./BucketsManagerDialog";
 import AgentBucketTable, { appliedCap } from "./AgentBucketTable";
 import ManageAgentsModal from "./ManageAgentsModal";
 import MoveToBucketDialog from "./MoveToBucketDialog";
@@ -35,6 +36,8 @@ export default function CreditsUsageC5({
   onEditBucket,
   onAddBucket,
   onRemoveBucket,
+  onSaveBuckets,
+  overAlert,
 }) {
   // Move agents up `tiers` steps on the fixed ladder (capped at the top tier),
   // grouped by destination so each target is a single move.
@@ -74,6 +77,14 @@ export default function CreditsUsageC5({
   // + the move-to-tier dialog. Cleared when the open tier changes.
   const [picked, setPicked] = React.useState([]);
   const [moveOpen, setMoveOpen] = React.useState(false);
+  const [manageBucketsOpen, setManageBucketsOpen] = React.useState(false);
+  // null = no pre-seeded row; a number opens the tier manager with a blank row
+  // pre-filled to that cap (the recommendation's "Create bucket").
+  const [bucketSeed, setBucketSeed] = React.useState(null);
+  const openManager = (seed) => {
+    setBucketSeed(seed ?? null);
+    setManageBucketsOpen(true);
+  };
   const [prevSel, setPrevSel] = React.useState(selectedId);
   if (selectedId !== prevSel) {
     setPrevSel(selectedId);
@@ -83,27 +94,39 @@ export default function CreditsUsageC5({
   const togglePickAll = (ids) => setPicked((p) => (p.length === ids.length ? [] : ids));
 
   // "rail" stacks the editable tiers in a left rail beside the table (C7, C8b);
-  // otherwise the cards sit horizontally on top of the list (C8a).
+  // "scroll" is a horizontal scroll strip with a floating Add that opens the
+  // line-item tier manager (C8c); otherwise cards sit on top of the list (C8a).
   const rail = bucketLayout === "rail";
-  const bucketStrip =
-    isDialog ? (
-      <BucketEditorDialog
-        buckets={buckets}
-        vertical={rail}
-        maxBuckets={rail ? 10 : 5}
-        selectedId={selectedId}
-        onSelect={setSelectedBucketId}
-        onEdit={onEditBucket}
-        onAdd={onAddBucket}
-        onRemove={onRemoveBucket}
-      />
-    ) : (
-      <div style={styles.bucketRow}>
-        {buckets.map((b) => (
-          <BucketCard key={b.id} bucket={b} />
-        ))}
-      </div>
-    );
+  const scroll = bucketLayout === "scroll";
+  const maxBuckets = bucketLayout ? 10 : 5;
+  // Top-tier agents already at their cap have nowhere higher to go — recommend
+  // spinning up a tier above the current ceiling (Scrollable only).
+  const topBucket = buckets[buckets.length - 1];
+  const atLimitTop = topBucket
+    ? agents.filter((a) => a.bucketId === topBucket.id && a.usedMin >= appliedCap(a, buckets))
+    : [];
+  const suggestCap = topBucket ? topBucket.capMin + 15 : 60;
+  const showRec = scroll && atLimitTop.length > 0;
+  const bucketStrip = scroll ? (
+    <ScrollStrip buckets={buckets} selectedId={selectedId} onSelect={setSelectedBucketId} onAdd={() => openManager(null)} />
+  ) : isDialog ? (
+    <BucketEditorDialog
+      buckets={buckets}
+      vertical={rail}
+      maxBuckets={maxBuckets}
+      selectedId={selectedId}
+      onSelect={setSelectedBucketId}
+      onEdit={onEditBucket}
+      onAdd={onAddBucket}
+      onRemove={onRemoveBucket}
+    />
+  ) : (
+    <div style={styles.bucketRow}>
+      {buckets.map((b) => (
+        <BucketCard key={b.id} bucket={b} />
+      ))}
+    </div>
+  );
   const table = (
     <AgentBucketTable
       agents={tableAgents}
@@ -126,7 +149,7 @@ export default function CreditsUsageC5({
         title="Quota buckets & assignment"
         description={
           editMode
-            ? `Edit each tier's name and weekly cap, or add up to ${rail ? 10 : 5} tiers. Every agent draws their cap from the tier they're in.`
+            ? `Edit each tier's name and weekly cap, or add up to ${maxBuckets} tiers. Every agent draws their cap from the tier they're in.`
             : "Every agent gets a weekly cap from one of three buckets. New agents start in Kickstart (30 min); move people up a tier as they ramp."
         }
         headerRight={
@@ -148,6 +171,25 @@ export default function CreditsUsageC5({
           </div>
         ) : (
           <>
+            {scroll && overAlert && (
+              <CapAlertBanner
+                count={overAlert.count}
+                resetDay={overAlert.resetDay}
+                tone={overAlert.tone}
+                message={overAlert.message}
+                onViewAgents={() => onManageChange("nearing")}
+              />
+            )}
+            {showRec && (
+              <RecommendationBanner
+                count={atLimitTop.length}
+                tierName={topBucket.name}
+                capMin={topBucket.capMin}
+                suggestCap={suggestCap}
+                onView={() => onManageChange("nearing")}
+                onCreate={() => openManager(suggestCap)}
+              />
+            )}
             {bucketStrip}
             {table}
           </>
@@ -191,7 +233,80 @@ export default function CreditsUsageC5({
           onUpgradeTier={handleUpgradeTier}
         />
       )}
+
+      {scroll && (
+        <BucketsManagerDialog
+          open={manageBucketsOpen}
+          buckets={buckets}
+          maxBuckets={maxBuckets}
+          seedCap={bucketSeed}
+          onClose={() => setManageBucketsOpen(false)}
+          onSave={onSaveBuckets}
+        />
+      )}
     </>
+  );
+}
+
+// ScrollStrip — Scrollable's horizontal tier rail: a sticky "Add" tile that
+// floats over the cards as they scroll under it, then the interactive tier
+// cards (click selects the tier the table filters to). Editing lives in the
+// tier manager the Add tile opens, so the cards carry no pencil.
+function ScrollStrip({ buckets, selectedId, onSelect, onAdd }) {
+  return (
+    <div style={styles.scrollWrap}>
+      <div style={styles.scrollInner}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onAdd}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onAdd();
+            }
+          }}
+          aria-label="Manage tiers"
+          style={styles.scrollAdd}
+        >
+          <Plus size={18} />
+          <span style={styles.scrollAddLabel}>Add</span>
+        </div>
+        {buckets.map((b) => (
+          <div key={b.id} style={styles.scrollCard}>
+            <BucketCard bucket={b} interactive selected={b.id === selectedId} onClick={() => onSelect(b.id)} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// RecommendationBanner — Scrollable's PM nudge: when top-tier agents are capped
+// with nowhere higher to go, suggest a new tier above the ceiling. "View
+// agents" opens the over-limit list; "Create bucket" opens the tier manager
+// with a row pre-filled to the suggested cap.
+function RecommendationBanner({ count, tierName, capMin, suggestCap, onView, onCreate }) {
+  return (
+    <div style={styles.recBanner}>
+      <span style={styles.recIcon}>
+        <Lightbulb size={18} />
+      </span>
+      <div style={styles.recText}>
+        <span style={styles.recLead}>Add a tier above {tierName}</span>
+        <span style={styles.recNote}>
+          {count} {count === 1 ? "agent is" : "agents are"} at the {capMin} min {tierName} cap with no higher tier. Create a {suggestCap} min tier to give them room.
+        </span>
+      </div>
+      <div style={styles.recActions}>
+        <Button variant="text" uppercase={false} onClick={onView}>
+          View agents
+        </Button>
+        <Button variant="primary" size="sm" leadingIcon={<Plus size={15} />} onClick={onCreate}>
+          Create bucket
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -269,6 +384,57 @@ const styles = {
   split: { display: "flex", gap: 24, alignItems: "flex-start" },
   railCol: { width: 200, flexShrink: 0 },
   main: { flex: 1, minWidth: 0 },
+
+  // Scrollable strip: a horizontal scroller whose first child (Add) is sticky
+  // to the left so it floats over the cards as they scroll under it.
+  scrollWrap: { overflowX: "auto", overflowY: "hidden", paddingBottom: 4 },
+  scrollInner: { display: "flex", gap: 12, alignItems: "stretch", width: "max-content" },
+  scrollAdd: {
+    position: "sticky",
+    left: 0,
+    zIndex: 2,
+    flexShrink: 0,
+    width: 52,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 8,
+    border: "1.5px dashed var(--color-divider-card)",
+    background: "#FFFFFF",
+    color: "var(--color-text-tertiary)",
+    cursor: "pointer",
+    transition: "border-color 120ms ease, color 120ms ease",
+  },
+  scrollAddLabel: { fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" },
+  scrollCard: { width: 172, flexShrink: 0, display: "flex" },
+
+  recBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    padding: "12px 16px",
+    marginBottom: 14,
+    borderRadius: 10,
+    border: "1px solid var(--color-divider-card)",
+    background: "var(--color-icon-tertiary-bg)",
+  },
+  recIcon: {
+    display: "inline-flex",
+    flexShrink: 0,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    background: "#FFFFFF",
+    color: "var(--color-icon-tertiary-fg)",
+  },
+  recText: { display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 },
+  recLead: { fontSize: 13, fontWeight: 700, color: "var(--color-text-deep)" },
+  recNote: { fontSize: 12, fontWeight: 500, lineHeight: "17px", color: "var(--color-text-tertiary)" },
+  recActions: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
 
   popScrim: { position: "fixed", inset: 0, background: "transparent", zIndex: 39 },
   popPanel: {

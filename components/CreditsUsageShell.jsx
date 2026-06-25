@@ -25,9 +25,10 @@ import IterationRail from "./IterationRail";
 //   C7  — Dialog-edited tiers stacked vertically (up to 10), rules in a popover.
 //   C8  — "Customizable bucket": C7's editing + a selectable roster (card-level
 //         "Manage agents" → move-to-tier dialog; red banner → over-limit dialog
-//         that moves agents up tiers). Its two iterations are the tier-card
-//         layout — Horizontal (cards on top of the list) and Vertical (a rail
-//         beside it). (C6 folded in here.)
+//         that moves agents up tiers). Its iterations are the tier-card layout
+//         — Horizontal (cards on top), Vertical (a rail beside the list), and
+//         Scrollable (a horizontal scroll strip with a floating Add that opens
+//         a line-item tier manager). (C6 folded in here.)
 //
 // Iterations (C8 Horizontal/Vertical, the bulk study's i1/i2/i3) render in a
 // vertical floating IterationRail on the right; the bottom VersionBar shows
@@ -55,7 +56,7 @@ const BULK_PLACEMENTS = { i1: "floating", i2: "inline", i3: "footer" };
 // Iterations live in the floating rail, keyed by version id (whether the version
 // sits in the main row or in Discarded). The bulk study's i1/i2/i3 pick where
 // its move action sits: i1 floating · i2 inline · i3 footer.
-const CU_ITERATIONS = { c8: ["Horizontal", "Vertical"], bulk: ["i1", "i2", "i3"] };
+const CU_ITERATIONS = { c8: ["Horizontal", "Vertical", "Scrollable"], bulk: ["i1", "i2", "i3"] };
 // The bottom bar shows versions only; iterations move to the IterationRail.
 const CU_BAR_VERSIONS = CU_VERSIONS.map((v) => ({ ...v, iterations: [] }));
 
@@ -63,10 +64,16 @@ export default function CreditsUsageShell({ onBack }) {
   const [sel, setSel] = React.useState({ versionId: "c8", iterationId: null });
   const iterations = CU_ITERATIONS[sel.versionId] || [];
   const activeIter = iterations.includes(sel.iterationId) ? sel.iterationId : iterations[0] || null;
-  // C8's Horizontal/Vertical iterations map to the C8A/C8B the page knows
-  // (tier-card layout only); bulk maps to placements.
+  // C8's Horizontal/Vertical/Scrollable iterations map to the C8A/C8B/C8C the
+  // page knows (tier-card layout only); bulk maps to placements.
   const variant =
-    sel.versionId === "c8" ? (activeIter === "Vertical" ? "C8B" : "C8A") : sel.versionId.toUpperCase();
+    sel.versionId === "c8"
+      ? activeIter === "Vertical"
+        ? "C8B"
+        : activeIter === "Scrollable"
+          ? "C8C"
+          : "C8A"
+      : sel.versionId.toUpperCase();
   const bulkPlacement = sel.versionId === "bulk" ? BULK_PLACEMENTS[activeIter || "i1"] : null;
 
   return (
@@ -75,7 +82,7 @@ export default function CreditsUsageShell({ onBack }) {
           own state. C8 a/b share one mount (same data, layout differs); the
           rest get their own. */}
       <CreditsUsagePage
-        key={variant === "C8A" || variant === "C8B" ? "c8" : ["C4", "C5", "C7"].includes(variant) ? variant.toLowerCase() : "main"}
+        key={["C8A", "C8B", "C8C"].includes(variant) ? "c8" : ["C4", "C5", "C7"].includes(variant) ? variant.toLowerCase() : "main"}
         onBack={onBack}
         assignmentMode={variant}
         bulkPlacement={bulkPlacement}

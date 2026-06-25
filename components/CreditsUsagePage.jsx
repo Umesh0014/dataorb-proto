@@ -44,15 +44,17 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   // C7/C8 are C5 with editable + addable tiers, dialog-edited, rules in a
   // popover. All share C5's three-tier seed + chrome.
   const isC7 = assignmentMode === "C7";
-  // C8 (C6 folded in): selectable roster + dialog editing; iterations a/b are
-  // the tier-card layout — a = horizontal cards on top, b = a vertical rail.
+  // C8 (C6 folded in): selectable roster + dialog editing; iterations are the
+  // tier-card layout — a = horizontal cards on top, b = a vertical rail, c = a
+  // horizontal scroll strip whose floating Add opens a line-item tier manager.
   const isC8a = assignmentMode === "C8A";
   const isC8b = assignmentMode === "C8B";
-  const isC8 = isC8a || isC8b;
+  const isC8c = assignmentMode === "C8C";
+  const isC8 = isC8a || isC8b || isC8c;
   const isC7or8 = isC7 || isC8;
   const isC5Like = isC5 || isC7 || isC8;
   const editMode = isC7or8 ? "dialog" : undefined;
-  const bucketLayout = isC7 || isC8b ? "rail" : undefined;
+  const bucketLayout = isC7 || isC8b ? "rail" : isC8c ? "scroll" : undefined;
   const seedBuckets = isC4 ? QUOTA_BUCKETS_4 : isC5Like ? QUOTA_BUCKETS_3 : QUOTA_BUCKETS;
   const seedAgents = isC4 ? AGENT_BUCKET_SAMPLE_4 : isC5Like ? AGENT_BUCKET_SAMPLE_3 : AGENT_BUCKET_SAMPLE;
   const [agents, setAgents] = React.useState(seedAgents);
@@ -65,7 +67,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   const [pendingChange, setPendingChange] = React.useState(null);
   // C5 manager: null = closed, otherwise the tab to open on ("nearing" | id).
   const [manageTab, setManageTab] = React.useState(null);
-  const { editBucket, addBucket, removeBucket } = useBucketEditor(buckets, setBuckets, setAgents, bucketLayout === "rail" ? 10 : 5);
+  const { editBucket, addBucket, removeBucket, replaceBuckets } = useBucketEditor(buckets, setBuckets, setAgents, bucketLayout ? 10 : 5);
 
   // Swapping assignment approach resets only the approach-local selection —
   // the shared data (agents / buckets / rules) stays put. Done with the
@@ -182,7 +184,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
         <CreditUtilisationCard
           quota={WEEKLY_QUOTA}
           consumedPct={consumedPct}
-          overCap={isC5Like ? c5Alert : overCap}
+          overCap={isC8c ? null : isC5Like ? c5Alert : overCap}
           onViewAgents={isC5Like ? () => setManageTab("nearing") : scrollToAgents}
           fyi={isC5Like && !isC7or8 ? <C5RulesFyi /> : null}
           headerRight={isC7or8 ? <RulesPopover /> : undefined}
@@ -243,6 +245,8 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             onEditBucket={editBucket}
             onAddBucket={addBucket}
             onRemoveBucket={removeBucket}
+            onSaveBuckets={replaceBuckets}
+            overAlert={isC8c ? c5Alert : null}
           />
         )}
         {(assignmentMode === "A" || assignmentMode === "B") && (
@@ -281,7 +285,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
 // approaches (C2–C4, bulk) fold buckets into their own card, and C5/C6 own
 // their bucket strip, so this renders nothing for those.
 function StandaloneBuckets({ mode, buckets, selectedBucketId, onSelect }) {
-  if (["C2", "C3", "C4", "BULK", "C5", "C7", "C8A", "C8B"].includes(mode)) return null;
+  if (["C2", "C3", "C4", "BULK", "C5", "C7", "C8A", "C8B", "C8C"].includes(mode)) return null;
   return (
     <Section
       title="Quota buckets"
@@ -341,10 +345,11 @@ function c5OverAlert(agents, buckets) {
   return { tone: "amber", count: near, message: `${near} agent${near === 1 ? " is" : "s are"} nearing their weekly limit.` };
 }
 
-// useBucketEditor — C6/C7 tier mutations over the page's buckets/agents state.
+// useBucketEditor — C7/C8 tier mutations over the page's buckets/agents state.
 // Edits patch a tier; add appends a tier (from an optional {name, capMin} spec,
 // capped at maxBuckets); remove reassigns the tier's agents to the first
-// remaining tier and folds its count in.
+// remaining tier and folds its count in. replaceBuckets is the batch save for
+// the line-item tier manager (Scrollable iteration).
 function useBucketEditor(buckets, setBuckets, setAgents, maxBuckets = 5) {
   const seq = React.useRef(0);
   const editBucket = (id, patch) =>
@@ -367,7 +372,37 @@ function useBucketEditor(buckets, setBuckets, setAgents, maxBuckets = 5) {
         .map((b) => (b.id === fallback.id ? { ...b, agentCount: b.agentCount + (removed?.agentCount || 0) } : b)),
     );
   };
-  return { editBucket, addBucket, removeBucket };
+  // Batch save from the line-item manager: `next` is [{ id?, name, capMin }] in
+  // display order, `defaultIndex` marks the default tier. Existing tiers keep
+  // their id + agentCount; agents on a dropped tier fall to the default, whose
+  // count absorbs them, and that tier carries the default note.
+  const replaceBuckets = (next, defaultIndex = 0) => {
+    const byId = new Map(buckets.map((b) => [b.id, b]));
+    let s = seq.current;
+    const built = next.map((row) => {
+      const existing = row.id ? byId.get(row.id) : null;
+      return {
+        id: existing ? existing.id : `tier-${s++}`,
+        name: (row.name || "").trim() || "New tier",
+        capMin: row.capMin || 30,
+        agentCount: existing?.agentCount || 0,
+      };
+    });
+    seq.current = s;
+    const keptIds = new Set(built.map((b) => b.id));
+    const fallback = built[defaultIndex] || built[0];
+    if (!fallback) return;
+    setAgents((prev) => prev.map((a) => (keptIds.has(a.bucketId) ? a : { ...a, bucketId: fallback.id })));
+    const orphan = buckets.filter((b) => !keptIds.has(b.id)).reduce((sum, b) => sum + b.agentCount, 0);
+    setBuckets(
+      built.map((b, i) => ({
+        ...b,
+        agentCount: b.id === fallback.id ? b.agentCount + orphan : b.agentCount,
+        note: i === defaultIndex ? "Standard default" : undefined,
+      })),
+    );
+  };
+  return { editBucket, addBucket, removeBucket, replaceBuckets };
 }
 
 const styles = {
