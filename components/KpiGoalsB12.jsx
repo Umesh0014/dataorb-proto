@@ -2,7 +2,7 @@
 
 import React from "react";
 import KpiRing from "./KpiRing";
-import { RagChip, InfoTip } from "./KpiSidecarParts";
+import { InfoTip } from "./KpiSidecarParts";
 import { PageHeader, Pagination, KpiTile } from "./ds";
 import { KPIS, CATEGORIES, statusOf } from "./mocks/kpiGoals";
 import { TYPE, COLORS, RADIUS } from "./designTokens";
@@ -68,7 +68,7 @@ function CompactCategoryCard({ cat, selected, onClick }) {
           <InfoTip text={cat.blurb} />
         </span>
         <span style={cc.footer}>
-          <RagChip rag={cat.rag} label={cat.status} />
+          <span style={{ ...cc.chip, ...(CHIP_TINT[cat.rag] || CHIP_TINT.amber) }}>{cat.status}</span>
           <span style={cc.onTrack}>{cat.onTrack}/{cat.total} on track</span>
         </span>
       </span>
@@ -91,9 +91,16 @@ const s = {
 const cc = {
   card: { display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "#FFFFFF", border: `1px solid ${COLORS.divider}`, borderRadius: RADIUS.lg, cursor: "pointer", textAlign: "left", fontFamily: TYPE.bodyMedium.fontFamily, transition: "box-shadow .15s, border-color .15s" },
   selected: { border: "1px solid #6650A5", boxShadow: "0 0 0 1px #6650A5" },
-  body: { display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 },
+  body: { display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 0 },
   titleRow: { display: "flex", alignItems: "center", gap: 4 },
   name: { ...TYPE.titleSmall, fontWeight: 600, color: COLORS.textBody },
-  footer: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  onTrack: { ...TYPE.bodySmall, color: COLORS.textFaint },
+  footer: { display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap", minWidth: 0 },
+  chip: { display: "inline-flex", alignItems: "center", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, lineHeight: "14px", whiteSpace: "nowrap", flexShrink: 0 },
+  onTrack: { fontSize: 11, color: COLORS.textFaint, whiteSpace: "nowrap" },
+};
+
+const CHIP_TINT = {
+  green: { background: "#F0FDF4", color: "#00711D" },
+  amber: { background: "#FFFBEB", color: "#B57E12" },
+  red: { background: "#FEF2F2", color: "#BA1A1A" },
 };

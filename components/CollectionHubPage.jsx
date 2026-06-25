@@ -1431,21 +1431,21 @@ function kpiRailBtnStyle(active, isHover) {
 // Rail styles — mirrors MilestoneSideRail railStyles exactly
 const railS = {
   rail: {
-    position: "relative", flexShrink: 0, width: 48,
+    position: "relative", flexShrink: 0, width: 156,
     display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-    padding: "8px 0", background: "#171717", border: "1px solid #404040",
-    borderRadius: 10, boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
+    padding: "10px 10px", background: "#171717", border: "1px solid #404040",
+    borderRadius: 14, boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
   },
   railLabel: {
     fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
     letterSpacing: "0.12em", color: "#737373",
   },
-  railDivider: { width: 24, height: 1, background: "#262626" },
-  btnGroup: { display: "flex", flexDirection: "column", gap: 4 },
+  railDivider: { width: "100%", height: 1, background: "#262626" },
+  btnGroup: { display: "flex", flexDirection: "column", gap: 6, width: "100%" },
   btn: {
-    width: 36, height: 36, display: "inline-flex", alignItems: "center",
-    justifyContent: "center", padding: 0, borderRadius: 6,
-    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
+    width: "100%", minHeight: 38, display: "inline-flex", alignItems: "center",
+    justifyContent: "center", padding: "9px 14px", borderRadius: 8,
+    fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
     cursor: "pointer", transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
   },
   infoBtn: {
@@ -1461,7 +1461,7 @@ const kpiSectionStyles = {
   cardArea: { width: "100%" },
   railMount: {
     position: "absolute", top: 0, bottom: 0, left: "100%",
-    marginLeft: 12, width: 48, zIndex: 30,
+    marginLeft: 12, width: 156, zIndex: 30,
   },
   railSticky: { position: "sticky", top: "50vh", transform: "translateY(-50%)" },
   // I-pill placement: sits flush to the RIGHT of the V-pill with an 8px gap.
