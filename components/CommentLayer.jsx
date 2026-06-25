@@ -151,10 +151,23 @@ export default function CommentLayer() {
               }}
             />
           ))}
+          {draft && (
+            <span style={{ ...styles.draftPin, left: draft.x, top: draft.y }} aria-hidden="true">
+              <span style={styles.draftRing} />
+            </span>
+          )}
           {open && <Thread c={open} onClose={() => setOpenId(null)} onResolve={() => toggleResolve(open.id)} onDelete={() => remove(open.id)} />}
           {draft && <Composer x={draft.x} y={draft.y} text={text} onText={setText} onPost={post} onCancel={() => setDraft(null)} />}
         </div>,
         document.body,
+      )}
+
+      {mode && (
+        <div style={styles.modeBar}>
+          <span style={styles.modeDot} />
+          <span>Comment mode — click anywhere to add a comment</span>
+          <button type="button" onClick={() => setMode(false)} style={styles.exitBtn}>Exit · Esc</button>
+        </div>
       )}
 
       <button
@@ -165,14 +178,16 @@ export default function CommentLayer() {
           setOpenId(null);
         }}
         aria-pressed={mode}
-        aria-label="Toggle comments"
-        style={{ ...styles.fab, ...(mode ? styles.fabOn : null) }}
+        aria-label="Toggle comment mode"
+        style={{ ...styles.fab, ...(mode ? styles.fabActive : null) }}
       >
-        <IconComment size={17} />
-        <span>{mode ? "Commenting" : "Comment"}</span>
-        {visible.length > 0 && <span style={{ ...styles.badge, ...(mode ? styles.badgeOn : null) }}>{visible.length}</span>}
+        <span style={{ ...styles.track, ...(mode ? styles.trackOn : null) }}>
+          <span style={{ ...styles.knob, ...(mode ? styles.knobOn : null) }} />
+        </span>
+        <IconComment size={16} />
+        <span>Comments</span>
+        {visible.length > 0 && <span style={styles.badge}>{visible.length}</span>}
       </button>
-      {mode && <div style={styles.hint}>Click anywhere to drop a comment · Esc to stop</div>}
       <EscClose active={mode} onEsc={() => setMode(false)} />
     </>
   );
@@ -245,7 +260,7 @@ function Thread({ c, onClose, onResolve, onDelete }) {
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 const styles = {
-  capture: { position: "fixed", inset: 0, zIndex: 9980, cursor: "crosshair", background: "rgba(37,99,235,0.03)" },
+  capture: { position: "fixed", inset: 0, zIndex: 9980, cursor: "crosshair", background: "rgba(37,99,235,0.05)" },
   pinLayer: { position: "absolute", top: 0, left: 0, zIndex: 9990, pointerEvents: "none" },
   pin: {
     position: "absolute",
@@ -324,8 +339,46 @@ const styles = {
     cursor: "pointer",
     boxShadow: "0 14px 34px -14px rgba(17,17,26,0.45)",
   },
-  fabOn: { background: BLUE, color: "#FFFFFF", border: "1px solid transparent" },
+  fabActive: { borderColor: BLUE, boxShadow: "0 0 0 3px rgba(37,99,235,0.18), 0 14px 34px -14px rgba(17,17,26,0.45)" },
+  track: { width: 32, height: 18, borderRadius: 999, background: DIVIDER, position: "relative", flexShrink: 0, transition: "background 120ms ease" },
+  trackOn: { background: BLUE },
+  knob: { position: "absolute", top: 2, left: 2, width: 14, height: 14, borderRadius: "50%", background: "#FFFFFF", boxShadow: "0 1px 2px rgba(0,0,0,0.35)", transition: "left 120ms ease" },
+  knobOn: { left: 16 },
   badge: { minWidth: 18, height: 18, paddingInline: 5, borderRadius: 999, background: BLUE, color: "#FFFFFF", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center" },
-  badgeOn: { background: "#FFFFFF", color: BLUE },
-  hint: { position: "fixed", left: 24, bottom: 72, zIndex: 9996, padding: "7px 12px", borderRadius: 8, background: INK, color: "#FFFFFF", fontFamily: FONT, fontSize: 12, fontWeight: 600, boxShadow: "0 12px 30px -12px rgba(17,17,26,0.5)" },
+  modeBar: {
+    position: "fixed",
+    top: 16,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 9996,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 12,
+    height: 40,
+    padding: "0 8px 0 16px",
+    borderRadius: 999,
+    background: INK,
+    color: "#FFFFFF",
+    fontFamily: FONT,
+    fontSize: 13,
+    fontWeight: 600,
+    boxShadow: "0 16px 38px -12px rgba(17,17,26,0.55)",
+  },
+  modeDot: { width: 8, height: 8, borderRadius: "50%", background: "#37D67A", boxShadow: "0 0 0 4px rgba(55,214,122,0.25)", flexShrink: 0 },
+  exitBtn: { border: "none", background: "rgba(255,255,255,0.16)", color: "#FFFFFF", fontFamily: FONT, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "7px 14px", borderRadius: 999 },
+  draftPin: {
+    position: "absolute",
+    transform: "translate(-50%, -100%)",
+    width: 28,
+    height: 28,
+    borderRadius: "50% 50% 50% 2px",
+    border: "2px solid #FFFFFF",
+    background: BLUE,
+    boxShadow: "0 6px 16px -4px rgba(37,99,235,0.6)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    pointerEvents: "none",
+  },
+  draftRing: { width: 8, height: 8, borderRadius: "50%", background: "#FFFFFF" },
 };
