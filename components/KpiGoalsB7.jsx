@@ -24,18 +24,15 @@ const facetOf = (k) => {
 // detail opens in an in-flow SIDE CARD on the right (not a full-bleed drawer).
 export default function KpiGoalsB7() {
   const [sel, setSel] = React.useState(null);
-  const [active, setActive] = React.useState(() => new Set());
   const [page, setPage] = React.useState(0);
 
   const counts = FACETS.reduce((m, f) => ({ ...m, [f.id]: KPIS.filter((k) => facetOf(k) === f.id).length }), {});
-  const shown = KPIS.filter((k) => active.size === 0 || active.has(facetOf(k)));
+  const shown = KPIS; // FYI chips below are informational only — no filtering.
   const pages = Math.max(1, Math.ceil(shown.length / PER_PAGE));
   const safePage = Math.min(page, pages - 1);
   const items = shown.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
   const cols = sel ? 2 : 3;
   const drillKpi = sel ? { ...KPI_CONFIGS[DEFAULT_KPI_ID], name: sel.name, subtitle: sel.tip } : null;
-
-  const toggleFacet = (id) => { setActive((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; }); setPage(0); };
 
   return (
     <div style={s.wrap}>
@@ -46,17 +43,12 @@ export default function KpiGoalsB7() {
             <p style={s.subtitle}>Track how agents and system performs</p>
           </div>
           <div style={s.filters}>
-            {FACETS.map((f) => {
-              const on = active.has(f.id);
-              const included = active.size === 0 || on;
-              return (
-                <button key={f.id} type="button" onClick={() => toggleFacet(f.id)}
-                  style={{ ...s.pill, background: included ? f.bg : "#F5F5F7", borderColor: included ? f.border : "#E5E7EB", color: included ? f.fg : "#9AA1B2", ...(on ? s.pillOn : null) }}>
-                  {f.label}
-                  <span style={s.badge}>{counts[f.id]}</span>
-                </button>
-              );
-            })}
+            {FACETS.map((f) => (
+              <span key={f.id} style={{ ...s.pill, background: f.bg, borderColor: f.border, color: f.fg }}>
+                {f.label}
+                <span style={{ ...s.badge, background: f.border, color: f.fg }}>{counts[f.id]}</span>
+              </span>
+            ))}
           </div>
         </header>
 
@@ -68,7 +60,7 @@ export default function KpiGoalsB7() {
           {items.map((k) => (
             <KpiTile key={k.id} k={k} selected={sel?.id === k.id} onClick={() => setSel(sel?.id === k.id ? null : k)} />
           ))}
-          {!items.length && <p style={s.empty}>No KPIs match the selected filters.</p>}
+          {!items.length && <p style={s.empty}>No KPIs to show.</p>}
         </div>
 
         <div style={s.pager}>
@@ -98,7 +90,7 @@ const s = {
   title: { fontSize: 16, fontWeight: 500, color: "#171B2C", margin: 0, letterSpacing: "0.1px" },
   subtitle: { fontSize: 14, color: "#5B5E6F", margin: "4px 0 0", letterSpacing: "0.25px" },
   filters: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" },
-  pill: { display: "inline-flex", alignItems: "center", gap: 8, height: 30, padding: "0 16px", borderRadius: 100, border: "1px solid", cursor: "pointer", fontFamily: POPPINS, fontSize: 11, fontWeight: 600, letterSpacing: "0.5px", whiteSpace: "nowrap" },
+  pill: { display: "inline-flex", alignItems: "center", gap: 8, height: 30, padding: "0 16px", borderRadius: 100, border: "1px solid", cursor: "default", fontFamily: POPPINS, fontSize: 11, fontWeight: 600, letterSpacing: "0.5px", whiteSpace: "nowrap" },
   pillOn: { boxShadow: "0 0 0 1px currentColor inset" },
   badge: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 999, background: "#EFEFFF", color: "#004BEF", fontSize: 11, fontWeight: 700 },
   cats: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 },
