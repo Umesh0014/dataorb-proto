@@ -40,6 +40,7 @@ import IterationRail from "./IterationRail";
 const CU_VERSIONS = [
   { id: "c5", label: "Fixed buckets", iterations: [] },
   { id: "c8", label: "Customizable bucket", iterations: [] },
+  { id: "c100", label: "C100 · Governance", iterations: [] },
 ];
 const CU_DISCARDED = [
   { id: "a", label: "A" },
@@ -82,7 +83,7 @@ export default function CreditsUsageShell({ onBack }) {
           own state. C8 a/b share one mount (same data, layout differs); the
           rest get their own. */}
       <CreditsUsagePage
-        key={["C8A", "C8B", "C8C"].includes(variant) ? "c8" : ["C4", "C5", "C7"].includes(variant) ? variant.toLowerCase() : "main"}
+        key={["C8A", "C8B", "C8C"].includes(variant) ? "c8" : ["C4", "C5", "C7", "C100"].includes(variant) ? variant.toLowerCase() : "main"}
         onBack={onBack}
         assignmentMode={variant}
         bulkPlacement={bulkPlacement}

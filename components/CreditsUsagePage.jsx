@@ -17,6 +17,7 @@ import LimitRuleControl from "./LimitRuleControl";
 import BucketDecisionControls from "./BucketDecisionControls";
 import CreditsUsageAdjustPanel from "./CreditsUsageAdjustPanel";
 import CreditsUsageC5, { C5RulesFyi, RulesPopover } from "./CreditsUsageC5";
+import CreditsUsageGov from "./CreditsUsageGov";
 import {
   WEEKLY_QUOTA,
   QUOTA_BUCKETS,
@@ -43,6 +44,10 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   const isC5 = assignmentMode === "C5";
   // C7/C8 are C5 with editable + addable tiers, dialog-edited, rules in a
   // popover. All share C5's three-tier seed + chrome.
+  // C100 — the Usage Governance spec V1.1 build; renders its own self-contained
+  // two-section page (Plan & Allowance + Allocation), so it short-circuits the
+  // shared C&U scaffolding below.
+  const isC100 = assignmentMode === "C100";
   const isC7 = assignmentMode === "C7";
   // C8 (C6 folded in): selectable roster + dialog editing; iterations are the
   // tier-card layout — a = horizontal cards on top, b = a vertical rail, c = a
@@ -157,13 +162,10 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
   // C5/C6 docked alert: the amber/red over-limit notice; View agents opens the manager.
   const c5Alert = isC5Like ? c5OverAlert(agents, buckets) : null;
 
-  const consumedPct = Math.round((WEEKLY_QUOTA.consumedMin / WEEKLY_QUOTA.totalMin) * 100);
-  const adjustPanel = adjustAgent ? (
-    <CreditsUsageAdjustPanel agent={adjustAgent} buckets={buckets} onClose={() => setAdjustAgent(null)} onSave={handleSaveAdjust} />
-  ) : null;
+  if (isC100) return <GovPage onBack={onBack} />;
 
   return (
-    <PageLayout rightPanel={adjustPanel} onPanelClose={() => setAdjustAgent(null)}>
+    <PageLayout rightPanel={adjustAgent ? <CreditsUsageAdjustPanel agent={adjustAgent} buckets={buckets} onClose={() => setAdjustAgent(null)} onSave={handleSaveAdjust} /> : null} onPanelClose={() => setAdjustAgent(null)}>
       <div style={styles.column}>
         <PageHeader
           back={onBack}
@@ -183,7 +185,7 @@ export default function CreditsUsagePage({ onBack, assignmentMode = "A", bulkPla
             over-limit notice here and routes View agents into the manager. */}
         <CreditUtilisationCard
           quota={WEEKLY_QUOTA}
-          consumedPct={consumedPct}
+          consumedPct={Math.round((WEEKLY_QUOTA.consumedMin / WEEKLY_QUOTA.totalMin) * 100)}
           overCap={isC8c ? null : isC5Like ? c5Alert : overCap}
           onViewAgents={isC5Like ? () => setManageTab("nearing") : scrollToAgents}
           fyi={isC5Like && !isC7or8 ? <C5RulesFyi /> : null}
@@ -343,6 +345,28 @@ function c5OverAlert(agents, buckets) {
     return { tone: "red", count: over, message: `${over} agent${over === 1 ? " is" : "s are"} over their weekly limit — they keep practising; review and upgrade their tier.` };
   }
   return { tone: "amber", count: near, message: `${near} agent${near === 1 ? " is" : "s are"} nearing their weekly limit.` };
+}
+
+// GovPage — the C100 (Usage Governance V1.1) shell: the standard page chrome
+// around the self-contained two-section governance page.
+function GovPage({ onBack }) {
+  return (
+    <PageLayout>
+      <div style={styles.column}>
+        <PageHeader
+          back={onBack}
+          identifier={{
+            icon: <Gauge size={16} color="var(--color-icon-tertiary-fg)" />,
+            label: "Learning Hub · Usage",
+            iconBg: "var(--color-icon-tertiary-bg)",
+            iconColor: "var(--color-icon-tertiary-fg)",
+          }}
+          subtitle="Tenant ceiling, weekly allowances per group, and learner management."
+        />
+        <CreditsUsageGov />
+      </div>
+    </PageLayout>
+  );
 }
 
 // useBucketEditor — C7/C8 tier mutations over the page's buckets/agents state.

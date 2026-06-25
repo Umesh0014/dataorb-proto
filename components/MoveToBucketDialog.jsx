@@ -51,16 +51,20 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
 
   // The source tier(s) of the selected agents are not valid destinations.
   const sourceIds = new Set(agents.map((a) => a.bucketId));
-  const options = buckets.filter((b) => !sourceIds.has(b.id)).map((b) => ({ value: b.id, label: `${b.name} (${b.capMin} min)` }));
+  const options = buckets
+    .filter((b) => !sourceIds.has(b.id))
+    .map((b) => ({ value: b.id, label: b.capMin != null ? `${b.name} (${b.capMin} min)` : `${b.name} (no allowance)` }));
   const targetBucket = buckets.find((b) => b.id === target);
   // Net weekly minutes the move commits: Σ (new cap − current cap) over the
-  // checked agents. Positive when moving up a tier, negative when moving down.
-  const deltaMin = targetBucket
-    ? picked.reduce((sum, id) => {
-        const a = agents.find((x) => x.id === id);
-        return a ? sum + (targetBucket.capMin - appliedCap(a, buckets)) : sum;
-      }, 0)
-    : 0;
+  // checked agents. null when the destination has no allowance set (no pacing),
+  // so no impact figure shows.
+  const deltaMin =
+    targetBucket && targetBucket.capMin != null
+      ? picked.reduce((sum, id) => {
+          const a = agents.find((x) => x.id === id);
+          return a ? sum + (targetBucket.capMin - (appliedCap(a, buckets) || 0)) : sum;
+        }, 0)
+      : null;
 
   const q = query.trim().toLowerCase();
   const visible = q ? agents.filter((a) => a.name.toLowerCase().includes(q)) : agents;
@@ -134,7 +138,7 @@ export default function MoveToBucketDialog({ open, agents, buckets, onClose, onC
             <strong style={styles.footCount}>{picked.length}</strong> selected
           </span>
           <div style={styles.footRight}>
-            {targetBucket && picked.length > 0 && (
+            {targetBucket && picked.length > 0 && deltaMin != null && (
               <span style={styles.impact}>
                 {deltaMin >= 0 ? "+" : "−"}{Math.abs(deltaMin).toLocaleString()} min / week {deltaMin >= 0 ? "added" : "freed"}
               </span>

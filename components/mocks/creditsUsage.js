@@ -120,6 +120,30 @@ export const AGENT_BUCKET_SAMPLE = buildRoster(QUOTA_BUCKETS);
 export const AGENT_BUCKET_SAMPLE_4 = buildRoster(QUOTA_BUCKETS_4);
 export const AGENT_BUCKET_SAMPLE_3 = buildRoster(QUOTA_BUCKETS_3, { includeUnassigned: false, grace: true });
 
+// ── Usage Governance spec V1.1 (C100) ──────────────────────────────────────
+// The three-tier model: a DataOrb-set tenant ceiling (monthly allowance +
+// overage buffer), four fixed Usage Groups (Level 1–4, weekly per-learner
+// allowance, one default), and learners who inherit their group's allowance.
+// Minutes only; "Learner" not "agent"; usedThisMonth is set to ~82% to show
+// the 80% threshold banner.
+export const GOV_PLAN = {
+  monthlyAllowanceMin: 24000,
+  overageBufferMin: 3600,
+  usedThisMonthMin: 19800,
+  resetLabel: "1 Jul",
+};
+// capMin = the group's weekly per-learner allowance; null = "Not set" (dormant,
+// no pacing). Level 4 ships unset + empty to show that state. id is the stable
+// internal group_n; label is the renameable display string.
+export const GOV_GROUPS = [
+  { id: "group_1", name: "Level 1", capMin: 25, agentCount: 142, isDefault: true },
+  { id: "group_2", name: "Level 2", capMin: 35, agentCount: 88, isDefault: false },
+  { id: "group_3", name: "Level 3", capMin: 50, agentCount: 40, isDefault: false },
+  { id: "group_4", name: "Level 4", capMin: null, agentCount: 0, isDefault: false },
+];
+export const GOV_LEARNERS = buildRoster(GOV_GROUPS, { includeUnassigned: false, grace: true });
+export const AVG_WEEKS_PER_MONTH = 4.33;
+
 // "What happens when an agent reaches their weekly cap." The legacy set
 // (A/B/C1/C2/C3) is the original minute-based model; `allow_additional`
 // reveals the additional-minutes input.
