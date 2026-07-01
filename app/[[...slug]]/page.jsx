@@ -27,6 +27,7 @@ import TaskRecordPage from "../../components/TaskRecordPage";
 import SettingsPage from "../../components/SettingsPage";
 import CreditsUsageShell from "../../components/CreditsUsageShell";
 import GuidePage from "../../components/GuidePage";
+import GuideAskPage from "../../components/GuideAskPage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
 import GuidedWorkflowsPage from "../../components/GuidedWorkflowsPage";
@@ -401,6 +402,9 @@ export default function Page() {
   const [guideDraft, setGuideDraft] = React.useState(EMPTY_GUIDE_DRAFT);
   // Guide AI Tutor session — null = list view; a guide id = runtime mounted.
   const [guideSessionId, setGuideSessionId] = React.useState(null);
+  // Guide persona (Team Leader ↔ Agent). Agent = ask surface (GuideAskPage);
+  // Team Leader = management landing (GuidePage). Mirrors drillPersona pattern.
+  const [guidePersona, setGuidePersona] = React.useState("agent");
   const appMenuTriggerRef = React.useRef(null);
 
   const cancelRoleplay = () => {
@@ -820,6 +824,12 @@ export default function Page() {
           onEnd={closeGuideSession}
           locale={locale}
         />
+      );
+    } else if (onGuide && guidePersona === "agent" && !guideWizardStep) {
+      moduleContent = (
+        <PageLayout>
+          <GuideAskPage locale={locale} />
+        </PageLayout>
       );
     } else if (onMissions && missionDetailId && !missionWizardStep) {
       moduleContent = (
