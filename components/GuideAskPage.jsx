@@ -6,9 +6,9 @@
 
 import React from "react";
 import {
-  Search, Mic, Send, ChevronRight, ChevronDown,
-  Shield, ShieldCheck, ShieldAlert,
-  ExternalLink, X, Folder, FolderOpen,
+  Search, Send, ChevronRight, ChevronDown,
+  ShieldCheck, ShieldAlert,
+  X, Folder, FolderOpen,
   Sparkles, BookOpen, ArrowUpRight,
 } from "lucide-react";
 import Card from "./Card";
@@ -17,7 +17,6 @@ import {
   GUIDE_ASK_SUGGESTED,
   GUIDE_ASK_SOURCES,
   GUIDE_ASK_SAMPLE_ANSWER,
-  GUIDE_ASK_TURNS,
   GUIDE_ASK_TOPICS,
   ASK_SOURCE_TYPE_TONE,
   ASK_VERIFIED_TONE,
@@ -145,34 +144,35 @@ function SearchResults({ query, onChange, onSubmit, onReset, expandedSource, onE
   return (
     <div style={s.searchResults}>
       <div style={s.searchResultsHeader}>
-        <button type="button" onClick={onReset} style={s.backBtn}>
+        <button type="button" onClick={onReset} style={s.backBtn} className="ga-focusable">
           <ChevronRight size={16} color="var(--color-text-tertiary)" style={{ transform: "rotate(180deg)" }} />
           <span style={s.backLabel}>Back</span>
         </button>
         <SearchBar query={query} onChange={onChange} onSubmit={onSubmit} />
       </div>
 
-      <div style={s.answerSection}>
+      <Card padX={24} padY={24}>
         <div style={s.answerMeta}>
           <Sparkles size={14} color="var(--color-icon-tertiary-fg)" />
           <span style={s.answerMetaLabel}>Answer grounded in {GUIDE_ASK_SOURCES.length} plays</span>
         </div>
         <AnswerBlock text={GUIDE_ASK_SAMPLE_ANSWER.text} sources={GUIDE_ASK_SOURCES} />
-      </div>
+      </Card>
 
       <div style={s.sourcesSection}>
         <h3 style={s.sourcesHeading}>Sources ({GUIDE_ASK_SOURCES.length})</h3>
-        <div style={s.sourcesList}>
+        <ol style={s.sourcesList} role="list">
           {GUIDE_ASK_SOURCES.map((src, i) => (
-            <SourceCard
-              key={src.id}
-              source={src}
-              index={i + 1}
-              expanded={expandedSource === src.id}
-              onToggle={() => onExpandSource(expandedSource === src.id ? null : src.id)}
-            />
+            <li key={src.id} style={{ listStyle: "none" }}>
+              <SourceCard
+                source={src}
+                index={i + 1}
+                expanded={expandedSource === src.id}
+                onToggle={() => onExpandSource(expandedSource === src.id ? null : src.id)}
+              />
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </div>
   );
@@ -266,6 +266,7 @@ function ChatLanding({ onSuggestion }) {
             type="button"
             onClick={() => onSuggestion(sq.text)}
             style={s.chatSuggestChip}
+            className="ga-focusable"
           >
             <span style={s.chatSuggestText}>{sq.text}</span>
             <ArrowUpRight size={14} color="var(--color-text-tertiary)" style={{ flexShrink: 0 }} />
@@ -340,11 +341,10 @@ function ChatComposer({ query, onChange, onSubmit, sourceCount, onToggleSources,
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") onSubmit(); }}
             placeholder="Ask the guide anything…"
+            aria-label="Ask the guide"
             style={s.chatInput}
+            className="ga-focusable"
           />
-          <button type="button" aria-label="Record audio" style={s.micBtn}>
-            <Mic size={16} color="var(--color-text-tertiary)" />
-          </button>
         </div>
         <button
           type="button"
@@ -352,8 +352,9 @@ function ChatComposer({ query, onChange, onSubmit, sourceCount, onToggleSources,
           disabled={!query.trim()}
           aria-label="Send"
           style={{ ...s.sendBtn, opacity: query.trim() ? 1 : 0.4 }}
+          className="ga-focusable"
         >
-          <Send size={16} color="#FFFFFF" />
+          <Send size={16} color="var(--surface-white)" />
         </button>
       </div>
       <p style={s.disclaimer}>
@@ -374,13 +375,13 @@ function ChatSourcesPanel({ sources, onClose }) {
   }, [sources, search]);
 
   return (
-    <aside style={s.chatSourcesPanel}>
+    <aside style={s.chatSourcesPanel} aria-label="Sources panel">
       <div style={s.chatSourcesHeader}>
         <span style={s.chatSourcesTitle}>
           <Folder size={16} color="var(--color-text-deep)" />
           Sources ({sources.length})
         </span>
-        <button type="button" onClick={onClose} aria-label="Close sources" style={s.iconBtn}>
+        <button type="button" onClick={onClose} aria-label="Close sources" style={s.iconBtn} className="ga-focusable">
           <X size={16} color="var(--color-text-tertiary)" />
         </button>
       </div>
@@ -391,7 +392,9 @@ function ChatSourcesPanel({ sources, onClose }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search sources…"
+          aria-label="Search sources"
           style={s.chatSourcesInput}
+          className="ga-focusable"
         />
       </div>
       <div style={s.chatSourcesList}>
@@ -466,6 +469,7 @@ function HubDirection() {
                   type="button"
                   onClick={() => handleSuggestion(sq.text)}
                   style={s.hubSuggestRow}
+                  className="ga-focusable"
                 >
                   <span style={s.hubSuggestTopicPill}>{sq.topic}</span>
                   <span style={s.hubSuggestText}>{sq.text}</span>
@@ -488,9 +492,10 @@ function TopicCard({ topic, selected, onClick }) {
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      className="ga-focusable"
       style={{
         ...s.topicCard,
-        background: selected ? "var(--color-primary-alpha-04)" : "#FFFFFF",
+        background: selected ? "var(--color-primary-alpha-04)" : "var(--surface-white)",
         borderColor: selected ? "var(--color-button-primary-bg)" : "var(--color-divider-card)",
         boxShadow: hover && !selected ? "0 4px 12px rgba(69,70,79,0.10)" : "none",
       }}
@@ -509,7 +514,7 @@ function HubAnswerOverlay({ query, onClose }) {
   return (
     <div style={s.hubAnswerWrap}>
       <div style={s.hubAnswerHeader}>
-        <button type="button" onClick={onClose} style={s.backBtn}>
+        <button type="button" onClick={onClose} style={s.backBtn} className="ga-focusable">
           <ChevronRight size={16} color="var(--color-text-tertiary)" style={{ transform: "rotate(180deg)" }} />
           <span style={s.backLabel}>Back to topics</span>
         </button>
@@ -525,17 +530,18 @@ function HubAnswerOverlay({ query, onClose }) {
 
       <div style={s.sourcesSection}>
         <h3 style={s.sourcesHeading}>Sources ({GUIDE_ASK_SOURCES.length})</h3>
-        <div style={s.sourcesList}>
+        <ol style={s.sourcesList} role="list">
           {GUIDE_ASK_SOURCES.map((src, i) => (
-            <SourceCard
-              key={src.id}
-              source={src}
-              index={i + 1}
-              expanded={expandedSource === src.id}
-              onToggle={() => setExpandedSource(expandedSource === src.id ? null : src.id)}
-            />
+            <li key={src.id} style={{ listStyle: "none" }}>
+              <SourceCard
+                source={src}
+                index={i + 1}
+                expanded={expandedSource === src.id}
+                onToggle={() => setExpandedSource(expandedSource === src.id ? null : src.id)}
+              />
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </div>
   );
@@ -555,19 +561,19 @@ function SearchBar({ query, onChange, onSubmit, large }) {
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") onSubmit(); }}
         placeholder="Ask the guide anything…"
+        aria-label="Ask the guide"
         style={s.searchInput}
+        className="ga-focusable"
       />
-      <button type="button" aria-label="Record audio" style={s.micBtn}>
-        <Mic size={16} color="var(--color-text-tertiary)" />
-      </button>
       <button
         type="button"
         onClick={onSubmit}
         disabled={!query.trim()}
         aria-label="Search"
         style={{ ...s.sendBtn, opacity: query.trim() ? 1 : 0.4 }}
+        className="ga-focusable"
       >
-        <Send size={16} color="#FFFFFF" />
+        <Send size={16} color="var(--surface-white)" />
       </button>
     </div>
   );
@@ -581,6 +587,7 @@ function SuggestionCard({ item, onClick }) {
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      className="ga-focusable"
       style={{
         ...s.suggestCard,
         boxShadow: hover ? "0 4px 12px rgba(69,70,79,0.12)" : "var(--shadow-card)",
@@ -639,6 +646,8 @@ function CitationPill({ index, source }) {
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         aria-label={`Source ${index}`}
+        aria-expanded={open}
+        className="ga-focusable"
         style={{
           ...s.citationPill,
           background: hover ? "var(--color-primary-alpha-12)" : "var(--color-primary-alpha-04)",
@@ -655,11 +664,11 @@ function CitationPopover({ source, index, onClose }) {
   const tone = source.verified ? ASK_VERIFIED_TONE.verified : ASK_VERIFIED_TONE.unverified;
   const typeTone = ASK_SOURCE_TYPE_TONE[source.type] || ASK_SOURCE_TYPE_TONE.Play;
   return (
-    <div style={s.citationPopover}>
+    <div style={s.citationPopover} role="dialog" aria-label={`Citation ${index} details`}>
       <div style={s.citationPopoverHeader}>
         <span style={s.citationPopoverIndex}>[{index}]</span>
         <span style={s.citationPopoverTitle}>{source.title}</span>
-        <button type="button" onClick={onClose} aria-label="Close" style={s.iconBtn}>
+        <button type="button" onClick={onClose} aria-label="Close" style={s.iconBtn} className="ga-focusable">
           <X size={14} color="var(--color-text-tertiary)" />
         </button>
       </div>
@@ -692,8 +701,8 @@ function SourceCard({ source, index, expanded, onToggle }) {
   const typeTone = ASK_SOURCE_TYPE_TONE[source.type] || ASK_SOURCE_TYPE_TONE.Play;
 
   return (
-    <div style={s.sourceCard}>
-      <button type="button" onClick={onToggle} style={s.sourceCardHeader}>
+    <Card style={s.sourceCardWrap}>
+      <button type="button" onClick={onToggle} style={s.sourceCardHeader} className="ga-focusable">
         <span style={s.sourceIndex}>{index}</span>
         <div style={s.sourceCardBody}>
           <span style={s.sourceCardTitle}>{source.title}</span>
@@ -741,7 +750,7 @@ function SourceCard({ source, index, expanded, onToggle }) {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -799,7 +808,7 @@ const s = {
   searchBar: {
     display: "flex", alignItems: "center", gap: 12,
     padding: "10px 16px",
-    background: "#FFFFFF",
+    background: "var(--surface-white)",
     border: "1px solid var(--color-divider-card)",
     borderRadius: 12,
     width: "100%", maxWidth: 640,
@@ -810,18 +819,10 @@ const s = {
     boxShadow: "0 2px 8px rgba(69,70,79,0.08)",
   },
   searchInput: {
-    flex: 1, border: "none", outline: "none",
+    flex: 1, border: "none",
     background: "transparent",
     fontSize: 14, color: "var(--color-text-deep)",
     fontFamily: "var(--font-sans)",
-  },
-  micBtn: {
-    width: 32, height: 32, borderRadius: 999,
-    border: "1px solid var(--color-divider-card)",
-    background: "#FFFFFF",
-    cursor: "pointer", padding: 0,
-    display: "inline-grid", placeItems: "center",
-    flexShrink: 0,
   },
   sendBtn: {
     width: 32, height: 32, borderRadius: 999,
@@ -852,7 +853,7 @@ const s = {
   },
   suggestCard: {
     appearance: "none", border: "none",
-    background: "#FFFFFF", borderRadius: 10,
+    background: "var(--surface-white)", borderRadius: 10,
     padding: "16px 16px 12px",
     display: "flex", flexDirection: "column", gap: 8,
     cursor: "pointer", textAlign: "start",
@@ -890,12 +891,6 @@ const s = {
   searchResultsHeader: {
     display: "flex", alignItems: "center", gap: 16,
   },
-  answerSection: {
-    display: "flex", flexDirection: "column", gap: 12,
-    background: "#FFFFFF", borderRadius: 10,
-    padding: 24,
-    boxShadow: "var(--shadow-card)",
-  },
   answerMeta: {
     display: "inline-flex", alignItems: "center", gap: 8,
   },
@@ -919,6 +914,7 @@ const s = {
   },
   sourcesList: {
     display: "flex", flexDirection: "column", gap: 8,
+    margin: 0, padding: 0,
   },
 
   // --- Citation pill ---
@@ -938,7 +934,7 @@ const s = {
   citationPopover: {
     position: "absolute", top: "100%", left: 0,
     width: 340, zIndex: 10,
-    background: "#FFFFFF",
+    background: "var(--surface-white)",
     borderRadius: 10,
     boxShadow: "0 8px 24px rgba(69,70,79,0.18)",
     padding: 16,
@@ -1010,9 +1006,7 @@ const s = {
   },
 
   // --- Source card (expandable) ---
-  sourceCard: {
-    background: "#FFFFFF", borderRadius: 8,
-    boxShadow: "var(--shadow-card)",
+  sourceCardWrap: {
     overflow: "hidden",
   },
   sourceCardHeader: {
@@ -1136,7 +1130,7 @@ const s = {
   chatSuggestChip: {
     display: "flex", alignItems: "center", gap: 12,
     padding: "12px 16px",
-    background: "#FFFFFF", border: "1px solid var(--color-divider-card)",
+    background: "var(--surface-white)", border: "1px solid var(--color-divider-card)",
     borderRadius: 10, cursor: "pointer",
     fontFamily: "var(--font-sans)",
     textAlign: "start",
@@ -1217,12 +1211,12 @@ const s = {
   chatInputWrap: {
     flex: 1, display: "flex", alignItems: "center", gap: 8,
     padding: "8px 12px",
-    background: "#F9FAFB",
+    background: "var(--surface-canvas)",
     borderRadius: 10,
     border: "1px solid var(--color-divider-card)",
   },
   chatInput: {
-    flex: 1, border: "none", outline: "none",
+    flex: 1, border: "none",
     background: "transparent",
     fontSize: 14, color: "var(--color-text-deep)",
     fontFamily: "var(--font-sans)",
@@ -1230,7 +1224,7 @@ const s = {
   disclaimer: {
     margin: 0,
     fontSize: 11, fontWeight: 400, lineHeight: "16px",
-    color: "#8C90A6",
+    color: "var(--color-text-tertiary)",
     textAlign: "center",
   },
 
@@ -1239,7 +1233,7 @@ const s = {
     width: 360, flexShrink: 0,
     borderLeft: "1px solid var(--color-divider-card)",
     display: "flex", flexDirection: "column",
-    background: "#FFFFFF",
+    background: "var(--surface-white)",
   },
   chatSourcesHeader: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1259,7 +1253,7 @@ const s = {
     flexShrink: 0,
   },
   chatSourcesInput: {
-    flex: 1, border: "none", outline: "none",
+    flex: 1, border: "none",
     background: "transparent",
     fontSize: 13, color: "var(--color-text-deep)",
     fontFamily: "var(--font-sans)",
@@ -1324,7 +1318,7 @@ const s = {
   },
   hubSuggestList: {
     display: "flex", flexDirection: "column", gap: 0,
-    background: "#FFFFFF",
+    background: "var(--surface-white)",
     borderRadius: 10,
     boxShadow: "var(--shadow-card)",
     overflow: "hidden",

@@ -389,6 +389,15 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* GuideAskPage — inline styles can't reach :focus-visible; this class gives
+   all custom interactive elements (search bar, citation pills, source card
+   headers, back button) a visible focus ring (WCAG-3). */
+.ga-focusable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
+  border-radius: var(--radius-sm);
+}
+
 /* Guided Workflow step drawer — slides in from the right edge (side curtain). */
 @keyframes gwSlideIn {
   from { transform: translateX(28px); opacity: 0; }
