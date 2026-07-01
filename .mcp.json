@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dataorb-api": {
+      "type": "url",
+      "url": "https://8qyq1sl8u1.execute-api.us-east-1.amazonaws.com/mcp"
+    }
+  }
+}
