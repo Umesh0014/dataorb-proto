@@ -454,7 +454,7 @@ function HubDirection() {
                   key={topic.id}
                   topic={topic}
                   selected={selectedTopic === topic.id}
-                  onClick={() => setSelectedTopic(selectedTopic === topic.id ? null : topic.id)}
+                  onClick={() => handleSuggestion(topic.label)}
                 />
               ))}
             </div>
