@@ -30,6 +30,7 @@ import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
 import GuidedWorkflowsPage from "../../components/GuidedWorkflowsPage";
+import WorkflowsLandingPage from "../../components/WorkflowsLandingPage";
 import ReplayPage from "../../components/ReplayPage";
 import MobileLearningHubShell from "../../components/MobileLearningHubShell";
 import CreateGuideWizardPage, {
@@ -93,6 +94,7 @@ const INSIGHTS_PAGES = {
 const LEARNING_PAGES = {
   "dashboard":    { Component: CommandCenterShell, pageName: "Dashboard" },
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
+  "workflows":    { Component: WorkflowsLandingPage, pageName: "Guided Workflows" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
