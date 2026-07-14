@@ -78,12 +78,21 @@ function FacetRow({ label, bordered = false }) {
 }
 
 const wfStyles = {
+  // PageLayout's shared right-panel container (Overlay/Docked) renders
+  // full-height and flush with no radius — same white as this panel, so a
+  // plain border-radius is invisible against it. Margin + --shadow-card
+  // (the same depth trick <Card> uses) makes it read as its own floating
+  // rounded card without touching PageLayout, which is shared by every
+  // module's right panel (Insights Hub's FilterPanel included).
   panel: {
     display: "flex",
     flexDirection: "column",
-    height: "100%",
+    flex: 1,
+    minHeight: 0,
+    margin: 16,
     background: "#FFFFFF",
     borderRadius: 12,
+    boxShadow: "var(--shadow-card)",
     overflow: "hidden",
   },
   header: {
