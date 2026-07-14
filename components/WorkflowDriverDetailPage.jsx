@@ -130,8 +130,12 @@ function MaterialIcon({ glyph, size = 24, color = "currentColor" }) {
 }
 
 const wdStyles = {
-  wrap: { display: "flex", flexDirection: "column", gap: 16, width: "100%" },
-  tableCard: { display: "flex", flexDirection: "column", overflow: "hidden" },
+  wrap: { display: "flex", flexDirection: "column", gap: 16, width: "100%", flex: 1, minHeight: 0 },
+  // flex: 1 + minHeight: 0 stretches the table's white rounded surface to
+  // fill the page (matching the faceted filter panel's full-height look)
+  // instead of the card shrink-wrapping its 6 rows and leaving bare page
+  // background below it.
+  tableCard: { display: "flex", flexDirection: "column", overflow: "hidden", flex: 1, minHeight: 0 },
   tableHeader: {
     display: "flex",
     alignItems: "center",
