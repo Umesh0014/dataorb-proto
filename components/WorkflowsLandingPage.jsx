@@ -7,11 +7,14 @@ import PageHeader from "./PageHeader";
 import StatusBadge from "./StatusBadge";
 import { WORKFLOW_METRIC_CARDS, WORKFLOW_DRIVER_ROWS } from "./mocks/workflowsLanding";
 
+// "Deep" tiles (pale-50 bg + near-black 900-level icon color) match the
+// Figma metric-card icon treatment exactly — verified against the actual
+// exported icon asset fills, not estimated from the screenshot.
 const TILE = {
-  emerald: { bg: "var(--tile-emerald-bg)", fg: "var(--tile-emerald-fg)" },
-  rose: { bg: "var(--tile-rose-bg)", fg: "var(--tile-rose-fg)" },
-  fuchsia: { bg: "var(--tile-fuchsia-bg)", fg: "var(--tile-fuchsia-fg)" },
-  yellow: { bg: "var(--tile-yellow-bg)", fg: "var(--tile-yellow-fg)" },
+  emerald: { bg: "var(--tile-green-deep-bg)", fg: "var(--tile-green-deep-fg)" },
+  rose: { bg: "var(--tile-red-deep-bg)", fg: "var(--tile-red-deep-fg)" },
+  fuchsia: { bg: "var(--tile-pink-deep-bg)", fg: "var(--tile-pink-deep-fg)" },
+  yellow: { bg: "var(--tile-yellow-deep-bg)", fg: "var(--tile-yellow-deep-fg)" },
   blue: { bg: "var(--tile-blue-bg)", fg: "var(--tile-blue-fg)" },
 };
 

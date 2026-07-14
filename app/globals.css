@@ -246,6 +246,21 @@
   --tile-violet-fg:   #8B5CF6;
   --tile-fuchsia-bg:  #FDF4FF;
   --tile-fuchsia-fg:  #D946EF;
+
+  /* Icon-tile "deep" variants — pale-50 bg paired with a near-black
+     900-level icon color (Figma "Workflows landing" metric-card icons).
+     Distinct from --tile-*-fg above (mid-tone 500s, used for the
+     Settings card icons) — kept separate rather than reused because
+     the two are genuinely different visual treatments, not a stylistic
+     accident. */
+  --tile-green-deep-bg:  #F0FDF4;
+  --tile-green-deep-fg:  #14532D;
+  --tile-red-deep-bg:    #FEF2F2;
+  --tile-red-deep-fg:    #7F1D1D;
+  --tile-pink-deep-bg:   #FDF2F8;
+  --tile-pink-deep-fg:   #831843;
+  --tile-yellow-deep-bg: #FEFCE8;
+  --tile-yellow-deep-fg: #713F12;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
