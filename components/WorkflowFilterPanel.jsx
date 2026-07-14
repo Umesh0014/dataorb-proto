@@ -84,12 +84,19 @@ const wfStyles = {
   // (the same depth trick <Card> uses) makes it read as its own floating
   // rounded card without touching PageLayout, which is shared by every
   // module's right panel (Insights Hub's FilterPanel included).
+  //
+  // No left margin: PageLayout's dock mode already places a fixed
+  // --page-right-panel-gap (40px) between content and this aside — a
+  // left margin here would stack on top of that system gap instead of
+  // replacing it, pushing the panel further from the content than
+  // intended. Figma draws a much tighter ~16px gap; 40px is the closest
+  // this gets without touching PageLayout's locked layout constant.
   panel: {
     display: "flex",
     flexDirection: "column",
     flex: 1,
     minHeight: 0,
-    margin: 16,
+    margin: "16px 16px 16px 0",
     background: "#FFFFFF",
     borderRadius: 12,
     boxShadow: "var(--shadow-card)",
