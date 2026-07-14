@@ -31,6 +31,8 @@ import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
 import GuidedWorkflowsPage from "../../components/GuidedWorkflowsPage";
 import WorkflowsLandingPage from "../../components/WorkflowsLandingPage";
+import WorkflowDriverDetailPage from "../../components/WorkflowDriverDetailPage";
+import WorkflowFilterPanel from "../../components/WorkflowFilterPanel";
 import ReplayPage from "../../components/ReplayPage";
 import MobileLearningHubShell from "../../components/MobileLearningHubShell";
 import CreateGuideWizardPage, {
@@ -382,6 +384,10 @@ export default function Page() {
   }, [router]);
 
   const [drillDetailId, setDrillDetailId] = React.useState(null);
+  // Workflows (driver grid) drill-in: which driver's workflows table is
+  // open, and whether its faceted filter panel is showing.
+  const [workflowDriverId, setWorkflowDriverId] = React.useState(null);
+  const [workflowFiltersOpen, setWorkflowFiltersOpen] = React.useState(false);
   // Drill persona (Team Leader ↔ Agent). Default Agent (use-only view) per
   // the Drill View-switcher handoff. Team Leader = full management landing +
   // detail; Agent = use-only landing whose "Run drill" launches the guided
@@ -659,6 +665,7 @@ export default function Page() {
     const onDrill = learningNav === "drill";
     const onGuidedDrill = learningNav === "guided-drill";
     const onGuidedWorkflows = learningNav === "guided-workflows";
+    const onWorkflows = learningNav === "workflows";
     const isAgentDrill = drillPersona === "agent";
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
@@ -747,6 +754,15 @@ export default function Page() {
           locale={locale}
         />
       );
+    } else if (onWorkflows && workflowDriverId) {
+      drillContent = (
+        <WorkflowDriverDetailPage
+          driverId={workflowDriverId}
+          onBack={() => { setWorkflowDriverId(null); setWorkflowFiltersOpen(false); }}
+          filtersOpen={workflowFiltersOpen}
+          onToggleFilters={() => setWorkflowFiltersOpen((o) => !o)}
+        />
+      );
     } else if (!missionsPopulated) {
       drillContent = (
         <LearningPage
@@ -762,6 +778,7 @@ export default function Page() {
           onCreateGuide={openGuideWizard}
           onOpenGuide={openGuideSession}
           onOpenGuidedWorkflows={() => router.push("/learning/guided-workflows")}
+          onOpenWorkflowDriver={(id) => setWorkflowDriverId(id)}
           onOpenAgent={(id) => {
             setAgentProfileId(id);
             // On the Dashboard the agent detail opens in place (handled above);
@@ -782,6 +799,8 @@ export default function Page() {
       setDrillDetailId(null);
       setAgentProfileId(null);
       setSelectedMissionId(null);
+      setWorkflowDriverId(null);
+      setWorkflowFiltersOpen(false);
       cancelRoleplay();
       closeMissionWizard();
       closeGuideWizard();
@@ -843,7 +862,16 @@ export default function Page() {
       // Drill landing + detail carry the Team Leader ↔ Agent persona
       // switch — surfaced as an inline header pill inside LearningHubPage
       // (always visible), not a floating bar.
-      moduleContent = <PageLayout>{drillContent}</PageLayout>;
+      // Workflows driver detail opens its faceted filter panel through
+      // PageLayout's rightPanel (dock ≥1644, overlay below — PageLayout owns it).
+      const workflowsRightPanel = onWorkflows && workflowDriverId && workflowFiltersOpen
+        ? <WorkflowFilterPanel onClose={() => setWorkflowFiltersOpen(false)} />
+        : null;
+      moduleContent = (
+        <PageLayout rightPanel={workflowsRightPanel} onPanelClose={() => setWorkflowFiltersOpen(false)}>
+          {drillContent}
+        </PageLayout>
+      );
     }
   } else {
     const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");

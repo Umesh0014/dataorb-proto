@@ -49,6 +49,18 @@ export const WORKFLOW_METRIC_CARDS = [
 
 // Category chip background varies per row in the source file (gray-50 vs
 // gray-100) — kept row-accurate rather than normalized to one shade.
+// Driver-detail workflows table ("03 · Driver detail — workflows table").
+// Row 1's name intentionally overflows its column — Figma shows it
+// ellipsized; the full string is invented past the visible "…the direct".
+export const WORKFLOW_TABLE_ROWS = [
+  { id: "GW-12BC", name: "Review customer request to update the direct debit", roleplays: 2, status: "draft" },
+  { id: "GW-13BC", name: "Set up a payment plan", roleplays: 2, status: "active" },
+  { id: "GW-14BC", name: "Update direct-debit bank account", roleplays: 2, status: "active" },
+  { id: "GW-15BC", name: "Update direct-debit bank account", roleplays: 2, status: "active" },
+  { id: "GW-16BC", name: "Dispute an unexpected charge", roleplays: 2, status: "active" },
+  { id: "GW-17BC", name: "Refund a duplicate payment", roleplays: 2, status: "archived" },
+];
+
 export const WORKFLOW_DRIVER_ROWS = [
   {
     id: "technical-support",

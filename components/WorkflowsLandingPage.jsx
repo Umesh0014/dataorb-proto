@@ -34,7 +34,7 @@ const TILE = {
 // (Mulish) rather than the Poppins the raw Figma export references —
 // CLAUDE.md forbids introducing a second font family, and every other
 // page in this codebase already standardizes on Mulish.
-export default function WorkflowsLandingPage({ pageName = "Guided Workflows" }) {
+export default function WorkflowsLandingPage({ pageName = "Guided Workflows", onOpenWorkflowDriver }) {
   const [search, setSearch] = React.useState("");
 
   return (
@@ -56,7 +56,7 @@ export default function WorkflowsLandingPage({ pageName = "Guided Workflows" }) 
           card.spacer ? (
             <div key={card.id} aria-hidden="true" style={wlStyles.spacer} />
           ) : (
-            <MetricCard key={card.id} card={card} />
+            <MetricCard key={card.id} card={card} onOpen={onOpenWorkflowDriver} />
           ),
         )}
       </div>
@@ -80,9 +80,17 @@ export default function WorkflowsLandingPage({ pageName = "Guided Workflows" }) 
   );
 }
 
-function MetricCard({ card }) {
+function MetricCard({ card, onOpen }) {
   const tile = TILE[card.tile] || TILE.blue;
   return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${card.title} workflows`}
+      onClick={() => onOpen?.(card.id)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen?.(card.id); }}
+      style={{ cursor: "pointer" }}
+    >
     <Card shadow padX={24} padY={24} style={wlStyles.metricCard}>
       <div style={wlStyles.metricHeader}>
         <span style={{ ...wlStyles.iconBubble, background: tile.bg }} aria-hidden="true">
@@ -103,7 +111,7 @@ function MetricCard({ card }) {
           <span style={wlStyles.footerLabel}>Workflow</span>
           <div style={wlStyles.trendRow}>
             <span style={wlStyles.trendPillSuccess}>
-              <MaterialIcon glyph="schema" size={12} color="var(--color-success-text)" />
+              <MaterialIcon glyph="schema" size={12} color="var(--color-success-deep)" />
               {card.workflow.active} Active
             </span>
             <span style={wlStyles.trendPillNeutral}>{card.workflow.draft} Draft</span>
@@ -118,6 +126,7 @@ function MetricCard({ card }) {
         </div>
       </div>
     </Card>
+    </div>
   );
 }
 
@@ -137,7 +146,7 @@ function DriverRow({ row }) {
       </div>
       <div style={wlStyles.rowCategories}>
         {row.categories.map((c) => (
-          <span key={c.label} style={c.shade === "100" ? wlStyles.neutralChip100 : wlStyles.neutralChip}>
+          <span key={c.label} style={c.shade === "100" ? wlStyles.neutralChip100 : wlStyles.rowChip}>
             {c.label}
           </span>
         ))}
@@ -219,16 +228,30 @@ const wlStyles = {
     fontWeight: 400,
     whiteSpace: "nowrap",
   },
+  // Driver-row category chips use the warmer chart-gray hues + gray-500
+  // text (Figma Chart/Gray/*) — distinct from the metric-card chips above.
   neutralChip100: {
     display: "inline-flex",
     alignItems: "center",
     padding: "3px 10px",
     borderRadius: 4,
-    background: "var(--grey-100)",
-    color: "var(--color-chip-text)",
+    background: "var(--chart-gray-100)",
+    color: "var(--chart-gray-500)",
     fontFamily: "var(--font-sans)",
     fontSize: 12,
-    fontWeight: 400,
+    fontWeight: 500,
+    whiteSpace: "nowrap",
+  },
+  rowChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "3px 10px",
+    borderRadius: 4,
+    background: "var(--chart-gray-50)",
+    color: "var(--chart-gray-500)",
+    fontFamily: "var(--font-sans)",
+    fontSize: 12,
+    fontWeight: 500,
     whiteSpace: "nowrap",
   },
   divider: { height: 1, background: "var(--color-divider-card)" },
@@ -239,11 +262,12 @@ const wlStyles = {
   trendPillSuccess: {
     display: "inline-flex",
     alignItems: "center",
+    gap: 4,
     height: 24,
     padding: "4px 8px",
     borderRadius: 4,
-    background: "var(--color-success-bg)",
-    color: "var(--color-success-text)",
+    background: "var(--tile-green-deep-bg)",
+    color: "var(--color-success-deep)",
     fontFamily: "var(--font-sans)",
     fontSize: 11,
     fontWeight: 400,
@@ -254,8 +278,8 @@ const wlStyles = {
     height: 24,
     padding: "4px 8px",
     borderRadius: 4,
-    background: "var(--grey-50)",
-    color: "var(--grey-700)",
+    background: "var(--chart-gray-50)",
+    color: "var(--chart-gray-700)",
     fontFamily: "var(--font-sans)",
     fontSize: 11,
     fontWeight: 400,
@@ -263,6 +287,7 @@ const wlStyles = {
   trendPillReplays: {
     display: "inline-flex",
     alignItems: "center",
+    gap: 4,
     height: 24,
     padding: "4px 8px",
     borderRadius: 4,

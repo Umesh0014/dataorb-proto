@@ -261,6 +261,20 @@
   --tile-pink-deep-fg:   #831843;
   --tile-yellow-deep-bg: #FEFCE8;
   --tile-yellow-deep-fg: #713F12;
+
+  /* Tailwind-gray chip/pill hues (Figma "Chart/Gray/*") used by the
+     Workflows screens' category chips and status pills. Warmer neutrals
+     than the blue-tinted --grey-* scale above — kept separate on purpose. */
+  --chart-gray-50:   #F9FAFB;
+  --chart-gray-100:  #F3F4F6;
+  --chart-gray-500:  #6B7280;
+  --chart-gray-700:  #374151;
+  /* Figma System/Success/20 — darker than --color-success; pairs with the
+     pale --tile-green-deep-bg on Active status pills. */
+  --color-success-deep: #00711D;
+  /* Figma System/Secondary/30 — Workflows table row text; sits between
+     --color-text-medium (#2C2F42) and --color-text-tertiary (#5B5E6F). */
+  --color-text-row:  #424659;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
