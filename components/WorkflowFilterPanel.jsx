@@ -12,10 +12,9 @@ import Button from "./Button";
 // Deselect all / Apply render disabled, matching the frame.
 export default function WorkflowFilterPanel({ onClose }) {
   const [search, setSearch] = React.useState("");
-  const isDocked = useIsDocked();
 
   return (
-    <div style={isDocked ? wfStyles.panelDocked : wfStyles.panelOverlay}>
+    <div style={wfStyles.panel}>
       <div style={wfStyles.header}>
         <span style={wfStyles.heading}>Filters</span>
         <Button variant="icon" size="sm" aria-label="Close filters" onClick={onClose}>
@@ -62,31 +61,6 @@ export default function WorkflowFilterPanel({ onClose }) {
   );
 }
 
-// useIsDocked — mirrors PageLayout's own dock-vs-overlay check (read-only;
-// PageLayout itself is untouched). Needed because PageLayout's OverlayPanel
-// applies its own drawer box-shadow to the <aside> — stacking our card
-// shadow on top of that produces a visible double-box artifact. In dock
-// mode the aside has no shadow/radius of its own, so the floating-card
-// treatment renders clean; in overlay mode we defer to the aside's own
-// shadow instead of layering a second one, matching how FilterPanel
-// (Insights Hub's identical panel slot) already renders flush there.
-function useIsDocked() {
-  const [isDocked, setIsDocked] = React.useState(false);
-  React.useEffect(() => {
-    const check = () => {
-      const raw = getComputedStyle(document.documentElement)
-        .getPropertyValue("--page-right-panel-dock-min")
-        .trim();
-      const dockMin = parseInt(raw, 10) || 1620;
-      setIsDocked(window.innerWidth >= dockMin);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-  return isDocked;
-}
-
 function FacetRow({ label, bordered = false }) {
   return (
     <button
@@ -104,35 +78,12 @@ function FacetRow({ label, bordered = false }) {
 }
 
 const wfStyles = {
-  // Dock mode: PageLayout's DockedRow aside has no radius/shadow of its
-  // own, so margin + --shadow-card (the same depth trick <Card> uses)
-  // reads cleanly as a floating rounded card, matching Figma. No left
-  // margin — DockedRow already places --page-right-panel-gap (40px)
-  // between content and this aside; adding our own would stack on top
-  // of that system gap instead of replacing it.
-  panelDocked: {
+  panel: {
     display: "flex",
     flexDirection: "column",
-    flex: 1,
-    minHeight: 0,
-    margin: "16px 16px 16px 0",
+    height: "100%",
     background: "#FFFFFF",
     borderRadius: 12,
-    boxShadow: "var(--shadow-card)",
-    overflow: "hidden",
-  },
-  // Overlay mode: PageLayout's OverlayPanel aside already carries its own
-  // drawer box-shadow — adding our own margin/radius/shadow on top
-  // produced a visible double-box artifact (a card floating inside a
-  // shadowed drawer). Render flush instead, matching how FilterPanel
-  // (Insights Hub's identical panel slot) already renders in this mode —
-  // the aside's own shadow is the only depth cue here.
-  panelOverlay: {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-    minHeight: 0,
-    background: "#FFFFFF",
     overflow: "hidden",
   },
   header: {
