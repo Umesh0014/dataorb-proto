@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
-import { Plus, SlidersHorizontal, MoreVertical } from "lucide-react";
+import { Plus, SlidersHorizontal, MoreVertical, RotateCcw, Upload, Pencil, Archive } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import PageHeader from "./PageHeader";
+import KebabMenu from "./KebabMenu";
 import { WORKFLOW_METRIC_CARDS, WORKFLOW_TABLE_ROWS } from "./mocks/workflowsLanding";
 
 // WorkflowDriverDetailPage — "03 · Driver detail — workflows table" from
@@ -65,9 +66,37 @@ const STATUS = {
   archived: { label: "Archived", bg: "var(--chart-gray-50)",      fg: "var(--chart-gray-700)" },
 };
 
+// Kebab menu items per row status, from Figma "03a · Driver detail — kebab
+// menu actions". Icons: Retry (RotateCcw), Publish (Upload), Edit (Pencil),
+// Archive (Archive) — sized 18 to match KebabMenu's default glyph, uncolored
+// so each item inherits the menu row's text color.
+// The frame documents generating / draft / active only; `archived` has no
+// kebab in the design, so those rows render without one (surfaced below,
+// not invented).
+function statusActions(status) {
+  switch (status) {
+    case "generating":
+      return [{ label: "Retry", icon: <RotateCcw size={18} />, onClick: () => {} }];
+    case "draft":
+      return [
+        { label: "Publish", icon: <Upload size={18} />, onClick: () => {} },
+        { label: "Edit", icon: <Pencil size={18} />, onClick: () => {} },
+        { label: "Archive", icon: <Archive size={18} />, onClick: () => {} },
+      ];
+    case "active":
+      return [
+        { label: "Edit", icon: <Pencil size={18} />, onClick: () => {} },
+        { label: "Archive", icon: <Archive size={18} />, onClick: () => {} },
+      ];
+    default:
+      return [];
+  }
+}
+
 function WorkflowRow({ row }) {
   const [hover, setHover] = React.useState(false);
   const status = STATUS[row.status] || STATUS.draft;
+  const actions = statusActions(row.status);
   return (
     <div
       onMouseEnter={() => setHover(true)}
@@ -98,9 +127,13 @@ function WorkflowRow({ row }) {
         >
           Edit
         </Button>
-        <Button variant="icon" size="sm" aria-label={`More actions for ${row.id}`} onClick={() => {}}>
-          <MoreVertical size={20} color="var(--color-text-tertiary)" />
-        </Button>
+        {actions.length > 0 && (
+          <KebabMenu
+            ariaLabel={`More actions for ${row.id}`}
+            items={actions}
+            glyph={<MoreVertical size={20} color="var(--color-text-tertiary)" />}
+          />
+        )}
       </span>
     </div>
   );
