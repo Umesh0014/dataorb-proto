@@ -21,6 +21,7 @@ log so a future session (or Umesh) doesn't have to re-derive them from git histo
 | 07 · Interaction picker — select language modal | `GenerateWorkflowModal.jsx` | Multi-select language chips; reuses `Modal.jsx` (extended with `confirmDisabled`/`width` props). |
 | 08 · Driver detail — workflow generating row | `WorkflowDriverDetailPage.jsx` (STATUS map + timer) | "Generating" row state (blue pill, cached icon). |
 | 09 · Driver detail — generated draft row | `WorkflowDriverDetailPage.jsx` (same timer) | Same row (`GW-12BC`) auto-transitions Generating → Draft + "New" badge 2.5s after mount — 08/09 are one row's lifecycle, not two separate rows. |
+| 07 · Publish — attach roleplays confirmation | `WorkflowPublishModal.jsx` | Draft row's kebab → "Publish" opens this. Was already built (and already wired into `WorkflowDriverDetailPage.jsx`) from an earlier session, but had drifted from the frame — see decision below. |
 | 11 · Archive — confirm detach roleplays | `WorkflowPostPublishPage.jsx` (Archive modal) | Header archive icon → confirm modal (reuses `Modal.jsx`, `confirmTone="danger"`). |
 | 03 · Workflow editor — Open stage (default) | `WorkflowPostPublishPage.jsx` (stepper + `StepCard`) | Stepper is now interactive; Open stage shows its 3 real cards incl. the unwritten "Step title will come here…" placeholder. |
 | 05 · Workflow editor — Act stage (triage paths) | `WorkflowPostPublishPage.jsx` (`ACT_PATHS` / `ACT_STEPS_BY_PATH`) | Horizontal-scroll path picker (4 of the frame's "5 Paths" — the 5th wasn't legible in the export); selecting a path shows its steps. Only the first path's steps have Figma evidence. |
@@ -127,6 +128,18 @@ if there are more frames in this flow, they haven't surfaced yet.
   state (stuck closed/open from whichever step was viewed first). Fixed with
   `key={hintsStep.title}` on the `<HintsPanel>` call in `page.jsx`, forcing a remount —
   and thus a fresh `composerOpen` calculation — on every step switch.
+- **`WorkflowPublishModal.jsx` trimmed back to match its actual Figma frame**: the
+  component already existed (built earlier as "Figma 07a publish flow") but had grown a
+  4-variant "idea" A/B switcher (Persistent summary / Selected-items tray / Dual-list
+  transfer / Added moves to page 1) plus a "X roleplays selected / View selected / Clear
+  all" summary bar — none of which appear in frame `132409:28784`. Confirmed against the
+  raw `get_design_context` output: the frame is just title → search → card list →
+  pagination → footer, no tab bar, no summary bar. Removed the unused variants (`IDEAS`,
+  `pillLabel`, `RoleplayColumn`, the tray/dual/first-sort render branches, their styles)
+  and the summary bar, and fixed `FEATURED_ROLEPLAYS`' order to match the frame exactly
+  (2 already-attached rows first, then 3 unattached — was reversed). Verified in-browser:
+  Draft row → kebab → Publish → modal matches the frame, and Publish still correctly
+  flips the row to Active.
 - **Rule of three respected**: `InteractionFilterPanel.jsx` duplicates
   `WorkflowFilterPanel.jsx`'s shape (2nd callsite) rather than extracting a shared
   primitive early; same for the pagination footer (`WorkflowPublishModal.jsx`
