@@ -107,6 +107,15 @@ if there are more frames in this flow, they haven't surfaced yet.
   now stays clear of the panel in both modes. Verified in-browser: Hint chips fully visible
   and un-covered at 1400px, and spot-checked `WorkflowFilterPanel`'s overlay at the same
   width to confirm the shared fix didn't regress other panels.
+- **Hint pill wrapping to two lines — unrelated to the panel, a plain CSS bug**: after both
+  `PageLayout` fixes, user caught a third issue in the same area — the "HINT 2" chip itself
+  rendered as "HINT" on one line and the count badge on a line below, even with no panel
+  open. Cause: `hintCount`'s style used `display: "grid"` on a `<b>` element sitting inline
+  next to the text "Hint " — `display: grid` makes an element block-level, which forces a
+  line break around it even inside a flex-row button. Changed to `display: "inline-grid"`
+  (`components/WorkflowPostPublishPage.jsx`'s `hintCount` style) so it keeps the internal
+  `placeItems: "center"` centering but stays inline-level. Verified in-browser at both
+  1400px (overlay) and with the panel open — pill renders as a single line in both cases.
 - **Hints panel remount bug caught in browser verification**: `HintsPanel`'s composer-open
   state (`useState(!hintCount)`) only evaluates on mount, so switching between a hinted
   step and an unhinted step without unmounting the panel left the composer in the wrong

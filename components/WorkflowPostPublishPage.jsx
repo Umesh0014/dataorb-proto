@@ -357,7 +357,7 @@ const styles = {
   cardCopy: { flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, fontSize: 14, color: "var(--color-text-medium)" },
   typeChip: { padding: "3px 8px", borderRadius: 4, background: "var(--color-card-emoji-bg)", fontSize: 11, color: "var(--grey-700)" },
   hintChip: { height: 32, padding: "0 10px", borderRadius: 8, background: "var(--color-border-card-soft)", display: "flex", alignItems: "center", gap: 5, fontSize: 12, textTransform: "uppercase", flexShrink: 0, color: "var(--color-text-medium)" },
-  hintCount: { minWidth: 20, height: 20, paddingInline: 5, borderRadius: 20, background: "#DDE1FF", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 500 },
+  hintCount: { minWidth: 20, height: 20, paddingInline: 5, borderRadius: 20, background: "#DDE1FF", display: "inline-grid", placeItems: "center", fontSize: 12, fontWeight: 500 },
   addStep: { marginTop: 12, paddingInline: 10, background: "var(--color-border-card-soft)", borderRadius: 4 },
   stepsLabel: { fontSize: 14, fontWeight: 500, color: "var(--grey-700)" },
   emptyStage: { minHeight: 96, border: "1px dashed var(--color-border-card-soft)", borderRadius: 8, display: "grid", placeItems: "center", color: "var(--color-text-tertiary)", fontSize: 13 },
