@@ -48,7 +48,12 @@ const ACT_STEPS_BY_PATH = {
 
 const NUMERAL_GLYPHS = ["looks_one", "looks_two", "looks_3", "looks_4", "looks_5"];
 
-export default function WorkflowPostPublishPage({ onBack }) {
+// hintsStep / onOpenHints / onCloseHints are lifted to the host (see
+// app/[[...slug]]/page.jsx) so the Hints panel ("05a.1"/"05a.2") can be
+// passed to <PageLayout rightPanel> and dock as a real column beside this
+// page, same as WorkflowFilterPanel/InteractionFilterPanel — not rendered
+// as a floating overlay in here.
+export default function WorkflowPostPublishPage({ onBack, hintsStep, onOpenHints }) {
   const [pending, setPending] = React.useState(true);
   const [roleplays, setRoleplays] = React.useState(0);
   const [feedback, setFeedback] = React.useState("");
@@ -167,14 +172,30 @@ export default function WorkflowPostPublishPage({ onBack }) {
 
         <div style={styles.cards}>
           {isOpenStage && OPEN_CARDS.map((card, index) => (
-            <StepCard key={card.title} index={index} title={card.title} type={card.type} hint={card.hint} />
+            <StepCard
+              key={card.title}
+              index={index}
+              title={card.title}
+              type={card.type}
+              hint={card.hint}
+              selected={hintsStep?.title === card.title}
+              onOpenHints={() => onOpenHints?.({ title: card.title, hint: card.hint })}
+            />
           ))}
           {isActStage && (
             actSteps ? (
               <>
                 <span style={styles.stepsLabel}>Steps</span>
                 {actSteps.map((card, index) => (
-                  <StepCard key={card.title} index={index} title={card.title} type={card.type} hint={card.hint} />
+                  <StepCard
+                    key={card.title}
+                    index={index}
+                    title={card.title}
+                    type={card.type}
+                    hint={card.hint}
+                    selected={hintsStep?.title === card.title}
+                    onOpenHints={() => onOpenHints?.({ title: card.title, hint: card.hint })}
+                  />
                 ))}
               </>
             ) : (
@@ -208,15 +229,17 @@ export default function WorkflowPostPublishPage({ onBack }) {
   );
 }
 
-function StepCard({ index, title, type, hint }) {
+function StepCard({ index, title, type, hint, selected, onOpenHints }) {
   return (
-    <article style={styles.card}>
+    <article style={{ ...styles.card, ...(selected ? styles.cardSelected : {}) }}>
       <span style={styles.cardNumber}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>{NUMERAL_GLYPHS[index] || "looks_one"}</span></span>
       <div style={styles.cardCopy}><strong>{title}</strong><span style={styles.typeChip}>{type}</span></div>
       {hint ? (
-        <span style={styles.hintChip}><MessageSquare size={14} /> Hint <b style={styles.hintCount}>{hint}</b></span>
+        <Button variant="text" leadingIcon={<MessageSquare size={14} />} onClick={onOpenHints} style={styles.hintChip}>
+          Hint <b style={styles.hintCount}>{hint}</b>
+        </Button>
       ) : (
-        <Button variant="text" leadingIcon={<Plus size={14} />} style={styles.hintChip}>Add Hint</Button>
+        <Button variant="text" leadingIcon={<Plus size={14} />} onClick={onOpenHints} style={styles.hintChip}>Add Hint</Button>
       )}
       <Button variant="icon" size="sm" aria-label={`Remove step ${index + 1}`}><Trash2 size={15} /></Button>
     </article>
@@ -329,6 +352,7 @@ const styles = {
   roleplayCountInner: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 },
   cards: { marginTop: 16, display: "flex", flexDirection: "column", gap: 12 },
   card: { minHeight: 72, padding: 16, border: "2px solid var(--color-border-card-soft)", borderRadius: 8, display: "flex", alignItems: "center", gap: 12 },
+  cardSelected: { border: "2px solid var(--do-brand-blue)", background: "var(--tile-blue-bg)" },
   cardNumber: { width: 32, height: 32, borderRadius: 8, background: "var(--tile-blue-bg)", color: "var(--tile-blue-fg)", display: "grid", placeItems: "center", flexShrink: 0 },
   cardCopy: { flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, fontSize: 14, color: "var(--color-text-medium)" },
   typeChip: { padding: "3px 8px", borderRadius: 4, background: "var(--color-card-emoji-bg)", fontSize: 11, color: "var(--grey-700)" },

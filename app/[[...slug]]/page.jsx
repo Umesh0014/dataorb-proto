@@ -37,6 +37,7 @@ import WorkflowFilterPanel from "../../components/WorkflowFilterPanel";
 import InteractionPickerPage from "../../components/InteractionPickerPage";
 import InteractionFilterPanel from "../../components/InteractionFilterPanel";
 import InteractionSummaryPanel from "../../components/InteractionSummaryPanel";
+import HintsPanel from "../../components/HintsPanel";
 import RoleplaySelectionPrototype from "../../components/RoleplaySelectionPrototype";
 import ReplayPage from "../../components/ReplayPage";
 import MobileLearningHubShell from "../../components/MobileLearningHubShell";
@@ -394,6 +395,9 @@ export default function Page() {
   const [workflowDriverId, setWorkflowDriverId] = React.useState(null);
   const [workflowFiltersOpen, setWorkflowFiltersOpen] = React.useState(false);
   const [workflowEditorOpen, setWorkflowEditorOpen] = React.useState(false);
+  // "05a.1"/"05a.2 · Workflow editor — hints panel": which step's hints are
+  // showing in the editor's right column, or null when closed.
+  const [hintsStep, setHintsStep] = React.useState(null); // { title, hint } | null
   // "05 · Interaction picker" — opened from a driver's "+Workflow" create
   // menu ("From a customer interaction"). Nested under workflowDriverId:
   // closing it returns to that driver's table, not the workflows grid.
@@ -771,7 +775,11 @@ export default function Page() {
       );
     } else if (onWorkflows && workflowDriverId && workflowEditorOpen) {
       drillContent = (
-        <WorkflowPostPublishPage onBack={() => setWorkflowEditorOpen(false)} />
+        <WorkflowPostPublishPage
+          onBack={() => { setWorkflowEditorOpen(false); setHintsStep(null); }}
+          hintsStep={hintsStep}
+          onOpenHints={setHintsStep}
+        />
       );
     } else if (onWorkflows && workflowDriverId && interactionPickerOpen) {
       drillContent = (
@@ -832,6 +840,7 @@ export default function Page() {
       setWorkflowDriverId(null);
       setWorkflowFiltersOpen(false);
       setWorkflowEditorOpen(false);
+      setHintsStep(null);
       setInteractionPickerOpen(false);
       setInteractionFiltersOpen(false);
       setInteractionsSelected(false);
@@ -902,7 +911,10 @@ export default function Page() {
       const showInteractionSummary = interactionPanelOpen && interactionsSelected;
       const showInteractionFilters = interactionPanelOpen && !interactionsSelected;
       const showWorkflowFilters = onWorkflows && workflowDriverId && !workflowEditorOpen && !interactionPickerOpen && workflowFiltersOpen;
-      const workflowsRightPanel = showInteractionSummary
+      const showHints = onWorkflows && workflowDriverId && workflowEditorOpen && hintsStep;
+      const workflowsRightPanel = showHints
+        ? <HintsPanel key={hintsStep.title} hintCount={hintsStep.hint} onClose={() => setHintsStep(null)} />
+        : showInteractionSummary
         ? <InteractionSummaryPanel onClose={() => setInteractionFiltersOpen(false)} />
         : showInteractionFilters
         ? <InteractionFilterPanel onClose={() => setInteractionFiltersOpen(false)} />
@@ -912,6 +924,7 @@ export default function Page() {
       const closeWorkflowsRightPanel = () => {
         setInteractionFiltersOpen(false);
         setWorkflowFiltersOpen(false);
+        setHintsStep(null);
       };
       moduleContent = (
         <PageLayout rightPanel={workflowsRightPanel} onPanelClose={closeWorkflowsRightPanel}>

@@ -24,6 +24,7 @@ log so a future session (or Umesh) doesn't have to re-derive them from git histo
 | 11 · Archive — confirm detach roleplays | `WorkflowPostPublishPage.jsx` (Archive modal) | Header archive icon → confirm modal (reuses `Modal.jsx`, `confirmTone="danger"`). |
 | 03 · Workflow editor — Open stage (default) | `WorkflowPostPublishPage.jsx` (stepper + `StepCard`) | Stepper is now interactive; Open stage shows its 3 real cards incl. the unwritten "Step title will come here…" placeholder. |
 | 05 · Workflow editor — Act stage (triage paths) | `WorkflowPostPublishPage.jsx` (`ACT_PATHS` / `ACT_STEPS_BY_PATH`) | Horizontal-scroll path picker (4 of the frame's "5 Paths" — the 5th wasn't legible in the export); selecting a path shows its steps. Only the first path's steps have Figma evidence. |
+| 05a.1/05a.2 · Workflow editor — Hints panel (viewing / composing) | `components/HintsPanel.jsx` | A step's hint chip opens this panel. Extracted out of `WorkflowPostPublishPage.jsx` into its own file so `hintsStep` state could be lifted to `page.jsx` and passed through `PageLayout`'s `rightPanel` prop — see decision below. |
 
 ## Screens — pending / not fetched
 
@@ -72,6 +73,21 @@ if there are more frames in this flow, they haven't surfaced yet.
   by an ancestor's `overflow: auto`/`hidden` — caught live in the browser for both
   the create-workflow menu and the language-select dropdown inside `Modal.jsx`'s
   scrollable body.
+- **Hints panel fixed from floating overlay to docked right column**: first pass wired
+  the Hints panel as `position: fixed`, which cut off header controls and card content
+  behind it — caught against Figma's "Dashboard Sidecar" frame, which is a true sibling
+  column, not an overlay. Fixed by extracting the panel to `components/HintsPanel.jsx`
+  (no `position: fixed`; `height: "100%"` panel matching `InteractionSummaryPanel.jsx`'s
+  convention) and lifting `hintsStep` state up to `page.jsx`, so it flows through the
+  same `PageLayout` `rightPanel` docking mechanism (dock ≥1644px, overlay below) as
+  every other right panel in this flow — per `CLAUDE.md`'s explicit "no `position: fixed`
+  for full-height side panels" rule.
+- **Hints panel remount bug caught in browser verification**: `HintsPanel`'s composer-open
+  state (`useState(!hintCount)`) only evaluates on mount, so switching between a hinted
+  step and an unhinted step without unmounting the panel left the composer in the wrong
+  state (stuck closed/open from whichever step was viewed first). Fixed with
+  `key={hintsStep.title}` on the `<HintsPanel>` call in `page.jsx`, forcing a remount —
+  and thus a fresh `composerOpen` calculation — on every step switch.
 - **Rule of three respected**: `InteractionFilterPanel.jsx` duplicates
   `WorkflowFilterPanel.jsx`'s shape (2nd callsite) rather than extracting a shared
   primitive early; same for the pagination footer (`WorkflowPublishModal.jsx`
