@@ -23,8 +23,9 @@ import React from "react";
  *   - When rightPanel is open AND viewport < 1644, panel overlays the
  *     right edge of the viewport. Content stays at 1068 centered as if
  *     the panel were closed; panel pins to right via position: fixed.
- *   - Mode (dock vs overlay) is captured at the moment the panel opens
- *     and held until it closes — viewport changes mid-open do not flip.
+ *   - Mode (dock vs overlay) is recomputed on open and again on every
+ *     resize while the panel stays open, so it never gets stuck in a
+ *     mode that overflows the current viewport.
  *
  * Vertical rules:
  *   - Root has min-height: 100vh — page background reaches window
@@ -61,6 +62,21 @@ export default function PageLayout({
       setMode(null);
     }
     prevOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Keep dock/overlay mode in sync with the viewport while the panel
+  // stays open — without this, resizing across the dock threshold left
+  // a stale mode whose fixed max-width (DockedRow) or fixed positioning
+  // (OverlayPanel) no longer matched the viewport, causing horizontal
+  // overflow.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handler = () => {
+      const dockMin = readDockMin();
+      setMode(window.innerWidth >= dockMin ? "dock" : "overlay");
+    };
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
   }, [isOpen]);
 
   // Escape closes any open right panel.

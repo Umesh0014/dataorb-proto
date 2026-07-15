@@ -82,6 +82,18 @@ if there are more frames in this flow, they haven't surfaced yet.
   same `PageLayout` `rightPanel` docking mechanism (dock ≥1644px, overlay below) as
   every other right panel in this flow — per `CLAUDE.md`'s explicit "no `position: fixed`
   for full-height side panels" rule.
+- **`PageLayout` dock/overlay mode made responsive, not locked-at-open**: user reported the
+  editor "whole UI broken" after this build — repro turned out to be resizing the browser
+  (or a dev-server hot-reload landing) while a right panel was already open. `PageLayout`
+  computed dock-vs-overlay once, at the moment a panel opened, and never re-evaluated it —
+  so a resize across the 1644px threshold left `DockedRow`'s fixed max-width active in a
+  viewport too narrow for it, overflowing horizontally with the panel rendered off-screen.
+  This was pre-existing shared behavior (affects every consumer of `rightPanel`, not just
+  `HintsPanel`), documented as intentional in `PageLayout.jsx`'s header comment — but it's a
+  real bug, so fixed it there: added a `resize` listener that recomputes mode while the
+  panel stays open, so dock/overlay always matches the current viewport. Verified in-browser
+  both directions: open at 1680px (dock) → resize to 1400px (correctly flips to overlay,
+  no overflow) → resize back to 1680px (correctly re-docks).
 - **Hints panel remount bug caught in browser verification**: `HintsPanel`'s composer-open
   state (`useState(!hintCount)`) only evaluates on mount, so switching between a hinted
   step and an unhinted step without unmounting the panel left the composer in the wrong
