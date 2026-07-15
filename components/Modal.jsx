@@ -22,8 +22,13 @@ import Button from "./Button";
 //   confirmLabel   string — confirm button label. Default "Confirm".
 //   confirmTone    "danger" | "primary" — danger styles the confirm button
 //                  with the error palette. Default "primary".
+//   confirmDisabled boolean — disables the confirm button (e.g. a required
+//                  field in `body` isn't filled yet). Default false.
 //   cancelLabel    string — cancel button label. Default "Cancel".
 //   onConfirm      () => void — fired on confirm click.
+//   width          string — panel width override (CSS value). Default
+//                  "min(480px, 100%)"; wider callers (e.g. a form body)
+//                  pass e.g. "min(720px, 100%)".
 export default function Modal({
   open,
   onDismiss,
@@ -31,8 +36,10 @@ export default function Modal({
   body,
   confirmLabel = "Confirm",
   confirmTone = "primary",
+  confirmDisabled = false,
   cancelLabel = "Cancel",
   onConfirm,
+  width,
 }) {
   // Esc dismisses while open.
   React.useEffect(() => {
@@ -64,7 +71,7 @@ export default function Modal({
         aria-modal="true"
         aria-label={typeof title === "string" ? title : undefined}
         onClick={(e) => e.stopPropagation()}
-        style={mdStyles.panel}
+        style={width ? { ...mdStyles.panel, width } : mdStyles.panel}
       >
         {title && <h2 style={mdStyles.title}>{title}</h2>}
         {body && <div style={mdStyles.body}>{body}</div>}
@@ -75,6 +82,7 @@ export default function Modal({
           <Button
             variant="primary"
             uppercase={false}
+            disabled={confirmDisabled}
             onClick={onConfirm}
             style={confirmStyle}
           >

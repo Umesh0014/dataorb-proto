@@ -227,6 +227,12 @@
      the same chrome as every other landing page.
      ============================================================== */
   --color-border-card-soft: #EFEFFF;
+  --workflow-search-border: #D2D5E2;
+  --workflow-modal-scrim: rgba(27, 27, 31, 0.50);
+  --surface-variant: #E2E1EC;
+  --chart-amber-50: #FFFBEB;
+  --chart-blue-100: #DBEAFE;
+  --chart-amber-600: #D97706;
 
   --tile-green-bg:    #F7FEE7;
   --tile-green-fg:    #84CC16;
@@ -416,6 +422,12 @@ body {
   outline: none;
   box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
   border-radius: var(--radius-sm);
+}
+
+.workflow-publish-search:focus-visible {
+  outline: none;
+  border-color: var(--do-brand-blue) !important;
+  box-shadow: 0 0 0 1px var(--do-brand-blue);
 }
 
 /* Guided Workflow step drawer — slides in from the right edge (side curtain). */

@@ -5,6 +5,7 @@ import { Plus, SlidersHorizontal, ChevronRight } from "lucide-react";
 import Card from "./Card";
 import PageHeader from "./PageHeader";
 import StatusBadge from "./StatusBadge";
+import { WorkflowsIcon } from "./SideNav/icons";
 import { WORKFLOW_METRIC_CARDS, WORKFLOW_DRIVER_ROWS } from "./mocks/workflowsLanding";
 
 // "Deep" tiles (pale-50 bg + near-black 900-level icon color) match the
@@ -41,7 +42,7 @@ export default function WorkflowsLandingPage({ pageName = "Guided Workflows", on
     <div style={wlStyles.wrap}>
       <PageHeader
         identifier={{
-          icon: <MaterialIcon glyph="question_answer" size={16} />,
+          icon: <WorkflowsIcon size={16} color="var(--color-icon-tertiary-fg)" />,
           label: pageName,
           iconBg: "var(--color-icon-tertiary-bg)",
           iconColor: "var(--color-icon-tertiary-fg)",
@@ -94,7 +95,7 @@ function MetricCard({ card, onOpen }) {
     <Card shadow padX={24} padY={24} style={wlStyles.metricCard}>
       <div style={wlStyles.metricHeader}>
         <span style={{ ...wlStyles.iconBubble, background: tile.bg }} aria-hidden="true">
-          <MaterialIcon glyph={card.icon} size={24} color={tile.fg} />
+          <MaterialIcon glyph={card.icon} size={24} color={tile.fg} fill />
         </span>
         <div style={wlStyles.metricTitleCol}>
           <span style={wlStyles.metricTitle}>{card.title}</span>
@@ -158,7 +159,14 @@ function DriverRow({ row }) {
         {row.trailing === "dash" && <span style={wlStyles.rowDash}>--</span>}
       </div>
       <div style={wlStyles.rowAction}>
-        {row.trailing === "chevron" && <ChevronRight size={24} color="var(--color-text-tertiary)" />}
+        {row.trailing === "chevron" && (
+          <ChevronRight
+            size={24}
+            color="var(--color-text-tertiary)"
+            aria-hidden="true"
+            style={{ opacity: hover ? 1 : 0, transition: "opacity 120ms ease" }}
+          />
+        )}
       </div>
     </div>
   );
@@ -168,15 +176,18 @@ function DriverRow({ row }) {
 // a Material Symbols Outlined glyph by name (font already loaded globally
 // in app/layout.jsx). Used instead of lucide here since every icon in this
 // Figma frame is a named Material Symbols glyph (the source node's
-// data-name matches the font ligature exactly).
-function MaterialIcon({ glyph, size = 24, color = "currentColor" }) {
+// data-name matches the font ligature exactly). `fill` toggles the
+// variable font's FILL axis — the metric-card tile icons (electric_bolt,
+// receipt_long, etc.) are filled in Figma; the small trend-pill/row icons
+// are outlined, so this defaults to outlined and opts in per call.
+function MaterialIcon({ glyph, size = 24, color = "currentColor", fill = false }) {
   return (
     <span
       className="material-symbols-outlined"
       style={{
         fontSize: size,
         color,
-        fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+        fontVariationSettings: `'FILL' ${fill ? 1 : 0}, 'wght' 400, 'GRAD' 0, 'opsz' 24`,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",

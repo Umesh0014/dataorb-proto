@@ -49,11 +49,20 @@ export const WORKFLOW_METRIC_CARDS = [
 
 // Category chip background varies per row in the source file (gray-50 vs
 // gray-100) — kept row-accurate rather than normalized to one shade.
-// Driver-detail workflows table ("03 · Driver detail — workflows table").
-// Row 1's name intentionally overflows its column — Figma shows it
-// ellipsized; the full string is invented past the visible "…the direct".
+// Driver-detail workflows table ("03 · Driver detail — workflows table",
+// reconciled against "04 · Create workflow — source dropdown" which shows
+// the same table unclipped — row 1's name was previously invented past a
+// truncation in 03; 04 has the full string, used here). `isNew` mirrors
+// the inline "New" pill Figma shows only on the generating row.
+//
+// Row 1 is GW-12BC's own lifecycle, not two separate rows: "08 · Driver
+// detail — workflow generating row" and "09 · ... — generated draft row"
+// are the SAME row (same id) before/after generation completes — "Home
+// WiFi dropping out…" / Generating flips to "New workflow - review to
+// confirm" / Draft + the New pill. WorkflowDriverDetailPage runs that
+// transition on a timer; this seed only needs the starting state.
 export const WORKFLOW_TABLE_ROWS = [
-  { id: "GW-12BC", name: "Review customer request to update the direct debit", roleplays: 2, status: "draft" },
+  { id: "GW-12BC", name: "Home WiFi dropping out — connectivity triage", roleplays: 2, status: "generating", isNew: true },
   { id: "GW-13BC", name: "Set up a payment plan", roleplays: 2, status: "active" },
   { id: "GW-14BC", name: "Update direct-debit bank account", roleplays: 2, status: "active" },
   { id: "GW-15BC", name: "Update direct-debit bank account", roleplays: 2, status: "active" },
@@ -105,4 +114,21 @@ export const WORKFLOW_DRIVER_ROWS = [
     coverage: "Needs coverage",
     trailing: "none",
   },
+];
+
+// "05 · Interaction picker — filters (sales)" — the customer-interaction
+// list the "+Workflow" create menu's first option opens. fcr/salesWon/
+// retained render a check when true, a dash otherwise — the source frame
+// only shows a checked or dashed state (no distinct "false" glyph), so
+// these stay boolean rather than inventing a third visual. csat is a 0–5
+// dot rating.
+export const WORKFLOW_INTERACTIONS = [
+  { id: "000028", agentInitials: "AT", fcr: true, salesWon: true, retained: false, csat: 3, quality: 68, duration: "1h 1m 45s", date: "Dec 4, 2025" },
+  { id: "000031", agentInitials: "MK", fcr: true, salesWon: true, retained: true, csat: 4, quality: 74, duration: "42m 18s", date: "Dec 4, 2025" },
+  { id: "000033", agentInitials: "JR", fcr: false, salesWon: true, retained: true, csat: 5, quality: 91, duration: "18m 52s", date: "Dec 3, 2025" },
+  { id: "000037", agentInitials: "AT", fcr: true, salesWon: false, retained: false, csat: 2, quality: 55, duration: "1h 14m 03s", date: "Dec 3, 2025" },
+  { id: "000041", agentInitials: "SN", fcr: true, salesWon: true, retained: true, csat: 4, quality: 80, duration: "27m 40s", date: "Dec 2, 2025" },
+  { id: "000045", agentInitials: "MK", fcr: false, salesWon: false, retained: false, csat: 3, quality: 62, duration: "51m 11s", date: "Dec 2, 2025" },
+  { id: "000049", agentInitials: "JR", fcr: true, salesWon: true, retained: true, csat: 5, quality: 88, duration: "22m 37s", date: "Dec 1, 2025" },
+  { id: "000052", agentInitials: "SN", fcr: true, salesWon: true, retained: false, csat: 4, quality: 77, duration: "35m 09s", date: "Dec 1, 2025" },
 ];
