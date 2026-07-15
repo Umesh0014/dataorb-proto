@@ -116,6 +116,11 @@ if there are more frames in this flow, they haven't surfaced yet.
   (`components/WorkflowPostPublishPage.jsx`'s `hintCount` style) so it keeps the internal
   `placeItems: "center"` centering but stays inline-level. Verified in-browser at both
   1400px (overlay) and with the panel open — pill renders as a single line in both cases.
+- **Stepper card had zero top padding**: `editor` style (the white rounded card wrapping
+  the Open/Verify/Discover/Act/Close stepper + step list) used `padding: "0 16px 24px"` —
+  no top padding while every other side had breathing room, so the stepper row sat flush
+  against the card's top rounded corner. Fixed to `"16px 16px 24px"`, matching the existing
+  16px used on the sides rather than inventing a new value. Verified in-browser.
 - **Hints panel remount bug caught in browser verification**: `HintsPanel`'s composer-open
   state (`useState(!hintCount)`) only evaluates on mount, so switching between a hinted
   step and an unhinted step without unmounting the panel left the composer in the wrong

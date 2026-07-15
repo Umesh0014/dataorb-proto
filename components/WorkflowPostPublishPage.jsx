@@ -338,7 +338,7 @@ const styles = {
   warningText: { margin: 0, fontSize: 14, lineHeight: "20px", letterSpacing: "0.17px", color: "#8C620E", whiteSpace: "nowrap" },
   warningActions: { flexShrink: 0, display: "flex", alignItems: "center", gap: 8 },
   feedback: { padding: "10px 16px", borderRadius: 10, background: "var(--tile-green-deep-bg)", color: "var(--color-success-deep)", fontSize: 12 },
-  editor: { flex: 1, minHeight: 420, padding: "0 16px 24px", borderRadius: 12, background: "var(--surface-white)" },
+  editor: { flex: 1, minHeight: 420, padding: "16px 16px 24px", borderRadius: 12, background: "var(--surface-white)" },
   stepper: { minHeight: 64, display: "flex", alignItems: "center" },
   step: { height: "auto", padding: 0, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
   stepNumber: { width: 40, height: 40, borderRadius: 999, background: "var(--chart-gray-50)", color: "var(--grey-700)", display: "grid", placeItems: "center", fontSize: 14 },
