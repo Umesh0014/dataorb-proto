@@ -21,10 +21,14 @@ import React from "react";
  *     [content 1068 + gap 64 + panel 320 = 1452] centers in the main
  *     area; minimum gutter on either side is 64.
  *   - When rightPanel is open AND viewport < 1644, panel overlays the
- *     right edge of the viewport. Content stays at 1068 centered as if
- *     the panel were closed; panel pins to right via position: fixed.
- *   - Mode (dock vs overlay) is captured at the moment the panel opens
- *     and held until it closes — viewport changes mid-open do not flip.
+ *     right edge of the viewport, pinned via position: fixed. Content's
+ *     centering area reserves the same gap + panel width dock mode would
+ *     (extra end padding on <main>), so centered content's right edge
+ *     never extends underneath the panel — only the end gutter shrinks
+ *     to make room, same as it would if the panel took flex space.
+ *   - Mode (dock vs overlay) is recomputed on open and again on every
+ *     resize while the panel stays open, so it never gets stuck in a
+ *     mode that overflows the current viewport.
  *
  * Vertical rules:
  *   - Root has min-height: 100vh — page background reaches window
@@ -63,6 +67,21 @@ export default function PageLayout({
     prevOpenRef.current = isOpen;
   }, [isOpen]);
 
+  // Keep dock/overlay mode in sync with the viewport while the panel
+  // stays open — without this, resizing across the dock threshold left
+  // a stale mode whose fixed max-width (DockedRow) or fixed positioning
+  // (OverlayPanel) no longer matched the viewport, causing horizontal
+  // overflow.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handler = () => {
+      const dockMin = readDockMin();
+      setMode(window.innerWidth >= dockMin ? "dock" : "overlay");
+    };
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [isOpen]);
+
   // Escape closes any open right panel.
   React.useEffect(() => {
     if (!isOpen || !onPanelClose) return;
@@ -92,7 +111,16 @@ export default function PageLayout({
         style={{
           flex: 1,
           minWidth: 0,
-          paddingInline: "var(--page-gutter)",
+          paddingInlineStart: "var(--page-gutter)",
+          // Overlay mode pins the panel via position: fixed rather than
+          // taking up flex space, so without this the centered content's
+          // own right edge extends underneath it — hiding any right-aligned
+          // controls (e.g. a step's Hint chip) that happen to sit there.
+          // Reserve the same width+gap dock mode would, so content never
+          // extends into the panel's footprint in either mode.
+          paddingInlineEnd: overlayOpen
+            ? "calc(var(--page-gutter) + var(--page-right-panel-gap) + var(--page-right-panel-width))"
+            : "var(--page-gutter)",
           paddingTop: "var(--page-padding-top)",
           paddingBottom: "var(--page-padding-bottom)",
           display: "flex",

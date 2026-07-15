@@ -227,6 +227,12 @@
      the same chrome as every other landing page.
      ============================================================== */
   --color-border-card-soft: #EFEFFF;
+  --workflow-search-border: #D2D5E2;
+  --workflow-modal-scrim: rgba(27, 27, 31, 0.50);
+  --surface-variant: #E2E1EC;
+  --chart-amber-50: #FFFBEB;
+  --chart-blue-100: #DBEAFE;
+  --chart-amber-600: #D97706;
 
   --tile-green-bg:    #F7FEE7;
   --tile-green-fg:    #84CC16;
@@ -246,6 +252,35 @@
   --tile-violet-fg:   #8B5CF6;
   --tile-fuchsia-bg:  #FDF4FF;
   --tile-fuchsia-fg:  #D946EF;
+
+  /* Icon-tile "deep" variants — pale-50 bg paired with a near-black
+     900-level icon color (Figma "Workflows landing" metric-card icons).
+     Distinct from --tile-*-fg above (mid-tone 500s, used for the
+     Settings card icons) — kept separate rather than reused because
+     the two are genuinely different visual treatments, not a stylistic
+     accident. */
+  --tile-green-deep-bg:  #F0FDF4;
+  --tile-green-deep-fg:  #14532D;
+  --tile-red-deep-bg:    #FEF2F2;
+  --tile-red-deep-fg:    #7F1D1D;
+  --tile-pink-deep-bg:   #FDF2F8;
+  --tile-pink-deep-fg:   #831843;
+  --tile-yellow-deep-bg: #FEFCE8;
+  --tile-yellow-deep-fg: #713F12;
+
+  /* Tailwind-gray chip/pill hues (Figma "Chart/Gray/*") used by the
+     Workflows screens' category chips and status pills. Warmer neutrals
+     than the blue-tinted --grey-* scale above — kept separate on purpose. */
+  --chart-gray-50:   #F9FAFB;
+  --chart-gray-100:  #F3F4F6;
+  --chart-gray-500:  #6B7280;
+  --chart-gray-700:  #374151;
+  /* Figma System/Success/20 — darker than --color-success; pairs with the
+     pale --tile-green-deep-bg on Active status pills. */
+  --color-success-deep: #00711D;
+  /* Figma System/Secondary/30 — Workflows table row text; sits between
+     --color-text-medium (#2C2F42) and --color-text-tertiary (#5B5E6F). */
+  --color-text-row:  #424659;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -387,6 +422,12 @@ body {
   outline: none;
   box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
   border-radius: var(--radius-sm);
+}
+
+.workflow-publish-search:focus-visible {
+  outline: none;
+  border-color: var(--do-brand-blue) !important;
+  box-shadow: 0 0 0 1px var(--do-brand-blue);
 }
 
 /* Guided Workflow step drawer — slides in from the right edge (side curtain). */

@@ -30,6 +30,15 @@ import GuidePage from "../../components/GuidePage";
 import GuideSessionPage from "../../components/GuideSessionPage";
 import DrillGuidedSessionPage from "../../components/DrillGuidedSessionPage";
 import GuidedWorkflowsPage from "../../components/GuidedWorkflowsPage";
+import WorkflowsLandingPage from "../../components/WorkflowsLandingPage";
+import WorkflowDriverDetailPage from "../../components/WorkflowDriverDetailPage";
+import WorkflowPostPublishPage from "../../components/WorkflowPostPublishPage";
+import WorkflowFilterPanel from "../../components/WorkflowFilterPanel";
+import InteractionPickerPage from "../../components/InteractionPickerPage";
+import InteractionFilterPanel from "../../components/InteractionFilterPanel";
+import InteractionSummaryPanel from "../../components/InteractionSummaryPanel";
+import HintsPanel from "../../components/HintsPanel";
+import RoleplaySelectionPrototype from "../../components/RoleplaySelectionPrototype";
 import ReplayPage from "../../components/ReplayPage";
 import MobileLearningHubShell from "../../components/MobileLearningHubShell";
 import CreateGuideWizardPage, {
@@ -93,6 +102,7 @@ const INSIGHTS_PAGES = {
 const LEARNING_PAGES = {
   "dashboard":    { Component: CommandCenterShell, pageName: "Dashboard" },
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
+  "workflows":    { Component: WorkflowsLandingPage, pageName: "Guided Workflows" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
@@ -380,6 +390,23 @@ export default function Page() {
   }, [router]);
 
   const [drillDetailId, setDrillDetailId] = React.useState(null);
+  // Workflows (driver grid) drill-in: which driver's workflows table is
+  // open, and whether its faceted filter panel is showing.
+  const [workflowDriverId, setWorkflowDriverId] = React.useState(null);
+  const [workflowFiltersOpen, setWorkflowFiltersOpen] = React.useState(false);
+  const [workflowEditorOpen, setWorkflowEditorOpen] = React.useState(false);
+  // "05a.1"/"05a.2 · Workflow editor — hints panel": which step's hints are
+  // showing in the editor's right column, or null when closed.
+  const [hintsStep, setHintsStep] = React.useState(null); // { title, hint } | null
+  // "05 · Interaction picker" — opened from a driver's "+Workflow" create
+  // menu ("From a customer interaction"). Nested under workflowDriverId:
+  // closing it returns to that driver's table, not the workflows grid.
+  const [interactionPickerOpen, setInteractionPickerOpen] = React.useState(false);
+  const [interactionFiltersOpen, setInteractionFiltersOpen] = React.useState(false);
+  // "06 · Interaction picker — summary (sales)": once ≥1 row is picked the
+  // right panel swaps from the Filters facet list to an Interaction
+  // summary insights list — same open/close toggle, different content.
+  const [interactionsSelected, setInteractionsSelected] = React.useState(false);
   // Drill persona (Team Leader ↔ Agent). Default Agent (use-only view) per
   // the Drill View-switcher handoff. Team Leader = full management landing +
   // detail; Agent = use-only landing whose "Run drill" launches the guided
@@ -657,6 +684,7 @@ export default function Page() {
     const onDrill = learningNav === "drill";
     const onGuidedDrill = learningNav === "guided-drill";
     const onGuidedWorkflows = learningNav === "guided-workflows";
+    const onWorkflows = learningNav === "workflows";
     const isAgentDrill = drillPersona === "agent";
     const onMissions = learningNav === "missions";
     const onAgents = learningNav === "agents";
@@ -745,6 +773,34 @@ export default function Page() {
           locale={locale}
         />
       );
+    } else if (onWorkflows && workflowDriverId && workflowEditorOpen) {
+      drillContent = (
+        <WorkflowPostPublishPage
+          onBack={() => { setWorkflowEditorOpen(false); setHintsStep(null); }}
+          hintsStep={hintsStep}
+          onOpenHints={setHintsStep}
+        />
+      );
+    } else if (onWorkflows && workflowDriverId && interactionPickerOpen) {
+      drillContent = (
+        <InteractionPickerPage
+          onBack={() => { setInteractionPickerOpen(false); setInteractionFiltersOpen(false); setInteractionsSelected(false); }}
+          filtersOpen={interactionFiltersOpen}
+          onToggleFilters={() => setInteractionFiltersOpen((o) => !o)}
+          onSelectionChange={setInteractionsSelected}
+        />
+      );
+    } else if (onWorkflows && workflowDriverId) {
+      drillContent = (
+        <WorkflowDriverDetailPage
+          driverId={workflowDriverId}
+          onBack={() => { setWorkflowDriverId(null); setWorkflowFiltersOpen(false); }}
+          filtersOpen={workflowFiltersOpen}
+          onToggleFilters={() => setWorkflowFiltersOpen((o) => !o)}
+          onCreateFromInteraction={() => setInteractionPickerOpen(true)}
+          onEditWorkflow={() => setWorkflowEditorOpen(true)}
+        />
+      );
     } else if (!missionsPopulated) {
       drillContent = (
         <LearningPage
@@ -760,6 +816,7 @@ export default function Page() {
           onCreateGuide={openGuideWizard}
           onOpenGuide={openGuideSession}
           onOpenGuidedWorkflows={() => router.push("/learning/guided-workflows")}
+          onOpenWorkflowDriver={(id) => setWorkflowDriverId(id)}
           onOpenAgent={(id) => {
             setAgentProfileId(id);
             // On the Dashboard the agent detail opens in place (handled above);
@@ -780,6 +837,13 @@ export default function Page() {
       setDrillDetailId(null);
       setAgentProfileId(null);
       setSelectedMissionId(null);
+      setWorkflowDriverId(null);
+      setWorkflowFiltersOpen(false);
+      setWorkflowEditorOpen(false);
+      setHintsStep(null);
+      setInteractionPickerOpen(false);
+      setInteractionFiltersOpen(false);
+      setInteractionsSelected(false);
       cancelRoleplay();
       closeMissionWizard();
       closeGuideWizard();
@@ -841,7 +905,32 @@ export default function Page() {
       // Drill landing + detail carry the Team Leader ↔ Agent persona
       // switch — surfaced as an inline header pill inside LearningHubPage
       // (always visible), not a floating bar.
-      moduleContent = <PageLayout>{drillContent}</PageLayout>;
+      // Workflows driver detail opens its faceted filter panel through
+      // PageLayout's rightPanel (dock ≥1644, overlay below — PageLayout owns it).
+      const interactionPanelOpen = onWorkflows && workflowDriverId && interactionPickerOpen && interactionFiltersOpen;
+      const showInteractionSummary = interactionPanelOpen && interactionsSelected;
+      const showInteractionFilters = interactionPanelOpen && !interactionsSelected;
+      const showWorkflowFilters = onWorkflows && workflowDriverId && !workflowEditorOpen && !interactionPickerOpen && workflowFiltersOpen;
+      const showHints = onWorkflows && workflowDriverId && workflowEditorOpen && hintsStep;
+      const workflowsRightPanel = showHints
+        ? <HintsPanel key={hintsStep.title} hintCount={hintsStep.hint} onClose={() => setHintsStep(null)} />
+        : showInteractionSummary
+        ? <InteractionSummaryPanel onClose={() => setInteractionFiltersOpen(false)} />
+        : showInteractionFilters
+        ? <InteractionFilterPanel onClose={() => setInteractionFiltersOpen(false)} />
+        : showWorkflowFilters
+        ? <WorkflowFilterPanel onClose={() => setWorkflowFiltersOpen(false)} />
+        : null;
+      const closeWorkflowsRightPanel = () => {
+        setInteractionFiltersOpen(false);
+        setWorkflowFiltersOpen(false);
+        setHintsStep(null);
+      };
+      moduleContent = (
+        <PageLayout rightPanel={workflowsRightPanel} onPanelClose={closeWorkflowsRightPanel}>
+          {drillContent}
+        </PageLayout>
+      );
     }
   } else {
     const { Component: InsightsPage, pageName } = resolvePage(INSIGHTS_PAGES, insightsNav, "Insights Hub");
@@ -874,6 +963,10 @@ export default function Page() {
         />
       </PageLayout>
     );
+  }
+
+  if (pathname === "/prototype/roleplay-selection") {
+    return <RoleplaySelectionPrototype />;
   }
 
   return (

@@ -176,6 +176,17 @@ export const SmartphoneIcon = ({ size = 22, color = "currentColor" }) => (
   />
 );
 
+// Guided Workflows (Learning Hub) — Material Symbols `account_tree` glyph;
+// matches the Figma "Workflows landing" rail icon (WIP direction, reached
+// separately from the existing Drill → Guided Workflows authoring tab).
+export const WorkflowsIcon = ({ size = 22, color = "currentColor" }) => (
+  <MaterialPath
+    size={size}
+    color={color}
+    d="M600-120v-120H440v-400h-80v120H80v-320h280v120h240v-120h280v320H600v-120h-80v320h80v-120h280v320H600ZM160-760v160-160Zm520 400v160-160Zm0-400v160-160Zm0 160h120v-160H680v160Zm0 400h120v-160H680v160ZM160-600h120v-160H160v160Z"
+  />
+);
+
 // Missions (Learning Hub) — custom target/crosshair brand icon.
 // Used by both the SideNav rail and the Missions page header avatar.
 export const MissionsIcon = ({ size = 22, color = "currentColor" }) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { DrillIcon, InteractionsIcon, MissionsIcon, GuideIcon, ReplayIcon, CommandCenterIcon, SmartphoneIcon } from "../icons";
+import { DrillIcon, InteractionsIcon, MissionsIcon, GuideIcon, ReplayIcon, CommandCenterIcon, SmartphoneIcon, WorkflowsIcon } from "../icons";
 
 // Per-module config: ONLY the middle-section icon set + their routing data.
 // Chrome (rail, brand, app switcher trigger, footer, avatar) is owned by SideNav.
@@ -24,6 +24,18 @@ export const learningHubConfig = {
       label: "Drill",
       Icon: DrillIcon,
       route: "/learning/drill",
+    },
+    {
+      id: "workflows",
+      label: "Workflows",
+      Icon: WorkflowsIcon,
+      route: "/learning/workflows",
+      // New "Workflows landing — driver grid" direction from Figma. Own
+      // rail item, separate from the existing Drill → Guided Workflows
+      // authoring tab (which stays reachable via Drill and keeps no rail
+      // item of its own). Figma frame carries open PM questions (driver
+      // card kebab actions, card-vs-table split) — wip flags it as such.
+      wip: true,
     },
     {
       id: "interactions",

@@ -147,7 +147,9 @@ function Identifier({ icon, label, withDropdown = false, onClick, iconBg, iconCo
     : phStyles.iconChip;
   const inner = (
     <>
-      <div style={chipStyle}>{icon}</div>
+      {/* Icon chip only when an icon is supplied — detail headers (e.g.
+          Workflow driver detail) show back-chip + bare title. */}
+      {icon && <div style={chipStyle}>{icon}</div>}
       <span style={phStyles.label}>{label}</span>
       {withDropdown && (
         <span className="material-symbols-outlined" style={phStyles.chevron}>
