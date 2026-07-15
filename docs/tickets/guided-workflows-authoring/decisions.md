@@ -94,6 +94,19 @@ if there are more frames in this flow, they haven't surfaced yet.
   panel stays open, so dock/overlay always matches the current viewport. Verified in-browser
   both directions: open at 1680px (dock) → resize to 1400px (correctly flips to overlay,
   no overflow) → resize back to 1680px (correctly re-docks).
+- **Overlay mode covered right-aligned content — fixed by reserving space, not just fixing
+  the mode-flip**: after the above fix, user caught a second issue — at overlay-range
+  widths, a step's Hint chip (right-aligned in its card) sat physically underneath the
+  fixed-position overlay panel and was unclickable. Root cause: overlay mode intentionally
+  left content at its full "panel closed" width instead of narrowing it (`PageLayout.jsx`'s
+  own doc comment said as much) — fine for panels that don't require interacting with
+  covered content, but the Hints panel specifically needs a *different* step's Hint chip
+  clickable while it's open (that's the whole point of the composer-reset fix above). Fixed
+  by adding conditional `paddingInlineEnd` to `<main>` (reserving gap + panel width in
+  overlay mode, same amount dock mode reserves via flex), so centered content's right edge
+  now stays clear of the panel in both modes. Verified in-browser: Hint chips fully visible
+  and un-covered at 1400px, and spot-checked `WorkflowFilterPanel`'s overlay at the same
+  width to confirm the shared fix didn't regress other panels.
 - **Hints panel remount bug caught in browser verification**: `HintsPanel`'s composer-open
   state (`useState(!hintCount)`) only evaluates on mount, so switching between a hinted
   step and an unhinted step without unmounting the panel left the composer in the wrong
