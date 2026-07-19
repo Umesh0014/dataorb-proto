@@ -95,20 +95,14 @@ export default function InterveneCampaignWizard({ onClose }) {
                   <span
                     style={{
                       ...cwStyles.crumbLabel,
-                      color: i === stepIdx
-                        ? "var(--color-button-primary-bg)"
-                        : i < stepIdx
-                          ? "var(--color-text-deep)"
-                          : "var(--color-text-tertiary)",
+                      color: i === stepIdx ? "var(--color-button-primary-bg)" : "var(--color-text-tertiary)",
                       fontWeight: i === stepIdx ? 700 : 500,
                     }}
                   >
                     {s.label}
                   </span>
                 )}
-                {i < STEPS.length - 1 && (
-                  <ChevronRight size={14} color="var(--color-text-tertiary)" />
-                )}
+                {i < STEPS.length - 1 && <ChevronRight size={14} color="var(--color-text-tertiary)" />}
               </React.Fragment>
             ))}
           </div>
@@ -156,12 +150,7 @@ export default function InterveneCampaignWizard({ onClose }) {
               </span>
               {GATING_SIGNALS.map((s) => (
                 <label key={s} style={cwStyles.checkRow}>
-                  <input
-                    type="checkbox"
-                    checked={gating.includes(s)}
-                    onChange={() => toggleGating(s)}
-                    style={cwStyles.checkbox}
-                  />
+                  <input type="checkbox" checked={gating.includes(s)} onChange={() => toggleGating(s)} style={cwStyles.checkbox} />
                   <span style={cwStyles.checkLabel}>{s}</span>
                 </label>
               ))}
@@ -175,12 +164,7 @@ export default function InterveneCampaignWizard({ onClose }) {
                 return (
                   <div key={s} style={cwStyles.compoundRow}>
                     <label style={{ ...cwStyles.checkRow, width: 220, flexShrink: 0 }}>
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={() => toggleCompounding(s)}
-                        style={cwStyles.checkbox}
-                      />
+                      <input type="checkbox" checked={on} onChange={() => toggleCompounding(s)} style={cwStyles.checkbox} />
                       <span style={cwStyles.checkLabel}>{s}</span>
                     </label>
                     {on && (
@@ -190,9 +174,7 @@ export default function InterveneCampaignWizard({ onClose }) {
                           min={0}
                           max={100}
                           value={compounding[s]}
-                          onChange={(e) =>
-                            setCompounding((m) => ({ ...m, [s]: Number(e.target.value) }))
-                          }
+                          onChange={(e) => setCompounding((m) => ({ ...m, [s]: Number(e.target.value) }))}
                           aria-label={`${s} weight`}
                           style={cwStyles.slider}
                         />
@@ -267,9 +249,7 @@ export default function InterveneCampaignWizard({ onClose }) {
                 variant="primary"
                 uppercase={false}
                 disabled={!stepValid}
-                onClick={() =>
-                  stepIdx === 2 ? setPublished(true) : setStepIdx(stepIdx + 1)
-                }
+                onClick={() => (stepIdx === 2 ? setPublished(true) : setStepIdx(stepIdx + 1))}
                 trailingIcon={stepIdx < 2 ? <ChevronRight size={16} /> : undefined}
                 style={{ minWidth: 0, paddingInline: 20 }}
               >
@@ -294,12 +274,7 @@ function StepHeader({ title, subtitle }) {
 
 function ReviewRow({ label, children, last }) {
   return (
-    <div
-      style={{
-        ...cwStyles.reviewRow,
-        borderBottom: last ? "none" : "1px solid var(--color-border-card-soft)",
-      }}
-    >
+    <div style={{ ...cwStyles.reviewRow, borderBottom: last ? "none" : "1px solid var(--color-border-card-soft)" }}>
       <span style={cwStyles.reviewLabel}>{label}</span>
       <span style={cwStyles.reviewValue}>{children}</span>
     </div>
@@ -316,12 +291,10 @@ const cwStyles = {
   crumbs: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
   crumbLabel: { fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: "20px", letterSpacing: "0.17px" },
   doneChip: {
-    display: "inline-flex", alignItems: "center", gap: 6,
-    height: 28, paddingInline: 10, borderRadius: 999,
-    border: "1px solid var(--color-border-card-soft)",
+    display: "inline-flex", alignItems: "center", gap: 6, height: 28, paddingInline: 10,
+    borderRadius: 999, border: "1px solid var(--color-border-card-soft)",
     background: "var(--color-card-emoji-bg)", cursor: "pointer",
-    fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600,
-    color: "var(--color-text-medium)",
+    fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)",
   },
 
   // Step header
@@ -347,31 +320,24 @@ const cwStyles = {
     width: 44, flexShrink: 0, textAlign: "right",
     fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-text-tertiary)",
   },
-  miniLabel: {
-    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500,
-    textTransform: "uppercase", color: "var(--color-text-tertiary)",
-  },
+  miniLabel: { fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", color: "var(--color-text-tertiary)" },
   miniRow: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
   miniChip: {
-    display: "inline-flex", alignItems: "center", height: 24, paddingInline: 8,
-    borderRadius: 4, background: "var(--color-chip-bg)", color: "var(--color-text-medium)",
+    display: "inline-flex", alignItems: "center", height: 24, paddingInline: 8, borderRadius: 4,
+    background: "var(--color-chip-bg)", color: "var(--color-text-medium)",
     fontFamily: "var(--font-sans)", fontSize: 12,
   },
   mutedNote: { margin: 0, fontSize: 12, lineHeight: "20px", letterSpacing: "0.4px", color: "var(--color-text-tertiary)" },
 
   // Review
   reviewRow: { display: "flex", flexDirection: "column", gap: 4, padding: "12px 0" },
-  reviewLabel: {
-    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500,
-    textTransform: "uppercase", color: "var(--color-text-tertiary)",
-  },
+  reviewLabel: { fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", color: "var(--color-text-tertiary)" },
   reviewValue: { fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: "20px", letterSpacing: "0.17px", color: "var(--color-text-medium)" },
 
   // Success
   successWrap: {
-    flex: 1, minHeight: 240,
-    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-    gap: 16, textAlign: "center",
+    flex: 1, minHeight: 240, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center", gap: 16, textAlign: "center",
   },
   successTitle: { fontSize: 16, fontWeight: 600, color: "var(--color-text-deep)" },
 
