@@ -43,6 +43,7 @@ export default function ImproveTable() {
               key={lane.id}
               type="button"
               role="tab"
+              className="im-focusable"
               aria-selected={active}
               onClick={() => { setActiveLane(lane.id); setSelectedAgent(null); }}
               style={{ ...tStyles.tab, ...(active ? tStyles.tabActive : {}) }}
@@ -58,6 +59,7 @@ export default function ImproveTable() {
         })}
         <button
           type="button"
+          className="im-focusable"
           onClick={() => setShowConfig(!showConfig)}
           style={tStyles.configBtn}
           aria-label="Configure thresholds"
@@ -166,7 +168,7 @@ export default function ImproveTable() {
                   <h3 style={tStyles.sidecarTitle}>{detail.agent.name}</h3>
                   <p style={tStyles.sidecarSub}>{detail.competency.label} — {detail.score}{detail.competency.unit} / {detail.threshold}{detail.competency.unit}</p>
                 </div>
-                <button type="button" onClick={() => setSelectedAgent(null)} style={tStyles.closeBtn} aria-label="Close">
+                <button type="button" className="im-focusable" onClick={() => setSelectedAgent(null)} style={tStyles.closeBtn} aria-label="Close">
                   <X size={18} />
                 </button>
               </div>
@@ -226,11 +228,11 @@ function MiniTrend({ points, threshold, unit }) {
 function ActionButton({ action }) {
   const Icon = ACTION_ICONS[action.kind] || Target;
   return (
-    <button type="button" style={tStyles.actionRow}>
+    <div style={tStyles.actionRow}>
       <Icon size={16} style={{ color: "var(--do-brand-blue)", flexShrink: 0 }} />
       <span style={tStyles.actionLabel}>{action.label}</span>
       <span style={tStyles.actionDuration}>{action.duration}</span>
-    </button>
+    </div>
   );
 }
 
@@ -269,7 +271,7 @@ const tStyles = {
   },
   tabActive: {
     background: "var(--do-brand-blue)",
-    color: "#FFFFFF",
+    color: "var(--surface-white)",
   },
   tabLabel: {},
   tabBadge: {
@@ -282,7 +284,7 @@ const tStyles = {
   },
   tabBadgeActive: {
     background: "rgba(255,255,255,0.2)",
-    color: "#FFFFFF",
+    color: "var(--surface-white)",
   },
   configBtn: {
     all: "unset",
@@ -366,15 +368,12 @@ const tStyles = {
   sidecarText: { margin: "0 0 6px", fontSize: 13, lineHeight: 1.5, color: "var(--color-text-medium)" },
   actionsList: { display: "flex", flexDirection: "column", gap: 6 },
   actionRow: {
-    all: "unset",
-    cursor: "pointer",
     display: "flex",
     alignItems: "center",
     gap: 10,
     padding: "10px 12px",
     borderRadius: 8,
     background: "var(--surface-alt, #F1F3F9)",
-    transition: "background 150ms ease",
   },
   actionLabel: { flex: 1, fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
   actionDuration: { fontSize: 12, color: "var(--color-text-tertiary)" },

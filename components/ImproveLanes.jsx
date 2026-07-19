@@ -80,6 +80,7 @@ function LaneBand({ lane, thresholds, minInteractions, selected, onSelect, editi
           </span>
           <button
             type="button"
+            className="im-focusable"
             onClick={() => onEditLane(isEditing ? null : lane.id)}
             style={styles.settingsBtn}
             aria-label={`Configure ${lane.label} threshold`}
@@ -112,6 +113,7 @@ function LaneBand({ lane, thresholds, minInteractions, selected, onSelect, editi
             <button
               key={agent.id}
               type="button"
+              className="im-focusable"
               onClick={() => onSelect(agent.id)}
               style={{ ...styles.agentCard, ...(isSelected ? styles.agentCardSelected : {}) }}
               aria-pressed={isSelected}
@@ -142,7 +144,7 @@ function SidecarContent({ detail, onClose }) {
           <h3 style={styles.sidecarTitle}>{agent.name}</h3>
           <p style={styles.sidecarSub}>{competency.label} — {score}{competency.unit} / {threshold}{competency.unit} threshold</p>
         </div>
-        <button type="button" onClick={onClose} style={styles.closeBtn} aria-label="Close detail">
+        <button type="button" className="im-focusable" onClick={onClose} style={styles.closeBtn} aria-label="Close detail">
           <X size={18} />
         </button>
       </div>
@@ -198,11 +200,11 @@ function MiniTrend({ points, threshold, unit }) {
 function ActionRow({ action }) {
   const Icon = ACTION_ICONS[action.kind] || Target;
   return (
-    <button type="button" style={styles.actionRow}>
+    <div style={styles.actionRow}>
       <Icon size={16} style={{ color: "var(--do-brand-blue)", flexShrink: 0 }} />
       <span style={styles.actionLabel}>{action.label}</span>
       <span style={styles.actionDuration}>{action.duration}</span>
-    </button>
+    </div>
   );
 }
 
@@ -313,15 +315,12 @@ const styles = {
   sidecarText: { margin: "0 0 6px", fontSize: 13, lineHeight: 1.5, color: "var(--color-text-medium)" },
   actionsList: { display: "flex", flexDirection: "column", gap: 6 },
   actionRow: {
-    all: "unset",
-    cursor: "pointer",
     display: "flex",
     alignItems: "center",
     gap: 10,
     padding: "10px 12px",
     borderRadius: 8,
     background: "var(--surface-alt, #F1F3F9)",
-    transition: "background 150ms ease",
   },
   actionLabel: { flex: 1, fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
   actionDuration: { fontSize: 12, color: "var(--color-text-tertiary)" },

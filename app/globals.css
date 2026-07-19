@@ -389,6 +389,16 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* Improve surface — focus ring for inline-styled buttons that use all:unset. */
+.im-focusable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-white), 0 0 0 4px var(--do-brand-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .im-no-motion { transition: none !important; }
+}
+
 /* Guided Workflow step drawer — slides in from the right edge (side curtain). */
 @keyframes gwSlideIn {
   from { transform: translateX(28px); opacity: 0; }
