@@ -12,9 +12,10 @@ import {
 } from "./mocks/intervene";
 
 const STEPS = [
-  { id: "coverage", label: "Coverage" },
-  { id: "signals",  label: "Signals" },
-  { id: "review",   label: "Review & publish" },
+  { id: "coverage",    label: "Coverage" },
+  { id: "gating",      label: "Gating" },
+  { id: "compounding", label: "Compounding" },
+  { id: "review",      label: "Review & publish" },
 ];
 
 const COVERAGE_FIELDS = [
@@ -42,8 +43,9 @@ export default function InterveneCampaignWizard({ onClose }) {
   const [published, setPublished] = React.useState(false);
 
   const coverageValid = COVERAGE_FIELDS.every((f) => coverage[f.key]);
-  const signalsValid = gating.length >= 1;
-  const stepValid = stepIdx === 0 ? coverageValid : stepIdx === 1 ? signalsValid : true;
+  const gatingValid = gating.length >= 1;
+  // Compounding is optional — that step (and review) are always valid.
+  const stepValid = stepIdx === 0 ? coverageValid : stepIdx === 1 ? gatingValid : true;
 
   const compoundingEntries = COMPOUNDING_SIGNALS.filter((s) => s in compounding);
   const weightTotal = compoundingEntries.reduce((sum, s) => sum + compounding[s], 0);
@@ -72,7 +74,8 @@ export default function InterveneCampaignWizard({ onClose }) {
 
   const stepSummary = (i) => {
     if (i === 0) return `Coverage · ${coverage.lineOfBusiness} / ${coverage.queue}`;
-    return `Signals · ${gating.length} gating · ${compoundingEntries.length} compounding`;
+    if (i === 1) return `Gating · ${gating.length} signal${gating.length === 1 ? "" : "s"}`;
+    return `Compounding · ${compoundingEntries.length ? `${compoundingEntries.length} weighted` : "none"}`;
   };
 
   return (
@@ -112,10 +115,7 @@ export default function InterveneCampaignWizard({ onClose }) {
       <Card padX={24} padY={24} style={cwStyles.body}>
         {stepIdx === 0 && (
           <>
-            <StepHeader
-              title="Coverage"
-              subtitle="Scope the static cohort this campaign recruits from"
-            />
+            <StepHeader title="Coverage" subtitle="Scope the static cohort this campaign recruits from" />
             <div style={cwStyles.coverageGrid}>
               {COVERAGE_FIELDS.map((f) => (
                 <div key={f.key} style={cwStyles.field}>
@@ -140,10 +140,7 @@ export default function InterveneCampaignWizard({ onClose }) {
 
         {stepIdx === 1 && (
           <>
-            <StepHeader
-              title="Signals"
-              subtitle="Gating decides who qualifies; compounding decides who ranks first"
-            />
+            <StepHeader title="Gating" subtitle="Gating decides who qualifies — at least one signal must be true" />
             <div style={cwStyles.signalSection}>
               <span style={cwStyles.sectionLabel}>
                 Gating signals (mandatory — at least one must be true)
@@ -155,6 +152,12 @@ export default function InterveneCampaignWizard({ onClose }) {
                 </label>
               ))}
             </div>
+          </>
+        )}
+
+        {stepIdx === 2 && (
+          <>
+            <StepHeader title="Compounding" subtitle="Optional — weighted signals decide who ranks first" />
             <div style={cwStyles.signalSection}>
               <span style={cwStyles.sectionLabel}>
                 Compounding signals (optional — weighted into a composite priority score)
@@ -201,12 +204,9 @@ export default function InterveneCampaignWizard({ onClose }) {
           </>
         )}
 
-        {stepIdx === 2 && !published && (
+        {stepIdx === 3 && !published && (
           <>
-            <StepHeader
-              title="Review & publish"
-              subtitle="Confirm the cohort setting — runs recruit against it later"
-            />
+            <StepHeader title="Review & publish" subtitle="Confirm the cohort setting — runs recruit against it later" />
             <Card tone="outline" padX={20} padY={16}>
               <ReviewRow label="COVERAGE">
                 {COVERAGE_FIELDS.map((f) => coverage[f.key]).join(" / ")}
@@ -249,11 +249,11 @@ export default function InterveneCampaignWizard({ onClose }) {
                 variant="primary"
                 uppercase={false}
                 disabled={!stepValid}
-                onClick={() => (stepIdx === 2 ? setPublished(true) : setStepIdx(stepIdx + 1))}
-                trailingIcon={stepIdx < 2 ? <ChevronRight size={16} /> : undefined}
+                onClick={() => (stepIdx === 3 ? setPublished(true) : setStepIdx(stepIdx + 1))}
+                trailingIcon={stepIdx < 3 ? <ChevronRight size={16} /> : undefined}
                 style={{ minWidth: 0, paddingInline: 20 }}
               >
-                {stepIdx === 2 ? "Publish campaign" : "Continue"}
+                {stepIdx === 3 ? "Publish campaign" : "Continue"}
               </Button>
             </div>
           </div>
