@@ -5,6 +5,7 @@ import { SlidersHorizontal, X } from "lucide-react";
 import Card from "./Card";
 import PageHeader from "./PageHeader";
 import BulkActionBar from "./BulkActionBar";
+import ThresholdConfig from "./ThresholdConfig";
 import { COMPETENCIES, DEFAULT_THRESHOLDS, DEFAULT_MIN_INTERACTIONS, agentsInLane, laneCountsAll, agentCompetencyDetail } from "./mocks/improveLanes";
 
 // ImproveTable (Direction B) — Severity-ranked combined table.
@@ -146,29 +147,11 @@ export default function ImproveTable() {
         {(showConfig || detail) && (
           <aside style={styles.rightPanel}>
             {showConfig && (
-              <Card padX={20} padY={16}>
-                <div style={styles.configHeader}>
-                  <h4 style={styles.configTitle}>Thresholds</h4>
-                  <button type="button" className="im-focusable" onClick={() => setShowConfig(false)} style={styles.closeBtn} aria-label="Close config">
-                    <X size={16} />
-                  </button>
-                </div>
-                <div style={styles.configGrid}>
-                  {COMPETENCIES.map((c) => (
-                    <label key={c.id} style={styles.configItem}>
-                      <span style={styles.configLabel}>{c.label}</span>
-                      <input
-                        type="number"
-                        value={thresholds[c.id]}
-                        onChange={(e) => setThresholds((t) => ({ ...t, [c.id]: Number(e.target.value) }))}
-                        style={styles.configInput}
-                        min={0}
-                        max={100}
-                      />
-                    </label>
-                  ))}
-                </div>
-              </Card>
+              <ThresholdConfig
+                thresholds={thresholds}
+                onChange={setThresholds}
+                onClose={() => setShowConfig(false)}
+              />
             )}
 
             {detail && (
@@ -260,13 +243,7 @@ const styles = {
   interactionCount: { fontSize: 13, color: "var(--color-text-medium)" },
   recommendedAction: { fontSize: 12, fontWeight: 500, color: "var(--do-brand-blue)" },
   rightPanel: { width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 24 },
-  configHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  configTitle: { margin: 0, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
   closeBtn: { all: "unset", cursor: "pointer", width: 28, height: 28, borderRadius: 6, display: "grid", placeItems: "center", color: "var(--color-text-tertiary)" },
-  configGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
-  configItem: { display: "flex", flexDirection: "column", gap: 4 },
-  configLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)" },
-  configInput: { width: "100%", padding: "4px 8px", borderRadius: 6, border: "1px solid var(--color-divider-card, rgba(0,0,0,0.12))", fontSize: 13, fontWeight: 600, fontFamily: "var(--font-sans)" },
   sidecarHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   sidecarTitle: { margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
   sidecarSub: { margin: "4px 0 0", fontSize: 13, color: "var(--color-text-tertiary)" },
