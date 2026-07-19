@@ -9,6 +9,7 @@ import DrillDetailPage from "../../components/DrillDetailPage";
 import NewRoleplayPage from "../../components/NewRoleplayPage";
 import NewRoleplayContextPage from "../../components/NewRoleplayContextPage";
 import InteractionsPage from "../../components/InteractionsPage";
+import IntervenePage from "../../components/IntervenePage";
 import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
@@ -82,6 +83,7 @@ const INSIGHTS_PAGES = {
   "reports":            { Component: ComingSoon,        pageName: "Reports" },
   // direct
   "interaction":        { Component: InteractionsPage,  pageName: "Interactions" },
+  "intervene":          { Component: IntervenePage,     pageName: "Intervene" },
   // headset → children
   "agent-performance":  { Component: ComingSoon,        pageName: "Agent Performance" },
   "session":            { Component: ComingSoon,        pageName: "Session" },
