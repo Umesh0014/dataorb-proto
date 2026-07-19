@@ -4,6 +4,7 @@ import React from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import Card from "./Card";
 import PageHeader from "./PageHeader";
+import BulkActionBar from "./BulkActionBar";
 import { COMPETENCIES, DEFAULT_THRESHOLDS, DEFAULT_MIN_INTERACTIONS, agentsInLane, laneCountsAll, agentCompetencyDetail } from "./mocks/improveLanes";
 
 // ImproveTable (Direction B) — Severity-ranked combined table.
@@ -16,6 +17,7 @@ export default function ImproveTable() {
   const [thresholds, setThresholds] = React.useState(DEFAULT_THRESHOLDS);
   const [minInteractions] = React.useState(DEFAULT_MIN_INTERACTIONS);
   const [selected, setSelected] = React.useState(null);
+  const [selectedRows, setSelectedRows] = React.useState(new Set());
   const [showConfig, setShowConfig] = React.useState(false);
 
   const allBelow = React.useMemo(() => {
@@ -49,6 +51,18 @@ export default function ImproveTable() {
             <table style={styles.table}>
               <thead>
                 <tr style={styles.headRow}>
+                  <th style={styles.thCheck}>
+                    <input
+                      type="checkbox"
+                      checked={allBelow.length > 0 && selectedRows.size === allBelow.length}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedRows(new Set(allBelow.map((_, i) => i)));
+                        else setSelectedRows(new Set());
+                      }}
+                      style={styles.checkbox}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th style={styles.th}>Agent</th>
                   <th style={styles.th}>Competency</th>
                   <th style={styles.th}>Score</th>
@@ -60,23 +74,40 @@ export default function ImproveTable() {
               <tbody>
                 {allBelow.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={styles.emptyCell}>
+                    <td colSpan={7} style={styles.emptyCell}>
                       All agents are above threshold across every competency.
                     </td>
                   </tr>
                 ) : (
                   allBelow.map((item, i) => {
                     const isSelected = selected?.agentId === item.agent.id && selected?.competencyId === item.competency.id;
+                    const isChecked = selectedRows.has(i);
                     return (
                       <tr
                         key={`${item.agent.id}-${item.competency.id}`}
                         onClick={() => setSelected({ agentId: item.agent.id, competencyId: item.competency.id })}
                         style={{
                           ...styles.row,
-                          background: isSelected ? "var(--nav-rail-bg, #E8ECFF)" : undefined,
+                          background: isChecked ? "var(--color-success-bg, #E8F5E9)" : isSelected ? "var(--nav-rail-bg, #E8ECFF)" : undefined,
                           borderBottom: i === allBelow.length - 1 ? "none" : "1px solid var(--table-row-border, rgba(0,0,0,0.06))",
                         }}
                       >
+                        <td style={styles.cellCheck} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              setSelectedRows((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(i)) next.delete(i);
+                                else next.add(i);
+                                return next;
+                              });
+                            }}
+                            style={styles.checkbox}
+                            aria-label={`Select ${item.agent.name} — ${item.competency.label}`}
+                          />
+                        </td>
                         <td style={styles.cell}>
                           <span style={styles.agentCell}>
                             <span style={styles.avatar}>{item.agent.initials}</span>
@@ -105,6 +136,11 @@ export default function ImproveTable() {
               </tbody>
             </table>
           </Card>
+          <BulkActionBar
+            count={selectedRows.size}
+            onAction={(actionId) => { /* TODO: dispatch bulk action */ }}
+            onClear={() => setSelectedRows(new Set())}
+          />
         </div>
 
         {(showConfig || detail) && (
@@ -208,8 +244,11 @@ const styles = {
   tableWrap: { flex: 1, minWidth: 0 },
   table: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed", fontFamily: "var(--font-sans)" },
   headRow: { borderBottom: "1px solid var(--table-header-border, rgba(0,0,0,0.08))" },
+  thCheck: { padding: "12px 8px 12px 16px", width: 36, verticalAlign: "middle" },
   th: { padding: "12px 16px", textAlign: "start", fontSize: 12, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.2px" },
   row: { height: 52, cursor: "pointer", transition: "background 150ms ease" },
+  cellCheck: { padding: "0 8px 0 16px", verticalAlign: "middle", width: 36 },
+  checkbox: { width: 16, height: 16, cursor: "pointer", accentColor: "var(--do-brand-blue)" },
   cell: { padding: "0 16px", verticalAlign: "middle", fontSize: 13, color: "var(--do-ink)" },
   emptyCell: { padding: "40px 16px", textAlign: "center", fontSize: 13, color: "var(--color-text-tertiary)" },
   agentCell: { display: "inline-flex", alignItems: "center", gap: 10 },

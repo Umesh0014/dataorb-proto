@@ -3,50 +3,30 @@
 import React from "react";
 
 // DarkPillSwitcher — demo-only horizontal dark switcher matching the
-// MilestoneSideRail M0/M1/M2 button family (Part F). Supports two modes:
-// single-select (value is a string) and multi-select (value is an array).
-// In multi-select mode, clicking toggles that option on/off; at least one
-// must remain selected.
+// MilestoneSideRail M0/M1/M2 button family (Part F). Two callsites today
+// — PersonaSwitcher and VariantSwitcher — and both must read as visual
+// siblings per spec §F2/§F3, so the chrome lives in one place to prevent
+// drift. Not in CONVENTIONS.md's standard inventory: this is meta-tooling
+// (demo affordance), kept out of product chrome.
 
 export default function DarkPillSwitcher({
   value,
   options,
   onChange,
   ariaLabel,
-  multiSelect = false,
 }) {
   const [hovered, setHovered] = React.useState(null);
-
-  const isSelected = (opt) => {
-    if (multiSelect) return Array.isArray(value) && value.includes(opt);
-    return value === opt;
-  };
-
-  const handleClick = (opt) => {
-    if (!multiSelect) {
-      onChange?.(opt);
-      return;
-    }
-    const current = Array.isArray(value) ? value : [value];
-    if (current.includes(opt)) {
-      if (current.length <= 1) return;
-      onChange?.(current.filter((v) => v !== opt));
-    } else {
-      onChange?.([...current, opt]);
-    }
-  };
-
   return (
     <div style={styles.pill} role="group" aria-label={ariaLabel}>
       {options.map((opt) => {
-        const selected = isSelected(opt);
+        const selected = value === opt;
         const isHover = hovered === opt;
         return (
           <button
             key={opt}
             type="button"
             aria-pressed={selected}
-            onClick={() => handleClick(opt)}
+            onClick={() => onChange?.(opt)}
             onMouseEnter={() => setHovered(opt)}
             onMouseLeave={() => setHovered((h) => (h === opt ? null : h))}
             style={segmentStyle(selected, isHover)}

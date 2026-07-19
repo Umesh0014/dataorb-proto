@@ -5,6 +5,7 @@ import { SlidersHorizontal, X } from "lucide-react";
 import Card from "./Card";
 import TabsRow from "./TabsRow";
 import PageHeader from "./PageHeader";
+import BulkActionBar from "./BulkActionBar";
 import { COMPETENCIES, DEFAULT_THRESHOLDS, DEFAULT_MIN_INTERACTIONS, agentsInLane, laneCountsAll, agentCompetencyDetail } from "./mocks/improveLanes";
 
 
@@ -19,6 +20,7 @@ export default function ImproveLanes() {
   const [minInteractions] = React.useState(DEFAULT_MIN_INTERACTIONS);
   const [activeTab, setActiveTab] = React.useState(COMPETENCIES[0].id);
   const [selectedAgent, setSelectedAgent] = React.useState(null);
+  const [selectedAgents, setSelectedAgents] = React.useState(new Set());
   const [showConfig, setShowConfig] = React.useState(false);
 
   const lanes = laneCountsAll(thresholds, minInteractions);
@@ -40,7 +42,7 @@ export default function ImproveLanes() {
       <TabsRow
         tabs={tabs}
         activeTab={activeTab}
-        onTabClick={(id) => { setActiveTab(id); setSelectedAgent(null); }}
+        onTabClick={(id) => { setActiveTab(id); setSelectedAgent(null); setSelectedAgents(new Set()); }}
       />
 
       <div style={styles.body}>
@@ -49,6 +51,18 @@ export default function ImproveLanes() {
             <table style={styles.table}>
               <thead>
                 <tr style={styles.headRow}>
+                  <th style={styles.thCheck}>
+                    <input
+                      type="checkbox"
+                      checked={agents.length > 0 && selectedAgents.size === agents.length}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedAgents(new Set(agents.map((a) => a.id)));
+                        else setSelectedAgents(new Set());
+                      }}
+                      style={styles.checkbox}
+                      aria-label="Select all agents"
+                    />
+                  </th>
                   <th style={styles.th}>Agent</th>
                   <th style={styles.th}>{activeMeta?.metric || "Score"}</th>
                   <th style={styles.th}>Gap</th>
@@ -59,7 +73,7 @@ export default function ImproveLanes() {
               <tbody>
                 {agents.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={styles.emptyCell}>
+                    <td colSpan={6} style={styles.emptyCell}>
                       All agents meet the {thresholds[activeTab]}% threshold for {activeMeta?.label}.
                     </td>
                   </tr>
@@ -68,6 +82,7 @@ export default function ImproveLanes() {
                     const score = agent.scores[activeTab];
                     const gap = thresholds[activeTab] - score;
                     const isSelected = selectedAgent === agent.id;
+                    const isChecked = selectedAgents.has(agent.id);
                     const agentDetail = agentCompetencyDetail(agent.id, activeTab, thresholds);
                     return (
                       <tr
@@ -75,10 +90,26 @@ export default function ImproveLanes() {
                         onClick={() => setSelectedAgent(agent.id)}
                         style={{
                           ...styles.row,
-                          background: isSelected ? "var(--nav-rail-bg, #E8ECFF)" : undefined,
+                          background: isChecked ? "var(--color-success-bg, #E8F5E9)" : isSelected ? "var(--nav-rail-bg, #E8ECFF)" : undefined,
                           borderBottom: i === agents.length - 1 ? "none" : "1px solid var(--table-row-border, rgba(0,0,0,0.06))",
                         }}
                       >
+                        <td style={styles.cellCheck} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              setSelectedAgents((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(agent.id)) next.delete(agent.id);
+                                else next.add(agent.id);
+                                return next;
+                              });
+                            }}
+                            style={styles.checkbox}
+                            aria-label={`Select ${agent.name}`}
+                          />
+                        </td>
                         <td style={styles.cell}>
                           <span style={styles.agentCell}>
                             <span style={styles.avatar}>{agent.initials}</span>
@@ -104,6 +135,11 @@ export default function ImproveLanes() {
               </tbody>
             </table>
           </Card>
+          <BulkActionBar
+            count={selectedAgents.size}
+            onAction={(actionId) => { /* TODO: dispatch bulk action */ }}
+            onClear={() => setSelectedAgents(new Set())}
+          />
         </div>
 
         {(showConfig || detail) && (
@@ -207,8 +243,11 @@ const styles = {
   tableWrap: { flex: 1, minWidth: 0 },
   table: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed", fontFamily: "var(--font-sans)" },
   headRow: { borderBottom: "1px solid var(--table-header-border, rgba(0,0,0,0.08))" },
+  thCheck: { padding: "12px 8px 12px 16px", width: 36, verticalAlign: "middle" },
   th: { padding: "12px 16px", textAlign: "start", fontSize: 12, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.2px" },
   row: { height: 52, cursor: "pointer", transition: "background 150ms ease" },
+  cellCheck: { padding: "0 8px 0 16px", verticalAlign: "middle", width: 36 },
+  checkbox: { width: 16, height: 16, cursor: "pointer", accentColor: "var(--do-brand-blue)" },
   cell: { padding: "0 16px", verticalAlign: "middle", fontSize: 13, color: "var(--do-ink)" },
   emptyCell: { padding: "40px 16px", textAlign: "center", fontSize: 13, color: "var(--color-text-tertiary)" },
   agentCell: { display: "inline-flex", alignItems: "center", gap: 10 },

@@ -4,6 +4,7 @@ import React from "react";
 import { SlidersHorizontal, X, ArrowUp, ArrowDown } from "lucide-react";
 import Card from "./Card";
 import PageHeader from "./PageHeader";
+import BulkActionBar from "./BulkActionBar";
 import { COMPETENCIES, DEFAULT_THRESHOLDS, DEFAULT_MIN_INTERACTIONS, matrixData, agentCompetencyDetail } from "./mocks/improveLanes";
 
 // ImproveMatrix (Direction C) — Agent × Competency heatmap matrix.
@@ -16,6 +17,7 @@ export default function ImproveMatrix() {
   const [thresholds, setThresholds] = React.useState(DEFAULT_THRESHOLDS);
   const [minInteractions] = React.useState(DEFAULT_MIN_INTERACTIONS);
   const [selected, setSelected] = React.useState(null);
+  const [selectedAgents, setSelectedAgents] = React.useState(new Set());
   const [showConfig, setShowConfig] = React.useState(false);
   const [highlightCol, setHighlightCol] = React.useState(null);
   const [sortCol, setSortCol] = React.useState(null); // { col: index, dir: "asc" | "desc" }
@@ -59,6 +61,18 @@ export default function ImproveMatrix() {
             <table style={styles.table} role="grid" aria-label="Agent competency matrix">
               <thead>
                 <tr>
+                  <th style={styles.cornerThCheck}>
+                    <input
+                      type="checkbox"
+                      checked={data.length > 0 && selectedAgents.size === data.length}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedAgents(new Set(data.map((r) => r.id)));
+                        else setSelectedAgents(new Set());
+                      }}
+                      style={styles.checkbox}
+                      aria-label="Select all agents"
+                    />
+                  </th>
                   <th style={styles.cornerTh}>Agent</th>
                   {colCounts.map((c, ci) => (
                     <th
@@ -97,7 +111,23 @@ export default function ImproveMatrix() {
               </thead>
               <tbody>
                 {data.map((row) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} style={selectedAgents.has(row.id) ? { background: "var(--color-success-bg, #E8F5E9)" } : undefined}>
+                    <td style={styles.checkTd}>
+                      <input
+                        type="checkbox"
+                        checked={selectedAgents.has(row.id)}
+                        onChange={() => {
+                          setSelectedAgents((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(row.id)) next.delete(row.id);
+                            else next.add(row.id);
+                            return next;
+                          });
+                        }}
+                        style={styles.checkbox}
+                        aria-label={`Select ${row.name}`}
+                      />
+                    </td>
                     <td style={styles.agentTd}>
                       <span style={styles.agentCell}>
                         <span style={styles.avatar}>{row.initials}</span>
@@ -137,6 +167,11 @@ export default function ImproveMatrix() {
               </tbody>
             </table>
           </Card>
+          <BulkActionBar
+            count={selectedAgents.size}
+            onAction={(actionId) => { /* TODO: dispatch bulk action */ }}
+            onClear={() => setSelectedAgents(new Set())}
+          />
         </div>
 
         {(showConfig || detail) && (
@@ -263,6 +298,9 @@ const styles = {
   body: { display: "flex", gap: 20, alignItems: "flex-start" },
   matrixWrap: { flex: 1, minWidth: 0 },
   table: { width: "100%", borderCollapse: "separate", borderSpacing: 3, fontFamily: "var(--font-sans)" },
+  cornerThCheck: { padding: "10px 8px", width: 32, verticalAlign: "middle" },
+  checkbox: { width: 16, height: 16, cursor: "pointer", accentColor: "var(--do-brand-blue)" },
+  checkTd: { padding: "4px 8px", verticalAlign: "middle", width: 32 },
   cornerTh: { padding: "10px 12px", textAlign: "start", fontSize: 12, fontWeight: 700, color: "var(--text-primary)", width: 150 },
   colTh: { padding: "6px 4px", textAlign: "center", verticalAlign: "bottom" },
   colThHighlight: { background: "var(--nav-rail-bg, #E8ECFF)", borderRadius: 6 },
