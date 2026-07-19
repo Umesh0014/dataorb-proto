@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Settings2, X } from "lucide-react";
+import { SlidersHorizontal, X, ArrowUp, ArrowDown } from "lucide-react";
 import Card from "./Card";
 import PageHeader from "./PageHeader";
 import { COMPETENCIES, DEFAULT_THRESHOLDS, DEFAULT_MIN_INTERACTIONS, matrixData, agentCompetencyDetail } from "./mocks/improveLanes";
@@ -18,8 +18,18 @@ export default function ImproveMatrix() {
   const [selected, setSelected] = React.useState(null);
   const [showConfig, setShowConfig] = React.useState(false);
   const [highlightCol, setHighlightCol] = React.useState(null);
+  const [sortCol, setSortCol] = React.useState(null); // { col: index, dir: "asc" | "desc" }
 
-  const data = matrixData(thresholds, minInteractions);
+  const rawData = matrixData(thresholds, minInteractions);
+  const data = React.useMemo(() => {
+    if (sortCol == null) return rawData;
+    const { col, dir } = sortCol;
+    return [...rawData].sort((a, b) => {
+      const aScore = a.cells[col].score ?? -1;
+      const bScore = b.cells[col].score ?? -1;
+      return dir === "asc" ? aScore - bScore : bScore - aScore;
+    });
+  }, [rawData, sortCol]);
   const detail = selected ? agentCompetencyDetail(selected.agentId, selected.competencyId, thresholds) : null;
 
   const colCounts = COMPETENCIES.map((c, ci) => ({
@@ -32,7 +42,7 @@ export default function ImproveMatrix() {
       <PageHeader
         identifier={{ label: "Improve", withDropdown: false }}
         toolbar={[
-          { id: "config", icon: <Settings2 size={18} />, label: "Thresholds", onClick: () => setShowConfig(!showConfig), active: showConfig },
+          { id: "config", icon: <SlidersHorizontal size={18} />, label: "Thresholds", onClick: () => setShowConfig(!showConfig), active: showConfig },
         ]}
       />
 
@@ -62,10 +72,23 @@ export default function ImproveMatrix() {
                         type="button"
                         className="im-focusable"
                         style={styles.colBtn}
-                        onClick={() => setHighlightCol(highlightCol === ci ? null : ci)}
+                        onClick={() => {
+                          setHighlightCol(highlightCol === ci ? null : ci);
+                          setSortCol((prev) => {
+                            if (prev?.col === ci) return prev.dir === "asc" ? { col: ci, dir: "desc" } : null;
+                            return { col: ci, dir: "asc" };
+                          });
+                        }}
                         aria-pressed={highlightCol === ci}
                       >
-                        <span style={styles.colLabel}>{c.label}</span>
+                        <span style={styles.colLabel}>
+                          {c.label}
+                          {sortCol?.col === ci && (
+                            sortCol.dir === "asc"
+                              ? <ArrowUp size={10} style={{ marginLeft: 2, verticalAlign: "middle" }} />
+                              : <ArrowDown size={10} style={{ marginLeft: 2, verticalAlign: "middle" }} />
+                          )}
+                        </span>
                         {c.count > 0 && <span style={styles.colBadge}>{c.count}</span>}
                       </button>
                     </th>
@@ -84,6 +107,7 @@ export default function ImproveMatrix() {
                     {row.cells.map((cell, ci) => {
                       const isSelected = selected?.agentId === row.id && selected?.competencyId === COMPETENCIES[ci].id;
                       const isHighlighted = highlightCol === ci && (cell.status === "critical" || cell.status === "warning");
+                      const trend = row.trends?.[COMPETENCIES[ci].id];
                       return (
                         <td key={ci} style={styles.cellTd}>
                           <button
@@ -102,7 +126,8 @@ export default function ImproveMatrix() {
                             }}
                             aria-label={`${row.name} — ${COMPETENCIES[ci].label}: ${cell.score != null ? cell.score + "%" : "N/A"}`}
                           >
-                            {cell.score != null ? cell.score : "—"}
+                            <span>{cell.score != null ? cell.score : "—"}</span>
+                            {trend && <CellSparkline points={trend} />}
                           </button>
                         </td>
                       );
@@ -209,6 +234,21 @@ function MiniTrend({ points, threshold, unit }) {
   );
 }
 
+function CellSparkline({ points }) {
+  if (!points || points.length < 2) return null;
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const range = max - min || 1;
+  const w = 36;
+  const h = 12;
+  const coords = points.map((p, i) => `${(i / (points.length - 1)) * w},${h - ((p - min) / range) * h}`).join(" ");
+  return (
+    <svg width={w} height={h} style={{ display: "block" }} aria-hidden="true">
+      <polyline points={coords} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" opacity={0.6} />
+    </svg>
+  );
+}
+
 const CELL_STYLES = {
   critical: { background: "var(--color-error-bg)", color: "var(--color-error-text)" },
   warning: { background: "var(--color-warning-bg, #FFF3E0)", color: "var(--color-warning-text)" },
@@ -237,11 +277,14 @@ const styles = {
   cellBtn: {
     all: "unset",
     cursor: "pointer",
-    width: 44,
-    height: 36,
+    width: 48,
+    height: 44,
     borderRadius: 6,
-    display: "inline-grid",
-    placeItems: "center",
+    display: "inline-flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
     fontSize: 12,
     fontWeight: 700,
     transition: "transform 150ms ease, box-shadow 150ms ease",

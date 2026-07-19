@@ -3,35 +3,50 @@
 import React from "react";
 
 // DarkPillSwitcher — demo-only horizontal dark switcher matching the
-// MilestoneSideRail M0/M1/M2 button family (Part F). Two callsites today
-// — PersonaSwitcher and VariantSwitcher — and both must read as visual
-// siblings per spec §F2/§F3, so the chrome lives in one place to prevent
-// drift. Not in CONVENTIONS.md's standard inventory: this is meta-tooling
-// (demo affordance), kept out of product chrome.
-//
-// Iteration: dropped the small-caps label above the pill + tightened the
-// corner radius to a rectangle. Selected segment uses the M1 milestone-
-// rail yellow (#FDE047) by default (spec §F2 / §F8 #1). Unselected
-// segments are muted on the dark pill.
+// MilestoneSideRail M0/M1/M2 button family (Part F). Supports two modes:
+// single-select (value is a string) and multi-select (value is an array).
+// In multi-select mode, clicking toggles that option on/off; at least one
+// must remain selected.
 
 export default function DarkPillSwitcher({
   value,
   options,
   onChange,
   ariaLabel,
+  multiSelect = false,
 }) {
   const [hovered, setHovered] = React.useState(null);
+
+  const isSelected = (opt) => {
+    if (multiSelect) return Array.isArray(value) && value.includes(opt);
+    return value === opt;
+  };
+
+  const handleClick = (opt) => {
+    if (!multiSelect) {
+      onChange?.(opt);
+      return;
+    }
+    const current = Array.isArray(value) ? value : [value];
+    if (current.includes(opt)) {
+      if (current.length <= 1) return;
+      onChange?.(current.filter((v) => v !== opt));
+    } else {
+      onChange?.([...current, opt]);
+    }
+  };
+
   return (
     <div style={styles.pill} role="group" aria-label={ariaLabel}>
       {options.map((opt) => {
-        const selected = value === opt;
+        const selected = isSelected(opt);
         const isHover = hovered === opt;
         return (
           <button
             key={opt}
             type="button"
             aria-pressed={selected}
-            onClick={() => onChange?.(opt)}
+            onClick={() => handleClick(opt)}
             onMouseEnter={() => setHovered(opt)}
             onMouseLeave={() => setHovered((h) => (h === opt ? null : h))}
             style={segmentStyle(selected, isHover)}
@@ -44,9 +59,6 @@ export default function DarkPillSwitcher({
   );
 }
 
-// segmentStyle — mirrors MilestoneSideRail.railBtnStyle states (active /
-// hover / default). Horizontal variant: wider min-width, side padding,
-// rectangular corners to match the outer container.
 function segmentStyle(active, isHover) {
   if (active) {
     return { ...styles.segment, background: "#FDE047", color: "#171717", border: "1px solid #FDE047" };

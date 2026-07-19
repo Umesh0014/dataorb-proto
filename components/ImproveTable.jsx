@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Settings2, X, TrendingDown } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import Card from "./Card";
 import PageHeader from "./PageHeader";
 import { COMPETENCIES, DEFAULT_THRESHOLDS, DEFAULT_MIN_INTERACTIONS, agentsInLane, laneCountsAll, agentCompetencyDetail } from "./mocks/improveLanes";
@@ -24,7 +24,8 @@ export default function ImproveTable() {
       agentsInLane(c.id, thresholds, minInteractions).forEach((agent) => {
         const score = agent.scores[c.id];
         const gap = thresholds[c.id] - score;
-        items.push({ agent, competency: c, score, gap, interactions: agent.interactions[c.id] });
+        const detail = agentCompetencyDetail(agent.id, c.id, thresholds);
+        items.push({ agent, competency: c, score, gap, interactions: agent.interactions[c.id], recommended: detail?.actions[0]?.label || "—" });
       });
     });
     items.sort((a, b) => b.gap - a.gap);
@@ -38,7 +39,7 @@ export default function ImproveTable() {
       <PageHeader
         identifier={{ label: "Improve", withDropdown: false }}
         toolbar={[
-          { id: "config", icon: <Settings2 size={18} />, label: "Thresholds", onClick: () => setShowConfig(!showConfig), active: showConfig },
+          { id: "config", icon: <SlidersHorizontal size={18} />, label: "Thresholds", onClick: () => setShowConfig(!showConfig), active: showConfig },
         ]}
       />
 
@@ -53,12 +54,13 @@ export default function ImproveTable() {
                   <th style={styles.th}>Score</th>
                   <th style={styles.th}>Gap</th>
                   <th style={styles.th}>Interactions</th>
+                  <th style={styles.th}>Recommended</th>
                 </tr>
               </thead>
               <tbody>
                 {allBelow.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={styles.emptyCell}>
+                    <td colSpan={6} style={styles.emptyCell}>
                       All agents are above threshold across every competency.
                     </td>
                   </tr>
@@ -92,6 +94,9 @@ export default function ImproveTable() {
                         </td>
                         <td style={styles.cell}>
                           <span style={styles.interactionCount}>{item.interactions}</span>
+                        </td>
+                        <td style={styles.cell}>
+                          <span style={styles.recommendedAction}>{item.recommended}</span>
                         </td>
                       </tr>
                     );
@@ -214,6 +219,7 @@ const styles = {
   scoreText: { fontSize: 13, fontWeight: 600, color: "var(--do-ink)" },
   gapChip: { fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "var(--color-error-bg)", color: "var(--color-error-text)" },
   interactionCount: { fontSize: 13, color: "var(--color-text-medium)" },
+  recommendedAction: { fontSize: 12, fontWeight: 500, color: "var(--do-brand-blue)" },
   rightPanel: { width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 24 },
   configHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   configTitle: { margin: 0, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
