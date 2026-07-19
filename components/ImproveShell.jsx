@@ -7,11 +7,8 @@ import ImproveTable from "./ImproveTable";
 import ImproveMatrix from "./ImproveMatrix";
 
 // ImproveShell — entry point for the "Improve" surface (Jul 17 pivot).
-// Hosts 3 structurally distinct direction variants behind a DarkPillSwitcher:
-//   A — Lanes (competency swimlanes, browse-all-at-once)
-//   B — Table (tabbed table + sidecar, one-lane-at-a-time focus)
-//   C — Matrix (agent × competency heatmap, cluster-spotting)
-// All state resets on reload — no persistence by design (G5).
+// Hosts 3 structurally distinct direction variants behind a DarkPillSwitcher
+// pinned to the bottom-right corner (floating, non-intrusive).
 
 const VARIANTS = ["Lanes", "Table", "Matrix"];
 
@@ -20,7 +17,10 @@ export default function ImproveShell() {
 
   return (
     <div style={shellStyles.wrap}>
-      <div style={shellStyles.switcherRow}>
+      {variant === "Lanes" && <ImproveLanes />}
+      {variant === "Table" && <ImproveTable />}
+      {variant === "Matrix" && <ImproveMatrix />}
+      <div style={shellStyles.switcherFloat}>
         <DarkPillSwitcher
           value={variant}
           options={VARIANTS}
@@ -28,14 +28,16 @@ export default function ImproveShell() {
           ariaLabel="Improve direction switcher"
         />
       </div>
-      {variant === "Lanes" && <ImproveLanes />}
-      {variant === "Table" && <ImproveTable />}
-      {variant === "Matrix" && <ImproveMatrix />}
     </div>
   );
 }
 
 const shellStyles = {
-  wrap: { display: "flex", flexDirection: "column", gap: 20 },
-  switcherRow: { display: "flex", justifyContent: "center" },
+  wrap: { position: "relative", minHeight: "100%" },
+  switcherFloat: {
+    position: "fixed",
+    bottom: 24,
+    right: 24,
+    zIndex: 100,
+  },
 };

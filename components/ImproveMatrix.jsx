@@ -1,24 +1,21 @@
 "use client";
 
 import React from "react";
-import { Settings2, X, FileText, Target, MessageSquare, Flag } from "lucide-react";
+import { Settings2, X } from "lucide-react";
 import Card from "./Card";
 import PageHeader from "./PageHeader";
 import { COMPETENCIES, DEFAULT_THRESHOLDS, DEFAULT_MIN_INTERACTIONS, matrixData, agentCompetencyDetail } from "./mocks/improveLanes";
 
 // ImproveMatrix (Direction C) — Agent × Competency heatmap matrix.
 // Mental model: "See the whole picture at a glance, spot clusters, then drill."
-// Structure: a compact matrix (agents as rows, competencies as columns), each
-// cell colored by status relative to threshold (critical / warning / ok / na).
-// Click a cell → sidecar shows that agent×competency detail + coaching actions.
-// Click a column header → highlights all agents below threshold for that competency.
-// Highest density, most analytical — answers "where are the clusters?" first.
-// Inspired by: Lattice competency matrix, Datadog monitor grid, NICE scorecard grid.
+// Structure: PageHeader with filter toggle → compact grid (agents as rows,
+// competencies as columns), each cell colored by status. Filter config Card
+// docked on the right. Click a cell → coaching detail on right.
 
 export default function ImproveMatrix() {
   const [thresholds, setThresholds] = React.useState(DEFAULT_THRESHOLDS);
   const [minInteractions] = React.useState(DEFAULT_MIN_INTERACTIONS);
-  const [selected, setSelected] = React.useState(null); // { agentId, competencyId }
+  const [selected, setSelected] = React.useState(null);
   const [showConfig, setShowConfig] = React.useState(false);
   const [highlightCol, setHighlightCol] = React.useState(null);
 
@@ -31,74 +28,45 @@ export default function ImproveMatrix() {
   }));
 
   return (
-    <div style={mStyles.page}>
+    <div style={styles.page}>
       <PageHeader
         identifier={{ label: "Improve", withDropdown: false }}
-        description="Team × Competency overview — spot gaps at a glance, drill to coach"
+        toolbar={[
+          { id: "config", icon: <Settings2 size={18} />, label: "Thresholds", onClick: () => setShowConfig(!showConfig), active: showConfig },
+        ]}
       />
 
-      <div style={mStyles.toolbar}>
-        <p style={mStyles.legend}>
-          <span style={{ ...mStyles.dot, background: "var(--color-error)" }} /> Critical (15+ below)
-          <span style={{ ...mStyles.dot, background: "var(--color-warning)", marginLeft: 12 }} /> Warning (below threshold)
-          <span style={{ ...mStyles.dot, background: "var(--color-success)", marginLeft: 12 }} /> On track
-          <span style={{ ...mStyles.dot, background: "var(--color-text-tertiary)", opacity: 0.3, marginLeft: 12 }} /> Insufficient data
-        </p>
-        <button
-          type="button"
-          className="im-focusable"
-          onClick={() => setShowConfig(!showConfig)}
-          style={mStyles.configBtn}
-          aria-label="Configure thresholds"
-        >
-          <Settings2 size={16} />
-        </button>
+      <div style={styles.legend}>
+        <span style={{ ...styles.dot, background: "var(--color-error)" }} /> Critical
+        <span style={{ ...styles.dot, background: "var(--color-warning)", marginLeft: 12 }} /> Warning
+        <span style={{ ...styles.dot, background: "var(--color-success)", marginLeft: 12 }} /> On track
+        <span style={{ ...styles.dot, background: "var(--color-text-tertiary)", opacity: 0.3, marginLeft: 12 }} /> Insufficient data
       </div>
 
-      {showConfig && (
-        <Card padX={20} padY={16}>
-          <div style={mStyles.configGrid}>
-            {COMPETENCIES.map((c) => (
-              <label key={c.id} style={mStyles.configItem}>
-                <span style={mStyles.configLabel}>{c.label}</span>
-                <input
-                  type="number"
-                  value={thresholds[c.id]}
-                  onChange={(e) => setThresholds((t) => ({ ...t, [c.id]: Number(e.target.value) }))}
-                  style={mStyles.configInput}
-                  min={0}
-                  max={100}
-                />
-              </label>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      <div style={mStyles.body}>
-        <div style={mStyles.matrixWrap}>
+      <div style={styles.body}>
+        <div style={styles.matrixWrap}>
           <Card padX={0} padY={0} style={{ overflow: "auto" }}>
-            <table style={mStyles.table} role="grid" aria-label="Agent competency matrix">
+            <table style={styles.table} role="grid" aria-label="Agent competency matrix">
               <thead>
                 <tr>
-                  <th style={mStyles.cornerTh}>Agent</th>
+                  <th style={styles.cornerTh}>Agent</th>
                   {colCounts.map((c, ci) => (
                     <th
                       key={c.id}
                       style={{
-                        ...mStyles.colTh,
-                        ...(highlightCol === ci ? mStyles.colThHighlight : {}),
+                        ...styles.colTh,
+                        ...(highlightCol === ci ? styles.colThHighlight : {}),
                       }}
                     >
                       <button
                         type="button"
                         className="im-focusable"
-                        style={mStyles.colBtn}
+                        style={styles.colBtn}
                         onClick={() => setHighlightCol(highlightCol === ci ? null : ci)}
                         aria-pressed={highlightCol === ci}
                       >
-                        <span style={mStyles.colLabel}>{c.label}</span>
-                        {c.count > 0 && <span style={mStyles.colBadge}>{c.count}</span>}
+                        <span style={styles.colLabel}>{c.label}</span>
+                        {c.count > 0 && <span style={styles.colBadge}>{c.count}</span>}
                       </button>
                     </th>
                   ))}
@@ -107,17 +75,17 @@ export default function ImproveMatrix() {
               <tbody>
                 {data.map((row) => (
                   <tr key={row.id}>
-                    <td style={mStyles.agentTd}>
-                      <span style={mStyles.agentCell}>
-                        <span style={mStyles.avatar}>{row.initials}</span>
-                        <span style={mStyles.agentName}>{row.name}</span>
+                    <td style={styles.agentTd}>
+                      <span style={styles.agentCell}>
+                        <span style={styles.avatar}>{row.initials}</span>
+                        <span style={styles.agentName}>{row.name}</span>
                       </span>
                     </td>
                     {row.cells.map((cell, ci) => {
                       const isSelected = selected?.agentId === row.id && selected?.competencyId === COMPETENCIES[ci].id;
                       const isHighlighted = highlightCol === ci && (cell.status === "critical" || cell.status === "warning");
                       return (
-                        <td key={ci} style={mStyles.cellTd}>
+                        <td key={ci} style={styles.cellTd}>
                           <button
                             type="button"
                             className="im-focusable im-no-motion"
@@ -127,10 +95,10 @@ export default function ImproveMatrix() {
                             }}
                             disabled={cell.status === "na"}
                             style={{
-                              ...mStyles.cellBtn,
+                              ...styles.cellBtn,
                               ...CELL_STYLES[cell.status],
-                              ...(isSelected ? mStyles.cellSelected : {}),
-                              ...(isHighlighted ? mStyles.cellHighlighted : {}),
+                              ...(isSelected ? styles.cellSelected : {}),
+                              ...(isHighlighted ? styles.cellHighlighted : {}),
                             }}
                             aria-label={`${row.name} — ${COMPETENCIES[ci].label}: ${cell.score != null ? cell.score + "%" : "N/A"}`}
                           >
@@ -146,45 +114,76 @@ export default function ImproveMatrix() {
           </Card>
         </div>
 
-        {detail && (
-          <aside style={mStyles.sidecar} role="complementary" aria-label="Coaching detail">
-            <div style={mStyles.sidecarInner}>
-              <div style={mStyles.sidecarHeader}>
-                <div>
-                  <h3 style={mStyles.sidecarTitle}>{detail.agent.name}</h3>
-                  <p style={mStyles.sidecarSub}>{detail.competency.label} — {detail.score}{detail.competency.unit} / {detail.threshold}{detail.competency.unit}</p>
+        {(showConfig || detail) && (
+          <aside style={styles.rightPanel}>
+            {showConfig && (
+              <Card padX={20} padY={16}>
+                <div style={styles.configHeader}>
+                  <h4 style={styles.configTitle}>Thresholds</h4>
+                  <button type="button" className="im-focusable" onClick={() => setShowConfig(false)} style={styles.closeBtn} aria-label="Close config">
+                    <X size={16} />
+                  </button>
                 </div>
-                <button type="button" className="im-focusable" onClick={() => setSelected(null)} style={mStyles.closeBtn} aria-label="Close">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div style={mStyles.sidecarSection}>
-                <h4 style={mStyles.sidecarH4}>Why</h4>
-                <p style={mStyles.sidecarText}>{detail.whyText}</p>
-                {detail.topDrivers.length > 0 && (
-                  <p style={mStyles.sidecarText}>Top drivers: {detail.topDrivers.join(", ")}</p>
-                )}
-              </div>
-
-              {detail.trend && (
-                <div style={mStyles.sidecarSection}>
-                  <h4 style={mStyles.sidecarH4}>Trend</h4>
-                  <MiniTrend points={detail.trend} threshold={detail.threshold} unit={detail.competency.unit} />
-                </div>
-              )}
-
-              <div style={mStyles.sidecarSection}>
-                <h4 style={mStyles.sidecarH4}>Actions</h4>
-                <div style={mStyles.actionsList}>
-                  {detail.actions.map((a) => (
-                    <ActionRow key={a.kind} action={a} />
+                <div style={styles.configGrid}>
+                  {COMPETENCIES.map((c) => (
+                    <label key={c.id} style={styles.configItem}>
+                      <span style={styles.configLabel}>{c.label}</span>
+                      <input
+                        type="number"
+                        value={thresholds[c.id]}
+                        onChange={(e) => setThresholds((t) => ({ ...t, [c.id]: Number(e.target.value) }))}
+                        style={styles.configInput}
+                        min={0}
+                        max={100}
+                      />
+                    </label>
                   ))}
                 </div>
-              </div>
+              </Card>
+            )}
 
-              <p style={mStyles.sampleNote}>Based on {detail.interactions} interactions.</p>
-            </div>
+            {detail && (
+              <Card padX={20} padY={16}>
+                <div style={styles.sidecarHeader}>
+                  <div>
+                    <h3 style={styles.sidecarTitle}>{detail.agent.name}</h3>
+                    <p style={styles.sidecarSub}>{detail.competency.label} — {detail.score}{detail.competency.unit} / {detail.threshold}{detail.competency.unit}</p>
+                  </div>
+                  <button type="button" className="im-focusable" onClick={() => setSelected(null)} style={styles.closeBtn} aria-label="Close">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div style={styles.section}>
+                  <h4 style={styles.sectionH4}>Why</h4>
+                  <p style={styles.sectionText}>{detail.whyText}</p>
+                  {detail.topDrivers.length > 0 && (
+                    <p style={styles.sectionText}>Top drivers: {detail.topDrivers.join(", ")}</p>
+                  )}
+                </div>
+
+                {detail.trend && (
+                  <div style={styles.section}>
+                    <h4 style={styles.sectionH4}>Trend</h4>
+                    <MiniTrend points={detail.trend} threshold={detail.threshold} unit={detail.competency.unit} />
+                  </div>
+                )}
+
+                <div style={styles.section}>
+                  <h4 style={styles.sectionH4}>Actions</h4>
+                  <div style={styles.actionsList}>
+                    {detail.actions.map((a) => (
+                      <div key={a.kind} style={styles.actionRow}>
+                        <span style={styles.actionLabel}>{a.label}</span>
+                        <span style={styles.actionDuration}>{a.duration}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <p style={styles.sampleNote}>Based on {detail.interactions} interactions.</p>
+              </Card>
+            )}
           </aside>
         )}
       </div>
@@ -210,19 +209,6 @@ function MiniTrend({ points, threshold, unit }) {
   );
 }
 
-function ActionRow({ action }) {
-  const Icon = ACTION_ICONS[action.kind] || Target;
-  return (
-    <div style={mStyles.actionRow}>
-      <Icon size={16} style={{ color: "var(--do-brand-blue)", flexShrink: 0 }} />
-      <span style={mStyles.actionLabel}>{action.label}</span>
-      <span style={mStyles.actionDuration}>{action.duration}</span>
-    </div>
-  );
-}
-
-const ACTION_ICONS = { drill: Target, brief: FileText, "one-on-one": MessageSquare, mission: Flag };
-
 const CELL_STYLES = {
   critical: { background: "var(--color-error-bg)", color: "var(--color-error-text)" },
   warning: { background: "var(--color-warning-bg, #FFF3E0)", color: "var(--color-warning-text)" },
@@ -230,16 +216,10 @@ const CELL_STYLES = {
   na: { background: "var(--surface-alt, #F1F3F9)", color: "var(--color-text-tertiary)", opacity: 0.5, cursor: "default" },
 };
 
-const mStyles = {
-  page: { display: "flex", flexDirection: "column", gap: 20 },
-  toolbar: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+const styles = {
+  page: { display: "flex", flexDirection: "column", gap: 16 },
   legend: { margin: 0, fontSize: 12, color: "var(--color-text-tertiary)", display: "flex", alignItems: "center", gap: 5 },
   dot: { width: 10, height: 10, borderRadius: 3, display: "inline-block" },
-  configBtn: { all: "unset", cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--color-text-tertiary)" },
-  configGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 },
-  configItem: { display: "flex", flexDirection: "column", gap: 4 },
-  configLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)" },
-  configInput: { width: 52, padding: "4px 8px", borderRadius: 6, border: "1px solid var(--color-divider-card, rgba(0,0,0,0.12))", fontSize: 13, fontWeight: 600, fontFamily: "var(--font-sans)" },
   body: { display: "flex", gap: 20, alignItems: "flex-start" },
   matrixWrap: { flex: 1, minWidth: 0 },
   table: { width: "100%", borderCollapse: "separate", borderSpacing: 3, fontFamily: "var(--font-sans)" },
@@ -268,28 +248,23 @@ const mStyles = {
   },
   cellSelected: { outline: "2px solid var(--do-brand-blue)", outlineOffset: -2, transform: "scale(1.08)" },
   cellHighlighted: { boxShadow: "0 0 0 2px var(--do-brand-blue)" },
-  sidecar: {
-    width: 320,
-    flexShrink: 0,
-    position: "sticky",
-    top: 24,
-    background: "var(--surface-white)",
-    borderRadius: "var(--radius-card)",
-    border: "1px solid var(--color-divider-card, rgba(0,0,0,0.06))",
-    boxShadow: "var(--shadow-card)",
-    overflow: "hidden",
-  },
-  sidecarInner: { padding: "20px 20px 24px" },
-  sidecarHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
+  rightPanel: { width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 24 },
+  configHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  configTitle: { margin: 0, fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
+  closeBtn: { all: "unset", cursor: "pointer", width: 28, height: 28, borderRadius: 6, display: "grid", placeItems: "center", color: "var(--color-text-tertiary)" },
+  configGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  configItem: { display: "flex", flexDirection: "column", gap: 4 },
+  configLabel: { fontSize: 12, fontWeight: 600, color: "var(--color-text-medium)" },
+  configInput: { width: "100%", padding: "4px 8px", borderRadius: 6, border: "1px solid var(--color-divider-card, rgba(0,0,0,0.12))", fontSize: 13, fontWeight: 600, fontFamily: "var(--font-sans)" },
+  sidecarHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   sidecarTitle: { margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)" },
   sidecarSub: { margin: "4px 0 0", fontSize: 13, color: "var(--color-text-tertiary)" },
-  closeBtn: { all: "unset", cursor: "pointer", width: 28, height: 28, borderRadius: 6, display: "grid", placeItems: "center", color: "var(--color-text-tertiary)" },
-  sidecarSection: { marginBottom: 16, paddingTop: 12, borderTop: "1px solid var(--color-divider-card, rgba(0,0,0,0.06))" },
-  sidecarH4: { margin: "0 0 8px", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--color-text-tertiary)" },
-  sidecarText: { margin: "0 0 6px", fontSize: 13, lineHeight: 1.5, color: "var(--color-text-medium)" },
+  section: { marginBottom: 12, paddingTop: 10, borderTop: "1px solid var(--color-divider-card, rgba(0,0,0,0.06))" },
+  sectionH4: { margin: "0 0 6px", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--color-text-tertiary)" },
+  sectionText: { margin: "0 0 6px", fontSize: 13, lineHeight: 1.5, color: "var(--color-text-medium)" },
   actionsList: { display: "flex", flexDirection: "column", gap: 6 },
   actionRow: { display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--surface-alt, #F1F3F9)" },
   actionLabel: { flex: 1, fontSize: 13, fontWeight: 600, color: "var(--color-text-deep)" },
   actionDuration: { fontSize: 12, color: "var(--color-text-tertiary)" },
-  sampleNote: { margin: "16px 0 0", fontSize: 11, color: "var(--color-text-tertiary)", fontStyle: "italic" },
+  sampleNote: { margin: "12px 0 0", fontSize: 11, color: "var(--color-text-tertiary)", fontStyle: "italic" },
 };
