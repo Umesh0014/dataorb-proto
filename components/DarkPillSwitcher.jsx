@@ -8,11 +8,6 @@ import React from "react";
 // siblings per spec §F2/§F3, so the chrome lives in one place to prevent
 // drift. Not in CONVENTIONS.md's standard inventory: this is meta-tooling
 // (demo affordance), kept out of product chrome.
-//
-// Iteration: dropped the small-caps label above the pill + tightened the
-// corner radius to a rectangle. Selected segment uses the M1 milestone-
-// rail yellow (#FDE047) by default (spec §F2 / §F8 #1). Unselected
-// segments are muted on the dark pill.
 
 export default function DarkPillSwitcher({
   value,
@@ -44,9 +39,6 @@ export default function DarkPillSwitcher({
   );
 }
 
-// segmentStyle — mirrors MilestoneSideRail.railBtnStyle states (active /
-// hover / default). Horizontal variant: wider min-width, side padding,
-// rectangular corners to match the outer container.
 function segmentStyle(active, isHover) {
   if (active) {
     return { ...styles.segment, background: "#FDE047", color: "#171717", border: "1px solid #FDE047" };

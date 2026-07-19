@@ -135,6 +135,16 @@ export const AgentsIcon = ({ size = 22, color = "currentColor" }) => (
   />
 );
 
+// Improve (Learning Hub) — Material Symbols `trending_up` glyph;
+// represents coaching improvement / upward trajectory.
+export const ImproveIcon = ({ size = 22, color = "currentColor" }) => (
+  <MaterialPath
+    size={size}
+    color={color}
+    d="m136-240-56-56 296-298 160 160 208-206H640v-80h240v240h-80v-104L536-320 376-480 136-240Z"
+  />
+);
+
 // Command Center (Learning Hub) — Material Symbols `explore` (compass)
 // glyph; matches the 🧭 motif of the triage-to-coach home.
 export const CommandCenterIcon = ({ size = 22, color = "currentColor" }) => (
