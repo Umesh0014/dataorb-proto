@@ -4,7 +4,6 @@ import {
   RocketLaunchIcon,
   ChatBubbleIcon,
   AgentSquareIcon,
-  CommandCenterIcon,
 } from "../icons";
 
 // Per-module config: ONLY the middle-section icon set + their routing data.
@@ -45,12 +44,6 @@ export const insightsHubConfig = {
       label: "Interaction",
       Icon: ChatBubbleIcon,
       route: "/insights/interaction",
-    },
-    {
-      id: "intervene",
-      label: "Intervene",
-      Icon: CommandCenterIcon,
-      route: "/insights/intervene",
     },
     {
       id: "headset",

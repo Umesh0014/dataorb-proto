@@ -83,7 +83,6 @@ const INSIGHTS_PAGES = {
   "reports":            { Component: ComingSoon,        pageName: "Reports" },
   // direct
   "interaction":        { Component: InteractionsPage,  pageName: "Interactions" },
-  "intervene":          { Component: IntervenePage,     pageName: "Intervene" },
   // headset → children
   "agent-performance":  { Component: ComingSoon,        pageName: "Agent Performance" },
   "session":            { Component: ComingSoon,        pageName: "Session" },
@@ -101,6 +100,7 @@ const LEARNING_PAGES = {
   "guide":        { Component: GuidePage,       pageName: "Guide" },
   "replay":       { Component: ReplayPage,      pageName: "Replay" },
   "mobile":       { Component: MobileLearningHubShell, pageName: "Mobile" },
+  "intervene":    { Component: IntervenePage, pageName: "Intervene" },
 };
 
 const MIRA_PAGES = {
