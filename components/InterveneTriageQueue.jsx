@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Megaphone } from "lucide-react";
 import Button from "./Button";
 import Card from "./Card";
+import PageHeader from "./PageHeader";
 import StatusBadge from "./StatusBadge";
 import InterveneRunReview from "./InterveneRunReview";
 
@@ -68,17 +69,16 @@ export default function InterveneTriageQueue({
 
   return (
     <div style={tqStyles.host}>
-      <div style={tqStyles.headerRow}>
-        <div>
-          <h1 style={tqStyles.title}>Intervene</h1>
-          <p style={tqStyles.subtitle}>
-            {campaign
-              ? "Expand a run to triage its recruited customers, then export the shortlist for outreach."
-              : "Pick a campaign to review its recruitment runs."}
-          </p>
-        </div>
-        <Button variant="text" onClick={onCreateCampaign}>New campaign</Button>
-      </div>
+      <PageHeader
+        identifier={{ icon: <Megaphone size={18} />, label: pageName || "Intervene" }}
+        breadcrumb={campaign
+          ? [{ label: "All campaigns", onClick: () => openCampaign(null) }, { label: campaign.name }]
+          : undefined}
+        subtitle={campaign
+          ? "Expand a run to triage its recruited customers, then export the shortlist for outreach."
+          : "Pick a campaign to review its recruitment runs."}
+        primaryAction={{ label: "New campaign", onClick: onCreateCampaign }}
+      />
 
       {campaign ? (
         <CampaignDetail
@@ -87,7 +87,6 @@ export default function InterveneTriageQueue({
           recruits={recruits}
           openRunIds={openRunIds}
           onToggleRun={toggleRun}
-          onBack={() => openCampaign(null)}
           selectedRunId={selectedRunId}
           selectedRecruitId={selectedRecruitId}
           sidecarOpen={sidecarOpen}
@@ -161,7 +160,6 @@ function CampaignDetail({
   recruits,
   openRunIds,
   onToggleRun,
-  onBack,
   selectedRunId,
   selectedRecruitId,
   sidecarOpen,
@@ -172,14 +170,9 @@ function CampaignDetail({
 }) {
   return (
     <div style={tqStyles.detailHost}>
-      <div>
-        <Button variant="text" uppercase={false} onClick={onBack} leadingIcon={<ArrowLeft size={14} />} style={tqStyles.backLink}>
-          All campaigns
-        </Button>
-        <div style={tqStyles.detailTitleRow}>
-          <h2 style={tqStyles.detailTitle}>{campaign.name}</h2>
-          <CoveragePills coverage={campaign.coverage} />
-        </div>
+      <div style={tqStyles.detailTitleRow}>
+        <h2 style={tqStyles.detailTitle}>{campaign.name}</h2>
+        <CoveragePills coverage={campaign.coverage} />
       </div>
 
       {runs.map((run) => {
@@ -187,16 +180,31 @@ function CampaignDetail({
         const runRecruits = recruits.filter((r) => r.runId === run.id);
         return (
           <Card key={run.id} padX={0} padY={0} style={{ overflow: "hidden" }}>
-            <Button variant="text" uppercase={false} onClick={() => onToggleRun(run.id)} aria-expanded={open} style={tqStyles.accordionHead}>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => onToggleRun(run.id)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleRun(run.id); } }}
+              aria-expanded={open}
+              style={tqStyles.accordionHead}
+            >
               <span style={tqStyles.accordionLeft}>
-                <ChevronDown size={16} style={{ transform: open ? "none" : "rotate(-90deg)", transition: "transform 120ms ease", color: "var(--color-text-tertiary)" }} />
-                <span style={tqStyles.runLabel}>{run.label}</span>
+                <span style={tqStyles.accordionChevron}>
+                  <ChevronDown size={16} style={{ transform: open ? "none" : "rotate(-90deg)", transition: "transform 120ms ease" }} />
+                </span>
+                <span style={tqStyles.accordionTitleCol}>
+                  <span style={tqStyles.runLabel}>{run.label}</span>
+                  <span style={tqStyles.runCutoff}>Recruitment cutoff {run.cutoff}</span>
+                </span>
                 <StatusBadge tone={RUN_STATE_TONE[run.state] || "info"}>{run.state}</StatusBadge>
               </span>
-              <span style={tqStyles.accordionCounts}>
-                {run.counts.recruited} recruited · {run.counts.shortlisted} shortlisted · {run.counts.dismissed} dismissed · {run.counts.exported} exported
+              <span style={tqStyles.accordionStats}>
+                <CampaignStat label="Recruited" value={run.counts.recruited} />
+                <CampaignStat label="Shortlisted" value={run.counts.shortlisted} />
+                <CampaignStat label="Dismissed" value={run.counts.dismissed} />
+                <CampaignStat label="Exported" value={run.counts.exported} />
               </span>
-            </Button>
+            </div>
             {open && (
               <div style={tqStyles.accordionBody}>
                 <InterveneRunReview
@@ -221,9 +229,6 @@ function CampaignDetail({
 
 const tqStyles = {
   host: { display: "flex", flexDirection: "column", gap: "var(--page-header-gap)" },
-  headerRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 },
-  title: { fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)", fontFamily: "var(--font-sans)" },
-  subtitle: { marginTop: 4, fontSize: 13, color: "var(--color-text-tertiary)" },
   campaignList: { display: "flex", flexDirection: "column", gap: 12 },
   campaignRowInner: { display: "flex", alignItems: "center", gap: 24 },
   campaignMain: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 },
@@ -235,13 +240,19 @@ const tqStyles = {
   statCell: { display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-end", minWidth: 64 },
   statValue: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums" },
   statLabel: { fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-tertiary)" },
-  detailHost: { display: "flex", flexDirection: "column", gap: 12 },
-  backLink: { fontSize: 12, color: "var(--color-text-tertiary)", paddingInline: 0 },
-  detailTitleRow: { display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" },
+  detailHost: { display: "flex", flexDirection: "column", gap: 16 },
+  detailTitleRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   detailTitle: { fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)", fontFamily: "var(--font-sans)" },
-  accordionHead: { width: "100%", justifyContent: "space-between", padding: "14px 20px", fontWeight: 600, color: "var(--color-text-deep)" },
-  accordionLeft: { display: "flex", alignItems: "center", gap: 10 },
-  runLabel: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
-  accordionCounts: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", whiteSpace: "nowrap" },
-  accordionBody: { padding: "0 20px 20px", borderTop: "1px solid var(--color-divider-card)", paddingTop: 16 },
+  // div-as-button (same pattern as the campaign rows): the head is a
+  // two-line container Button's fixed control frame can't hold.
+  accordionHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, width: "100%", boxSizing: "border-box", padding: "20px 24px", cursor: "pointer", color: "var(--color-text-deep)" },
+  accordionLeft: { display: "flex", alignItems: "center", gap: 14, minWidth: 0 },
+  // Chevron sits in its own soft chip so the toggle affordance reads at a
+  // glance — same emoji-chip token the PageHeader back chip uses.
+  accordionChevron: { width: 28, height: 28, borderRadius: 6, background: "var(--color-card-emoji-bg)", display: "inline-grid", placeItems: "center", color: "var(--color-text-tertiary)", flexShrink: 0 },
+  accordionTitleCol: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2, minWidth: 0 },
+  runLabel: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)", whiteSpace: "nowrap" },
+  runCutoff: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", whiteSpace: "nowrap" },
+  accordionStats: { display: "flex", gap: 28, flexShrink: 0, paddingInlineEnd: 4 },
+  accordionBody: { padding: "0 24px 24px", borderTop: "1px solid var(--color-divider-card)", paddingTop: 16 },
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Hourglass, ListChecks, Megaphone, Upload, X } from "lucide-react";
 import Card from "./Card";
 import Button from "./Button";
 import StatCard from "./StatCard";
@@ -51,10 +51,10 @@ export default function InterveneCommandDeck({
   const unselectedIds = pending.filter((r) => !isChecked(r)).map((r) => r.id);
 
   const stats = [
-    { icon: "campaign", label: "Active runs", value: runs.filter((r) => ACTIVE_RUN_STATES.includes(r.state)).length },
-    { icon: "pending_actions", label: "Awaiting review", value: recruits.filter((r) => r.runId === "run-0714" && r.status === "recruited").length },
-    { icon: "playlist_add_check", label: "Shortlisted pending export", value: recruits.filter((r) => r.status === "shortlisted").length },
-    { icon: "ios_share", label: "Exported this month", value: recruits.filter((r) => r.status === "exported").length + runs.filter((r) => r.state === "exported" && r.window.end >= "2026-07-01").reduce((n, r) => n + r.counts.exported, 0) },
+    { icon: <Megaphone size={18} />, label: "Active runs", value: runs.filter((r) => ACTIVE_RUN_STATES.includes(r.state)).length },
+    { icon: <Hourglass size={18} />, label: "Awaiting review", value: recruits.filter((r) => r.runId === "run-0714" && r.status === "recruited").length },
+    { icon: <ListChecks size={18} />, label: "Shortlisted pending export", value: recruits.filter((r) => r.status === "shortlisted").length },
+    { icon: <Upload size={18} />, label: "Exported this month", value: recruits.filter((r) => r.status === "exported").length + runs.filter((r) => r.state === "exported" && r.window.end >= "2026-07-01").reduce((n, r) => n + r.counts.exported, 0) },
   ];
 
   const generateBrief = (id) => {
@@ -80,10 +80,8 @@ export default function InterveneCommandDeck({
   return (
     <>
       <PageHeader
-        identifier={{ icon: "campaign", label: pageName }}
-        actions={
-          <Button variant="text" uppercase={false} onClick={onCreateCampaign}>+ New campaign</Button>
-        }
+        identifier={{ icon: <Megaphone size={18} />, label: pageName || "Intervene" }}
+        primaryAction={{ label: "New campaign", onClick: onCreateCampaign }}
       />
 
       <div style={cdStyles.statRow}>

@@ -89,7 +89,12 @@ export default function IntervenePipelineBoard({ pageName, campaigns, runs, recr
               items={runs.map((r) => ({ label: r.label, onClick: () => { setRunId(r.id); setLaneId("all"); } }))}
             />
             <StatusBadge tone="info">{campaign?.name}</StatusBadge>
-            <Button variant="text" uppercase={false} leadingIcon={<Plus size={14} />} onClick={onCreateCampaign}>
+            <Button
+              variant="primary"
+              leadingIcon={<Plus size={14} />}
+              onClick={onCreateCampaign}
+              style={{ height: 32, minWidth: 0, paddingInline: 16 }}
+            >
               New campaign
             </Button>
           </div>
