@@ -1,6 +1,6 @@
 "use client";
 
-import { DrillIcon, InteractionsIcon, MissionsIcon, GuideIcon, ReplayIcon, CommandCenterIcon, SmartphoneIcon, SupportAgentIcon } from "../icons";
+import { DrillIcon, InteractionsIcon, MissionsIcon, GuideIcon, ReplayIcon, CommandCenterIcon, ImproveIcon, SmartphoneIcon, SupportAgentIcon } from "../icons";
 
 // Per-module config: ONLY the middle-section icon set + their routing data.
 // Chrome (rail, brand, app switcher trigger, footer, avatar) is owned by SideNav.
@@ -17,6 +17,13 @@ export const learningHubConfig = {
       label: "Dashboard",
       Icon: CommandCenterIcon,
       route: "/learning/dashboard",
+      beta: true,
+    },
+    {
+      id: "improve",
+      label: "Improve",
+      Icon: ImproveIcon,
+      route: "/learning/improve",
       beta: true,
     },
     {

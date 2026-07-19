@@ -14,6 +14,7 @@ import AgentsPage from "../../components/AgentsPage";
 import AgentProfile from "../../components/AgentProfile";
 import MissionsLandingShell from "../../components/MissionsLandingShell";
 import CommandCenterShell from "../../components/CommandCenterShell";
+import ImproveShell from "../../components/ImproveShell";
 import MissionDetailPage from "../../components/MissionDetailPage";
 import MissionWizardPage, {
   EMPTY_MISSION_DRAFT,
@@ -95,6 +96,7 @@ const LEARNING_PAGES = {
   "dashboard":    { Component: CommandCenterShell, pageName: "Dashboard" },
   "drill":        { Component: LearningHubPage, pageName: "Drill" },
   "interactions": { Component: InteractionsPage, pageName: "Interactions" },
+  "improve":      { Component: ImproveShell,     pageName: "Improve" },
   "agents":       { Component: AgentsPage,      pageName: "Agents" },
   "missions":     { Component: MissionsLandingShell, pageName: "Missions" },
   "guide":        { Component: GuidePage,       pageName: "Guide" },
