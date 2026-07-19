@@ -1,32 +1,22 @@
 "use client";
 
 import React from "react";
-import { ChevronDown, ExternalLink, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import Button from "./Button";
 import Card from "./Card";
 import StatusBadge from "./StatusBadge";
-import TabsRow from "./TabsRow";
+import InterveneRunReview from "./InterveneRunReview";
 
-const LANE_LABEL = { retain: "Retain", recover: "Recover", convert: "Convert" };
-
-// Generic mocked output for the on-demand Mira brief (generated on commit
-// to save tokens — never pre-computed for the whole run).
-const MOCK_BRIEF = {
-  summary:
-    "Mira reviewed this customer's recent interactions: the recruitment signals trace back to one unresolved driver, and engagement has trended down since the last contact.",
-  bestPlay:
-    "Personal follow-up call referencing the last conversation — resolved similar cases in comparable accounts.",
-};
-
-const COLUMNS = ["Customer", "Lane", "Top signals", "Priority", "Flags", "Last contact", "Status"];
+const RUN_STATE_TONE = { recruiting: "info", ready: "info", review: "warning", exported: "success", archived: "info" };
 
 /**
  * InterveneTriageQueue — direction v1 of Intervene ("Triage Queue").
- * A run is a dated batch work-queue: the team lead triages recruited
- * customers one by one, keyboard-first (↑↓/jk move, S shortlist, D dismiss,
- * U undo, Esc close), with a sidecar that locks open on first row selection
- * and follows the selection thereafter. Lanes are filters, not navigation;
- * campaign is an attribute pill on the run, not a container.
+ * Campaign-first IA: L0 lists all campaigns with run counts and aggregate
+ * review tallies; clicking one drills into L1, the campaign detail, where
+ * every run stacks as a manually-expanded accordion (newest first). An
+ * expanded run hosts the full review experience (lane filter, keyboard
+ * triage table, locked-open sidecar, run-scoped shortlist export) via
+ * InterveneRunReview.
  *
  * @param {{ pageName: string, campaigns: Array<object>, runs: Array<object>,
  *   recruits: Array<object>, onSetStatus: (recruitId: string, status: string) => void,
@@ -41,308 +31,217 @@ export default function InterveneTriageQueue({
   onExport,
   onCreateCampaign,
 }) {
-  const [runId, setRunId] = React.useState("run-0714");
-  const [runMenuOpen, setRunMenuOpen] = React.useState(false);
-  const [lane, setLane] = React.useState("all");
-  const [selectedId, setSelectedId] = React.useState(null);
+  const [campaignId, setCampaignId] = React.useState(null);
+  const [openRunIds, setOpenRunIds] = React.useState({});
+  const [selectedRunId, setSelectedRunId] = React.useState(null);
+  const [selectedRecruitId, setSelectedRecruitId] = React.useState(null);
   const [sidecarOpen, setSidecarOpen] = React.useState(false);
 
   React.useEffect(() => {
     document.title = `DataOrb — ${pageName}`;
   }, [pageName]);
 
-  const run = runs.find((r) => r.id === runId) || runs[0];
-  const campaign = campaigns.find((c) => c.id === run.campaignId);
-  const runRecruits = recruits.filter((r) => r.runId === runId);
-  const visible = runRecruits
-    .filter((r) => lane === "all" || r.lane === lane)
-    .sort((a, b) => b.priority - a.priority);
-  const selected = visible.find((r) => r.id === selectedId) || null;
-  const shortlistedIds = runRecruits.filter((r) => r.status === "shortlisted").map((r) => r.id);
+  const campaign = campaigns.find((c) => c.id === campaignId) || null;
 
-  const selectRow = (id) => {
-    setSelectedId(id);
+  const openCampaign = (id) => {
+    setCampaignId(id);
+    setOpenRunIds({});
+    setSelectedRunId(null);
+    setSelectedRecruitId(null);
+    setSidecarOpen(false);
+  };
+
+  const toggleRun = (runId) => {
+    setOpenRunIds((m) => ({ ...m, [runId]: !m[runId] }));
+    if (openRunIds[runId] && selectedRunId === runId) {
+      setSelectedRunId(null);
+      setSelectedRecruitId(null);
+      setSidecarOpen(false);
+    }
+  };
+
+  const selectRecruit = (runId, recruitId) => {
+    setSelectedRunId(runId);
+    setSelectedRecruitId(recruitId);
     setSidecarOpen(true);
   };
-
-  const switchRun = (id) => {
-    setRunId(id);
-    setRunMenuOpen(false);
-    setSelectedId(null);
-    setSidecarOpen(false);
-    setLane("all");
-  };
-
-  React.useEffect(() => {
-    const onKey = (e) => {
-      const t = e.target;
-      if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return;
-      const idx = visible.findIndex((r) => r.id === selectedId);
-      const key = e.key.toLowerCase();
-      if (e.key === "ArrowDown" || key === "j") {
-        e.preventDefault();
-        if (visible.length) selectRow(visible[Math.min(idx + 1, visible.length - 1)].id);
-      } else if (e.key === "ArrowUp" || key === "k") {
-        e.preventDefault();
-        if (visible.length) selectRow(visible[Math.max(idx - 1, 0)].id);
-      } else if (e.key === "Escape") {
-        setSidecarOpen(false);
-      } else if (selected && key === "s") {
-        onSetStatus(selected.id, "shortlisted");
-      } else if (selected && key === "d") {
-        onSetStatus(selected.id, "dismissed");
-      } else if (selected && key === "u") {
-        onSetStatus(selected.id, "recruited");
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [visible, selectedId, selected, onSetStatus]);
-
-  const laneTabs = [{ id: "all", label: "All", count: runRecruits.length }].concat(
-    ["retain", "recover", "convert"].map((id) => ({
-      id,
-      label: LANE_LABEL[id],
-      count: runRecruits.filter((r) => r.lane === id).length,
-    })),
-  );
 
   return (
     <div style={tqStyles.host}>
       <div style={tqStyles.headerRow}>
         <div>
           <h1 style={tqStyles.title}>Intervene</h1>
-          <p style={tqStyles.subtitle}>Triage this run&apos;s recruited customers, then export the shortlist for outreach.</p>
+          <p style={tqStyles.subtitle}>
+            {campaign
+              ? "Expand a run to triage its recruited customers, then export the shortlist for outreach."
+              : "Pick a campaign to review its recruitment runs."}
+          </p>
         </div>
-        <div style={tqStyles.headerActions}>
-          <Button variant="text" onClick={onCreateCampaign}>New campaign</Button>
-          <Button variant="primary" size="sm" disabled={shortlistedIds.length === 0} onClick={() => onExport(shortlistedIds)}>
-            Export shortlist ({shortlistedIds.length})
-          </Button>
-        </div>
+        <Button variant="text" onClick={onCreateCampaign}>New campaign</Button>
       </div>
 
-      <div style={tqStyles.runRow}>
-        <Button variant="text" uppercase={false} onClick={() => setRunMenuOpen((o) => !o)} trailingIcon={<ChevronDown size={14} />} style={tqStyles.runTrigger} aria-expanded={runMenuOpen}>
-          Run · {run.label}
+      {campaign ? (
+        <CampaignDetail
+          campaign={campaign}
+          runs={runs.filter((r) => r.campaignId === campaign.id).sort((a, b) => (a.window.start < b.window.start ? 1 : -1))}
+          recruits={recruits}
+          openRunIds={openRunIds}
+          onToggleRun={toggleRun}
+          onBack={() => openCampaign(null)}
+          selectedRunId={selectedRunId}
+          selectedRecruitId={selectedRecruitId}
+          sidecarOpen={sidecarOpen}
+          onSelectRecruit={selectRecruit}
+          onCloseSidecar={() => setSidecarOpen(false)}
+          onSetStatus={onSetStatus}
+          onExport={onExport}
+        />
+      ) : (
+        <div style={tqStyles.campaignList}>
+          {campaigns.map((c) => (
+            <CampaignRow key={c.id} campaign={c} runs={runs.filter((r) => r.campaignId === c.id)} onOpen={() => openCampaign(c.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CampaignRow({ campaign: c, runs, onOpen }) {
+  const totals = runs.reduce(
+    (acc, r) => ({ recruited: acc.recruited + r.counts.recruited, shortlisted: acc.shortlisted + r.counts.shortlisted }),
+    { recruited: 0, shortlisted: 0 },
+  );
+  return (
+    <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => e.key === "Enter" && onOpen()} style={{ cursor: "pointer" }}>
+      <Card padX={20} padY={16}>
+        <div style={tqStyles.campaignRowInner}>
+          <div style={tqStyles.campaignMain}>
+            <div style={tqStyles.campaignNameRow}>
+              <span style={tqStyles.campaignName}>{c.name}</span>
+              <StatusBadge tone={c.status === "active" ? "success" : "info"}>
+                {c.status === "active" ? "Active" : "Archived"}
+              </StatusBadge>
+            </div>
+            <div style={tqStyles.pillRow}>
+              <CoveragePills coverage={c.coverage} />
+            </div>
+          </div>
+          <div style={tqStyles.campaignStats}>
+            <CampaignStat label="Gating signals" value={c.gating.length} />
+            <CampaignStat label="Runs" value={runs.length} />
+            <CampaignStat label="Recruited" value={totals.recruited} />
+            <CampaignStat label="Shortlisted" value={totals.shortlisted} />
+          </div>
+          <ChevronRight size={16} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function CampaignStat({ label, value }) {
+  return (
+    <div style={tqStyles.statCell}>
+      <span style={tqStyles.statValue}>{value}</span>
+      <span style={tqStyles.statLabel}>{label}</span>
+    </div>
+  );
+}
+
+function CoveragePills({ coverage }) {
+  return [coverage.lineOfBusiness, coverage.queue, coverage.skill].map((v) => (
+    <span key={v} style={tqStyles.coveragePill}>{v}</span>
+  ));
+}
+
+function CampaignDetail({
+  campaign,
+  runs,
+  recruits,
+  openRunIds,
+  onToggleRun,
+  onBack,
+  selectedRunId,
+  selectedRecruitId,
+  sidecarOpen,
+  onSelectRecruit,
+  onCloseSidecar,
+  onSetStatus,
+  onExport,
+}) {
+  return (
+    <div style={tqStyles.detailHost}>
+      <div>
+        <Button variant="text" uppercase={false} onClick={onBack} leadingIcon={<ArrowLeft size={14} />} style={tqStyles.backLink}>
+          All campaigns
         </Button>
-        {campaign && <span style={tqStyles.campaignPill}>{campaign.name}</span>}
-        {runMenuOpen && (
-          <Card tone="outline" padX={8} padY={8} style={tqStyles.runMenu}>
-            {runs.map((r) => (
-              <Button key={r.id} variant="text" uppercase={false} onClick={() => switchRun(r.id)} style={{ ...tqStyles.runMenuItem, fontWeight: r.id === runId ? 700 : 500 }}>
-                {r.label} · {r.state}
-              </Button>
-            ))}
-          </Card>
-        )}
+        <div style={tqStyles.detailTitleRow}>
+          <h2 style={tqStyles.detailTitle}>{campaign.name}</h2>
+          <CoveragePills coverage={campaign.coverage} />
+        </div>
       </div>
 
-      <TabsRow tabs={laneTabs} activeTab={lane} onTabClick={setLane} />
-
-      <div style={tqStyles.body}>
-        <div style={tqStyles.tableArea}>
-          <Card padX={0} padY={0} style={{ overflow: "hidden" }}>
-            {visible.length === 0 ? (
-              <div style={tqStyles.empty}>
-                <p style={tqStyles.emptyTitle}>This run&apos;s review is complete</p>
-                <p style={tqStyles.emptyMeta}>{run.counts.recruited} recruited · {run.counts.shortlisted} shortlisted · {run.counts.dismissed} dismissed · {run.counts.exported} exported</p>
+      {runs.map((run) => {
+        const open = !!openRunIds[run.id];
+        const runRecruits = recruits.filter((r) => r.runId === run.id);
+        return (
+          <Card key={run.id} padX={0} padY={0} style={{ overflow: "hidden" }}>
+            <Button variant="text" uppercase={false} onClick={() => onToggleRun(run.id)} aria-expanded={open} style={tqStyles.accordionHead}>
+              <span style={tqStyles.accordionLeft}>
+                <ChevronDown size={16} style={{ transform: open ? "none" : "rotate(-90deg)", transition: "transform 120ms ease", color: "var(--color-text-tertiary)" }} />
+                <span style={tqStyles.runLabel}>{run.label}</span>
+                <StatusBadge tone={RUN_STATE_TONE[run.state] || "info"}>{run.state}</StatusBadge>
+              </span>
+              <span style={tqStyles.accordionCounts}>
+                {run.counts.recruited} recruited · {run.counts.shortlisted} shortlisted · {run.counts.dismissed} dismissed · {run.counts.exported} exported
+              </span>
+            </Button>
+            {open && (
+              <div style={tqStyles.accordionBody}>
+                <InterveneRunReview
+                  run={run}
+                  recruits={runRecruits}
+                  active={selectedRunId === run.id}
+                  selectedId={selectedRunId === run.id ? selectedRecruitId : null}
+                  sidecarOpen={sidecarOpen}
+                  onSelect={(id) => onSelectRecruit(run.id, id)}
+                  onCloseSidecar={onCloseSidecar}
+                  onSetStatus={onSetStatus}
+                  onExport={onExport}
+                />
               </div>
-            ) : (
-              <table style={tqStyles.table}>
-                <thead>
-                  <tr>{COLUMNS.map((h) => <th key={h} style={tqStyles.th}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {visible.map((r) => (
-                    <RecruitRow key={r.id} recruit={r} selected={r.id === selectedId} onSelect={() => selectRow(r.id)} />
-                  ))}
-                </tbody>
-              </table>
             )}
           </Card>
-          <p style={tqStyles.hints}>↑↓ navigate · S shortlist · D dismiss · U undo · Esc close</p>
-        </div>
-
-        {sidecarOpen && selected && (
-          <Sidecar recruit={selected} onClose={() => setSidecarOpen(false)} onSetStatus={onSetStatus} />
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }
-
-function RecruitRow({ recruit: r, selected, onSelect }) {
-  const dismissed = r.status === "dismissed";
-  return (
-    <tr
-      onClick={onSelect}
-      style={{ ...tqStyles.row, background: selected ? "var(--color-primary-alpha-08)" : undefined, opacity: dismissed ? 0.5 : 1, cursor: "pointer" }}
-    >
-      <td style={tqStyles.td}>
-        <span style={tqStyles.custName}>{r.name}</span>
-        <span style={tqStyles.custId}>{r.customerId}</span>
-      </td>
-      <td style={tqStyles.td}><span style={tqStyles.laneTag}>{LANE_LABEL[r.lane]}</span></td>
-      <td style={tqStyles.td}>
-        <span style={tqStyles.chipRow}>
-          {r.signals.slice(0, 2).map((s) => <span key={s} style={tqStyles.signalChip} title={s}>{s}</span>)}
-          {r.signals.length > 2 && (
-            <span style={tqStyles.signalOverflow} title={r.signals.slice(2).join("\n")}>+{r.signals.length - 2}</span>
-          )}
-        </span>
-      </td>
-      <td style={tqStyles.td}>
-        <span style={tqStyles.priorityCell}>
-          <span style={tqStyles.priorityNum}>{r.priority}</span>
-          <span style={tqStyles.priorityTrack}>
-            <span style={{ ...tqStyles.priorityFill, width: `${r.priority}%` }} />
-          </span>
-        </span>
-      </td>
-      <td style={tqStyles.td}>
-        <span style={tqStyles.chipRow}>
-          {r.flags.length === 0 && <span style={tqStyles.muted}>—</span>}
-          {r.flags.map((f) => <span key={f} style={tqStyles.flagChip}>{f}</span>)}
-        </span>
-      </td>
-      <td style={{ ...tqStyles.td, whiteSpace: "nowrap" }}>{r.lastContact}</td>
-      <td style={tqStyles.td}>
-        {r.status === "shortlisted" ? <StatusBadge tone="success">Shortlisted</StatusBadge>
-          : r.status === "exported" ? <StatusBadge tone="info">Exported</StatusBadge>
-          : <span style={tqStyles.muted}>{dismissed ? "Dismissed" : "Recruited"}</span>}
-      </td>
-    </tr>
-  );
-}
-
-function Sidecar({ recruit: r, onClose, onSetStatus }) {
-  // Brief generation mocked locally: per-id "loading" -> generated flag.
-  const [generated, setGenerated] = React.useState({});
-  const [loadingId, setLoadingId] = React.useState(null);
-  const brief = r.brief || (generated[r.id] ? MOCK_BRIEF : null);
-
-  const generate = () => {
-    setLoadingId(r.id);
-    setTimeout(() => {
-      setGenerated((m) => ({ ...m, [r.id]: true }));
-      setLoadingId(null);
-    }, 900);
-  };
-
-  return (
-    <Card tone="outline" padX={20} padY={20} style={tqStyles.sidecar}>
-      <div style={tqStyles.scHeader}>
-        <div>
-          <span style={tqStyles.custName}>{r.name}</span>
-          <span style={tqStyles.custId}>{r.customerId} · {r.interactionId}</span>
-        </div>
-        <Button variant="icon" size="sm" onClick={onClose} aria-label="Close sidecar"><X size={16} /></Button>
-      </div>
-
-      <div style={tqStyles.scHighlights}>
-        <Highlight label="Priority" value={r.priority} />
-        <Highlight label="Lane" value={LANE_LABEL[r.lane]} />
-        <Highlight label="Last contact" value={`${r.lastContact} · ${r.contacts30d} in 30d`} />
-      </div>
-
-      <p style={tqStyles.scLabel}>Why flagged</p>
-      <p style={tqStyles.scText}>{r.sidecar.whyFlagged}</p>
-      <p style={tqStyles.scLabel}>Last conversation</p>
-      <p style={tqStyles.scText}>{r.sidecar.lastConversation}</p>
-      <p style={tqStyles.scMetaLine}><strong>Spoke with</strong> {r.sidecar.spokeWith}</p>
-      <p style={tqStyles.scMetaLine}><strong>Pain point</strong> {r.sidecar.painPoint}</p>
-      <p style={tqStyles.scMetaLine}><strong>Resolution offered</strong> {r.sidecar.resolutionOffered}</p>
-
-      <Card tone="muted" padX={14} padY={12} style={tqStyles.scMira}>
-        <p style={tqStyles.scLabel}>Ask Mira</p>
-        {brief ? (
-          <>
-            <p style={tqStyles.scText}>{brief.summary}</p>
-            <p style={tqStyles.scMetaLine}><strong>Best play</strong> {brief.bestPlay}</p>
-          </>
-        ) : (
-          <>
-            <Button variant="ai" disabled={loadingId === r.id} onClick={generate}>
-              {loadingId === r.id ? "Generating…" : "Generate brief & best play"}
-            </Button>
-            <p style={tqStyles.scHelper}>Generated on commit to save tokens</p>
-          </>
-        )}
-      </Card>
-
-      <div style={tqStyles.scActions}>
-        {r.status === "recruited" ? (
-          <>
-            <Button variant="primary" size="sm" onClick={() => onSetStatus(r.id, "shortlisted")}>Shortlist</Button>
-            <Button variant="text" onClick={() => onSetStatus(r.id, "dismissed")}>Dismiss</Button>
-          </>
-        ) : (
-          <Button variant="text" onClick={() => onSetStatus(r.id, "recruited")}>Undo</Button>
-        )}
-      </div>
-      <Button variant="text" uppercase={false} href="#" trailingIcon={<ExternalLink size={12} />} style={tqStyles.scLink}>
-        Open full interaction
-      </Button>
-    </Card>
-  );
-}
-
-function Highlight({ label, value }) {
-  return (
-    <div style={tqStyles.hlCell}>
-      <span style={tqStyles.hlLabel}>{label}</span>
-      <span style={tqStyles.hlValue}>{value}</span>
-    </div>
-  );
-}
-
-const sectionLabel = { margin: "0 0 4px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-tertiary)" };
 
 const tqStyles = {
   host: { display: "flex", flexDirection: "column", gap: "var(--page-header-gap)" },
   headerRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 },
   title: { fontSize: 22, fontWeight: 700, color: "var(--color-text-deep)", fontFamily: "var(--font-sans)" },
   subtitle: { marginTop: 4, fontSize: 13, color: "var(--color-text-tertiary)" },
-  headerActions: { display: "flex", alignItems: "center", gap: 16, flexShrink: 0 },
-  runRow: { position: "relative", display: "flex", alignItems: "center", gap: 10 },
-  runTrigger: { fontWeight: 700, color: "var(--color-text-deep)", fontSize: 14 },
-  campaignPill: { padding: "2px 10px", borderRadius: "var(--radius-pill)", background: "var(--pill-bg)", border: "1px solid var(--chip-border)", fontSize: 12, fontWeight: 600, color: "var(--chip-label)", whiteSpace: "nowrap" },
-  runMenu: { position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 20, minWidth: 220, display: "flex", flexDirection: "column", boxShadow: "var(--shadow-4)" },
-  runMenuItem: { justifyContent: "flex-start", paddingInline: 10, width: "100%" },
-  body: { display: "flex", alignItems: "flex-start", gap: 24 },
-  tableArea: { flex: 1, minWidth: 0 },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "var(--font-sans)" },
-  th: { height: 44, padding: "0 12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "var(--color-text-tertiary)", borderBottom: "1.5px solid var(--color-divider-card)", whiteSpace: "nowrap" },
-  row: { borderBottom: "1px solid var(--table-row-border)", transition: "background 120ms ease" },
-  td: { padding: 12, verticalAlign: "middle", color: "var(--color-text-deep)" },
-  custName: { display: "block", fontWeight: 600, fontSize: 13, color: "var(--color-text-deep)" },
-  custId: { display: "block", fontSize: 11, color: "var(--color-text-tertiary)" },
-  laneTag: { display: "inline-flex", padding: "2px 8px", borderRadius: "var(--radius-sm)", background: "var(--color-chip-bg)", color: "var(--color-chip-text)", fontSize: 11, fontWeight: 600 },
-  chipRow: { display: "inline-flex", gap: 4, flexWrap: "wrap" },
-  signalChip: { padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "var(--pill-bg)", color: "var(--chip-label)", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis" },
-  signalOverflow: { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", alignSelf: "center" },
-  priorityCell: { display: "inline-flex", alignItems: "center", gap: 8 },
-  priorityNum: { fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 22 },
-  priorityTrack: { width: 44, height: 4, borderRadius: "var(--radius-sm)", background: "var(--grey-50)", overflow: "hidden" },
-  priorityFill: { display: "block", height: "100%", background: "var(--chart-blue)" },
-  flagChip: { padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "var(--color-warning-bg)", color: "var(--color-warning-text)", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" },
-  muted: { color: "var(--color-text-tertiary)", fontSize: 12 },
-  hints: { marginTop: 8, fontSize: 12, color: "var(--color-text-placeholder)", textAlign: "center" },
-  empty: { padding: "48px 24px", textAlign: "center" },
-  emptyTitle: { fontSize: 14, fontWeight: 600, color: "var(--color-text-medium)" },
-  emptyMeta: { marginTop: 6, fontSize: 12, color: "var(--color-text-tertiary)" },
-  sidecar: { width: "var(--page-right-panel-width)", flexShrink: 0 },
-  scHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 },
-  scHighlights: { display: "flex", gap: 8, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid var(--color-divider-card)" },
-  hlCell: { flex: 1, display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
-  hlLabel: { ...sectionLabel, margin: 0, fontSize: 10 },
-  hlValue: { fontSize: 12, fontWeight: 600, color: "var(--color-text-deep)" },
-  scLabel: sectionLabel,
-  scText: { margin: "0 0 8px", fontSize: 12, lineHeight: 1.5, color: "var(--color-text-medium)" },
-  scMetaLine: { margin: "0 0 4px", fontSize: 12, color: "var(--color-text-medium)" },
-  scMira: { marginTop: 12 },
-  scHelper: { marginTop: 4, fontSize: 11, color: "var(--color-text-placeholder)" },
-  scActions: { display: "flex", alignItems: "center", gap: 16, marginTop: 16 },
-  scLink: { marginTop: 8, fontSize: 12, color: "var(--color-button-primary-bg)" },
+  campaignList: { display: "flex", flexDirection: "column", gap: 12 },
+  campaignRowInner: { display: "flex", alignItems: "center", gap: 24 },
+  campaignMain: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 },
+  campaignNameRow: { display: "flex", alignItems: "center", gap: 10 },
+  campaignName: { fontSize: 15, fontWeight: 700, color: "var(--color-text-deep)" },
+  pillRow: { display: "flex", gap: 6, flexWrap: "wrap" },
+  coveragePill: { padding: "2px 10px", borderRadius: "var(--radius-pill)", background: "var(--pill-bg)", border: "1px solid var(--chip-border)", fontSize: 12, fontWeight: 600, color: "var(--chip-label)", whiteSpace: "nowrap" },
+  campaignStats: { display: "flex", gap: 24, flexShrink: 0 },
+  statCell: { display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-end", minWidth: 64 },
+  statValue: { fontSize: 16, fontWeight: 700, color: "var(--color-text-deep)", fontVariantNumeric: "tabular-nums" },
+  statLabel: { fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-tertiary)" },
+  detailHost: { display: "flex", flexDirection: "column", gap: 12 },
+  backLink: { fontSize: 12, color: "var(--color-text-tertiary)", paddingInline: 0 },
+  detailTitleRow: { display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" },
+  detailTitle: { fontSize: 17, fontWeight: 700, color: "var(--color-text-deep)", fontFamily: "var(--font-sans)" },
+  accordionHead: { width: "100%", justifyContent: "space-between", padding: "14px 20px", fontWeight: 600, color: "var(--color-text-deep)" },
+  accordionLeft: { display: "flex", alignItems: "center", gap: 10 },
+  runLabel: { fontSize: 14, fontWeight: 700, color: "var(--color-text-deep)" },
+  accordionCounts: { fontSize: 12, fontWeight: 500, color: "var(--color-text-tertiary)", whiteSpace: "nowrap" },
+  accordionBody: { padding: "0 20px 20px", borderTop: "1px solid var(--color-divider-card)", paddingTop: 16 },
 };
