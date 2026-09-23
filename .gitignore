@@ -9,3 +9,6 @@ next-env.d.ts
 .claude/*
 !.claude/skills/
 !.claude/agents/
+
+# generated knowledge bundles (contents are tracked individually)
+docs/tickets/**/*.zip
