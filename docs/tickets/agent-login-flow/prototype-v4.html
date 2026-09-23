@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataOrb — Agent Login Prototype v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #0B5CFF;
+    --blue-dark: #0848CC;
+    --ink: #1B1D29;
+    --muted: #6B7080;
+    --line: #D5D8E0;
+    --field: #FFFFFF;
+    --disabled: #E4E6EB;
+    --disabled-ink: #A3A8B5;
+    --toast: #2B2D38;
+    --err: #D93025;
+    --ok: #1E8E5A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Poppins', 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); display: flex; min-height: 100vh; background: #F3F4F8; }
+
+  /* Navigator (prototype chrome, not part of the product) */
+  nav { width: 270px; flex-shrink: 0; background: #fff; border-right: 1px solid #E6E8EE; padding: 18px 14px; overflow-y: auto; height: 100vh; position: sticky; top: 0; font-size: 12px; }
+  nav h1 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  nav p.hint { color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+  nav h2 { font-size: 11px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; }
+  nav button { display: block; width: 100%; text-align: left; border: 0; background: none; font: inherit; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: var(--ink); line-height: 1.35; }
+  nav button:hover { background: #F1F3F8; }
+  nav button.active { background: #E8EFFF; color: var(--blue); font-weight: 500; }
+  nav button small { display: block; color: var(--muted); font-size: 10.5px; }
+  nav button:focus-visible, .stage button:focus-visible, .stage a:focus-visible, .stage input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* Stage — mirrors production login background */
+  .stage { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 20px 90px;
+    background:
+      radial-gradient(420px 260px at 18% 22%, rgba(196,181,253,.45), transparent 70%),
+      radial-gradient(460px 300px at 82% 18%, rgba(165,216,255,.45), transparent 70%),
+      radial-gradient(520px 320px at 60% 90%, rgba(221,214,254,.35), transparent 70%),
+      #F6F5FB; }
+  .meta { position: absolute; top: 14px; left: 20px; right: 20px; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .tag.existing { background: #EEF0F4; color: #555B6B; }
+  .tag.changed { background: #FFF4DB; color: #8A5A00; }
+  .tag.new { background: #E3F4EA; color: #146C43; }
+
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 14px rgba(40,40,80,.06); width: 100%; max-width: 400px; padding: 34px 30px 28px; text-align: center; }
+  .card.wide { max-width: 460px; }
+  .logo { font-size: 26px; font-weight: 600; letter-spacing: -1px; margin-bottom: 14px; display: inline-flex; align-items: center; }
+  .logo i { display: inline-block; width: 13px; height: 13px; border-radius: 50%; background: var(--blue); margin-left: 1px; transform: translateY(3px); }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 18px; }
+  .ident { font-size: 12px; color: var(--muted); margin: -2px 0 6px; }
+
+  .field { position: relative; text-align: left; margin-bottom: 12px; }
+  .field label { position: absolute; top: -7px; left: 10px; background: #fff; padding: 0 4px; font-size: 10.5px; color: var(--muted); }
+  .field input { width: 100%; height: 42px; border: 1px solid var(--line); border-radius: 6px; padding: 0 38px 0 12px; font: inherit; font-size: 13px; color: var(--ink); background: var(--field); }
+  .field input[readonly] { background: #F7F8FA; color: var(--muted); }
+  .field input.error { border-color: var(--err); }
+  .field .icon { position: absolute; right: 11px; top: 11px; font-size: 14px; color: var(--muted); }
+  .field .err { color: var(--err); font-size: 11px; margin-top: 4px; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+  .section { text-align: left; font-size: 12px; font-weight: 500; margin: 6px 0 12px; }
+  .helper { text-align: left; font-size: 11px; color: var(--muted); margin: -4px 0 14px; }
+
+  .btn { width: 100%; height: 38px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--blue); color: #fff; }
+  .btn:hover { background: var(--blue-dark); }
+  .btn[disabled] { background: var(--disabled); color: var(--disabled-ink); cursor: not-allowed; }
+  .btn.sm { width: auto; padding: 0 18px; height: 34px; }
+  .btn.ghost { background: #fff; color: var(--blue); border: 1px solid var(--line); }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+  .link { color: var(--blue); font-size: 12px; font-weight: 500; text-decoration: none; cursor: pointer; background: none; border: 0; font-family: inherit; }
+  .left { text-align: left; margin: -4px 0 14px; }
+  .center { margin-top: 12px; }
+  .note { font-size: 11.5px; color: var(--muted); margin-top: 14px; line-height: 1.5; }
+
+  .codes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #F6F7FA; border-radius: 8px; padding: 14px; margin: 4px 0 12px; }
+  .codes span { font-family: Consolas, 'Courier New', monospace; font-size: 13.5px; font-weight: 600; letter-spacing: 1px; background: #fff; border-radius: 4px; padding: 7px 0; }
+  .pair { display: flex; gap: 10px; margin-bottom: 12px; }
+  .pair .btn { height: 34px; }
+  .warn { background: #FFF6E5; color: #7A5200; font-size: 11.5px; text-align: left; border-radius: 6px; padding: 9px 11px; margin-bottom: 12px; line-height: 1.5; }
+  .check { display: flex; gap: 8px; text-align: left; font-size: 12px; margin-bottom: 14px; align-items: flex-start; cursor: pointer; }
+  .check input { margin-top: 2px; accent-color: var(--blue); }
+
+  .tooltip { display: none; position: absolute; left: calc(100% + 14px); top: -4px; width: 250px; background: #fff; border: 1px solid #E3E5EB; box-shadow: 0 6px 18px rgba(0,0,0,.08); border-radius: 8px; padding: 10px 12px; font-size: 11px; z-index: 5; text-align: left; }
+  .field:hover .tooltip, .field:focus-within .tooltip, .tooltip.pinned { display: block; }
+  .tooltip b { display: block; margin-bottom: 6px; font-size: 11.5px; }
+  .tooltip li { list-style: none; color: var(--ok); margin-bottom: 3px; }
+  .tooltip li::before { content: "\2713  "; }
+
+  .toast { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--toast); color: #fff; border-radius: 8px; padding: 11px 14px; font-size: 12px; display: flex; gap: 12px; align-items: flex-start; max-width: 460px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+  .toast.err { background: #FDECEA; color: var(--err); border: 1px solid #F4C4BF; }
+  .toast .t { font-weight: 600; }
+  .toast .x { background: none; border: 0; color: inherit; font-size: 15px; cursor: pointer; line-height: 1; }
+  .toast .ok { color: #4ADE80; font-weight: 700; }
+  .captcha { position: absolute; right: 14px; bottom: 14px; width: 54px; height: 54px; background: #fff; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.15); font-size: 8px; color: #999; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; }
+
+  /* Learning Hub landing + admin mock */
+  .app { width: 100%; max-width: 880px; background: #fff; border-radius: 12px; box-shadow: 0 2px 14px rgba(40,40,80,.06); padding: 22px 24px; text-align: left; }
+  .app h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .app .sub { text-align: left; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid #EDEFF3; }
+  td { padding: 10px; border-bottom: 1px solid #F2F3F6; }
+  tr.flag td { background: #FFF8EC; }
+  .pill { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .pill.en { background: #E3F4EA; color: #146C43; }
+  .pill.pa { background: #FFF1D6; color: #8A5A00; }
+  .pill.rr { background: #FDE7E4; color: #B3261E; }
+  .sublabel { display: block; font-size: 10.5px; margin-top: 4px; }
+  .sublabel.red { color: #B3261E; font-weight: 500; }
+  .sublabel.grey { color: var(--muted); }
+  .redlink { color: #B3261E; font-weight: 500; font-size: 12px; background: none; border: 0; cursor: pointer; font-family: inherit; }
+  .chips { display: flex; gap: 8px; margin-bottom: 12px; } .chips span { font-size: 11px; border: 1px solid var(--line); border-radius: 12px; padding: 3px 10px; color: var(--muted); } .chips span.on { border-color: var(--blue); color: var(--blue); background: #EEF3FF; }
+  .searchbox { width: 260px; height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 0 10px; font: inherit; font-size: 12px; margin-bottom: 12px; }
+  .menu { position: relative; display: inline-block; cursor: pointer; padding: 2px 6px; }
+  .menu .menu-list { display: none; }
+  .menu:hover .menu-list, .menu:focus-within .menu-list { display: block; }
+  .menu-list { position: absolute; right: 0; top: 22px; background: #fff; border: 1px solid #E3E5EB; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.08); width: 210px; z-index: 5; }
+  .menu-list div { padding: 9px 12px; font-size: 12px; cursor: pointer; }
+  .menu-list div:hover, .menu-list div.hl { background: #EEF3FF; color: var(--blue); }
+  .modal-back { position: absolute; inset: 0; background: rgba(20,22,35,.35); display: flex; align-items: center; justify-content: center; }
+  .modal { background: #fff; border-radius: 12px; width: 420px; padding: 24px; text-align: left; }
+  .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .modal p { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-bottom: 14px; }
+  .tile { display: flex; gap: 12px; margin-top: 14px; }
+  .tile div { flex: 1; background: #F6F7FA; border-radius: 8px; padding: 14px; font-size: 12px; }
+  .tile b { display: block; font-size: 13px; margin-bottom: 4px; }
+
+  @media (max-width: 760px) { body { flex-direction: column; } nav { width: 100%; height: auto; position: static; } .stage { min-height: 100vh; } }
+  @media (prefers-reduced-motion: no-preference) { .card, .app, .modal { animation: in .18s ease-out; } @keyframes in { from { opacity: .4; transform: translateY(4px); } } }
+</style>
+</head>
+<body>
+<nav aria-label="Prototype states">
+  <h1>Agent login — prototype v4</h1>
+  <p class="hint">Click through the buttons, or use ← → keys. Tags show whether a screen is existing, changed or new.</p>
+  <div id="navlist"></div>
+</nav>
+<main class="stage" id="stage" aria-live="polite"></main>
+
+<script>
+const logo = '<div class="logo">d<i></i></div>';
+const eye = '<span class="icon" aria-hidden="true">&#128065;</span>';
+const info = '<span class="icon" aria-hidden="true">&#9432;</span>';
+const captcha = '<div class="captcha" aria-hidden="true">reCAPTCHA</div>';
+const rules = '<div class="tooltip" role="tooltip"><b>Password Requirements</b><ul><li>Minimum 8 characters (numbers allowed)</li><li>Minimum 1 upper and lower case letter</li><li>Minimum 1 numeric digit (0-9)</li><li>Minimum 1 special character (.!@#$%^&amp;*-_=+?)</li></ul></div>';
+const go = (id, label, cls='btn', dis=false) => `<button class="${cls}" ${dis?'disabled':''} onclick="goTo('${id}')">${label}</button>`;
+const lnk = (id, label) => `<button class="link" onclick="goTo('${id}')">${label}</button>`;
+const toast = (html, err=false) => `<div class="toast ${err?'err':''}" role="status">${html}<button class="x" aria-label="Close" onclick="this.parentNode.remove()">&times;</button></div>`;
+
+const states = [
+  // J1
+  { id:'s1-empty', j:'J1 · First sign-in (agent)', name:'S1 · Sign in — step 1 (empty)', tag:'changed', html:`
+    <div class="card">${logo}<h3>Sign in to DataOrb</h3><p class="sub">To get started, enter your email address or login ID</p>
+    <div class="field"><label>Email Address or Login ID</label><input value="" placeholder="" aria-label="Email Address or Login ID"></div>
+    ${go('s1-filled','Continue','btn',true)}</div>${captcha}` },
+  { id:'s1-filled', j:'J1 · First sign-in (agent)', name:'S1 · Login ID entered', tag:'changed', html:`
+    <div class="card">${logo}<h3>Sign in to DataOrb</h3><p class="sub">To get started, enter your email address or login ID</p>
+    <div class="field"><label>Email Address or Login ID</label><input value="KON-AGT-10284"></div>
+    ${go('s2t','Continue')}</div>${captcha}` },
+  { id:'s2t', j:'J1 · First sign-in (agent)', name:'S2-T · Temporary password step', tag:'new', html:`
+    <div class="card">${logo}<h3>Welcome to DataOrb</h3><p class="sub">This is your first sign-in. Enter the temporary password your admin shared with you.</p>
+    <div class="field"><label>Login ID</label><input value="KON-AGT-10284" readonly></div>
+    <div class="field"><label>Temporary Password</label><input type="password" value="T3mp!x2p9k">${eye}</div>
+    <p class="helper">Your temporary password expires on 24 Sep 2026 at 18:00.</p>
+    ${go('s3','Continue')}
+    <div class="center">${lnk('s1-filled','Back')}</div>
+    <p class="note">Don't have a temporary password? Contact your admin.</p></div>${captcha}` },
+  { id:'s2t-expired', j:'J1 · First sign-in (agent)', name:'S2-T · Temporary password expired', tag:'new', html:`
+    <div class="card">${logo}<h3>Welcome to DataOrb</h3><p class="sub">This is your first sign-in. Enter the temporary password your admin shared with you.</p>
+    <div class="field"><label>Login ID</label><input value="KON-AGT-10284" readonly></div>
+    <div class="field"><label>Temporary Password</label><input class="error" type="password" value="T3mp!x2p9k">${eye}
+    <div class="err">Your temporary password has expired. Contact your admin for a new one.</div></div>
+    ${go('s3','Continue','btn',true)}
+    <div class="center">${lnk('s1-filled','Back')}</div></div>${captcha}` },
+  { id:'s3', j:'J1 · First sign-in (agent)', name:'S3 · Welcome to DataOrb Hub! (create password)', tag:'changed', html:`
+    <div class="card">${logo}<h3>Welcome to DataOrb Hub!</h3><p class="ident">KON-AGT-10284</p>
+    <p class="sub">To keep your account secure, create a new password.<br>Next, you'll save recovery codes in case you forget your password.</p>
+    <div class="row2"><div class="field"><label>First Name</label><input value="Maria"></div><div class="field"><label>Last Name</label><input value="Rodriguez"></div></div>
+    <p class="section">New Password</p>
+    <div class="field"><label>New Password *</label><input type="password" value="Sevilla@2026">${info}${rules}</div>
+    <div class="field"><label>Confirm Password *</label><input type="password" value="Sevilla@2026">${eye}</div>
+    <div class="actions">${lnk('s1-empty','Back to login')}${go('s4','Continue','btn sm')}</div></div>` },
+  { id:'s4', j:'J1 · First sign-in (agent)', name:'S4 · Save your recovery codes', tag:'new', html:`
+    <div class="card wide">${logo}<h3>Save your recovery codes</h3><p class="sub">Use these codes to reset your password if you forget it. Each code works once.</p>
+    <div class="codes"><span>4XKT-9PLM</span><span>Z7NR-2QVB</span><span>M3WY-8CJH</span><span>P6DF-1STX</span><span>A2GK-5EVN</span><span>H9BQ-3RLW</span><span>Y4ZM-7UPD</span><span>C8QT-6FJH</span></div>
+    <div class="pair"><button class="btn ghost" onclick="showToast('Recovery codes copied.')">Copy codes</button><button class="btn ghost" onclick="showToast('Recovery codes downloaded.')">Download</button></div>
+    <div class="warn">These codes won't be shown again. Don't save them on a shared computer.</div>
+    <label class="check"><input type="checkbox" id="ack" onchange="document.getElementById('s4c').disabled=!this.checked"> I've saved my recovery codes somewhere safe.</label>
+    <button class="btn" id="s4c" disabled title="Confirm you've saved your codes to continue." onclick="goTo('lh')">Continue</button>
+    <p class="note">Button label is a working label (final label TBD).</p></div>` },
+  { id:'lh', j:'J1 · First sign-in (agent)', name:'Learning Hub landing', tag:'existing', html:`
+    <div class="app"><h3>Learning Hub</h3><p class="sub">Konecta · Infancia_sevilla</p>
+    <div class="tile"><div><b>3 assigned personas</b>Start your first practice session.</div><div><b>0 completed</b>Your progress will appear here.</div></div></div>` },
+
+  // J2
+  { id:'s2', j:'J2 · Returning sign-in', name:'S2 · Sign in — step 2 (password)', tag:'changed', html:`
+    <div class="card">${logo}<h3>Sign in to DataOrb</h3><p class="sub">Please enter your password to sign in</p>
+    <div class="field"><label>Email Address or Login ID</label><input value="KON-AGT-10284" readonly></div>
+    <div class="field"><label>Password</label><input type="password" value="Sevilla@2026">${eye}</div>
+    <div class="left">${lnk('s5','Forgot password?')}</div>
+    ${go('lh','Sign In')}
+    <div class="center">${lnk('s1-filled','Back')}</div></div>${captcha}` },
+  { id:'s2-fail', j:'J2 · Returning sign-in', name:'S2 · Wrong password', tag:'changed', html:`
+    <div class="card">${logo}<h3>Sign in to DataOrb</h3><p class="sub">Please enter your password to sign in</p>
+    <div class="field"><label>Email Address or Login ID</label><input value="KON-AGT-10284" readonly></div>
+    <div class="field"><label>Password</label><input type="password" value="wrongpass">${eye}</div>
+    <div class="left">${lnk('s5','Forgot password?')}</div>
+    ${go('lh','Sign In')}<div class="center">${lnk('s1-filled','Back')}</div></div>
+    ${toast('<span>&#9888; Login failed! Incorrect email/login ID or password</span>', true)}${captcha}` },
+  { id:'s1-denied', j:'J2 · Returning sign-in', name:'S1 · Access Denied', tag:'changed', html:`
+    <div class="card">${logo}<h3>Sign in to DataOrb</h3><p class="sub">To get started, enter your email address or login ID</p>
+    <div class="field"><label>Email Address or Login ID</label><input value="KON-AGT-99999"></div>
+    ${go('s2t','Continue')}</div>
+    ${toast('<div><div class="t" style="color:#FF8A80">Access Denied</div>The account you signed in with KON-AGT-99999 does not have access to DataOrb.</div>')}${captcha}` },
+
+  // J3
+  { id:'s5', j:'J3 · Forgot password (recovery code)', name:'S5 · Forgot password', tag:'changed', html:`
+    <div class="card">${logo}<h3>Forgot password</h3><p class="sub">Enter your email address or login ID to reset your password.</p>
+    <div class="field"><label>Email Address or Login ID</label><input value="KON-AGT-10284"></div>
+    ${go('s6r','Continue')}<div class="center">${lnk('s1-empty','Back to login')}</div></div>${captcha}` },
+  { id:'s6r', j:'J3 · Forgot password (recovery code)', name:'S6-R · Reset with recovery code', tag:'new', html:`
+    <div class="card">${logo}<h3>Reset password</h3><p class="sub">Enter one of the recovery codes you saved when you first signed in.</p>
+    <div class="field"><label>Recovery code</label><input value="4XKT-9PLM" placeholder="XXXX-XXXX"></div>
+    <p class="section">New Password</p>
+    <div class="field"><label>New Password</label><input type="password" value="Triana@2026">${info}</div>
+    <div class="field"><label>Confirm Password</label><input type="password" value="Triana@2026">${eye}</div>
+    <p class="helper">Don't have your codes? Contact your admin for a temporary password.</p>
+    <div class="actions">${lnk('s1-empty','Back to login')}${go('s6r-ok','Done','btn sm')}</div></div>` },
+  { id:'s6r-invalid', j:'J3 · Forgot password (recovery code)', name:'S6-R · Invalid code', tag:'new', html:`
+    <div class="card">${logo}<h3>Reset password</h3><p class="sub">Enter one of the recovery codes you saved when you first signed in.</p>
+    <div class="field"><label>Recovery code</label><input class="error" value="4XKT-9PLM"></div>
+    <p class="section">New Password</p>
+    <div class="field"><label>New Password</label><input type="password" value="Triana@2026">${info}</div>
+    <div class="field"><label>Confirm Password</label><input type="password" value="Triana@2026">${eye}</div>
+    <div class="actions">${lnk('s1-empty','Back to login')}${go('s6r-ok','Done','btn sm')}</div></div>
+    ${toast('<span>&#9888; Failed! Invalid recovery code. Try another code.</span>', true)}` },
+  { id:'s6r-ok', j:'J3 · Forgot password (recovery code)', name:'Signed in after reset', tag:'new', html:`
+    <div class="app"><h3>Learning Hub</h3><p class="sub">Konecta · Infancia_sevilla</p>
+    <div class="tile"><div><b>3 assigned personas</b>Continue where you left off.</div><div><b>1 completed</b>Keep going.</div></div></div>
+    ${toast('<span><span class="ok">&#10003;</span>&nbsp; Password reset successfully. You have 7 recovery codes left.</span>')}` },
+
+  // J5
+  { id:'s6r-exhausted', j:'J5 · Lost or used all recovery codes', name:'S6-R · All codes used', tag:'new', html:`
+    <div class="card">${logo}<h3>Reset password</h3><p class="sub">Enter one of the recovery codes you saved when you first signed in.</p>
+    <div class="warn" style="background:#FDECEA;color:#B3261E">You've used all your recovery codes. Contact your admin for a temporary password.</div>
+    <div class="field"><label>Recovery code</label><input value="" placeholder="XXXX-XXXX" readonly></div>
+    <p class="section">New Password</p>
+    <div class="field"><label>New Password</label><input type="password" value="" readonly>${info}</div>
+    <div class="field"><label>Confirm Password</label><input type="password" value="" readonly>${eye}</div>
+    <div class="actions">${lnk('s1-empty','Back to login')}<button class="btn sm" disabled>Done</button></div>
+    <p class="note">The agent contacts their admin through their usual channel (Slack, supervisor). There is no in-app request.</p></div>` },
+  { id:'a1', j:'J5 · Lost or used all recovery codes', name:'A1 · Admin: Users page', tag:'changed', html:`
+    <div class="app"><h3>Users</h3><p class="sub">Learners · Konecta</p>
+    <input class="searchbox" value="KON-AGT-102" aria-label="Search users">
+    <div class="chips"><span class="on">All statuses</span><span>No recovery codes left</span><span>Temporary password issued</span><span>Temporary password expired</span></div>
+    <table><thead><tr><th>Name</th><th>Login ID / Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+    <tr class="flag"><td>Maria Rodriguez</td><td>KON-AGT-10284</td><td>Learner</td>
+      <td><span class="pill en">Enabled</span><span class="sublabel red">No recovery codes left</span></td>
+      <td style="text-align:right"><button class="redlink" onclick="goTo('a2')">Issue temporary password</button></td></tr>
+    <tr><td>Diego Ruiz</td><td>KON-AGT-10285</td><td>Learner</td><td><span class="pill en">Enabled</span></td>
+      <td style="text-align:right"><span class="menu" tabindex="0" aria-label="Row actions">&#8942;<div class="menu-list"><div onclick="goTo('a2')">Issue temporary password</div><div>Edit User</div></div></span></td></tr>
+    <tr><td>Lucia Fernández</td><td>KON-AGT-10286</td><td>Learner</td><td><span class="pill en">Enabled</span><span class="sublabel grey">Temporary password issued · Expires 24 Sep 2026</span></td><td></td></tr>
+    <tr><td>Ana García</td><td>KON-AGT-10287</td><td>Trainee</td><td><span class="pill en">Enabled</span><span class="sublabel red">Temporary password expired</span></td>
+      <td style="text-align:right"><button class="redlink" onclick="goTo('a2')">Issue temporary password</button></td></tr>
+    </tbody></table>
+    <p class="note">"Issue temporary password" is always in the row menu for agent-login users (lost codes can't be detected). It shows inline in red when the sub-label is red.</p></div>` },
+  { id:'a2', j:'J5 · Lost or used all recovery codes', name:'A2 · Admin: confirm', tag:'new', html:`
+    <div class="app" style="min-height:260px"></div>
+    <div class="modal-back"><div class="modal" role="dialog" aria-label="Issue a temporary password">
+      <h3>Issue a temporary password?</h3>
+      <p>Maria Rodriguez (KON-AGT-10284) will need this temporary password to sign in. Their current password and recovery codes will stop working.</p>
+      <div class="warn">Make sure the request came from Maria Rodriguez before you continue.</div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">${go('a1','Cancel','btn sm ghost')}${go('a3','Issue temporary password','btn sm')}</div></div></div>` },
+  { id:'a3', j:'J5 · Lost or used all recovery codes', name:'A3 · Admin: temporary password', tag:'new', html:`
+    <div class="app" style="min-height:260px"></div>
+    <div class="modal-back"><div class="modal" role="dialog" aria-label="Temporary password">
+      <h3>Temporary password for Maria Rodriguez</h3>
+      <p>Share this password with Maria Rodriguez through your usual channel. It won't be shown again after you close this window.</p>
+      <div class="field"><label>Temporary password</label><input value="R4st!Kn9pQ2x" readonly><span class="icon" style="cursor:pointer" title="Copy" onclick="showToast('Temporary password copied.')">&#10697;</span></div>
+      <p class="helper" style="margin-top:0">Expires on 24 Sep 2026 at 18:00.</p>
+      <div style="text-align:right">${go('a1-issued','Done','btn sm')}</div></div></div>` },
+  { id:'a1-issued', j:'J5 · Lost or used all recovery codes', name:'A1 · After issue', tag:'changed', html:`
+    <div class="app"><h3>Users</h3><p class="sub">Learners · Konecta</p>
+    <table><thead><tr><th>Name</th><th>Login ID / Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+    <tr><td>Maria Rodriguez</td><td>KON-AGT-10284</td><td>Learner</td>
+      <td><span class="pill en">Enabled</span><span class="sublabel grey">Temporary password issued · Expires 24 Sep 2026</span></td><td></td></tr>
+    <tr><td>Diego Ruiz</td><td>KON-AGT-10285</td><td>Learner</td><td><span class="pill en">Enabled</span></td><td></td></tr>
+    </tbody></table></div>
+    ${toast('<span><span class="ok">&#10003;</span>&nbsp; Temporary password issued to Maria Rodriguez.</span>')}` },
+  { id:'s1-reset', j:'J5 · Lost or used all recovery codes', name:'S1 · Agent signs in again', tag:'changed', html:`
+    <div class="card">${logo}<h3>Sign in to DataOrb</h3><p class="sub">To get started, enter your email address or login ID</p>
+    <div class="field"><label>Email Address or Login ID</label><input value="KON-AGT-10284"></div>
+    ${go('s2t-reset','Continue')}</div>${captcha}` },
+  { id:'s2t-reset', j:'J5 · Lost or used all recovery codes', name:'S2-T · Temporary password (reset)', tag:'new', html:`
+    <div class="card">${logo}<h3>Sign in to DataOrb</h3><p class="sub">Your admin has reset your password. Enter the temporary password they shared with you.</p>
+    <div class="field"><label>Login ID</label><input value="KON-AGT-10284" readonly></div>
+    <div class="field"><label>Temporary Password</label><input type="password" value="R4st!Kn9pQ2x">${eye}</div>
+    <p class="helper">Your temporary password expires on 24 Sep 2026 at 18:00.</p>
+    ${go('s8r','Continue')}
+    <div class="center">${lnk('s1-reset','Back')}</div>
+    <p class="note">Don't have a temporary password? Contact your admin.</p></div>${captcha}` },
+  { id:'s8r', j:'J5 · Lost or used all recovery codes', name:'S8-R · Reset password', tag:'new', html:`
+    <div class="card">${logo}<h3>Reset password</h3><p class="sub">Create a new password to continue. Next, you'll save new recovery codes.</p>
+    <p class="section">New Password</p>
+    <div class="field"><label>New Password</label><input type="password" value="Giralda@2026">${info}${rules}</div>
+    <div class="field"><label>Confirm Password</label><input type="password" value="Giralda@2026">${eye}</div>
+    <div class="actions">${lnk('s1-empty','Back to login')}${go('s4-reset','Continue','btn sm')}</div></div>` },
+  { id:'s4-reset', j:'J5 · Lost or used all recovery codes', name:'S4 · New recovery codes', tag:'new', html:`
+    <div class="card wide">${logo}<h3>Save your recovery codes</h3><p class="sub">Use these codes to reset your password if you forget it. Each code works once.</p>
+    <div class="codes"><span>K2VD-8NQE</span><span>T5HM-3WRA</span><span>B9XL-6PCU</span><span>R1FJ-4ZKY</span><span>E7GS-2MTN</span><span>W3QP-9DHB</span><span>N6AC-5VLX</span><span>U8RK-1YFG</span></div>
+    <div class="pair"><button class="btn ghost" onclick="showToast('Recovery codes copied.')">Copy codes</button><button class="btn ghost" onclick="showToast('Recovery codes downloaded.')">Download</button></div>
+    <div class="warn">These codes won't be shown again. Don't save them on a shared computer.</div>
+    <label class="check"><input type="checkbox" onchange="document.getElementById('s4rc').disabled=!this.checked"> I've saved my recovery codes somewhere safe.</label>
+    <button class="btn" id="s4rc" disabled title="Confirm you've saved your codes to continue." onclick="goTo('lh-reset')">Continue</button></div>` },
+  { id:'lh-reset', j:'J5 · Lost or used all recovery codes', name:'Learning Hub after reset', tag:'existing', html:`
+    <div class="app"><h3>Learning Hub</h3><p class="sub">Konecta · Infancia_sevilla</p>
+    <div class="tile"><div><b>3 assigned personas</b>Continue where you left off.</div><div><b>1 completed</b>Keep going.</div></div></div>
+    ${toast('<span><span class="ok">&#10003;</span>&nbsp; Your password has been reset.</span>')}` },
+
+  // J6
+  { id:'s8', j:'J6 · 90-day password expiry', name:'S8 · Password expired (agent)', tag:'changed', html:`
+    <div class="card">${logo}<h3>Reset password</h3><p class="sub">Your password has expired. Create a new password to continue.</p>
+    <p class="section">New Password</p>
+    <div class="field"><label>New Password</label><input type="password" value="Macarena@26">${info}</div>
+    <div class="field"><label>Confirm Password</label><input type="password" value="Macarena@26">${eye}</div>
+    <div class="actions">${lnk('s1-empty','Back to login')}${go('s8-last3','Done','btn sm')}</div></div>` },
+  { id:'s8-last3', j:'J6 · 90-day password expiry', name:'S8 · Reused password', tag:'existing', html:`
+    <div class="card">${logo}<h3>Reset password</h3><p class="sub">Your password has expired. Create a new password to continue.</p>
+    <p class="section">New Password</p>
+    <div class="field"><label>New Password</label><input class="error" type="password" value="Sevilla@2026">${info}</div>
+    <div class="field"><label>Confirm Password</label><input type="password" value="Sevilla@2026">${eye}</div>
+    <div class="actions">${lnk('s1-empty','Back to login')}${go('lh','Done','btn sm')}</div></div>
+    ${toast('<span>&#9888; Password cannot be same as your last 3 passwords.</span>', true)}` },
+];
+
+let current = 0;
+const stage = document.getElementById('stage');
+const navlist = document.getElementById('navlist');
+
+function buildNav() {
+  let lastJ = '', html = '';
+  states.forEach((s, i) => {
+    if (s.j !== lastJ) { html += `<h2>${s.j}</h2>`; lastJ = s.j; }
+    html += `<button data-i="${i}" onclick="show(${i})">${s.name}<small>${s.tag}</small></button>`;
+  });
+  navlist.innerHTML = html;
+}
+function show(i) {
+  current = i;
+  const s = states[i];
+  stage.innerHTML = `<div class="meta"><span><b>${s.name}</b> · ${s.j}</span><span class="tag ${s.tag}">${s.tag[0].toUpperCase()+s.tag.slice(1)}</span></div>` + s.html;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
+}
+function goTo(id) { const i = states.findIndex(s => s.id === id); if (i > -1) show(i); }
+function showToast(text) {
+  stage.querySelectorAll('.toast').forEach(t => t.remove());
+  stage.insertAdjacentHTML('beforeend', toast(`<span><span class="ok">&#10003;</span>&nbsp; ${text}</span>`));
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' && current < states.length - 1) show(current + 1);
+  if (e.key === 'ArrowLeft' && current > 0) show(current - 1);
+});
+buildNav(); show(0);
+</script>
+</body>
+</html>

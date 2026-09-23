@@ -2,7 +2,8 @@
 
 **Design file:** Figma *Learning Hub* → page **🔥 Agent login** → section **Agent login — 2026-09-23**
 <https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137981-627>
-**Requirements contract:** [requirements.md](requirements.md) · **Source handoff:** [handoff-v3.md](handoff-v3.md)
+**Requirements contract:** [requirements.md](requirements.md)
+**Sources:** [handoff-v3.md](handoff-v3.md) (journeys + copy) · [prototype-v4.md](prototype-v4.md) / [prototype-v4.html](prototype-v4.html) (chrome, type scale, extra states) · [production-reference.md](production-reference.md) (what production does today)
 
 The section follows the house journey-map format used on the *Assign drill* and
 *Groups, Workspaces & Users* pages: a dark **Phase** banner per journey, a blue **Guard** card on the
@@ -46,7 +47,8 @@ tables — verify against the QA environment before building from them.
 
 | Screen | Status | Figma |
 |---|---|---|
-| S1 · Sign in — identifier | Changed | [137985:1658](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137985-1658) |
+| S1 · Sign in — step 1 (empty), Continue disabled | Changed | [138010:2200](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=138010-2200) |
+| S1 · Login ID entered | Changed | [137985:1658](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137985-1658) |
 | S1a · No active account — Access Denied | Changed (toast copy) | [137985:1705](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137985-1705) |
 | S2-T · Temporary password — first sign-in | New | [137985:1726](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137985-1726) |
 | S2-Ta · Temporary password expired | New | [137985:1795](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137985-1795) |
@@ -101,7 +103,8 @@ tables — verify against the QA environment before building from them.
 
 A1–A3 are built **on the real Users landing screen** cloned from the *Groups, Workspaces & Users*
 page ([03 · Users landing](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137171-13869)),
-not on a redrawn table — see open question 2.
+not on a redrawn table. v4 proposes a different table with a real Status column, built alongside it in row 08 — see
+open question 1. The row menu follows the CEH user manual: **Edit User · Re-Invite User · Issue temporary password**.
 
 ### J6 — 90-day password expiry (agent)
 
@@ -110,6 +113,7 @@ not on a redrawn table — see open question 2.
 | S1 · Sign in — identifier | Changed | [137990:1304](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137990-1304) |
 | S2 · Sign in — password | Changed | [137990:1320](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137990-1320) |
 | S8 · Password expired — agent | Changed | [137990:1338](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137990-1338) |
+| S8a · Reused password — last 3 | Existing | [138010:2274](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=138010-2274) |
 | Signed in — password reset | **Blank + toast** | [137990:1407](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137990-1407) |
 
 ### J0 / J7 — Existing email-user journeys (reference only)
@@ -130,7 +134,8 @@ All four are deliberate blanks carrying the idea, not a design.
 | A1b · Temporary password issued (grey sub-label) | Changed | [137992:2568](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137992-2568) |
 | A1c · Temporary password expired (red sub-label) | Changed | [137992:2853](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137992-2853) |
 | A1d · Status filter — three new options | Changed | [137992:3139](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137992-3139) |
-| A1e · Row menu — Issue temporary password | Changed | [137992:3431](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137992-3431) |
+| A1e · Row menu — Edit User · Re-Invite User · Issue temporary password | Changed | [137992:3431](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137992-3431) |
+| A1 (v4) · Users table with a Status column — **proposal** | Changed | [138010:2354](https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=138010-2354) |
 
 ---
 
@@ -152,17 +157,25 @@ already exists elsewhere. Each carries the idea, and where relevant an open ques
 
 ---
 
+## What the sources settle
+
+Recorded on the **Open questions** board at the bottom of the Figma section.
+
+- **Status label — narrowed.** The CEH user manual is explicit that production runs **Invited → Enabled**, and **Disabled** after Revoke Access. The handoff's "Pending Activation / INVITED" is almost certainly just *Invited*. Still needs the sign-off the handoff asks for, but it is no longer a guess.
+- **The admin row menu — answered.** Production has **Edit User** and **Re-Invite User** (for users still showing Invited, confirmed by an "Invitation Sent!" pop-up). *Issue temporary password* is a third item beside them. Open only: whether it replaces Re-Invite User for login-ID accounts, which have no inbox.
+- **Where first sign-in lands — partly answered.** v4 mocks it as the Learning Hub landing reading "3 assigned personas / 0 completed" — the normal agent homepage in its first-visit state, not a bespoke welcome screen.
+
 ## Open questions
 
-Also recorded on the **Open questions** board at the bottom of the Figma section.
-
-1. **Status label for un-activated agent accounts** — *Pending Activation* or *INVITED*? Pending sign-off in the handoff; production calls the email-user equivalent "Invited". Affects A1, the three new filters, and the flip to Enabled on S4 Continue.
-2. **The Users table in this file has no Status column** — the handoff hangs three sub-labels under a status pill, but the designed Users landing shows Name · Role · Email · Workspaces · Last active and no status. Either that table gains a Status column or the sub-labels need another home. They are parked under the last column in A1 so the states can be read.
-3. **S4 primary button label** — "Continue" is the working label; final label TBD.
-4. **"Generate new codes from your profile"** — the low-codes toast points at a profile screen that exists nowhere. Needs: where it lives, whether it reuses S4, whether it kills the remaining codes immediately, whether it re-asks for the password.
-5. **Tenant picker** — no copy, no layout in the handoff. First decide whether a login-ID account can be multi-tenant at all.
-6. **When does the 90-day clock start** — at import or at password creation on S3? If it runs from import, a newly imported agent can hit expiry on their first sign-in and J1 collides with J6.
-7. **Where does first sign-in land** — the plain agent homepage, or a one-time welcome state?
-8. **Issue temporary password for email users** — should the row-menu item appear for them too, given they already have Reset password by email?
-9. **Two error strings marked new, to confirm** — "Passwords don't match." and "Your password doesn't meet all the requirements." are marked new with a note to check whether production already has them.
-10. **Recovery-code economics** — 8 codes at issue, a warning at 3 or fewer, a dead end at 0. Nothing warns the agent between 8 and 3, and only a reset restores the set. Confirm this is intended.
+1. **Which Users table is the truth.** Three versions now exist: the Users landing designed on the *Groups, Workspaces & Users* page (Name · Role · Email · Workspaces · Last active), v4's proposal (Name · Login ID / Email · Role · Status · action), and the CEH manual's Settings → User Management → Users. The sub-labels and the three new filters only work on a table with a Status column. Both candidates sit in row 08 so the choice is visible.
+2. **How long is a temporary password valid.** Never stated. v4 shows next-day 18:00; the manual's email precedent is a 30-day invitation link. S2-T, A1 and A3 all print the value, so it needs a number.
+3. **How does an admin create one agent-login user.** Production's New User requires an Email ID; the handoff only describes bulk import, and the import screen — plus its partial-failure state — is designed nowhere.
+4. **CAPTCHA — the sources disagree.** The manual says all users must complete CAPTCHA verification; the handoff says the hidden reCAPTCHA v3 needs nothing from the user. If production shows an interactive challenge, S1 gains a step.
+5. **Error-toast style.** v4 splits failures (light red, bordered) from successes (dark with a green tick); the DataOrb `Snackbar` in this file is dark-only. Either the system gains an error variant or the prototype loses one.
+6. **S4 primary button label.** "Continue" is still the working label in both sources; final label TBD.
+7. **Generate new codes from your profile.** The low-codes toast still points at a profile screen that exists in neither source.
+8. **Tenant picker.** Still unspecified and absent from v4. First decide whether a login-ID account can be multi-tenant at all.
+9. **When does the 90-day clock start.** At import or at password creation on S3? If it runs from import, a newly imported agent can hit expiry on their first sign-in and J1 collides with J6.
+10. **Two error strings marked new, to confirm.** "Passwords don't match." and "Your password doesn't meet all the requirements."
+11. **Recovery-code economics.** Eight codes at issue, a warning at three or fewer, a dead end at zero. Nothing warns the agent between eight and three, and only an admin reset restores the set.
+12. **Revoking an agent-login user.** Production emails the user on revoke. An agent with no email address cannot be told — decide whether that matters.
