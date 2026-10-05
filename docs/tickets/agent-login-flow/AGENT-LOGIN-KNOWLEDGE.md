@@ -1,10 +1,10 @@
 # Agent login — complete project knowledge
 
-*Single-file bundle, assembled 2026-09-23. Everything known about the DataOrb
+*Single-file bundle, assembled 2026-10-05. Everything known about the DataOrb
 Agent login project: the brief, the prototype, what production does today, the journey map, and what is
 still undecided. Drop it into a project knowledge base as-is.*
 
-**Design file:** Figma *Learning Hub* → page **🔥 Agent login** → section **Agent login — 2026-09-23**
+**Design file:** Figma *Learning Hub* → page **🔥 Agent login**
 <https://www.figma.com/design/P5edYMfQe2DW1EZLJqkH7N/Learning-Hub?node-id=137981-627>
 
 **Repo:** `docs/tickets/agent-login-flow/` on `Umesh0014/dataorb-proto`, branch `claude/practical-franklin-7xu8oi`
@@ -19,7 +19,8 @@ supervisor rather than by email.
 
 Everything downstream follows from that one fact. No inbox means no emailed verification code, so recovery
 runs on **eight one-time recovery codes** issued at first sign-in; when those run out the only way back in is
-an admin **issuing a temporary password** out of band. The email-user journeys are untouched.
+an admin **issuing a temporary password**, which expires 48 hours after it is issued. The email-user
+journeys are untouched.
 
 **Three sources, in order of authority for what they cover:**
 
@@ -67,7 +68,7 @@ is the exception.
 - [ ] R2: Agents are created by **bulk import**; accounts that have never signed in show the invited status (label pending sign-off — see C5).
 - [ ] R3: The login ID and temporary password reach the agent **outside the platform** (supervisor, Slack). No in-app delivery, no in-app request.
 - [ ] R4: A login ID on a never-activated account routes to **S2-T** (temporary password), not to the normal password step.
-- [ ] R5: The temporary password carries an **expiry date and time** in the agent's local time zone; expiry disables Continue and sends the agent back to the admin.
+- [ ] R5: The temporary password expires **48 hours after it is issued**. The expiry date and time render in the reader's local time zone and are printed on S2-T, A1 and A3; expiry disables Continue and sends the agent back to the admin. (Source: the 2026-10-05 Figma round, which states *“Expires on 7 Oct 2026 at 10:42 (48 hours).”* on all three password modals. The v3 handoff left the window undefined.)
 - [ ] R6: **S3** collects first and last name (pre-filled from the import, editable, **side by side**) plus the new password; the line under the heading carries the login ID where production shows the email address.
 - [ ] R7: **S4** issues **8 recovery codes** in `XXXX-XXXX`, two columns of chips, shown once, with Copy codes and Download, and a confirmation checkbox that gates Continue.
 - [ ] R8: If the agent leaves S4 before ticking the checkbox, a **new set is generated at the next sign-in** and S4 shows again.
@@ -288,21 +289,21 @@ Recorded on the **Open questions** board at the bottom of the Figma section.
 - **Status label — narrowed.** The CEH user manual is explicit that production runs **Invited → Enabled**, and **Disabled** after Revoke Access. The handoff's "Pending Activation / INVITED" is almost certainly just *Invited*. Still needs the sign-off the handoff asks for, but it is no longer a guess.
 - **The admin row menu — answered.** Production has **Edit User** and **Re-Invite User** (for users still showing Invited, confirmed by an "Invitation Sent!" pop-up). *Issue temporary password* is a third item beside them. Open only: whether it replaces Re-Invite User for login-ID accounts, which have no inbox.
 - **Where first sign-in lands — partly answered.** v4 mocks it as the Learning Hub landing reading "3 assigned personas / 0 completed" — the normal agent homepage in its first-visit state, not a bespoke welcome screen.
+- **Temporary-password lifetime — answered.** The 2026-10-05 Figma round states **48 hours** on all three password modals (*“Expires on 7 Oct 2026 at 10:42 (48 hours).”*). S2-T, A1 and A3 each print it, so the value the handoff left undefined now has a number.
 
 ### Open questions
 
 1. **Which Users table is the truth.** Three versions now exist: the Users landing designed on the *Groups, Workspaces & Users* page (Name · Role · Email · Workspaces · Last active), v4's proposal (Name · Login ID / Email · Role · Status · action), and the CEH manual's Settings → User Management → Users. The sub-labels and the three new filters only work on a table with a Status column. Both candidates sit in row 08 so the choice is visible.
-2. **How long is a temporary password valid.** Never stated. v4 shows next-day 18:00; the manual's email precedent is a 30-day invitation link. S2-T, A1 and A3 all print the value, so it needs a number.
-3. **How does an admin create one agent-login user.** Production's New User requires an Email ID; the handoff only describes bulk import, and the import screen — plus its partial-failure state — is designed nowhere.
-4. **CAPTCHA — the sources disagree.** The manual says all users must complete CAPTCHA verification; the handoff says the hidden reCAPTCHA v3 needs nothing from the user. If production shows an interactive challenge, S1 gains a step.
-5. **Error-toast style.** v4 splits failures (light red, bordered) from successes (dark with a green tick); the DataOrb `Snackbar` in this file is dark-only. Either the system gains an error variant or the prototype loses one.
-6. **S4 primary button label.** "Continue" is still the working label in both sources; final label TBD.
-7. **Generate new codes from your profile.** The low-codes toast still points at a profile screen that exists in neither source.
-8. **Tenant picker.** Still unspecified and absent from v4. First decide whether a login-ID account can be multi-tenant at all.
-9. **When does the 90-day clock start.** At import or at password creation on S3? If it runs from import, a newly imported agent can hit expiry on their first sign-in and J1 collides with J6.
-10. **Two error strings marked new, to confirm.** "Passwords don't match." and "Your password doesn't meet all the requirements."
-11. **Recovery-code economics.** Eight codes at issue, a warning at three or fewer, a dead end at zero. Nothing warns the agent between eight and three, and only an admin reset restores the set.
-12. **Revoking an agent-login user.** Production emails the user on revoke. An agent with no email address cannot be told — decide whether that matters.
+2. **How does an admin create one agent-login user.** Production's New User requires an Email ID; the handoff only describes bulk import, and the import screen — plus its partial-failure state — is designed nowhere.
+3. **CAPTCHA — the sources disagree.** The manual says all users must complete CAPTCHA verification; the handoff says the hidden reCAPTCHA v3 needs nothing from the user. If production shows an interactive challenge, S1 gains a step.
+4. **Error-toast style.** v4 splits failures (light red, bordered) from successes (dark with a green tick); the DataOrb `Snackbar` in this file is dark-only. Either the system gains an error variant or the prototype loses one.
+5. **S4 primary button label.** "Continue" is still the working label in both sources; final label TBD.
+6. **Generate new codes from your profile.** The low-codes toast still points at a profile screen that exists in neither source.
+7. **Tenant picker.** Still unspecified and absent from v4. First decide whether a login-ID account can be multi-tenant at all.
+8. **When does the 90-day clock start.** At import or at password creation on S3? If it runs from import, a newly imported agent can hit expiry on their first sign-in and J1 collides with J6.
+9. **Two error strings marked new, to confirm.** "Passwords don't match." and "Your password doesn't meet all the requirements."
+10. **Recovery-code economics.** Eight codes at issue, a warning at three or fewer, a dead end at zero. Nothing warns the agent between eight and three, and only an admin reset restores the set.
+11. **Revoking an agent-login user.** Production emails the user on revoke. An agent with no email address cannot be told — decide whether that matters.
 
 
 ---

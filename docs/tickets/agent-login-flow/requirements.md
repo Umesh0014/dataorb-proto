@@ -20,7 +20,7 @@ is the exception.
 - [ ] R2: Agents are created by **bulk import**; accounts that have never signed in show the invited status (label pending sign-off — see C5).
 - [ ] R3: The login ID and temporary password reach the agent **outside the platform** (supervisor, Slack). No in-app delivery, no in-app request.
 - [ ] R4: A login ID on a never-activated account routes to **S2-T** (temporary password), not to the normal password step.
-- [ ] R5: The temporary password carries an **expiry date and time** in the agent's local time zone; expiry disables Continue and sends the agent back to the admin.
+- [ ] R5: The temporary password expires **48 hours after it is issued**. The expiry date and time render in the reader's local time zone and are printed on S2-T, A1 and A3; expiry disables Continue and sends the agent back to the admin. (Source: the 2026-10-05 Figma round, which states *“Expires on 7 Oct 2026 at 10:42 (48 hours).”* on all three password modals. The v3 handoff left the window undefined.)
 - [ ] R6: **S3** collects first and last name (pre-filled from the import, editable, **side by side**) plus the new password; the line under the heading carries the login ID where production shows the email address.
 - [ ] R7: **S4** issues **8 recovery codes** in `XXXX-XXXX`, two columns of chips, shown once, with Copy codes and Download, and a confirmation checkbox that gates Continue.
 - [ ] R8: If the agent leaves S4 before ticking the checkbox, a **new set is generated at the next sign-in** and S4 shows again.

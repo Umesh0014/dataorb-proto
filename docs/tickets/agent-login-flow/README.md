@@ -38,11 +38,10 @@ journeys are untouched.
 ## Before anyone builds from this
 
 Twelve open questions are listed at the end of `journeys.md` and on the Open questions board in Figma. The
-four that block work:
+three that block work:
 
 - **Which Users table is the truth** — three versions exist across the three sources, and the new status
   sub-labels and filters only work on a table that has a Status column.
-- **How long a temporary password is valid** — never stated, yet three screens print it.
 - **How an admin creates a single agent-login user** — production's New User requires an email address, and
   the bulk-import screen is designed nowhere.
 - **CAPTCHA** — the manual says every user completes a CAPTCHA; the handoff says the hidden reCAPTCHA needs
