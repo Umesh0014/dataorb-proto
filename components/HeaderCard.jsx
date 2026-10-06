@@ -3,6 +3,7 @@
 import React from "react";
 import Card from "./Card";
 import Button from "./Button";
+import DateRangeCalendar from "./DateRangeCalendar";
 
 const DATE_OPTIONS = [
   { label: "Today", type: "radio" },
@@ -13,6 +14,44 @@ const DATE_OPTIONS = [
   { label: "Custom Date Range", type: "submenu" },
   { label: "Compare Periods", type: "special", icon: "compare_arrows" },
 ];
+
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function formatCustomLabel({ start, end }) {
+  if (!start || !end) return "";
+  const startSeg = start.getFullYear() === end.getFullYear()
+    ? `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]}`
+    : `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()}`;
+  return `${startSeg} – ${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+}
+
+// Period-card label collapses month/year when start and end share them.
+// Matches Figma spacing ("5 –17 Aug 2025") with no space after the en-dash.
+// When only the start endpoint is set, shows a trailing dash so the user
+// gets immediate feedback after the first click while the end is awaited.
+function formatPeriodCardLabel({ start, end }) {
+  if (!start) return "";
+  if (!end) {
+    return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()} –`;
+  }
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  const sameYear = start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    return `${start.getDate()} –${end.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()}`;
+  }
+  if (sameYear) {
+    return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} –${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+  }
+  return `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]} ${start.getFullYear()} –${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+}
+
+function formatCompareLabel(primary, compare) {
+  const seg = (r) => `${MONTHS_SHORT[r.start.getMonth()]} ${r.start.getDate()}–${r.end.getDate()}`;
+  return `${seg(primary)} vs ${seg(compare)}`;
+}
 
 export default function HeaderCard({ onFilterToggle }) {
   const [dateValue, setDateValue] = React.useState("Last 12 months");
@@ -29,6 +68,14 @@ export default function HeaderCard({ onFilterToggle }) {
   }, [dateOpen]);
 
   const handleSelect = (label) => { setDateValue(label); setDateOpen(false); };
+  const handleApplyCustom = (range) => {
+    setDateValue(formatCustomLabel(range));
+    setDateOpen(false);
+  };
+  const handleApplyCompare = (primary, compare) => {
+    setDateValue(formatCompareLabel(primary, compare));
+    setDateOpen(false);
+  };
 
   return (
     <Card>
@@ -52,7 +99,13 @@ export default function HeaderCard({ onFilterToggle }) {
             </div>
 
             {dateOpen && (
-              <DateDropdown options={DATE_OPTIONS} selected={dateValue} onSelect={handleSelect} />
+              <DateDropdown
+                options={DATE_OPTIONS}
+                selected={dateValue}
+                onSelect={handleSelect}
+                onApplyCustom={handleApplyCustom}
+                onApplyCompare={handleApplyCompare}
+              />
             )}
           </div>
 
@@ -77,48 +130,238 @@ export default function HeaderCard({ onFilterToggle }) {
   );
 }
 
-function DateDropdown({ options, selected, onSelect }) {
+function DateDropdown({ options, selected, onSelect, onApplyCustom, onApplyCompare }) {
   const [hoveredIdx, setHoveredIdx] = React.useState(-1);
+  const [activeFlyout, setActiveFlyout] = React.useState("none"); // "none" | "custom" | "compare"
+
+  const handleRowClick = (opt) => {
+    if (opt.type === "radio") {
+      onSelect(opt.label);
+      return;
+    }
+    if (opt.type === "submenu") {
+      setActiveFlyout(activeFlyout === "custom" ? "none" : "custom");
+    } else if (opt.type === "special") {
+      setActiveFlyout(activeFlyout === "compare" ? "none" : "compare");
+    }
+  };
+
   return (
-    <div style={ddStyles.container}>
-      <div style={ddStyles.list}>
-        {options.map((opt, i) => {
-          const isSelected = selected === opt.label;
-          const isHovered = hoveredIdx === i;
-          return (
-            <div
-              key={opt.label}
-              style={{ ...ddStyles.row, background: isHovered ? "#F6F5FA" : "transparent" }}
-              onMouseEnter={() => setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(-1)}
-              onClick={() => { if (opt.type === "radio") onSelect(opt.label); }}
-            >
-              {opt.type === "special" ? (
-                <span className="material-symbols-outlined" style={ddStyles.specialIcon}>{opt.icon}</span>
-              ) : (
-                <div style={{
-                  ...ddStyles.radio,
-                  borderColor: isSelected ? "#245BFF" : "#8C90A6",
-                  background: isSelected ? "#245BFF" : "transparent",
+    <>
+      <div style={ddStyles.container}>
+        <div style={ddStyles.list}>
+          {options.map((opt, i) => {
+            const isSelected = selected === opt.label;
+            const isHovered = hoveredIdx === i;
+            const isOpenFlyout =
+              (opt.type === "submenu" && activeFlyout === "custom") ||
+              (opt.type === "special" && activeFlyout === "compare");
+            const bg = isOpenFlyout
+              ? "#EFEFFF"
+              : isHovered
+              ? "#F6F5FA"
+              : "transparent";
+            return (
+              <div
+                key={opt.label}
+                style={{
+                  ...ddStyles.row,
+                  background: bg,
+                  borderRadius: isOpenFlyout || isHovered ? 100 : 0,
+                }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(-1)}
+                onClick={() => handleRowClick(opt)}
+              >
+                {opt.type === "special" ? (
+                  <span className="material-symbols-outlined" style={ddStyles.specialIcon}>{opt.icon}</span>
+                ) : (
+                  <div style={{
+                    ...ddStyles.radio,
+                    borderColor: isSelected ? "#245BFF" : "#8C90A6",
+                    background: isSelected ? "#245BFF" : "transparent",
+                  }}>
+                    {isSelected && <div style={ddStyles.radioDot}></div>}
+                  </div>
+                )}
+
+                <span style={{
+                  ...ddStyles.label,
+                  fontWeight: isSelected || isOpenFlyout ? 600 : 400,
                 }}>
-                  {isSelected && <div style={ddStyles.radioDot}></div>}
-                </div>
-              )}
+                  {opt.label}
+                </span>
 
-              <span style={{
-                ...ddStyles.label,
-                fontWeight: isSelected ? 600 : 400,
-                color: "#1F232A",
-              }}>
-                {opt.label}
-              </span>
+                {(opt.type === "submenu" || opt.type === "special") && (
+                  <span className="material-symbols-outlined" style={ddStyles.chevronRight}>chevron_right</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-              {(opt.type === "submenu" || opt.type === "special") && (
-                <span className="material-symbols-outlined" style={ddStyles.chevronRight}>chevron_right</span>
-              )}
-            </div>
-          );
-        })}
+      {activeFlyout === "custom" && (
+        <CustomRangeFlyout
+          onCancel={() => setActiveFlyout("none")}
+          onApply={(range) => { onApplyCustom(range); setActiveFlyout("none"); }}
+        />
+      )}
+
+      {activeFlyout === "compare" && (
+        <ComparePeriodsFlyout
+          onCancel={() => setActiveFlyout("none")}
+          onApply={(primary, compare) => { onApplyCompare(primary, compare); setActiveFlyout("none"); }}
+        />
+      )}
+    </>
+  );
+}
+
+function CustomRangeFlyout({ onCancel, onApply }) {
+  const today = new Date();
+  const [range, setRange] = React.useState({ start: null, end: null });
+  const [month, setMonth] = React.useState(new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const hasSelection = !!range.start;
+  const isValid = !!(range.start && range.end);
+
+  const handleReset = () => setRange({ start: null, end: null });
+
+  return (
+    <div style={ddStyles.flyout}>
+      <DateRangeCalendar
+        value={range}
+        onChange={setRange}
+        month={month}
+        onMonthChange={setMonth}
+      />
+      <FlyoutFooter
+        primaryLabel="Apply"
+        onPrimary={isValid ? () => onApply(range) : undefined}
+        primaryDisabled={!isValid}
+        onCancel={onCancel}
+        onReset={hasSelection ? handleReset : undefined}
+        resetDisabled={!hasSelection}
+      />
+    </div>
+  );
+}
+
+function ComparePeriodsFlyout({ onCancel, onApply }) {
+  const today = new Date();
+  const [step, setStep] = React.useState("primary"); // "primary" | "compare"
+  const [primary, setPrimary] = React.useState({ start: null, end: null });
+  const [compare, setCompare] = React.useState({ start: null, end: null });
+  const [month, setMonth] = React.useState(new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const activeValue = step === "primary" ? primary : compare;
+  const setActiveValue = step === "primary" ? setPrimary : setCompare;
+
+  const primaryValid = !!(primary.start && primary.end);
+  const compareValid = !!(compare.start && compare.end);
+  const stepValid = step === "primary" ? primaryValid : compareValid;
+  const hasAny = !!(primary.start || compare.start);
+
+  const handleReset = () => {
+    setPrimary({ start: null, end: null });
+    setCompare({ start: null, end: null });
+    setStep("primary");
+  };
+
+  const handlePrimary = () => {
+    if (step === "primary") setStep("compare");
+    else onApply(primary, compare);
+  };
+
+  const hintText = step === "primary"
+    ? "Select your primary date range below."
+    : "Now select the period to compare against.";
+
+  return (
+    <div style={ddStyles.flyout}>
+      <div style={ddStyles.compareTop}>
+        <div style={ddStyles.compareTitle}>Compare Periods</div>
+        <div style={ddStyles.periodRow}>
+          <PeriodCard
+            label="Primary Period"
+            range={primary}
+            active={step === "primary"}
+            disabled={false}
+          />
+          <PeriodCard
+            label="Compare Against"
+            range={compare}
+            active={step === "compare"}
+            disabled={step === "primary" && !primaryValid}
+          />
+        </div>
+        <div style={ddStyles.hintBanner}>
+          <span style={ddStyles.hintText}>{hintText}</span>
+        </div>
+      </div>
+
+      <DateRangeCalendar
+        value={activeValue}
+        onChange={setActiveValue}
+        month={month}
+        onMonthChange={setMonth}
+      />
+
+      <FlyoutFooter
+        primaryLabel={step === "primary" ? "Next" : "Apply Comparison"}
+        onPrimary={stepValid ? handlePrimary : undefined}
+        primaryDisabled={!stepValid}
+        onCancel={onCancel}
+        onReset={hasAny ? handleReset : undefined}
+        resetDisabled={!hasAny}
+      />
+    </div>
+  );
+}
+
+function PeriodCard({ label, range, active, disabled }) {
+  const hasStart = !!range.start;
+  const valueText = hasStart ? formatPeriodCardLabel(range) : "Select date";
+  return (
+    <div style={{
+      ...ddStyles.periodCard,
+      borderColor: active ? "var(--color-button-primary-bg)" : "var(--color-border-tab)",
+      opacity: disabled ? 0.5 : 1,
+    }}>
+      <div style={ddStyles.periodLabel}>{label}</div>
+      <div style={{
+        ...ddStyles.periodValue,
+        color: hasStart ? "var(--color-text-deep)" : "var(--color-text-tertiary)",
+      }}>
+        {valueText}
+      </div>
+    </div>
+  );
+}
+
+function FlyoutFooter({ primaryLabel, onPrimary, primaryDisabled, onCancel, onReset, resetDisabled }) {
+  return (
+    <div style={ddStyles.footer}>
+      <Button
+        variant="text"
+        uppercase={false}
+        disabled={resetDisabled}
+        onClick={onReset}
+      >
+        Reset
+      </Button>
+      <div style={ddStyles.footerRight}>
+        <Button variant="text" uppercase={false} onClick={onCancel}>Cancel</Button>
+        <Button
+          variant="text"
+          uppercase={false}
+          disabled={primaryDisabled}
+          onClick={onPrimary}
+          style={{ color: primaryDisabled ? undefined : "var(--color-button-primary-bg)", fontWeight: 700 }}
+        >
+          {primaryLabel}
+        </Button>
       </div>
     </div>
   );
@@ -141,7 +384,7 @@ const ddStyles = {
     boxShadow: "0px 5px 5px -3px rgba(0,0,0,0.20), 0px 8px 10px 1px rgba(0,0,0,0.14), 0px 3px 14px 2px rgba(0,0,0,0.12)",
     zIndex: 50, overflow: "hidden",
   },
-  list: { padding: "4px 0" },
+  list: { padding: 12, display: "flex", flexDirection: "column", gap: 4 },
   row: {
     display: "flex", alignItems: "center", gap: 16,
     padding: "14px 20px", cursor: "pointer", transition: "background 150ms",
@@ -152,17 +395,65 @@ const ddStyles = {
   },
   radioDot: { width: 8, height: 8, borderRadius: 4, background: "#FFFFFF" },
   specialIcon: {
-    fontSize: 20, color: "#1F232A",
+    fontSize: 20, color: "var(--do-ink)",
     fontVariationSettings: "'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24",
   },
   label: {
-    fontFamily: '"Mulish", sans-serif', fontSize: 15, color: "#1F232A",
+    fontFamily: '"Mulish", sans-serif', fontSize: 15, color: "var(--do-ink)",
     flex: 1, lineHeight: 1.4,
   },
   chevronRight: {
-    fontSize: 20, color: "#8C90A6",
+    fontSize: 20, color: "var(--color-text-tertiary)",
     fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
   },
+
+  flyout: {
+    position: "absolute", top: "calc(100% + 8px)", left: 336, width: 391,
+    background: "#FFFFFF", borderRadius: 12,
+    border: "1px solid var(--color-border-tab)",
+    boxShadow: "0px 2px 4px rgba(69,70,79,0.15)",
+    zIndex: 50, overflow: "hidden",
+    display: "flex", flexDirection: "column",
+  },
+  compareTop: {
+    display: "flex", flexDirection: "column", gap: 12,
+    padding: "16px 16px 8px",
+  },
+  compareTitle: {
+    fontFamily: '"Mulish", sans-serif', fontSize: 12, fontWeight: 700,
+    color: "var(--color-text-medium)", letterSpacing: "0.04em",
+  },
+  periodRow: { display: "flex", gap: 12 },
+  periodCard: {
+    flex: 1,
+    display: "flex", flexDirection: "column", gap: 2,
+    padding: 8, borderRadius: 4,
+    border: "1px solid var(--color-border-tab)",
+    background: "#FFFFFF",
+    transition: "border-color 150ms, opacity 150ms",
+  },
+  periodLabel: {
+    fontFamily: '"Mulish", sans-serif', fontSize: 11, fontWeight: 500,
+    color: "var(--color-text-medium)",
+  },
+  periodValue: {
+    fontFamily: '"Mulish", sans-serif', fontSize: 13, fontWeight: 600,
+  },
+  hintBanner: {
+    padding: "8px 12px", borderRadius: 4,
+    background: "var(--color-card-emoji-bg)",
+  },
+  hintText: {
+    fontFamily: '"Mulish", sans-serif', fontSize: 12, fontWeight: 400,
+    color: "var(--color-text-medium)",
+  },
+
+  footer: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: 12,
+    borderTop: "1px solid var(--color-border-tab)",
+  },
+  footerRight: { display: "flex", alignItems: "center", gap: 8 },
 };
 
 const hcStyles = {
